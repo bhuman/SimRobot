@@ -1,0 +1,87 @@
+#!/bin/bash
+# Generate Xcode project using CMake
+
+cd "$(dirname "$(which "$0")")"
+
+PROJECTDIR=../../Build/macOS
+PROJECTPATH=../../Build/macOS/SimRobot.xcodeproj
+PLIST="/usr/libexec/PlistBuddy -c"
+TEMPPATH=/tmp/generate.tmp
+
+# Create a symbolic link to cmake
+if [ ! -e "./cmake" ]; then
+  echo -n "Searching for CMake... "
+  while read file; do
+    if [ -f "$file/Contents/bin/cmake" ]; then
+      ln -sf "$file/Contents/bin/cmake" cmake
+    fi
+  done <<<"$(/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -dump \
+  | grep "^[ 	]*path:" \
+  | grep "CMake" \
+  | sed -e "s%[ 	]*path: *%%" -e "s% (.*%%")"
+
+  # Could the link be created?
+  if [ -e "./cmake" ]; then
+    echo "Found."
+  else
+    echo "Not found."
+    exit 1
+  fi
+fi
+
+# Create project
+./cmake -G Xcode -S ../Common -B $PROJECTDIR
+
+# Remove some unwanted folders and files from project tree
+( sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/q;p' \
+  | grep -v "_autogen \*/,$" \
+  | grep -v "CMakeLists.txt \*/,$" \
+  | grep -v "ALL_BUILD \*/,$" \
+  ; sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/,$p' ) \
+  | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
+    -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
+    -e 's%make -C %make -sC %g' >$TEMPPATH \
+&& mv $TEMPPATH $PROJECTPATH/project.pbxproj
+
+# Create the three schemes from the ones CMake created. Patch in the target for
+# profiling. Disable GPU validation to suppress some output.
+# Deactivate some building targets.
+SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
+SCHEMETEMPLATE=$SCHEMEDIR/SimRobot.xcscheme
+(
+  sed <$SCHEMETEMPLATE -n '/debugDocumentVersioning="YES"\/>/q;p'
+  echo '      debugDocumentVersioning="YES">'
+  sed <$SCHEMETEMPLATE -n '/BuildableProductRunnable/,/\/BuildableProductRunnable/p;/\/BuildableProductRunnable/q'
+  echo '   </ProfileAction>'
+  sed <$SCHEMETEMPLATE -n '1,/debugDocumentVersioning="YES"\/>/!p'
+) \
+| sed >$TEMPPATH \
+  -e 's%launchStyle *= *"0"%launchStyle = "0" enableGPUValidationMode = "1"%' \
+  -e 's%buildConfiguration *= *".*"%buildConfiguration="Debug"%'
+mv $TEMPPATH $SCHEMEDIR/Debug.xcscheme
+rm $SCHEMETEMPLATE
+sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration="Develop"%'
+mv $TEMPPATH $SCHEMEDIR/Develop.xcscheme
+sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration="Release"%'
+mv $TEMPPATH $SCHEMEDIR/Release.xcscheme
+
+# Avoid automatically creating schemes for all targets
+SETTINGSPATH=$PROJECTPATH/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+$PLIST "Set :IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded false" $SETTINGSPATH 2>/dev/null \
+|| $PLIST "Add :IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded bool false" $SETTINGSPATH
+
+# Force Xcode to use Build directory
+SETTINGSDIR=$PROJECTPATH/project.xcworkspace/xcuserdata/$USER.xcuserdatad
+SETTINGSPATH=$SETTINGSDIR/WorkspaceSettings.xcsettings
+mkdir -p "$SETTINGSDIR"
+$PLIST "Set :BuildLocationStyle CustomLocation" $SETTINGSPATH >/dev/null 2>>/dev/null || $PLIST "Add :BuildLocationStyle string CustomLocation" $SETTINGSPATH  >/dev/null
+$PLIST "Set :CustomBuildIntermediatesPath ../../Build/macOS" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildIntermediatesPath string ../../Build/macOS" $SETTINGSPATH 
+$PLIST "Set :CustomBuildLocationType RelativeToWorkspace" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildLocationType string RelativeToWorkspace" $SETTINGSPATH
+$PLIST "Set :CustomBuildProductsPath ../../Build/macOS" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildProductsPath string ../../Build/macOS" $SETTINGSPATH
+$PLIST "Set :DerivedDataLocationStyle Default" $SETTINGSPATH 2>/dev/null || $PLIST "Add :DerivedDataLocationStyle string Default" $SETTINGSPATH
+
+# Disable App Nap for SimRobot
+defaults write org.B-Human.SimRobot NSAppSleepDisabled -bool YES
+
+# Create symbolic link to Xcode project
+ln -sf $PROJECTPATH .

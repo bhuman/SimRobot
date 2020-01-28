@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+  <file>Icons/brick.png</file>
+  <file>Icons/bricks.png</file>
+  <file>Icons/camera.png</file>
+  <file>Icons/dragPlane.png</file>
+</qresource>
+</RCC>
