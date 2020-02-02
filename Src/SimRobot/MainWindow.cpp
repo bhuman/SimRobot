@@ -963,7 +963,7 @@ bool MainWindow::closeFile()
   openedObjects.clear();
   openedObjectsByName.clear();
 
-  // remove registered status lables and modules
+  // remove registered status labels and modules
   statusBar->removeAllLabels();
   registeredModules.clear();
 
@@ -1027,7 +1027,7 @@ void MainWindow::simReset()
   updateMenuAndToolBar();
   setFocus();
 
-  // remove all registered status labes and modules and most registered objects
+  // remove all registered status labels and modules and most registered objects
   QSet<const SimRobot::Module*> ignoredModules;
   if(sceneGraphDockWidget)
     for(LoadedModule* loadedModule : loadedModules)
