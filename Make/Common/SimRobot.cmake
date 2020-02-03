@@ -53,7 +53,7 @@ set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobot PRIVATE Qt5::Core Qt5::Gui Qt5::Svg Qt5::Widgets)
 if(APPLE)
-target_link_libraries(SimRobot PRIVATE OpenGL::GL Qt5::OpenGL)
+target_link_libraries(SimRobot PRIVATE Qt5::OpenGL)
 endif()
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
