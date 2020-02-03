@@ -21,6 +21,9 @@ public:
   /** Default constructor */
   GraphicalObject() : initializedContexts(0), listId(0) {}
 
+  /** Destructor. */
+  ~GraphicalObject();
+
   /**
   * Prepares the object and the currently selected OpenGL context for drawing the object.
   * Loads textures and creates display lists. Hence, this function is called for each OpenGL

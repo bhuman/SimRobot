@@ -11,6 +11,12 @@
 #include "Simulation/GraphicalObject.h"
 #include "Platform/Assert.h"
 
+GraphicalObject::~GraphicalObject()
+{
+  if(listId)
+    glDeleteLists(listId, 1);
+}
+
 void GraphicalObject::createGraphics()
 {
   ++initializedContexts;
