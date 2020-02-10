@@ -7,6 +7,7 @@ PROJECTDIR=../../Build/macOS
 PROJECTPATH=../../Build/macOS/SimRobot.xcodeproj
 PLIST="/usr/libexec/PlistBuddy -c"
 TEMPPATH=/tmp/generate.tmp
+TEMPPATH2=/tmp/generate2.tmp
 
 # Create a symbolic link to cmake
 if [ ! -e "./cmake" ]; then
@@ -40,8 +41,20 @@ fi
   ; sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/,$p' ) \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
-    -e 's%make -C %make -sC %g' >$TEMPPATH \
-&& mv $TEMPPATH $PROJECTPATH/project.pbxproj
+    -e 's%make -C %make -sC %g' >$TEMPPATH
+# Sort folders Libs
+for NUM in 1 2; do
+  BEFORE=$(($(grep <$TEMPPATH -Fnm $NUM '/* Libs */ =' | tail -1 | sed 's%:.*%%') + 2))
+  SIZE=$(($(tail <$TEMPPATH +$(($BEFORE + 1)) | grep -Fnm 1 ");" | sed 's%:.*%%') - 1))
+  AFTER=$(($BEFORE + $SIZE + 1))
+  (
+    head <$TEMPPATH -$BEFORE
+    tail <$TEMPPATH +$(($BEFORE + 1)) | head -$SIZE | sort -fk 2
+    tail <$TEMPPATH +$AFTER
+  ) >$TEMPPATH2 \
+  && mv $TEMPPATH2 $TEMPPATH
+done
+mv $TEMPPATH $PROJECTPATH/project.pbxproj
 
 # Create the three schemes from the ones CMake created. Patch in the target for
 # profiling. Disable GPU validation to suppress some output.
