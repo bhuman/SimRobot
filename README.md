@@ -47,4 +47,4 @@ Run `Make/macOS/generate` and then open `Make/macOS/SimRobot.xcodeproj`. Select 
 
 ## Opening a Scene File
 
-After SimRobot is started, an example scene file in `Scenes` can be opened. Then, different parts of the scene tree can be opened by double-clicking them.
+After SimRobot is started, an example scene file in `Scenes` can be opened. Then, different parts of the scene graph can be opened by double-clicking them.
