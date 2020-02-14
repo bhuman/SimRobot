@@ -97,6 +97,19 @@ protected:
    */
   void move(const float* position, float rotation) override;
 
+  /**
+   * Sets the linear velocity of the body.
+   * @param velocity The new linear velocity of the body.
+   */
+  void setVelocity(const float* velocity) override;
+
+  /**
+   * Sets the linear and angular velocity of the body.
+   * @param linear The new linear velocity of the body.
+   * @param angular The new angular velocity of the body.
+   */
+  void setVelocity(const float* linear, float angular) override;
+
   /** Resets the linear and angular velocity of this body and all its children. */
   void resetDynamics() override;
 

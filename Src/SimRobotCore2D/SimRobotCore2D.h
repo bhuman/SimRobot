@@ -122,6 +122,19 @@ namespace SimRobotCore2D
      */
     virtual void move(const float* position, float rotation) = 0;
 
+    /**
+     * Sets the linear velocity of the body.
+     * @param velocity The new linear velocity of the body.
+     */
+    virtual void setVelocity(const float* velocity) = 0;
+
+    /**
+     * Sets the linear and angular velocity of the body.
+     * @param linear The new linear velocity of the body.
+     * @param angular The new angular velocity of the body.
+     */
+    virtual void setVelocity(const float* linear, float angular) = 0;
+
     /** Resets the linear and angular velocity of this body and all its children. */
     virtual void resetDynamics() = 0;
 

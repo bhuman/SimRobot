@@ -162,6 +162,17 @@ void Body::move(const float* position, float rotation)
   body->SetTransform(b2Vec2(position[0], position[1]), rotation);
 }
 
+void Body::setVelocity(const float* velocity)
+{
+  body->SetLinearVelocity(b2Vec2(velocity[0], velocity[1]));
+}
+
+void Body::setVelocity(const float* linear, float angular)
+{
+  body->SetLinearVelocity(b2Vec2(linear[0], linear[1]));
+  body->SetAngularVelocity(angular);
+}
+
 void Body::resetDynamics()
 {
   body->SetLinearVelocity(b2Vec2_zero);
