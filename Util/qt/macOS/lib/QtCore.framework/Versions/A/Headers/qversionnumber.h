@@ -159,15 +159,10 @@ class QVersionNumber
         int size() const Q_DECL_NOTHROW
         { return isUsingPointer() ? pointer_segments->size() : (inline_segments[InlineSegmentMarker] >> 1); }
 
-QT_WARNING_PUSH
-QT_WARNING_DISABLE_CLANG("-Wimplicit-int-conversion")
-
         void setInlineSize(int len)
         { inline_segments[InlineSegmentMarker] = 1 + 2 * len; }
 
-QT_WARNING_POP
-
-          void resize(int len)
+        void resize(int len)
         {
             if (isUsingPointer())
                 pointer_segments->resize(len);

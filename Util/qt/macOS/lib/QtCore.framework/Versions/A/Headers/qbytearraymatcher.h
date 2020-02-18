@@ -83,9 +83,6 @@ private:
     };
 };
 
-QT_WARNING_PUSH
-QT_WARNING_DISABLE_CLANG("-Wimplicit-int-conversion")
-
 class QStaticByteArrayMatcherBase
 {
     Q_DECL_ALIGN(16)
@@ -136,8 +133,6 @@ private:
         return table;
     }
 };
-
-QT_WARNING_POP
 
 template <uint N>
 class QStaticByteArrayMatcher : QStaticByteArrayMatcherBase
