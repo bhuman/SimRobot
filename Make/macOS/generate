@@ -36,9 +36,9 @@ fi
 # Remove some unwanted folders and files from project tree
 ( sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/q;p' \
   | grep -v "_autogen \*/,$" \
-  | grep -v "CMakeLists.txt \*/,$" \
+  | grep -v "CMakeLists.txt \*/,$"
+  sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/,$p' ) \
   | grep -v "ALL_BUILD \*/,$" \
-  ; sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/,$p' ) \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
     -e 's%make -C %make -sC %g' >$TEMPPATH
