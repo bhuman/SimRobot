@@ -217,6 +217,16 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
     }
   }
 
+  // Expand paths in attributes.
+  if(elementInfo->elementClass == sceneClass)
+  {
+    Attributes::iterator iter = attributes.find("background");
+    if(iter != attributes.end() && !iter->second.value.empty() &&
+       iter->second.value[0] != '/' && iter->second.value[0] != '\\' && // not absolute path on Unix
+       (iter->second.value.size() < 2 || iter->second.value[1] != ':')) // or Windows
+      iter->second.value = parseRootDir + iter->second.value;
+  }
+
   // All children of the Simulation element are macros.
   if(recordingMacroElement)
   {
@@ -1065,6 +1075,7 @@ Element* Parser::sceneElement()
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
   scene->velocityIterations = getIntegerNonZeroPositive("velocityIterations", false, 8);
   scene->positionIterations = getIntegerNonZeroPositive("positionIterations", false, 3);
+  scene->background = getString("background", false);
 
   ASSERT(!Simulation::simulation->scene);
   Simulation::simulation->scene = scene;

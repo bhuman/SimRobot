@@ -10,9 +10,27 @@
 #include "Simulation/Body.h"
 #include "Simulation/Simulation.h"
 #include "CoreModule.h"
+#include <QPainter>
+
+void Scene::createPhysics()
+{
+  if(!background.empty())
+    backgroundRenderer.load(QString::fromStdString(background));
+  ::PhysicalObject::createPhysics();
+}
 
 void Scene::drawPhysics(QPainter& painter) const
 {
+  if(!background.empty())
+  {
+    painter.save();
+    const QRectF viewBox = backgroundRenderer.viewBoxF();
+    painter.setTransform(QTransform::fromTranslate(-viewBox.width() / 2, -viewBox.height() / 2).
+                         scale(viewBox.width() / painter.device()->width(), viewBox.height() / painter.device()->height()),
+                         true);
+    backgroundRenderer.render(&painter);
+    painter.restore();
+  }
   for(const Body* body : bodies)
     body->drawPhysics(painter);
   ::PhysicalObject::drawPhysics(painter);
