@@ -41,7 +41,9 @@ fi
   | grep -v "ALL_BUILD \*/,$" \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
-    -e 's%make -C %make -sC %g' >$TEMPPATH
+    -e 's%make -C %make -sC %g' \
+    -e 's%[[:<:]]HEADER_SEARCH_PATHS%USER_HEADER_SEARCH_PATHS%' >$TEMPPATH
+
 # Sort folders Libs
 for NUM in 1 2; do
   BEFORE=$(($(grep <$TEMPPATH -Fnm $NUM '/* Libs */ =' | tail -1 | sed 's%:.*%%') + 2))
