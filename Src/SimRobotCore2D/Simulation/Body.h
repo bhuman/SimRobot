@@ -98,6 +98,19 @@ protected:
   void move(const float* position, float rotation) override;
 
   /**
+   * Fills the linear velocity of the body in world coordinates.
+   * @param velocity The linear velocity of the body.
+   */
+  void getVelocity(float* velocity) const override;
+
+  /**
+   * Fills the velocity of the body in world coordinates.
+   * @param linear The linear velocity of the body.
+   * @param angular The angular velocity of the body.
+   */
+  void getVelocity(float* linear, float* angular) const override;
+
+  /**
    * Sets the linear velocity of the body.
    * @param velocity The new linear velocity of the body.
    */

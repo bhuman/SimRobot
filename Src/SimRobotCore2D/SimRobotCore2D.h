@@ -123,6 +123,19 @@ namespace SimRobotCore2D
     virtual void move(const float* position, float rotation) = 0;
 
     /**
+     * Fills the linear velocity of the body in world coordinates.
+     * @param velocity The linear velocity of the body.
+     */
+    virtual void getVelocity(float* velocity) const = 0;
+
+    /**
+     * Fills the velocity of the body in world coordinates.
+     * @param linear The linear velocity of the body.
+     * @param angular The angular velocity of the body.
+     */
+    virtual void getVelocity(float* linear, float* angular) const = 0;
+
+    /**
      * Sets the linear velocity of the body.
      * @param velocity The new linear velocity of the body.
      */
