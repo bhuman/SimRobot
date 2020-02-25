@@ -63,18 +63,19 @@ mv $TEMPPATH $PROJECTPATH/project.pbxproj
 # Deactivate some building targets.
 SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
 SCHEMETEMPLATE=$SCHEMEDIR/SimRobot.xcscheme
+sed <$SCHEMETEMPLATE >$TEMPPATH2 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
+   </ProfileAction>%'
+rm $SCHEMETEMPLATE
 (
-  sed <$SCHEMETEMPLATE -n '/debugDocumentVersioning *= *"YES"\/>/q;p'
-  echo '      debugDocumentVersioning = "YES">'
-  sed <$SCHEMETEMPLATE -n '/BuildableProductRunnable/,/\/BuildableProductRunnable/p;/\/BuildableProductRunnable/q'
-  echo '   </ProfileAction>'
-  sed <$SCHEMETEMPLATE -n '1,/debugDocumentVersioning *= *"YES"\/>/!p'
+  sed <$TEMPPATH2 -n '/<\/ProfileAction>/q;p'
+  sed <$TEMPPATH2 -n '/BuildableProductRunnable/,/\/BuildableProductRunnable/p;/\/BuildableProductRunnable/q'
+  sed <$TEMPPATH2 -n '/<\/ProfileAction>/,$p'
 ) \
 | sed >$TEMPPATH \
   -e 's%launchStyle *= *"0"%launchStyle = "0" enableGPUValidationMode = "1"%' \
   -e 's%buildConfiguration *= *".*"%buildConfiguration = "Debug"%'
+rm $TEMPPATH2
 mv $TEMPPATH $SCHEMEDIR/Debug.xcscheme
-rm $SCHEMETEMPLATE
 sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration = "Develop"%'
 mv $TEMPPATH $SCHEMEDIR/Develop.xcscheme
 sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration = "Release"%'
