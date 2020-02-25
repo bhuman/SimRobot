@@ -4,7 +4,7 @@
 cd "$(dirname "$(which "$0")")"
 
 PROJECTDIR=../../Build/macOS
-PROJECTPATH=../../Build/macOS/SimRobot.xcodeproj
+PROJECTPATH=$PROJECTDIR/SimRobot.xcodeproj
 PLIST="/usr/libexec/PlistBuddy -c"
 TEMPPATH=/tmp/generate.tmp
 TEMPPATH2=/tmp/generate2.tmp
@@ -64,20 +64,20 @@ mv $TEMPPATH $PROJECTPATH/project.pbxproj
 SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
 SCHEMETEMPLATE=$SCHEMEDIR/SimRobot.xcscheme
 (
-  sed <$SCHEMETEMPLATE -n '/debugDocumentVersioning="YES"\/>/q;p'
-  echo '      debugDocumentVersioning="YES">'
+  sed <$SCHEMETEMPLATE -n '/debugDocumentVersioning *= *"YES"\/>/q;p'
+  echo '      debugDocumentVersioning = "YES">'
   sed <$SCHEMETEMPLATE -n '/BuildableProductRunnable/,/\/BuildableProductRunnable/p;/\/BuildableProductRunnable/q'
   echo '   </ProfileAction>'
-  sed <$SCHEMETEMPLATE -n '1,/debugDocumentVersioning="YES"\/>/!p'
+  sed <$SCHEMETEMPLATE -n '1,/debugDocumentVersioning *= *"YES"\/>/!p'
 ) \
 | sed >$TEMPPATH \
   -e 's%launchStyle *= *"0"%launchStyle = "0" enableGPUValidationMode = "1"%' \
-  -e 's%buildConfiguration *= *".*"%buildConfiguration="Debug"%'
+  -e 's%buildConfiguration *= *".*"%buildConfiguration = "Debug"%'
 mv $TEMPPATH $SCHEMEDIR/Debug.xcscheme
 rm $SCHEMETEMPLATE
-sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration="Develop"%'
+sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration = "Develop"%'
 mv $TEMPPATH $SCHEMEDIR/Develop.xcscheme
-sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration="Release"%'
+sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration = "Release"%'
 mv $TEMPPATH $SCHEMEDIR/Release.xcscheme
 
 # Avoid automatically creating schemes for all targets
