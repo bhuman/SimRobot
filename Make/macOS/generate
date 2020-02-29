@@ -33,16 +33,22 @@ fi
 # Create project
 ./cmake -G Xcode -S ../Common -B $PROJECTDIR
 
+# Assign folders to most source groups
+tr <$PROJECTPATH/project.pbxproj '\n' '~' \
+| sed 's%\(isa = PBXGroup;~[^)]*/\* \)\(/[^*]*\)\(/[^*]*\)\( \*/,[^<]*\)<group>";%\1\2\3\4<absolute>";~			path = "\2";%g'\
+| tr '~' '\n' >$TEMPPATH2
+
 # Remove some unwanted folders and files from project tree
-( sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/q;p' \
+( sed  <$TEMPPATH2 -n '/targets = (/q;p' \
   | grep -v "_autogen \*/,$" \
   | grep -v "CMakeLists.txt \*/,$"
-  sed  <$PROJECTPATH/project.pbxproj -n '/targets = (/,$p' ) \
+  sed  <$TEMPPATH2 -n '/targets = (/,$p' ) \
   | grep -v "ALL_BUILD \*/,$" \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
     -e 's%make -C %make -sC %g' \
     -e 's%[[:<:]]HEADER_SEARCH_PATHS%USER_HEADER_SEARCH_PATHS%' >$TEMPPATH
+rm $TEMPPATH2
 
 # Sort folders Libs
 for NUM in 1 2; do
