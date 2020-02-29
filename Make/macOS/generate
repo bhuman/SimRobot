@@ -34,14 +34,14 @@ fi
 ./cmake -G Xcode -S ../Common -B $PROJECTDIR
 
 # Assign folders to most source groups
-tr <$PROJECTPATH/project.pbxproj '\n' '~' \
+grep  <$PROJECTPATH/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
+| tr '\n' '~' \
 | sed 's%\(isa = PBXGroup;~[^)]*/\* \)\(/[^*]*\)\(/[^*]*\)\( \*/,[^<]*\)<group>";%\1\2\3\4<absolute>";~			path = "\2";%g'\
 | tr '~' '\n' >$TEMPPATH2
 
 # Remove some unwanted folders and files from project tree
 ( sed  <$TEMPPATH2 -n '/targets = (/q;p' \
-  | grep -v "_autogen \*/,$" \
-  | grep -v "CMakeLists.txt \*/,$"
+  | grep -v "_autogen \*/,$"
   sed  <$TEMPPATH2 -n '/targets = (/,$p' ) \
   | grep -v "ALL_BUILD \*/,$" \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
