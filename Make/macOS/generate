@@ -30,6 +30,18 @@ if [ ! -e "./cmake" ]; then
   fi
 fi
 
+# Determine directories that do not directly contain files.
+DIRONLY="$(for dir in $(find ../../Src -type d); do \
+  if [ -z "$(find "$dir" -depth 1 -type f -name "[^.]*")" ]; then \
+    echo "$dir"; \
+  fi; \
+done)"
+
+# Create a dummy file in directories that do not contain one.
+while read dir; do
+  touch "$dir/DUMMY_FILE.h"
+done <<<"$DIRONLY"
+
 # Create project
 ./cmake -G Xcode -S ../Common -B $PROJECTDIR
 
@@ -44,6 +56,7 @@ grep  <$PROJECTPATH/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
   | grep -v "_autogen \*/,$"
   sed  <$TEMPPATH2 -n '/targets = (/,$p' ) \
   | grep -v "ALL_BUILD \*/,$" \
+  | grep -v "DUMMY_FILE.h" \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
     -e 's%make -C %make -sC %g' \
@@ -71,7 +84,6 @@ SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
 SCHEMETEMPLATE=$SCHEMEDIR/SimRobot.xcscheme
 sed <$SCHEMETEMPLATE >$TEMPPATH2 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
    </ProfileAction>%'
-rm $SCHEMETEMPLATE
 (
   sed <$TEMPPATH2 -n '/<\/ProfileAction>/q;p'
   sed <$TEMPPATH2 -n '/BuildableProductRunnable/,/\/BuildableProductRunnable/p;/\/BuildableProductRunnable/q'
@@ -86,6 +98,20 @@ sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buil
 mv $TEMPPATH $SCHEMEDIR/Develop.xcscheme
 sed <$SCHEMEDIR/Debug.xcscheme >$TEMPPATH 's%buildConfiguration *= *"Debug"%buildConfiguration = "Release"%'
 mv $TEMPPATH $SCHEMEDIR/Release.xcscheme
+
+# Remove dummy files created before.
+while read dir; do
+  rm "$dir/DUMMY_FILE.h"
+done <<<"$DIRONLY"
+
+# Wait in case Xcode rewrites the file we are about to delete
+sleep 1
+
+# Delete temporary file
+rm $SCHEMETEMPLATE
+
+# Create symbolic link to Xcode project
+ln -sf $PROJECTPATH .
 
 # Avoid automatically creating schemes for all targets
 SETTINGSPATH=$PROJECTPATH/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
@@ -104,6 +130,3 @@ $PLIST "Set :DerivedDataLocationStyle Default" $SETTINGSPATH 2>/dev/null || $PLI
 
 # Disable App Nap for SimRobot
 defaults write org.B-Human.SimRobot NSAppSleepDisabled -bool YES
-
-# Create symbolic link to Xcode project
-ln -sf $PROJECTPATH .
