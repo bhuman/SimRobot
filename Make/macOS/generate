@@ -5,6 +5,7 @@ cd "$(dirname "$(which "$0")")"
 
 PROJECTDIR=../../Build/macOS
 PROJECTPATH=$PROJECTDIR/SimRobot.xcodeproj
+PROJECTSRC=$PROJECTDIR/SimRobot-temp.xcodeproj
 PLIST="/usr/libexec/PlistBuddy -c"
 TEMPPATH=/tmp/generate.tmp
 TEMPPATH2=/tmp/generate2.tmp
@@ -46,7 +47,8 @@ done <<<"$DIRONLY"
 ./cmake -G Xcode -S ../Common -B $PROJECTDIR
 
 # Assign folders to most source groups
-grep  <$PROJECTPATH/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
+grep  <$PROJECTSRC/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
+| sed 's%SimRobot-temp%SimRobot%' \
 | tr '\n' '~' \
 | sed 's%\(isa = PBXGroup;~[^)]*/\* \)\(/[^*]*\)\(/[^*]*\)\( \*/,[^<]*\)<group>";%\1\2\3\4<absolute>";~			path = "\2";%g'\
 | tr '~' '\n' >$TEMPPATH2
@@ -75,14 +77,21 @@ for NUM in 1 2; do
   ) >$TEMPPATH2 \
   && mv $TEMPPATH2 $TEMPPATH
 done
+mkdir -p $PROJECTPATH
 mv $TEMPPATH $PROJECTPATH/project.pbxproj
+
+# Prepare creating schemes
+SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
+SCHEMESRC=$PROJECTSRC/xcshareddata/xcschemes
+mkdir -p $SCHEMEDIR
 
 # Create the three schemes from the ones CMake created. Patch in the target for
 # profiling. Disable GPU validation to suppress some output.
 # Deactivate some building targets.
-SCHEMEDIR=$PROJECTPATH/xcshareddata/xcschemes
-SCHEMETEMPLATE=$SCHEMEDIR/SimRobot.xcscheme
-sed <$SCHEMETEMPLATE >$TEMPPATH2 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
+SCHEMETEMPLATE=$SCHEMESRC/SimRobot.xcscheme
+sed <$SCHEMETEMPLATE >$TEMPPATH2 \
+-e 's%SimRobot-temp%SimRobot%' \
+-e 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
    </ProfileAction>%'
 (
   sed <$TEMPPATH2 -n '/<\/ProfileAction>/q;p'
@@ -104,19 +113,15 @@ while read dir; do
   rm "$dir/DUMMY_FILE.h"
 done <<<"$DIRONLY"
 
-# Wait in case Xcode rewrites the file we are about to delete
-sleep 1
-
-# Delete temporary file
-rm $SCHEMETEMPLATE
-
 # Create symbolic link to Xcode project
 ln -sf $PROJECTPATH .
 
 # Avoid automatically creating schemes for all targets
-SETTINGSPATH=$PROJECTPATH/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
-$PLIST "Set :IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded false" $SETTINGSPATH 2>/dev/null \
-|| $PLIST "Add :IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded bool false" $SETTINGSPATH
+SETTINGSDIR=$PROJECTPATH/project.xcworkspace/xcshareddata
+SETTINGSPATH=$SETTINGSDIR/WorkspaceSettings.xcsettings
+mkdir -p $SETTINGSDIR
+mv $PROJECTSRC/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings $SETTINGSPATH
+$PLIST "Set :IDEWorkspaceSharedSettings_AutocreateContextsIfNeeded false" $SETTINGSPATH
 
 # Force Xcode to use Build directory
 SETTINGSDIR=$PROJECTPATH/project.xcworkspace/xcuserdata/$USER.xcuserdatad
@@ -130,3 +135,6 @@ $PLIST "Set :DerivedDataLocationStyle Default" $SETTINGSPATH 2>/dev/null || $PLI
 
 # Disable App Nap for SimRobot
 defaults write org.B-Human.SimRobot NSAppSleepDisabled -bool YES
+
+# Delete temporary project
+rm -r $PROJECTSRC

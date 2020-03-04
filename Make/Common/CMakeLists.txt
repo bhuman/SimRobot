@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 if(CMAKE_HOST_UNIX)
   set(CMAKE_CXX_COMPILER clang++)
 endif()
-project(SimRobot LANGUAGES CXX)
+if(APPLE)
+  project(SimRobot-temp LANGUAGES CXX)
+else()
+  project(SimRobot LANGUAGES CXX)
+endif()
 
 set(CMAKE_CONFIGURATION_TYPES Debug Develop Release CACHE STRING "" FORCE)
 
