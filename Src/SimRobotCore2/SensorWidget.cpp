@@ -157,8 +157,8 @@ void SensorWidget::paintFloatArrayWithLimitsAndWithoutDescriptions()
   painter.setPen(pen);
   const float* valueArray = sensor->getValue().floatArray;
   float widthPerValue = this->width() / static_cast<float>(sensorDimensions[0]);
-  if(widthPerValue < 1.0)
-    widthPerValue = 1.0;
+  if(widthPerValue < 1.f)
+    widthPerValue = 1.f;
   for(int i = 0; i < sensorDimensions[0]; i++)
   {
     float factor = valueArray[i] / maxValue;

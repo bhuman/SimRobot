@@ -38,7 +38,7 @@ void PT2Motor::act()
   const float dt = Simulation::simulation->scene->stepLength;
   float y = static_cast<float>(dJointGetHingeAngle(joint->joint));
 
-  ASSERT(T != 0.0);
+  ASSERT(T != 0.f);
   const float dx = dt / T * (K * lastSetpoints[0] - y - 2 * D * x);
   x += dx;
   float yd = std::fmin(x / T, V);//convert x to velocity and limit it

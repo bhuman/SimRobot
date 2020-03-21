@@ -160,14 +160,14 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
     case Qt::Key_PageUp:
     case Qt::Key_Plus:
       event->accept();
-      objectRenderer.zoom(-100., -1, -1);
+      objectRenderer.zoom(-100.f, -1.f, -1.f);
       update();
       break;
 
     case Qt::Key_PageDown:
     case Qt::Key_Minus:
       event->accept();
-      objectRenderer.zoom(100., -1, -1);
+      objectRenderer.zoom(100.f, -1.f, -1.f);
       update();
       break;
 
