@@ -44,7 +44,7 @@ private:
     void collided(SimRobotCore2::Geometry& geom1, SimRobotCore2::Geometry& geom2) override;
 
     //API
-    bool getMinAndMax(float& min, float& max) const override {return false;}
+    bool getMinAndMax(float&, float&) const override {return false;}
   } sensor;
 
   bool hasGeometries; /**< Whether there are geometries especially for this sensor */

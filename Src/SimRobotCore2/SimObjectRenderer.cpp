@@ -374,7 +374,7 @@ bool SimObjectRenderer::intersectRayAndPlane(const Vector3f& point, const Vector
   return true;
 }
 
-bool SimObjectRenderer::intersectClickAndCoordinatePlane(int x, int y, DragAndDropPlane plane, Vector3f& point) const
+bool SimObjectRenderer::intersectClickAndCoordinatePlane(int x, int y, DragAndDropPlane, Vector3f& point) const
 {
   return intersectRayAndPlane(cameraPos, projectClick(x, y) - cameraPos, cameraTarget, dragPlaneVector, point);
 }

@@ -78,7 +78,7 @@ void CollisionSensor::CollisionSensorPort::updateValue()
   data.boolValue = lastCollisionStep == Simulation::simulation->simulationStep;
 }
 
-void CollisionSensor::CollisionSensorPort::collided(SimRobotCore2::Geometry& geom1, SimRobotCore2::Geometry& geom2)
+void CollisionSensor::CollisionSensorPort::collided(SimRobotCore2::Geometry&, SimRobotCore2::Geometry&)
 {
   lastCollisionStep = Simulation::simulation->simulationStep;
 }

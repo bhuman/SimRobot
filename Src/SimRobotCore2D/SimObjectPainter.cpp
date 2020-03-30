@@ -87,7 +87,7 @@ void SimObjectPainter::startDrag(int x, int y, DragType type)
   }
 }
 
-bool SimObjectPainter::moveDrag(int x, int y, DragType type)
+bool SimObjectPainter::moveDrag(int x, int y, DragType)
 {
   if(!dragging)
     return false;

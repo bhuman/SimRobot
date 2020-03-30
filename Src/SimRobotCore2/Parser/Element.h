@@ -23,5 +23,7 @@ public:
    * Registers an element as parent
    * @param element The element to register
    */
-  virtual void addParent(Element& element) {}
+  virtual void addParent(Element& element);
 };
+
+inline void Element::addParent(Element&) {}

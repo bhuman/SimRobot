@@ -36,7 +36,7 @@ private:
     void updateValue() override;
 
     //API
-    bool getMinAndMax(float& min, float& max) const override {return false;}
+    bool getMinAndMax(float&, float&) const override {return false;}
   } sensor;
 
   /** Initializes the gyroscope after all attributes have been set */

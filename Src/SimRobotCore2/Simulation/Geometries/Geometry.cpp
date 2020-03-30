@@ -27,7 +27,7 @@ void Geometry::addParent(Element& element)
   ::PhysicalObject::addParent(element);
 }
 
-dGeomID Geometry::createGeometry(dSpaceID space)
+dGeomID Geometry::createGeometry(dSpaceID)
 {
   if(!created)
   {

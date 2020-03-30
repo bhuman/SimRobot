@@ -35,17 +35,13 @@ protected:
    * @param pose The pose of the shape relative to the Box2D body.
    * @return A pointer to a new shape.
    */
-  virtual b2Shape* createShape(const b2Transform& pose)
-  {
-    return nullptr;
-  }
+  virtual b2Shape* createShape(const b2Transform& pose);
 
   /**
    * Draws the shape.
    * @param painter The drawing helper (which already has the correct transformation).
    */
-  virtual void drawShape(QPainter& painter) const
-  {}
+  virtual void drawShape(QPainter& painter) const;
 
   /** Initializes the physical properties of the geometry. */
   void createPhysics() override;
@@ -102,3 +98,6 @@ protected:
 private:
   b2Fixture* fixture = nullptr; /**< The Box2D fixture that this object represents. */
 };
+
+inline b2Shape* Geometry::createShape(const b2Transform&) {return nullptr;}
+inline void Geometry::drawShape(QPainter&) const {}

@@ -35,7 +35,7 @@ SensorWidget::~SensorWidget()
     QApplication::clipboard()->clear(); // hack, prevents crash on exit
 }
 
-void SensorWidget::paintEvent(QPaintEvent* event)
+void SensorWidget::paintEvent(QPaintEvent*)
 {
   float minValue, maxValue;
   bool hasMinAndMax = sensor->getMinAndMax(minValue, maxValue);

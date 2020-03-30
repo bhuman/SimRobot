@@ -1559,7 +1559,7 @@ float Parser::getFloatMinMax(const char* key, bool required, float defaultValue,
   return value;
 }
 
-bool Parser::getFloatAndUnit(const char* key, bool required, float defaultValue, float& value, char** unit, Location& unitLocation)
+bool Parser::getFloatAndUnit(const char* key, bool required, float, float& value, char** unit, Location& unitLocation)
 {
   const std::string* strValue;
   if(!getStringRaw(key, required, strValue))

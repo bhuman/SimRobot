@@ -81,7 +81,7 @@ public:
   void zoom(float change, float x, float y) override;
   void setRenderFlags(unsigned int renderFlags) override {this->renderFlags = renderFlags;}
   unsigned int getRenderFlags() const override {return renderFlags;}
-  void setCameraMode(CameraMode mode) override {};
+  void setCameraMode(CameraMode) override {}
   CameraMode getCameraMode() const override {return cameraMode;}
   void toggleCameraMode() override {};
   void resetCamera() override;
@@ -93,10 +93,10 @@ public:
   DragAndDropMode getDragMode() const override {return dragMode;}
   bool startDrag(int x, int y, DragType type) override;
   SimRobotCore2::Object* getDragSelection() override;
-  void setCameraMove(bool left, bool right, bool up, bool down) override {};
+  void setCameraMove(bool, bool, bool, bool) override {}
   bool moveDrag(int x, int y, DragType type) override;
   bool releaseDrag(int x, int y) override;
   void setCamera(const float* pos, const float* target) override;
   void getCamera(float* pos, float* target) override;
-  void rotateCamera(float x, float y) override {};
+  void rotateCamera(float, float) override {}
 };

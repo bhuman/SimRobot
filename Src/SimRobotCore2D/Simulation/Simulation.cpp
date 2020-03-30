@@ -101,7 +101,7 @@ void Simulation::BeginContact(b2Contact* contact)
   ++collisions;
 }
 
-void Simulation::EndContact(b2Contact* contact)
+void Simulation::EndContact(b2Contact*)
 {
   --collisions;
 }

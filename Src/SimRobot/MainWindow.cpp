@@ -43,7 +43,7 @@ SimRobot::Application* MainWindow::application;
 #define PATH_SEPARATOR "/"
 #endif
 
-MainWindow::MainWindow(int argc, char* argv[]) :
+MainWindow::MainWindow(int, char* argv[]) :
   appPath(getAppPath(argv[0])),
   appString(QString("SimRobot" PATH_SEPARATOR "%1").arg(getAppLocationSum(appPath))),
   settings("B-Human", appString),
@@ -272,7 +272,7 @@ bool MainWindow::addStatusLabel(const SimRobot::Module& module, SimRobot::Status
   return true;
 }
 
-bool MainWindow::registerModule(const SimRobot::Module& module, const QString& displayName, const QString& name, int flags)
+bool MainWindow::registerModule(const SimRobot::Module&, const QString& displayName, const QString& name, int flags)
 {
   registeredModules.insert(name, RegisteredModule(name, displayName, flags));
   LoadedModule* loadedModule = loadedModulesByName.value(name);
@@ -1246,7 +1246,7 @@ void MainWindow::visibilityChanged(bool visible)
   }
 }
 
-void MainWindow::focusChanged(QWidget* old, QWidget* now)
+void MainWindow::focusChanged(QWidget*, QWidget* now)
 {
   if(!layoutRestored)
     return;

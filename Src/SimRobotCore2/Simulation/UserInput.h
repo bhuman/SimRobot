@@ -49,7 +49,7 @@ private:
     const QString& getUnit() const override {return input->unit;}
     SensorType getSensorType() const override {return SensorType::floatSensor;}
     Data getValue() override {return input->data;}
-    bool renderCameraImages(SimRobotCore2::SensorPort** cameras, unsigned int count) override {return false;}
+    bool renderCameraImages(SimRobotCore2::SensorPort**, unsigned int) override {return false;}
     bool getMinAndMax(float& min, float& max) const override {return input->getMinAndMax(min, max);}
   } outputPort;
 

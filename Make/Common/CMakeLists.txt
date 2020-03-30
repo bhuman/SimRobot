@@ -91,7 +91,10 @@ target_compile_options(Flags::ForDevelop INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/GT>>
     $<${_is_clang}:$<$<NOT:$<CONFIG:Release>>:-g>>
     $<${_is_clang}:$<$<CONFIG:Release>:-O3>>
-    $<${_is_clang}:$<$<CONFIG:Release>:-fomit-frame-pointer>>)
+    $<${_is_clang}:$<$<CONFIG:Release>:-fomit-frame-pointer>>
+    $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-parameter>>
+    $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-variable>>
+    $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-lambda-capture>>)
 target_link_options(Flags::ForDevelop INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/DEBUG>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/SAFESEH:NO>>
@@ -108,7 +111,10 @@ target_compile_options(Flags::Default INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/GT>>
     $<${_is_clang}:$<$<CONFIG:Debug>:-g>>
     $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-O3>>
-    $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-fomit-frame-pointer>>)
+    $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-fomit-frame-pointer>>
+    $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-Wno-unused-parameter>>
+    $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-Wno-unused-variable>>
+    $<${_is_clang}:$<$<NOT:$<CONFIG:Debug>>:-Wno-unused-lambda-capture>>)
 target_link_options(Flags::Default INTERFACE
     $<${_is_msvc}:$<$<CONFIG:Debug>:/DEBUG>>
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/INCREMENTAL:NO>>
