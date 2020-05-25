@@ -10,6 +10,7 @@
 #include "CoreModule.h"
 #include "SimObjectPainter.h"
 #include "SimObjectWidget.h"
+#include <typeinfo>
 #include <Box2D/Common/b2Math.h>
 
 SimObject::~SimObject()
