@@ -34,7 +34,7 @@
   </Compound>
 
   <Body name="ball">
-    <DiskGeometry radius="50mm" color="rgb(255,0,0)"/>
+    <DiskGeometry radius="50mm" color="rgb(255,0,0)" category="0" mask="1"/>
     <DiskMass radius="50mm" value="45g"/>
   </Body>
 
@@ -43,13 +43,25 @@
 
     <RectMass width="100mm" height="60mm" value="5.36kg"/>
 
-    <ConvexGeometry color="$playerColor">
--0.03 0.08
--0.03 -0.08
-0.03 -0.08
-0.07 -0.05
-0.07 0.05
-0.03 0.08
+    <ConvexGeometry color="$playerColor" name="legL" category="0" mask="1">
+-0.03 0.1
+-0.03 0.01
+0.11 0.01
+0.11 0.1
+    </ConvexGeometry>
+
+    <ConvexGeometry color="$playerColor" name="legR" category="0" mask="1">
+-0.03 -0.01
+-0.03 -0.1
+0.11 -0.1
+0.11 -0.01
+    </ConvexGeometry>
+
+    <ConvexGeometry color="$playerColor" name="upperBody" category="1" mask="2">
+-0.03 0.15
+-0.03 -0.15
+0.05 -0.15
+0.05 0.15
     </ConvexGeometry>
   </Body>
 
