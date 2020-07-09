@@ -28,6 +28,8 @@ public:
   void createGeometry(b2Body* body, const b2Transform& geometryPose);
 
   std::list<SimRobotCore2D::CollisionCallback*> callbacks; /**< The list of collision callbacks registered for this geometry. */
+  std::uint16_t category = 0; /**< The category for collision filtering (0-15). */
+  std::uint16_t mask = 0xffff; /**< The mask of categories with which this geometry wants to collide. */
 
 protected:
   /**

@@ -29,6 +29,8 @@ void Geometry::createGeometry(b2Body* body, const b2Transform& geometryPose)
   if(auto* const shape = createShape(pose); shape)
   {
     b2FixtureDef fixtureDef;
+    fixtureDef.filter.categoryBits = static_cast<std::uint16_t>(1u << category);
+    fixtureDef.filter.maskBits = mask;
     fixtureDef.shape = shape;
     fixtureDef.userData = this;
     fixture = body->CreateFixture(&fixtureDef);

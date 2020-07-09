@@ -774,6 +774,19 @@ int Parser::getIntegerNonZeroPositive(const char* key, bool required, int defaul
   return value;
 }
 
+std::uint16_t Parser::getUInt16(const char* key, bool required, std::uint16_t defaultValue)
+{
+  int value;
+  if(!getIntegerRaw(key, required, value))
+    return defaultValue;
+  if(value < 0 || value >= std::numeric_limits<std::uint16_t>::max())
+  {
+    handleError("Expected an unsigned 16 bit value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  return static_cast<std::uint16_t>(value);
+}
+
 float Parser::getLength(const char* key, bool required, float defaultValue)
 {
   float result;
@@ -1158,6 +1171,8 @@ Element* Parser::geometryElement()
 {
   auto* const geometry = new Geometry;
   geometry->name = getString("name", false);
+  geometry->category = getUInt16("category", false, 0);
+  geometry->mask = getUInt16("mask", false, 0xffff);
   return geometry;
 }
 
@@ -1165,6 +1180,8 @@ Element* Parser::chainGeometryElement()
 {
   auto* const chainGeometry = new ChainGeometry;
   chainGeometry->name = getString("name", false);
+  chainGeometry->category = getUInt16("category", false, 0);
+  chainGeometry->mask = getUInt16("mask", false, 0xffff);
   chainGeometry->loop = getBool("loop", false, false);
   getColor("color", false, chainGeometry->color);
   return chainGeometry;
@@ -1174,6 +1191,8 @@ Element* Parser::convexGeometryElement()
 {
   auto* const convexGeometry = new ConvexGeometry;
   convexGeometry->name = getString("name", false);
+  convexGeometry->category = getUInt16("category", false, 0);
+  convexGeometry->mask = getUInt16("mask", false, 0xffff);
   getColor("color", false, convexGeometry->color);
   return convexGeometry;
 }
@@ -1182,6 +1201,8 @@ Element* Parser::diskGeometryElement()
 {
   auto* const diskGeometry = new DiskGeometry;
   diskGeometry->name = getString("name", false);
+  diskGeometry->category = getUInt16("category", false, 0);
+  diskGeometry->mask = getUInt16("mask", false, 0xffff);
   diskGeometry->radius = getLengthNonZeroPositive("radius", true, 0.f);
   getColor("color", false, diskGeometry->color);
   return diskGeometry;
@@ -1191,6 +1212,8 @@ Element* Parser::edgeGeometryElement()
 {
   auto* const edgeGeometry = new EdgeGeometry;
   edgeGeometry->name = getString("name", false);
+  edgeGeometry->category = getUInt16("category", false, 0);
+  edgeGeometry->mask = getUInt16("mask", false, 0xffff);
   edgeGeometry->length = getLengthNonZeroPositive("length", true, 0.f);
   getColor("color", false, edgeGeometry->color);
   return edgeGeometry;
@@ -1200,6 +1223,8 @@ Element* Parser::rectGeometryElement()
 {
   auto* const rectGeometry = new RectGeometry;
   rectGeometry->name = getString("name", false);
+  rectGeometry->category = getUInt16("category", false, 0);
+  rectGeometry->mask = getUInt16("mask", false, 0xffff);
   rectGeometry->width = getLengthNonZeroPositive("width", true, 0.f);
   rectGeometry->height = getLengthNonZeroPositive("height", true, 0.f);
   getColor("color", false, rectGeometry->color);

@@ -191,6 +191,7 @@ private:
   bool getBool(const char* key, bool required, bool defaultValue);
   bool getFloatAndUnit(const char* key, bool required, float& value, char** unit, Location& unitLocation);
   int getIntegerNonZeroPositive(const char* key, bool required, int defaultValue);
+  std::uint16_t getUInt16(const char* key, bool required, std::uint16_t defaultValue);
   float getLength(const char* key, bool required, float defaultValue);
   float getAngle(const char* key, bool required, float defaultValue);
   float getMass(const char* key, bool required, float defaultValue);
