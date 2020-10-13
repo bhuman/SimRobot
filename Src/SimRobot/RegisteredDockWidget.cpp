@@ -134,7 +134,7 @@ void RegisteredDockWidget::closeEvent(QCloseEvent* event)
   }
 
 #ifdef FIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
-  if(isFloating() && widget && widget->getWidget()->inherits("QGLWidget"))
+  if(isFloating())
   {
     mainWindow->setUpdatesEnabled(false);
     setFloating(false);
