@@ -11,6 +11,7 @@
 #include <Box2D/Dynamics/b2WorldCallbacks.h>
 #include <list>
 #include <string>
+#include <unordered_map>
 
 class b2Body;
 class b2World;
@@ -68,6 +69,13 @@ private:
   /** Updates the frame rate (if required). */
   void updateFrameRate();
 
+  /**
+   * Call collision callbacks for a contact.
+   * @param contact The contact.
+   */
+  static void reportCollisions(b2Contact* contact);
+
   unsigned int lastFrameRateComputationTime = 0; /**< The (real) time when the frame rate was calculated. */
   unsigned int lastFrameRateComputationStep = 0; /**< The step number when the frame rate was calculated. */
+  std::unordered_map<b2Contact*, bool> contacts; /**< The active contacts + whether they should be additionally reported in \c doSimulationStep. */
 };

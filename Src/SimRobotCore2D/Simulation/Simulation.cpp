@@ -84,25 +84,30 @@ void Simulation::doSimulationStep()
   // Execute the Box2D step.
   world->Step(scene->stepLength, scene->velocityIterations, scene->positionIterations);
 
+  // Report collisions that persist over multiple steps.
+  for(auto& contact : contacts)
+  {
+    if(contact.second)
+      reportCollisions(contact.first);
+    else
+      contact.second = true;
+  }
+
   updateFrameRate();
 }
 
 void Simulation::BeginContact(b2Contact* contact)
 {
-  auto* const geom1 = static_cast<Geometry*>(contact->GetFixtureA()->GetUserData());
-  auto* const geom2 = static_cast<Geometry*>(contact->GetFixtureB()->GetUserData());
-
-  for(SimRobotCore2D::CollisionCallback* callback : geom1->callbacks)
-    callback->collided(*geom1, *geom2);
-
-  for(SimRobotCore2D::CollisionCallback* callback : geom2->callbacks)
-    callback->collided(*geom2, *geom1);
-
   ++collisions;
+  contacts[contact] = false;
+
+  // Report already here because the contact might already end before the end of the time step.
+  reportCollisions(contact);
 }
 
-void Simulation::EndContact(b2Contact*)
+void Simulation::EndContact(b2Contact* contact)
 {
+  contacts.erase(contact);
   --collisions;
 }
 
@@ -117,4 +122,16 @@ void Simulation::updateFrameRate()
     lastFrameRateComputationStep = simulationStep;
     lastFrameRateComputationTime = currentTime;
   }
+}
+
+void Simulation::reportCollisions(b2Contact* contact)
+{
+  auto* const geom1 = static_cast<Geometry*>(contact->GetFixtureA()->GetUserData());
+  auto* const geom2 = static_cast<Geometry*>(contact->GetFixtureB()->GetUserData());
+
+  for(SimRobotCore2D::CollisionCallback* callback : geom1->callbacks)
+    callback->collided(*geom1, *geom2);
+
+  for(SimRobotCore2D::CollisionCallback* callback : geom2->callbacks)
+    callback->collided(*geom2, *geom1);
 }
