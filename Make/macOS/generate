@@ -55,7 +55,7 @@ grep  <$PROJECTSRC/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
 
 # Remove some unwanted folders and files from project tree
 ( sed  <$TEMPPATH2 -n '/targets = (/q;p' \
-  | grep -v "_autogen \*/,$"
+  | grep -v "/\* [^ ]*_autogen \*/,$"
   sed  <$TEMPPATH2 -n '/targets = (/,$p' ) \
   | grep -v "ALL_BUILD \*/,$" \
   | grep -v "DUMMY_FILE.h" \
