@@ -63,7 +63,7 @@ target_link_libraries(SimRobot PRIVATE Flags::Default)
 source_group(TREE "${SIMROBOT_ROOT_DIR}" FILES ${SIMROBOT_TREE})
 
 add_library(SimRobotInterface INTERFACE)
-target_include_directories(SimRobotInterface INTERFACE "${SIMROBOT_ROOT_DIR}")
+target_include_directories(SimRobotInterface SYSTEM INTERFACE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobotInterface INTERFACE Qt5::Core)
 
 if(${PLATFORM} STREQUAL Windows)

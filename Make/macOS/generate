@@ -62,7 +62,8 @@ grep  <$PROJECTSRC/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
   | sed -e 's%\.framework \*/;%.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); };%' \
     -e 's%\.dylib \*/;%.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); };%' \
     -e 's%make -C %make -sC %g' \
-    -e 's%[[:<:]]HEADER_SEARCH_PATHS%USER_HEADER_SEARCH_PATHS%' >$TEMPPATH
+    -e 's%[[:<:]]HEADER_SEARCH_PATHS%USER_HEADER_SEARCH_PATHS%' \
+    -e 's%USER_\(HEADER_SEARCH_PATHS = ([^,;)]*_autogen/[^,;)]*,*\)%\1); USER_HEADER_SEARCH_PATHS = (%' >$TEMPPATH
 rm $TEMPPATH2
 
 # Sort folders Libs

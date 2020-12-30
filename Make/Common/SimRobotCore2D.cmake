@@ -23,6 +23,6 @@ target_link_libraries(SimRobotCore2D PRIVATE Flags::Default)
 source_group(TREE "${SIMROBOTCORE2D_ROOT_DIR}" FILES ${SIMROBOTCORE2D_SOURCES})
 
 add_library(SimRobotCore2DInterface INTERFACE)
-target_include_directories(SimRobotCore2DInterface INTERFACE "${SIMROBOTCORE2D_ROOT_DIR}")
+target_include_directories(SimRobotCore2DInterface SYSTEM INTERFACE "${SIMROBOTCORE2D_ROOT_DIR}")
 target_link_libraries(SimRobotCore2DInterface INTERFACE Qt5::Core Qt5::Gui)
 target_link_libraries(SimRobotCore2DInterface INTERFACE SimRobotInterface)

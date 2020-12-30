@@ -18,6 +18,6 @@ target_link_libraries(SimRobotEditor PRIVATE Flags::Default)
 source_group(TREE "${SIMROBOTEDITOR_ROOT_DIR}" FILES ${SIMROBOTEDITOR_SOURCES})
 
 add_library(SimRobotEditorInterface INTERFACE)
-target_include_directories(SimRobotEditorInterface INTERFACE "${SIMROBOTEDITOR_ROOT_DIR}")
+target_include_directories(SimRobotEditorInterface SYSTEM INTERFACE "${SIMROBOTEDITOR_ROOT_DIR}")
 target_link_libraries(SimRobotEditorInterface INTERFACE Qt5::Core)
 target_link_libraries(SimRobotEditorInterface INTERFACE SimRobotInterface)
