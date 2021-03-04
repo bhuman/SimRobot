@@ -238,6 +238,7 @@ private:
   Element* sphereGeometryElement();
   Element* cylinderGeometryElement();
   Element* capsuleGeometryElement();
+  Element* torusGeometryElement();
   Element* materialElement();
   Element* frictionElement();
   Element* rollingFrictionElement();

@@ -23,6 +23,7 @@
 #include "Simulation/Geometries/SphereGeometry.h"
 #include "Simulation/Geometries/CylinderGeometry.h"
 #include "Simulation/Geometries/CapsuleGeometry.h"
+#include "Simulation/Geometries/TorusGeometry.h"
 #include "Simulation/Motors/PT2Motor.h"
 #include "Simulation/Motors/ServoMotor.h"
 #include "Simulation/Motors/VelocityMotor.h"
@@ -90,6 +91,8 @@ Parser::Parser() : errors(0), sceneMacro(0), recordingMacroElement(0), replaying
     {"CylinderGeometry", geometryClass, &Parser::cylinderGeometryElement, 0, 0,
       0, translationClass | rotationClass | materialClass, setClass | geometryClass},
     {"CapsuleGeometry", geometryClass, &Parser::capsuleGeometryElement, 0, 0,
+      0, translationClass | rotationClass | materialClass, setClass | geometryClass},
+    {"TorusGeometry", geometryClass, &Parser::torusGeometryElement, 0, 0,
       0, translationClass | rotationClass | materialClass, setClass | geometryClass},
 
     {"Material", materialClass, &Parser::materialElement, 0, constantFlag,
@@ -363,6 +366,16 @@ Element* Parser::capsuleGeometryElement()
   capsuleGeometry->radius = getLength("radius", true, 0.f);
   capsuleGeometry->height = getLength("height", true, 0.f);
   return capsuleGeometry;
+}
+
+Element* Parser::torusGeometryElement()
+{
+  TorusGeometry* torusGeometry = new TorusGeometry();
+  getColor("color", false, torusGeometry->color);
+  torusGeometry->name = getString("name", false);
+  torusGeometry->majorRadius = getLength("majorRadius", true, 0.f);
+  torusGeometry->minorRadius = getLength("minorRadius", true, 0.f);
+  return torusGeometry;
 }
 
 Element* Parser::materialElement()
