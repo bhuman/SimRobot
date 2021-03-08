@@ -66,7 +66,16 @@ if(MSVC)
   add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /arch:AVX)
   add_definitions(-DNOMINMAX -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
 else()
-  add_compile_options(-pipe -march=native -Wall -Wconversion -Wno-sign-conversion -Wsign-compare)
+  add_compile_options(-pipe
+      -Wall
+      -Wextra
+      -Wconversion
+      -Wno-unknown-warning-option
+      -Wno-sign-conversion
+      -Wno-implicit-int-float-conversion
+      -Wunreachable-code
+      -Wsign-compare
+      -march=native)
   if(${PLATFORM} STREQUAL macOS)
     add_compile_options(-Wno-deprecated)
   else()
