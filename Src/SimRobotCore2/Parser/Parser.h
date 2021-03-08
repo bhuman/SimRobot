@@ -233,6 +233,8 @@ private:
   Element* boxMassElement();
   Element* sphereMassElement();
   Element* inertiaMatrixMassElement();
+  Element* capsuleMassElement();
+  Element* cylinderMassElement();
   Element* geometryElement();
   Element* boxGeometryElement();
   Element* sphereGeometryElement();

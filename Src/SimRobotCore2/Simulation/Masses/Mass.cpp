@@ -1,21 +1,22 @@
 /**
-* @file Simulation/Masses/Mass.cpp
-* Implementation of class Mass
-* @author Colin Graf
-*/
+ * @file Simulation/Masses/Mass.cpp
+ * Implementation of class Mass
+ * @author Colin Graf
+ */
 
-#include "Simulation/Masses/Mass.h"
+#include "Mass.h"
 #include "Platform/Assert.h"
 #include "Tools/ODETools.h"
+#include <ode/mass.h>
 
 const dMass& Mass::createMass()
 {
   if(!created)
   {
     assembleMass();
-    for(std::list<SimObject*>::const_iterator iter = children.begin(), end = children.end(); iter != end; ++iter)
+    for(auto* iter : children)
     {
-      Mass* childMassDesc = dynamic_cast<Mass*>(*iter);
+      auto* childMassDesc = dynamic_cast<Mass*>(iter);
       ASSERT(childMassDesc);
       const dMass& childMass = childMassDesc->createMass();
       if(childMassDesc->translation || childMassDesc->rotation)
@@ -28,7 +29,7 @@ const dMass& Mass::createMass()
           dMassRotate(&shiftedChildMass, matrix);
         }
         if(childMassDesc->translation)
-          dMassTranslate(&shiftedChildMass, childMassDesc->translation->x(), childMassDesc->translation->y(), childMassDesc->translation->z());
+          dMassTranslate(&shiftedChildMass, static_cast<dReal>(childMassDesc->translation->x()), static_cast<dReal>(childMassDesc->translation->y()), static_cast<dReal>(childMassDesc->translation->z()));
         dMassAdd(&mass, &shiftedChildMass);
       }
       else

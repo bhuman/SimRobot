@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Masses/BoxMass.h
-* Declaration of class BoxMass
-* @author Colin Graf
-*/
+ * @file Simulation/Masses/BoxMass.h
+ * Declaration of class BoxMass
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Mass.h"
 
 /**
-* @class Mass
-* The mass of a simple box
-*/
+ * @class BoxMass
+ * The mass of a simple box
+ */
 class BoxMass : public Mass
 {
 public:

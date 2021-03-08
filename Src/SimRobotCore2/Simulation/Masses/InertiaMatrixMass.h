@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Masses/InertiaMatrixMass.h
-* Declaration of class InertiaMatrixMass
-* @author Colin Graf
-*/
+ * @file Simulation/Masses/InertiaMatrixMass.h
+ * Declaration of class InertiaMatrixMass
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Mass.h"
 
 /**
-* @class Mass
-* A mass defined by its center and the inertia matrix relative to the origin
-*/
+ * @class InertiaMatrixMass
+ * A mass defined by its center and the inertia matrix relative to the origin
+ */
 class InertiaMatrixMass : public Mass
 {
 public:

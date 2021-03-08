@@ -1,10 +1,11 @@
 /**
-* @file Simulation/Masses/BoxMass.cpp
-* Implementation of class BoxMass
-* @author Colin Graf
-*/
+ * @file Simulation/Masses/BoxMass.cpp
+ * Implementation of class BoxMass
+ * @author Colin Graf
+ */
 
 #include "BoxMass.h"
+#include <ode/mass.h>
 
 void BoxMass::assembleMass()
 {

@@ -19,6 +19,8 @@
 #include "Simulation/Masses/BoxMass.h"
 #include "Simulation/Masses/SphereMass.h"
 #include "Simulation/Masses/InertiaMatrixMass.h"
+#include "Simulation/Masses/CapsuleMass.h"
+#include "Simulation/Masses/CylinderMass.h"
 #include "Simulation/Geometries/BoxGeometry.h"
 #include "Simulation/Geometries/SphereGeometry.h"
 #include "Simulation/Geometries/CylinderGeometry.h"
@@ -80,6 +82,10 @@ Parser::Parser() : errors(0), sceneMacro(0), recordingMacroElement(0), replaying
     {"SphereMass", massClass, &Parser::sphereMassElement, 0, constantFlag,
       0, translationClass | rotationClass, setClass | massClass},
     {"InertiaMatrixMass", massClass, &Parser::inertiaMatrixMassElement, 0, constantFlag,
+      0, translationClass | rotationClass, setClass | massClass},
+    {"CapsuleMass", massClass, &Parser::capsuleMassElement, 0, constantFlag,
+      0, translationClass | rotationClass, setClass | massClass},
+    {"CylinderMass", massClass, &Parser::cylinderMassElement, 0, constantFlag,
       0, translationClass | rotationClass, setClass | massClass},
 
     {"Geometry", geometryClass, &Parser::geometryElement, 0, 0,
@@ -319,6 +325,26 @@ Element* Parser::inertiaMatrixMassElement()
   inertiaMatrixMass->iyz = getMassLengthLength("iyz", false, 0.f);
   inertiaMatrixMass->izz = getMassLengthLength("izz", true, 0.f);
   return inertiaMatrixMass;
+}
+
+Element* Parser::capsuleMassElement()
+{
+  CapsuleMass* capsuleMass = new CapsuleMass();
+  capsuleMass->name = getString("name", false);
+  capsuleMass->value = getMass("value", true, 0.f);
+  capsuleMass->radius = getLength("radius", true, 0.f);
+  capsuleMass->height = getLength("height", true, 0.f);
+  return capsuleMass;
+}
+
+Element* Parser::cylinderMassElement()
+{
+  CylinderMass* cylinderMass = new CylinderMass();
+  cylinderMass->name = getString("name", false);
+  cylinderMass->value = getMass("value", true, 0.f);
+  cylinderMass->radius = getLength("radius", true, 0.f);
+  cylinderMass->height = getLength("height", true, 0.f);
+  return cylinderMass;
 }
 
 Element* Parser::geometryElement()

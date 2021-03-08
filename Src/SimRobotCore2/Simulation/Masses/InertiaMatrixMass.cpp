@@ -1,10 +1,11 @@
 /**
-* @file Simulation/Masses/InertiaMatrixMass.cpp
-* Implementation of class InertiaMatrixMass
-* @author Colin Graf
-*/
+ * @file Simulation/Masses/InertiaMatrixMass.cpp
+ * Implementation of class InertiaMatrixMass
+ * @author Colin Graf
+ */
 
 #include "InertiaMatrixMass.h"
+#include <ode/mass.h>
 
 void InertiaMatrixMass::assembleMass()
 {
