@@ -32,6 +32,7 @@ private:
   {
   public:
     Joint* joint;
+    float lastPos;
 
     //API
     void updateValue() override;
