@@ -6,11 +6,10 @@
 
 #pragma once
 
-#include <QWidget>
+#include "SimRobotCore2.h"
 #include <QHash>
 #include <QIcon>
-
-#include "SimRobotCore2.h"
+#include <QWidget>
 
 class QSlider;
 class QDoubleSpinBox;

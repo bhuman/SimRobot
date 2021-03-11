@@ -1,12 +1,12 @@
 /**
-* @file Simulation/Geometries/SphereGeometry.cpp
-* Implementation of class SphereGeometry
-* @author Colin Graf
-*/
+ * @file Simulation/Geometries/SphereGeometry.cpp
+ * Implementation of class SphereGeometry
+ * @author Colin Graf
+ */
 
+#include "SphereGeometry.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Geometries/SphereGeometry.h"
+#include <ode/collision.h>
 
 dGeomID SphereGeometry::createGeometry(dSpaceID space)
 {

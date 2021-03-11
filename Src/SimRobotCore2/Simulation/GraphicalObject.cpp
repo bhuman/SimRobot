@@ -1,15 +1,15 @@
 /**
-* @file Simulation/GraphicalObject.cpp
-* Implementation of class GraphicalObject
-* @author Colin Graf
-*/
+ * @file Simulation/GraphicalObject.cpp
+ * Implementation of class GraphicalObject
+ * @author Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
 
-#include "Simulation/Simulation.h"
-#include "Simulation/Scene.h"
-#include "Simulation/GraphicalObject.h"
+#include "GraphicalObject.h"
 #include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
+#include "Simulation/Scene.h"
+#include "Simulation/Simulation.h"
 
 GraphicalObject::~GraphicalObject()
 {
@@ -20,9 +20,8 @@ GraphicalObject::~GraphicalObject()
 void GraphicalObject::createGraphics()
 {
   ++initializedContexts;
-  for(std::list<GraphicalObject*>::const_iterator iter = graphicalDrawings.begin(), end = graphicalDrawings.end(); iter != end; ++iter)
+  for(GraphicalObject* graphicalObject : graphicalDrawings)
   {
-    GraphicalObject* graphicalObject = *iter;
     if(graphicalObject->initializedContexts != initializedContexts)
     {
       graphicalObject->createGraphics();
@@ -43,8 +42,8 @@ void GraphicalObject::createGraphics()
 void GraphicalObject::drawAppearances(SurfaceColor color, bool drawControllerDrawings) const
 {
   if(drawControllerDrawings)
-    for(std::list<SimRobotCore2::Controller3DDrawing*>::const_iterator iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
-      (*iter)->draw();
+    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+      drawing->draw();
   else if(color == ownColor)
   {
     ASSERT(listId);
@@ -56,8 +55,8 @@ void GraphicalObject::drawAppearances(SurfaceColor color, bool drawControllerDra
 
 void GraphicalObject::assembleAppearances(SurfaceColor color) const
 {
-  for(std::list<GraphicalObject*>::const_iterator iter = graphicalDrawings.begin(), end = graphicalDrawings.end(); iter != end; ++iter)
-    (*iter)->drawAppearances(color, false);
+  for(const GraphicalObject* graphicalObject : graphicalDrawings)
+    graphicalObject->drawAppearances(color, false);
 }
 
 void GraphicalObject::addParent(Element& element)
@@ -73,7 +72,7 @@ bool GraphicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawin
 
 bool GraphicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawing)
 {
-  for(std::list<SimRobotCore2::Controller3DDrawing*>::iterator iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
+  for(auto iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
     if(*iter == &drawing)
     {
       controllerDrawings.erase(iter);

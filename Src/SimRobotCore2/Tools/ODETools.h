@@ -7,9 +7,8 @@
 
 #pragma once
 
-#include <ode/ode.h>
-
 #include "Tools/Math/Eigen.h"
+#include <ode/common.h>
 
 class ODETools
 {

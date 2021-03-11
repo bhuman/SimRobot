@@ -1,48 +1,44 @@
 /**
-* @file Simulation/SimObject.cpp
-* Implementation of class SimObject
-* @author Colin Graf
-*/
+ * @file Simulation/SimObject.cpp
+ * Implementation of class SimObject
+ * @author Colin Graf
+ */
 
-#include <typeinfo>
+
+#include "SimObject.h"
+#include "CoreModule.h"
+#include "SimObjectRenderer.h"
+#include "SimObjectWidget.h"
 #ifdef __GNUC__
 #include <cctype>
+#else
+#include <cstring>
 #endif
+#include <typeinfo>
 
-#include "Simulation/SimObject.h"
-#include "Platform/Assert.h"
-#include "CoreModule.h"
-#include "SimObjectWidget.h"
-#include "SimObjectRenderer.h"
-
-SimObject::SimObject() : translation(0), rotation(0) {}
+SimObject::~SimObject()
+{
+  delete rotation;
+  delete translation;
+}
 
 void SimObject::addParent(Element& parent)
 {
   dynamic_cast<SimObject*>(&parent)->children.push_back(this);
 }
 
-SimObject::~SimObject()
-{
-  if(translation)
-    delete translation;
-  if(rotation)
-    delete rotation;
-}
-
 void SimObject::registerObjects()
 {
-  for(std::list<SimObject*>::const_iterator iter = children.begin(), end = children.end(); iter != end; ++iter)
+  for(SimObject* simObject : children)
   {
-    SimObject* simObject = *iter;
     if(simObject->name.empty())
     {
       const char* typeName = typeid(*simObject).name();
 #ifdef __GNUC__
-      while(isdigit(*typeName))
+      while(std::isdigit(*typeName))
         ++typeName;
 #else
-      const char* str = strchr(typeName, ' ');
+      const char* str = std::strchr(typeName, ' ');
       if(str)
         typeName = str + 1;
 #endif

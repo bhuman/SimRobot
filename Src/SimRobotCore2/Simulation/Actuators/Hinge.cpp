@@ -1,23 +1,22 @@
 /**
-* @file Simulation/Joints/Hinge.cpp
-* Implementation of class Hinge
-* @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
-* @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
-* @author Colin Graf
-*/
-
-#include <cmath>
-#include "Platform/OpenGL.h"
+ * @file Simulation/Actuators/Hinge.cpp
+ * Implementation of class Hinge
+ * @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
+ * @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
+ * @author Colin Graf
+ */
 
 #include "Hinge.h"
-#include "Simulation/Body.h"
-#include "Simulation/Axis.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Motors/ServoMotor.h"
-#include "Platform/Assert.h"
 #include "CoreModule.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Body.h"
+#include "Simulation/Motors/ServoMotor.h"
+#include "Simulation/Simulation.h"
+#include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
+#include <ode/objects.h>
 
 void Hinge::createPhysics()
 {
@@ -36,7 +35,7 @@ void Hinge::createPhysics()
   Body* parentBody = dynamic_cast<Body*>(parent);
   ASSERT(!parentBody || parentBody->body);
   ASSERT(!children.empty());
-  Body* childBody = dynamic_cast<Body*>(*children.begin());
+  Body* childBody = dynamic_cast<Body*>(children.front());
   ASSERT(childBody);
   ASSERT(childBody->body);
 
@@ -62,10 +61,10 @@ void Hinge::createPhysics()
     // This is incorrect if the servo motor is not strong enough.
     if(!dynamic_cast<ServoMotor*>(axis->motor))
     {
-      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - axis->deflection->offset);
-      dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - axis->deflection->offset);
+      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
+      dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
       // this has to be done due to the way ODE sets joint stops
-      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - axis->deflection->offset);
+      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
       if(deflection.stopCFM != -1.f)
         dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
       if(deflection.stopERP != -1.f)

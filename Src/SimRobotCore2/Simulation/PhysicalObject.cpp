@@ -1,10 +1,10 @@
 /**
-* @file Simulation/PhysicalObject.h
-* Implementation of class PhysicalObject
-* @author Colin Graf
-*/
+ * @file Simulation/PhysicalObject.h
+ * Implementation of class PhysicalObject
+ * @author Colin Graf
+ */
 
-#include "Simulation/PhysicalObject.h"
+#include "PhysicalObject.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 
@@ -12,6 +12,7 @@ void PhysicalObject::addParent(Element& element)
 {
   ASSERT(!parent);
   parent = dynamic_cast<PhysicalObject*>(&element);
+  ASSERT(parent);
   parent->physicalChildren.push_back(this);
   parent->physicalDrawings.push_back(this);
   SimObject::addParent(element);
@@ -25,10 +26,9 @@ void PhysicalObject::createPhysics()
     body = parentBody;
 
   // initialize and call createPhysics() for each child object
-  for(std::list<PhysicalObject*>::const_iterator iter = physicalChildren.begin(), end = physicalChildren.end(); iter != end; ++iter)
+  for(PhysicalObject* object : physicalChildren)
   {
     // compute pose of child object
-    PhysicalObject* object = *iter;
     object->pose = pose;
     if(object->translation)
       object->pose.translate(*object->translation);
@@ -44,10 +44,10 @@ void PhysicalObject::createPhysics()
 void PhysicalObject::drawPhysics(unsigned int flags) const
 {
   if(flags & SimRobotCore2::Renderer::showControllerDrawings)
-    for(std::list<SimRobotCore2::Controller3DDrawing*>::const_iterator iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
-      (*iter)->draw();
-  for(std::list<PhysicalObject*>::const_iterator iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
-    (*iter)->drawPhysics(flags);
+    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+      drawing->draw();
+  for(const PhysicalObject* drawing : physicalDrawings)
+    drawing->drawPhysics(flags);
 }
 
 bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing)
@@ -58,7 +58,7 @@ bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing
 
 bool PhysicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawing)
 {
-  for(std::list<SimRobotCore2::Controller3DDrawing*>::iterator iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
+  for(auto iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
     if(*iter == &drawing)
     {
       controllerDrawings.erase(iter);

@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Compound.cpp
-* Implementation of class Compound
-* @author Colin Graf
-*/
+ * @file Simulation/Compound.cpp
+ * Implementation of class Compound
+ * @author Colin Graf
+ */
 
+#include "Compound.h"
+#include "Platform/Assert.h"
 #include "Platform/OpenGL.h"
-
+#include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Simulation.h"
-#include "Simulation/Compound.h"
-#include "Geometries/Geometry.h"
 #include "Tools/ODETools.h"
 #include "Tools/OpenGLTools.h"
-#include "Platform/Assert.h"
+#include <ode/collision.h>
 
 void Compound::addParent(Element& element)
 {
@@ -22,11 +22,11 @@ void Compound::addParent(Element& element)
 void Compound::createPhysics()
 {
   // create geometry
-  for(std::list< ::PhysicalObject*>::const_iterator iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
+  for(::PhysicalObject* iter : physicalDrawings)
   {
-    Geometry* geometry = dynamic_cast<Geometry*>(*iter);
+    Geometry* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
-      addGeometry(pose, *geometry, 0);
+      addGeometry(pose, *geometry, nullptr);
   }
 
   //
@@ -58,9 +58,9 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobo
   }
 
   // handle nested geometries
-  for(std::list< ::PhysicalObject*>::const_iterator iter = geometry.physicalDrawings.begin(), end = geometry.physicalDrawings.end(); iter != end; ++iter)
+  for(::PhysicalObject* iter : geometry.physicalDrawings)
   {
-    Geometry* geometry = dynamic_cast<Geometry*>(*iter);
+    Geometry* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
       addGeometry(geomPose, *geometry, callback);
   }

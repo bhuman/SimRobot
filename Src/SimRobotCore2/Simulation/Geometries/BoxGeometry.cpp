@@ -1,13 +1,14 @@
 /**
-* @file Simulation/Geometries/BoxGeometry.cpp
-* Implementation of class BoxGeometry
-* @author Colin Graf
-*/
+ * @file Simulation/Geometries/BoxGeometry.cpp
+ * Implementation of class BoxGeometry
+ * @author Colin Graf
+ */
 
+#include "BoxGeometry.h"
 #include "Platform/OpenGL.h"
-#include "Simulation/Geometries/BoxGeometry.h"
-#include <cmath>
+#include <ode/collision.h>
 #include <algorithm>
+#include <cmath>
 
 dGeomID BoxGeometry::createGeometry(dSpaceID space)
 {

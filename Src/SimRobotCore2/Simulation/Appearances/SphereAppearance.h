@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Appearances/SphereAppearance.h
-* Declaration of class SphereAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/SphereAppearance.h
+ * Declaration of class SphereAppearance
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Simulation/Appearances/Appearance.h"
 
 /**
-* @class SphereAppearance
-* The graphical representation of a sphere
-*/
+ * @class SphereAppearance
+ * The graphical representation of a sphere
+ */
 class SphereAppearance : public Appearance
 {
 public:

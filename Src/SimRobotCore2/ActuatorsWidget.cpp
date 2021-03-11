@@ -3,22 +3,21 @@
  * Implementation of class ActuatorsWidget and ActuatorWidget
  */
 
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QSlider>
-#include <QLineEdit>
-#include <QPushButton>
-#include <QDoubleSpinBox>
-#include <QCheckBox>
-#include <QResizeEvent>
-#include <QScrollArea>
-#include <QSettings>
-
+#include "ActuatorsWidget.h"
+#include "CoreModule.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/UserInput.h"
 #include "Tools/Math/Constants.h"
-#include "ActuatorsWidget.h"
-#include "CoreModule.h"
+#include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QResizeEvent>
+#include <QScrollArea>
+#include <QSettings>
+#include <QSlider>
+#include <QVBoxLayout>
 
 static inline float toDeg(float angleInRad)
 {
@@ -249,7 +248,7 @@ void ActuatorWidget::adoptActuator()
   }
 }
 
-ActuatorsWidget* ActuatorsWidget::actuatorsWidget = 0;
+ActuatorsWidget* ActuatorsWidget::actuatorsWidget = nullptr;
 
 ActuatorsWidget::ActuatorsWidget()
 {

@@ -27,33 +27,33 @@ public:
 
 private:
   SimObject& simObject;
-  unsigned int width;
-  unsigned int height;
+  unsigned int width = 0;
+  unsigned int height = 0;
 
   CameraMode cameraMode;
   Vector3f defaultCameraPos;
   Vector3f cameraPos;
   Vector3f cameraTarget;
   float cameraTransformation[16];
-  float fovY;
+  float fovY = 40.f;
   float projection[16];
   int viewport[4];
 
-  ShadeMode surfaceShadeMode;
-  ShadeMode physicsShadeMode;
-  ShadeMode drawingsShadeMode;
-  unsigned int renderFlags;
+  ShadeMode surfaceShadeMode = smoothShading;
+  ShadeMode physicsShadeMode = noShading;
+  ShadeMode drawingsShadeMode = smoothShading;
+  unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
 
-  bool dragging;
+  bool dragging = false;
   DragType dragType;
   Body* dragSelection;
   Vector3f dragStartPos;
   Vector3f interCameraPos;
-  DragAndDropPlane dragPlane;
+  DragAndDropPlane dragPlane = xyPlane;
   Vector3f dragPlaneVector;
-  DragAndDropMode dragMode;
+  DragAndDropMode dragMode = keepDynamics;
   unsigned int dragStartTime;
-  int degreeSteps;
+  int degreeSteps = 15;
 
   void updateCameraTransformation();
 

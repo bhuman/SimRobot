@@ -1,21 +1,21 @@
 /**
-* @file Simulation/Motors/ServoMotor.cpp
-* Implementation of class ServoMotor
-* @author Colin Graf
-*/
+ * @file Simulation/Motors/ServoMotor.cpp
+ * Implementation of class ServoMotor
+ * @author Colin Graf
+ */
 
-#include <cmath>
-
-#include "Simulation/Motors/ServoMotor.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Actuators/Joint.h"
-#include "Simulation/Axis.h"
+#include "ServoMotor.h"
 #include "CoreModule.h"
 #include "Platform/Assert.h"
+#include "Simulation/Actuators/Joint.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Scene.h"
+#include "Simulation/Simulation.h"
 #include "Tools/Math.h"
+#include <ode/objects.h>
+#include <cmath>
 
-ServoMotor::ServoMotor() : maxVelocity(0), maxForce(0)
+ServoMotor::ServoMotor()
 {
   Simulation::simulation->scene->actuators.push_back(this);
 
@@ -72,7 +72,7 @@ float ServoMotor::Controller::getOutput(float currentPos, float setpoint)
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
   errorSum += i * error * deltaTime;
-  float result = p * error + errorSum + (d * (error - lastError)) / deltaTime;
+  const float result = p * error + errorSum + (d * (error - lastError)) / deltaTime;
   lastError = error;
   return result;
 }
@@ -80,7 +80,7 @@ float ServoMotor::Controller::getOutput(float currentPos, float setpoint)
 void ServoMotor::setValue(float value)
 {
   setpoint = value;
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     if(setpoint > deflection->max)
@@ -92,7 +92,7 @@ void ServoMotor::setValue(float value)
 
 bool ServoMotor::getMinAndMax(float& min, float& max) const
 {
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     min = deflection->min;
@@ -116,7 +116,7 @@ void ServoMotor::PositionSensor::updateValue()
 
 bool ServoMotor::PositionSensor::getMinAndMax(float& min, float& max) const
 {
-  Axis::Deflection* deflection = servoMotor->joint->axis->deflection;
+  const Axis::Deflection* deflection = servoMotor->joint->axis->deflection;
   if(deflection)
   {
     min = deflection->min;

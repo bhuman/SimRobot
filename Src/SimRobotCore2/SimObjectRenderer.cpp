@@ -4,24 +4,23 @@
  * @author Colin Graf
  */
 
-#include "Platform/OpenGL.h"
-
 #include "SimObjectRenderer.h"
-#include "Simulation/Simulation.h"
+#include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
+#include "Platform/System.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
-#include "Platform/System.h"
-#include "Platform/Assert.h"
+#include "Simulation/Simulation.h"
+#include "Tools/Math.h"
 #include "Tools/Math/Constants.h"
 #include "Tools/Math/Rotation.h"
-#include "Tools/Math.h"
 #include "Tools/OpenGLTools.h"
+#include <ode/collision.h>
+#include <ode/objects.h>
 
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
-  simObject(simObject), width(0), height(0),
-  cameraMode(targetCam), defaultCameraPos(3.f, 6.f, 4.f), cameraPos(defaultCameraPos), cameraTarget(Vector3f::Zero()), fovY(40.f),
-  surfaceShadeMode(smoothShading), physicsShadeMode(noShading), drawingsShadeMode(smoothShading), renderFlags(enableLights | enableTextures | enableMultisample),
-  dragging(false), dragPlane(xyPlane), dragMode(keepDynamics), degreeSteps(15)
+  simObject(simObject),
+  cameraMode(targetCam), defaultCameraPos(3.f, 6.f, 4.f), cameraPos(defaultCameraPos), cameraTarget(Vector3f::Zero())
 {
 }
 
@@ -476,9 +475,9 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
         dragSelection = 0;
       else
       {
-        dragSelection->enablePhysics(false);
+        static_cast<SimRobotCore2::Body*>(dragSelection)->enablePhysics(false);
         if(dragMode == resetDynamics)
-          dragSelection->resetDynamics();
+          static_cast<SimRobotCore2::Body*>(dragSelection)->resetDynamics();
 
         dragging = true;
         dragType = type;
@@ -684,7 +683,7 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
       }
     }
 
-    dragSelection->enablePhysics(true);
+    static_cast<SimRobotCore2::Body*>(dragSelection)->enablePhysics(true);
 
     dragging = false;
     return true;

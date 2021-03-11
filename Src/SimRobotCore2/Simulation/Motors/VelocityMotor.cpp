@@ -1,21 +1,21 @@
 /**
-* @file Simulation/Motors/VelocityMotor.cpp
-* Implementation of class VelocityMotor
-* @author Colin Graf
-* @author Thomas Röfer
-*/
+ * @file Simulation/Motors/VelocityMotor.cpp
+ * Implementation of class VelocityMotor
+ * @author Colin Graf
+ * @author Thomas Röfer
+ */
 
-#include <cmath>
-
-#include "Simulation/Motors/VelocityMotor.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Actuators/Joint.h"
-#include "Simulation/Axis.h"
+#include "VelocityMotor.h"
 #include "CoreModule.h"
 #include "Platform/Assert.h"
+#include "Simulation/Actuators/Joint.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Scene.h"
+#include "Simulation/Simulation.h"
+#include <ode/objects.h>
+#include <cmath>
 
-VelocityMotor::VelocityMotor() : maxVelocity(0), maxForce(0)
+VelocityMotor::VelocityMotor()
 {
   Simulation::simulation->scene->actuators.push_back(this);
 
@@ -68,7 +68,7 @@ void VelocityMotor::PositionSensor::updateValue()
 
 bool VelocityMotor::PositionSensor::getMinAndMax(float& min, float& max) const
 {
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     min = deflection->min;

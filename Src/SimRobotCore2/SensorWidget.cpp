@@ -3,25 +3,23 @@
  * Implementation of class SensorWidget
  */
 
-#include <sstream>
-#include <iomanip>
-
-#include <QMenu>
-#include <QApplication>
-#include <QClipboard>
-#include <QMimeData>
-#include <QLocale>
 
 #include "SensorWidget.h"
 #include "CoreModule.h"
-
 #include "Simulation/Simulation.h"
 #include "Tools/Math/Constants.h"
+#include <QApplication>
+#include <QClipboard>
+#include <QLocale>
+#include <QMenu>
+#include <QMimeData>
+#include <iomanip>
+#include <sstream>
 
 static inline float toDeg(float angleInRad)
 { return (angleInRad * 180.f / pi);}
 
-SensorWidget::SensorWidget(SimRobotCore2::SensorPort* sensor) : pen(QColor::fromRgb(255, 0, 0)), sensor(sensor), mineData(0)
+SensorWidget::SensorWidget(SimRobotCore2::SensorPort* sensor) : pen(QColor::fromRgb(255, 0, 0)), sensor(sensor)
 {
   setFocusPolicy(Qt::StrongFocus);
 

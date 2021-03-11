@@ -1,14 +1,15 @@
 /**
-* @file Simulation/Sensors/Gyroscope.cpp
-* Implementation of class Gyroscope
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Gyroscope.cpp
+ * Implementation of class Gyroscope
+ * @author Colin Graf
+ */
 
-#include "Simulation/Sensors/Gyroscope.h"
-#include "Simulation/Body.h"
-#include "Platform/Assert.h"
-#include "Tools/ODETools.h"
+#include "Gyroscope.h"
 #include "CoreModule.h"
+#include "Platform/Assert.h"
+#include "Simulation/Body.h"
+#include "Tools/ODETools.h"
+#include <ode/objects.h>
 
 Gyroscope::Gyroscope()
 {

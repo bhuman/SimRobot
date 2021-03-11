@@ -1,8 +1,8 @@
 /**
-* @file Simulation/Sensors/Gyroscope.h
-* Declaration of class Gyroscope
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Gyroscope.h
+ * Declaration of class Gyroscope
+ * @author Colin Graf
+ */
 
 #pragma once
 
@@ -11,9 +11,9 @@
 class Body;
 
 /**
-* @class Gyroscope
-* A simulated gyroscope sensor
-*/
+ * @class Gyroscope
+ * A simulated gyroscope sensor
+ */
 class Gyroscope : public Sensor
 {
 public:
@@ -22,9 +22,9 @@ public:
 
 private:
   /**
-  * @class GyroscopeSensor
-  * The gyroscope sensor interface
-  */
+   * @class GyroscopeSensor
+   * The gyroscope sensor interface
+   */
   class GyroscopeSensor : public Sensor::Port
   {
   public:
@@ -43,9 +43,9 @@ private:
   void createPhysics() override;
 
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI. */

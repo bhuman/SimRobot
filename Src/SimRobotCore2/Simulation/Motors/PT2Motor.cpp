@@ -1,18 +1,18 @@
 /**
-* @file Simulation/Motors/ServoMotor.cpp
-* Implementation of class PT2Motor
-* @author Thomas Muender
-*/
-
-#include <cmath>
+ * @file Simulation/Motors/PT2Motor.cpp
+ * Implementation of class PT2Motor
+ * @author Thomas Muender
+ */
 
 #include "PT2Motor.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Actuators/Joint.h"
-#include "Simulation/Axis.h"
 #include "CoreModule.h"
 #include "Platform/Assert.h"
+#include "Simulation/Actuators/Joint.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Scene.h"
+#include "Simulation/Simulation.h"
+#include <ode/objects.h>
+#include <cmath>
 
 PT2Motor::PT2Motor()
 {
@@ -33,16 +33,17 @@ void PT2Motor::act()
 {
   lastSetpoints.push_back(this->setpoint);
 
-  if(lastSetpoints.size() < 3) return;
+  if(lastSetpoints.size() < 3)
+    return;
 
   const float dt = Simulation::simulation->scene->stepLength;
-  float y = static_cast<float>(dJointGetHingeAngle(joint->joint));
+  const float y = static_cast<float>(dJointGetHingeAngle(joint->joint));
 
   ASSERT(T != 0.f);
   const float dx = dt / T * (K * lastSetpoints[0] - y - 2 * D * x);
   x += dx;
-  float yd = std::fmin(x / T, V);//convert x to velocity and limit it
-  x = yd * T;//convert limited velocity back to x to limit x as well
+  const float yd = std::fmin(x / T, V); //convert x to velocity and limit it
+  x = yd * T; //convert limited velocity back to x to limit x as well
 
   lastSetpoints.pop_front();
 
@@ -52,7 +53,7 @@ void PT2Motor::act()
 void PT2Motor::setValue(float value)
 {
   setpoint = value;
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     if(setpoint > deflection->max)
@@ -64,7 +65,7 @@ void PT2Motor::setValue(float value)
 
 bool PT2Motor::getMinAndMax(float& min, float& max) const
 {
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     min = deflection->min;
@@ -81,7 +82,7 @@ void PT2Motor::PositionSensor::updateValue()
 
 bool PT2Motor::PositionSensor::getMinAndMax(float& min, float& max) const
 {
-  Axis::Deflection* deflection = joint->axis->deflection;
+  const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
     min = deflection->min;

@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Sensors/Camera.h
-* Declaration of class Camera
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Camera.h
+ * Declaration of class Camera
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Simulation/Sensors/Sensor.h"
 
 /**
-* @class Camera
-* A simulated camera
-*/
+ * @class Camera
+ * A simulated camera
+ */
 class Camera : public Sensor
 {
 public:
@@ -25,9 +25,9 @@ public:
 
 private:
   /**
-  * @class CameraSensor
-  * The camera sensor interface
-  */
+   * @class CameraSensor
+   * The camera sensor interface
+   */
   class CameraSensor : public Sensor::Port
   {
   public:
@@ -53,16 +53,17 @@ private:
   void createPhysics() override;
 
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI */
   void registerObjects() override;
 
-  /** Draws physical primitives of the object (including children) on the currently selected OpenGL context
-  * @param flags Flags to enable or disable certain features
-  */
+  /**
+   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * @param flags Flags to enable or disable certain features
+   */
   void drawPhysics(unsigned int flags) const override;
 };

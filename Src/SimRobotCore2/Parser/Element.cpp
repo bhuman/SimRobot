@@ -6,7 +6,6 @@
 
 #include "Element.h"
 #include "Simulation/Simulation.h"
-#include "Platform/Assert.h"
 
 Element::Element()
 {

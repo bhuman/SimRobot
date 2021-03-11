@@ -1,20 +1,19 @@
 /**
-* @file Simulation/Sensor.h
-* Declaration of class Sensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensor.h
+ * Declaration of class Sensor
+ * @author Colin Graf
+ */
 
 #pragma once
 
-#include <QStringList>
-
 #include "Simulation/SimObject.h"
 #include "Simulation/PhysicalObject.h"
+#include <QStringList>
 
 /**
-* @class Sensor
-* An abstract class for sensors
-*/
+ * @class Sensor
+ * An abstract class for sensors
+ */
 class Sensor : public PhysicalObject, public SimRobotCore2::Sensor
 {
 public:
@@ -27,12 +26,9 @@ public:
     QList<int> dimensions; /**< The dimensions of the sensor readings */
     QStringList descriptions; /**< A description for each sensor reading dimension */
     QString unit; /**< The unit of the sensor readings */
-    unsigned int lastSimulationStep; /**< The last time this sensor was computed. */
+    unsigned int lastSimulationStep = 0xffffffff; /**< The last time this sensor was computed. */
 
-    /** Default constructor */
-    Port() : lastSimulationStep(0xffffffff) {}
-
-     /** Update the sensor value. Is called when required. */
+    /** Update the sensor value. Is called when required. */
     virtual void updateValue() = 0;
 
   private:

@@ -83,13 +83,10 @@ private:
   class Buffer
   {
   public:
-    QGLWidget* glWidget;
-    QGLPixelBuffer* pbuffer;
-    unsigned int frameBufferId;
+    QGLWidget* glWidget = nullptr;
+    QGLPixelBuffer* pbuffer = nullptr;
+    unsigned int frameBufferId = 0;
     unsigned int renderBufferIds[2];
-
-    /** Default constructor */
-    Buffer() : glWidget(0), pbuffer(0), frameBufferId(0) {}
 
     /** Destructor */
     ~Buffer();

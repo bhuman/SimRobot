@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "../SimRobot/SimRobot.h"
+#include <SimRobot.h>
 
 template<typename T> class QList;
 class QStringList;
@@ -29,7 +29,7 @@ namespace SimRobotCore2
   class SensorPort;
   class ActuatorPort;
 
-  /** The different SimRobotCore objet types */
+  /** The different SimRobotCore2 object types */
   enum Kind
   {
     body = 2, /**< An object of the type SimRobotCore2::Body */
@@ -40,8 +40,8 @@ namespace SimRobotCore2
     sensor, /**< An object of the type SimRobotCore2::Sensor */
     compound, /**< An object of the type SimRobotCore2::Compound */
     scene, /**< An object of the type SimRobotCore2::Scene */
-    actuatorPort, /**< An object of the type SimRobotCore2::Actuator */
-    sensorPort, /**< An object of the type SimRobotCore2::Sensor */
+    actuatorPort, /**< An object of the type SimRobotCore2::ActuatorPort */
+    sensorPort, /**< An object of the type SimRobotCore2::SensorPort */
   };
 
   /**
@@ -111,15 +111,17 @@ namespace SimRobotCore2
     /** Virtual destructor */
     virtual ~Renderer() = default;
 
-    /** Initializes the currently selected OpenGL context.
-     * @parem hasSharedDisplayLists Whether the OpenGL has shared display lists and textures with another context that is already initialized.
+    /**
+     * Initializes the currently selected OpenGL context.
+     * @param hasSharedDisplayLists Whether the OpenGL has shared display lists and textures with another context that is already initialized.
      */
     virtual void init(bool hasSharedDisplayLists) = 0;
 
     /** Draws the scene object on the currently selected OpenGL context. */
     virtual void draw() = 0;
 
-    /** Sets the size of the currently selected OpenGL renderer device. Call this once at the beginning to initialize the size.
+    /**
+     * Sets the size of the currently selected OpenGL renderer device. Call this once at the beginning to initialize the size.
      * @param width The width of the renderer device
      * @param height The height of the renderer device
      */
@@ -465,22 +467,26 @@ namespace SimRobotCore2
      */
     int getKind() const override {return scene;}
 
-    /** Returns the length of one simulation step
+    /**
+     * Returns the length of one simulation step
      * @return The time which is simulated by one step (in s)
      */
     virtual double getStepLength() const = 0;
 
-    /** Returns the current simulation step
+    /**
+     * Returns the current simulation step
      * @return The step
      */
     virtual unsigned int getStep() const = 0;
 
-    /** Returns the current simulation time in seconds, starting with 0.0
+    /**
+     * Returns the current simulation time in seconds, starting with 0.0
      * @return The time (in s)
      */
     virtual double getTime() const = 0;
 
-    /** Returns the current frame rate
+    /**
+     * Returns the current frame rate
      * @return The frame rate in frames per second
      */
     virtual unsigned int getFrameRate() const = 0;

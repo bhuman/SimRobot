@@ -1,21 +1,19 @@
 /**
-* @file Simulation/Joints/Joint.cpp
-* Implementation of class Joint
-* @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
-* @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
-* @author Colin Graf
-* @author Thomas Röfer
-*/
-
-#include <cmath>
-#include "Platform/OpenGL.h"
+ * @file Simulation/Actuators/Joint.cpp
+ * Implementation of class Joint
+ * @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
+ * @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
+ * @author Colin Graf
+ * @author Thomas Röfer
+ */
 
 #include "Joint.h"
+#include "SimRobotCore2.h"
 #include "Simulation/Axis.h"
-#include "Simulation/Simulation.h"
 #include "Simulation/Motors/Motor.h"
-#include "CoreModule.h"
-#include "Tools/OpenGLTools.h"
+#include "Platform/OpenGL.h"
+#include <ode/objects.h>
+#include <cmath>
 
 Joint::~Joint()
 {

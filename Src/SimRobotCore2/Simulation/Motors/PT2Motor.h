@@ -1,20 +1,19 @@
 /**
-* @file Simulation/Motors/ServoMotor.h
-* Declaration of class PT2Motor
-* @author Thomas Muender
-*/
+ * @file Simulation/Motors/PT2Motor.h
+ * Declaration of class PT2Motor
+ * @author Thomas Muender
+ */
 
 #pragma once
 
+#include "Simulation/Motors/Motor.h"
+#include "Simulation/Sensors/Sensor.h"
 #include <deque>
 
-#include "Motor.h"
-#include "Simulation/Sensors/Sensor.h"
-
 /**
-* @class ServoMotor
-* A motor for controlling the angle of an axis
-*/
+ * @class PT2Motor
+ * A motor for controlling the angle of an axis
+ */
 class PT2Motor : public Motor
 {
 public:
@@ -32,9 +31,9 @@ public:
 
 private:
   /**
-  * @class AngleSensor
-  * An angle sensor interface
-  */
+   * @class PositionSensor
+   * A angle sensor interface
+   */
   class PositionSensor : public Sensor::Port
   {
   public:
@@ -48,9 +47,9 @@ private:
   std::deque<float> lastSetpoints;
 
   /**
-  * Initializes the motor
-  * @param joint The joint that is controlled by this motor
-  */
+   * Initializes the motor
+   * @param joint The joint that is controlled by this motor
+   */
   void create(Joint* joint) override;
 
   /** Called before computing a simulation step to update the joint */

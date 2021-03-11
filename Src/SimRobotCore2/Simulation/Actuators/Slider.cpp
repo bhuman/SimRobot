@@ -1,23 +1,22 @@
 /**
-* @file Simulation/Joints/Slider.cpp
-* Implementation of class Slider
-* @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
-* @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
-* @author Colin Graf
-* @author Thomas Röfer
-*/
-
-#include <cmath>
-#include "Platform/OpenGL.h"
+ * @file Simulation/Actuators/Slider.cpp
+ * Implementation of class Slider
+ * @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
+ * @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
+ * @author Colin Graf
+ * @author Thomas Röfer
+ */
 
 #include "Slider.h"
-#include "Simulation/Body.h"
-#include "Simulation/Axis.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Motors/ServoMotor.h"
-#include "Platform/Assert.h"
 #include "CoreModule.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Body.h"
+#include "Simulation/Motors/ServoMotor.h"
+#include "Simulation/Simulation.h"
+#include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
 #include "Tools/OpenGLTools.h"
+#include <ode/objects.h>
 
 void Slider::createPhysics()
 {
@@ -33,7 +32,7 @@ void Slider::createPhysics()
   Body* parentBody = dynamic_cast<Body*>(parent);
   ASSERT(!parentBody || parentBody->body);
   ASSERT(!children.empty());
-  Body* childBody = dynamic_cast<Body*>(*children.begin());
+  Body* childBody = dynamic_cast<Body*>(children.front());
   ASSERT(childBody);
   ASSERT(childBody->body);
 
@@ -55,9 +54,9 @@ void Slider::createPhysics()
       minSliderLimit = maxSliderLimit;
     //Set physical limits to higher values (+10%) to avoid strange Slider effects.
     //Otherwise, sometimes the motor exceeds the limits.
-    float internalTolerance = (maxSliderLimit - minSliderLimit) * 0.1f;
     if(dynamic_cast<ServoMotor*>(axis->motor))
     {
+      const float internalTolerance = (maxSliderLimit - minSliderLimit) * 0.1f;
       minSliderLimit -= internalTolerance;
       maxSliderLimit += internalTolerance;
     }

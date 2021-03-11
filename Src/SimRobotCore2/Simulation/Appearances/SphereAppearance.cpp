@@ -1,12 +1,11 @@
 /**
-* @file Simulation/Appearances/SphereAppearance.cpp
-* Implementation of class SphereAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/SphereAppearance.cpp
+ * Implementation of class SphereAppearance
+ * @author Colin Graf
+ */
 
+#include "SphereAppearance.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Appearances/SphereAppearance.h"
 
 void SphereAppearance::assembleAppearances(SurfaceColor color) const
 {

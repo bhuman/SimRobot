@@ -1,24 +1,30 @@
 /**
-* @file Simulation/Body.cpp
-* Implementation of class Body
-* @author Colin Graf
-*/
+ * @file Simulation/Body.cpp
+ * Implementation of class Body
+ * @author Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
-
+#include "Body.h"
 #include "Platform/Assert.h"
-#include "Simulation/Body.h"
+#include "Platform/OpenGL.h"
+#include "Simulation/Geometries/Geometry.h"
+#include "Simulation/Masses/Mass.h"
 #include "Simulation/Scene.h"
 #include "Simulation/Simulation.h"
-#include "Masses/Mass.h"
-#include "Geometries/Geometry.h"
 #include "Tools/ODETools.h"
 #include "Tools/OpenGLTools.h"
+#include <ode/collision.h>
+#include <ode/objects.h>
+
+Body::Body()
+{
+  dMassSetZero(&mass);
+}
 
 void Body::addParent(Element& element)
 {
   ASSERT(!parent);
-  parent = dynamic_cast< ::PhysicalObject*>(&element);
+  parent = dynamic_cast<::PhysicalObject*>(&element);
   parent->physicalChildren.push_back(this);
   SimObject::addParent(element);
 }
@@ -50,31 +56,20 @@ void Body::createPhysics()
   dBodySetData(body, this);
 
   // add masses
-  for(std::list<SimObject*>::const_iterator iter = children.begin(), end = children.end(); iter != end; ++iter)
+  for(SimObject* iter : children)
   {
-    Mass* mass = dynamic_cast<Mass*>(*iter);
+    auto* mass = dynamic_cast<Mass*>(iter);
     if(mass)
       addMass(*mass);
   }
 
   // compute moment of inertia tensor at center of mass and center of mass position
-  if(Vector3f(static_cast<float>(mass.c[0]), static_cast<float>(mass.c[1]), static_cast<float>(mass.c[2])) != Vector3f::Zero())
-  {
-    centerOfMass += Vector3f(static_cast<float>(mass.c[0]), static_cast<float>(mass.c[1]), static_cast<float>(mass.c[2]));
-    dMassTranslate(&mass, -mass.c[0], -mass.c[1], -mass.c[2]);
-
-    /* ^= !?
-    if(centerOfMass != Vector3<>())
-      dMassTranslate(&mass, centerOfMass.x, centerOfMass.y, centerOfMass.z);
-    centerOfMass = Vector3<>(mass.c[0], mass.c[1], mass.c[2]);
-    if(centerOfMass != Vector3<>())
-      dMassTranslate(&mass, -centerOfMass.x, -centerOfMass.y, -centerOfMass.z);
-    */
-  }
+  centerOfMass += Vector3f(static_cast<float>(mass.c[0]), static_cast<float>(mass.c[1]), static_cast<float>(mass.c[2]));
+  dMassTranslate(&mass, -mass.c[0], -mass.c[1], -mass.c[2]);
 
   // set mass
   dBodySetMass(body, &mass);
-  OpenGLTools::convertTransformation(0, &centerOfMass, centerOfMassTransformation);
+  OpenGLTools::convertTransformation(nullptr, &centerOfMass, centerOfMassTransformation);
 
   // set position
   Pose3f comPose = pose;
@@ -85,21 +80,12 @@ void Body::createPhysics()
   dBodySetRotation(body, matrix3);
 
   // add geometries
-  for(std::list< ::PhysicalObject*>::const_iterator iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
+  const Pose3f geomOffset(-centerOfMass);
+  for(::PhysicalObject* iter : physicalDrawings)
   {
-    Geometry* geometry = dynamic_cast<Geometry*>(*iter);
+    auto* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
-    {
-      Pose3f geomOffset(-centerOfMass);
       addGeometry(geomOffset, *geometry);
-      for(++iter; iter != end; ++iter) // avoid constructing geomOffset again
-      {
-        geometry = dynamic_cast<Geometry*>(*iter);
-        if(geometry)
-          addGeometry(geomOffset, *geometry);
-      }
-      break;
-    }
   }
 
   //
@@ -136,9 +122,9 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
   }
 
   // handle nested geometries
-  for(std::list< ::PhysicalObject*>::const_iterator iter = geometry.physicalDrawings.begin(), end = geometry.physicalDrawings.end(); iter != end; ++iter)
+  for(::PhysicalObject* iter : geometry.physicalDrawings)
   {
-    Geometry* geometry = dynamic_cast<Geometry*>(*iter);
+    Geometry* geometry = dynamic_cast<Geometry*>(iter);
     ASSERT(geometry);
     addGeometry(offset, *geometry);
   }
@@ -188,8 +174,8 @@ void Body::addMass(Mass& mass)
 void Body::createGraphics()
 {
   GraphicalObject::createGraphics();
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->createGraphics();
+  for(Body* child : bodyChildren)
+    child->createGraphics();
 }
 
 void Body::updateTransformation()
@@ -203,8 +189,8 @@ void Body::updateTransformation()
   OpenGLTools::convertTransformation(pose, transformation);
 
   //
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->updateTransformation();
+  for(Body* child : bodyChildren)
+    child->updateTransformation();
 }
 
 void Body::drawAppearances(SurfaceColor color, bool drawControllerDrawings) const
@@ -213,8 +199,8 @@ void Body::drawAppearances(SurfaceColor color, bool drawControllerDrawings) cons
   glMultMatrixf(transformation);
   GraphicalObject::drawAppearances(color, drawControllerDrawings);
   glPopMatrix();
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->drawAppearances(color, drawControllerDrawings);
+  for(const Body* child : bodyChildren)
+    child->drawAppearances(color, drawControllerDrawings);
 }
 
 void Body::drawPhysics(unsigned int flags) const
@@ -240,16 +226,16 @@ void Body::drawPhysics(unsigned int flags) const
 
   glPopMatrix();
 
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->drawPhysics(flags);
+  for(const Body* child : bodyChildren)
+    child->drawPhysics(flags);
 }
 
 void Body::move(const Vector3f& offset)
 {
   const dReal* pos = dBodyGetPosition(body);
   dBodySetPosition(body, pos[0] + offset.x(), pos[1] + offset.y(), pos[2] + offset.z());
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->move(offset);
+  for(Body* child : bodyChildren)
+    child->move(offset);
 
   Simulation::simulation->scene->lastTransformationUpdateStep = Simulation::simulation->simulationStep - 1; // enforce transformation update
 }
@@ -268,42 +254,10 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
   ODETools::convertMatrix(comPose.rotation, matrix3);
   dBodySetRotation(body, matrix3);
 
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->rotate(rotation, point);
+  for(Body* body : bodyChildren)
+    body->rotate(rotation, point);
 
   Simulation::simulation->scene->lastTransformationUpdateStep = Simulation::simulation->simulationStep - 1; // enforce transformation update
-}
-
-void Body::enablePhysics(bool enable)
-{
-  enable ? dBodyEnable(body) : dBodyDisable(body);
-
-  if(rootBody->bodySpace)
-  {
-    if(enable)
-      dGeomEnable(reinterpret_cast<dGeomID>(rootBody->bodySpace));
-    else
-      dGeomDisable(reinterpret_cast<dGeomID>(rootBody->bodySpace));
-  }
-
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->enablePhysics(enable);
-}
-
-void Body::resetDynamics()
-{
-  dBodySetLinearVel(body, 0, 0, 0);
-  dBodySetAngularVel(body, 0, 0, 0);
-  for(std::list<Body*>::const_iterator iter = bodyChildren.begin(), end = bodyChildren.end(); iter != end; ++iter)
-    (*iter)->resetDynamics();
-}
-
-const Pose3f& Body::getPose()
-{
-  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
-  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
-  pose.translate(-centerOfMass);
-  return pose;
 }
 
 const float* Body::getPosition() const
@@ -330,6 +284,20 @@ bool Body::getPose(float* pos, float (*rot)[3]) const
   return true;
 }
 
+void Body::move(const float* pos)
+{
+  // get pose from ode
+  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
+  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
+  pose.translate(-centerOfMass);
+
+  // compute position offset
+  Vector3f offset = Vector3f(pos[0], pos[1], pos[2]) - pose.translation;
+
+  // move object to new position
+  move(offset);
+}
+
 void Body::move(const float* pos, const float (*rot)[3])
 {
   // get pose from ode
@@ -351,17 +319,26 @@ void Body::move(const float* pos, const float (*rot)[3])
   rotate(offset.rotation, newPose.translation);
 }
 
-void Body::move(const float* pos)
+void Body::resetDynamics()
 {
-  // get pose from ode
-  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
-  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
-  pose.translate(-centerOfMass);
-
-  // compute position offset
-  Vector3f offset = Vector3f(pos[0], pos[1], pos[2]) - pose.translation;
-
-  // move object to new position
-  move(offset);
+  dBodySetLinearVel(body, REAL(0), REAL(0), REAL(0));
+  dBodySetAngularVel(body, REAL(0), REAL(0), REAL(0));
+  for(Body* child : bodyChildren)
+    child->resetDynamics();
 }
 
+void Body::enablePhysics(bool enable)
+{
+  enable ? dBodyEnable(body) : dBodyDisable(body);
+
+  if(rootBody->bodySpace)
+  {
+    if(enable)
+      dGeomEnable(reinterpret_cast<dGeomID>(rootBody->bodySpace));
+    else
+      dGeomDisable(reinterpret_cast<dGeomID>(rootBody->bodySpace));
+  }
+
+  for(Body* child : bodyChildren)
+    child->enablePhysics(enable);
+}

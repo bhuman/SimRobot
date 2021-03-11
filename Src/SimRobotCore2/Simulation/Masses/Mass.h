@@ -17,9 +17,6 @@
 class Mass : public SimObject, public SimRobotCore2::Mass
 {
 public:
-  /** Default constructor */
-  Mass() = default;
-
   /**
   * Creates the mass of a physical object (including children and not including \c translation and \c rotation)
   * @return The mass

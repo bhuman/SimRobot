@@ -1,15 +1,16 @@
 /**
-* @file Simulation/Sensors/Accelerometer.cpp
-* Implementation of class Accelerometer
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Accelerometer.cpp
+ * Implementation of class Accelerometer
+ * @author Colin Graf
+ */
 
-#include "Simulation/Sensors/Accelerometer.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Body.h"
-#include "Platform/Assert.h"
-#include "Tools/ODETools.h"
+#include "Accelerometer.h"
 #include "CoreModule.h"
+#include "Platform/Assert.h"
+#include "Simulation/Body.h"
+#include "Simulation/Scene.h"
+#include "Tools/ODETools.h"
+#include <ode/objects.h>
 
 Accelerometer::Accelerometer()
 {

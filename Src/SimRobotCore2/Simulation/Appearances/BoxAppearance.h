@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Appearances/BoxAppearance.h
-* Declaration of class BoxAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/BoxAppearance.h
+ * Declaration of class BoxAppearance
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Simulation/Appearances/Appearance.h"
 
 /**
-* @class BoxAppearance
-* The graphical representation of a simple box
-*/
+ * @class BoxAppearance
+ * The graphical representation of a simple box
+ */
 class BoxAppearance : public Appearance
 {
 public:

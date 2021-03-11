@@ -13,7 +13,8 @@
 class OpenGLTools
 {
 public:
-  /** Converts a pose to the OpenGL format
+  /**
+   * Converts a pose to the OpenGL format
    * @param pose The pose to convert
    * @param transformation The converted pose
    */
@@ -37,7 +38,8 @@ public:
     transformation[15] = 1.f;
   }
 
-  /** Converts a pose to the OpenGL format
+  /**
+   * Converts a pose to the OpenGL format
    * @param rotation The rotational part of the pose to convert
    * @param translation The translational part of the pose to convert
    * @param transformation The converted pose

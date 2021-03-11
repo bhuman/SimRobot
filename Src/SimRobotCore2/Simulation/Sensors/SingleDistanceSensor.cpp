@@ -1,16 +1,17 @@
 /**
-* @file Simulation/Sensors/SingleDistanceSensor.cpp
-* Implementation of class SingleDistanceSensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/SingleDistanceSensor.cpp
+ * Implementation of class SingleDistanceSensor
+ * @author Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
 
-#include "Simulation/Sensors/SingleDistanceSensor.h"
+#include "SingleDistanceSensor.h"
+#include "CoreModule.h"
 #include "Simulation/Body.h"
 #include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
 #include "Tools/OpenGLTools.h"
-#include "CoreModule.h"
+#include <ode/collision.h>
 
 SingleDistanceSensor::SingleDistanceSensor()
 {
@@ -80,8 +81,9 @@ void SingleDistanceSensor::DistanceSensor::updateValue()
   pose.conc(offset);
   const Vector3f& pos = pose.translation;
   const Vector3f dir = pose.rotation.col(0);
-  dGeomRaySet(geom, pos.x(), pos.y(), pos.z(), dir.x(), dir.y(), dir.z());
-  closestGeom = 0;
+  dGeomRaySet(geom, static_cast<dReal>(pos.x()), static_cast<dReal>(pos.y()), static_cast<dReal>(pos.z()),
+              static_cast<dReal>(dir.x()), static_cast<dReal>(dir.y()), static_cast<dReal>(dir.z()));
+  closestGeom = nullptr;
   closestSqrDistance = maxSqrDist;
   dSpaceCollide2(geom, reinterpret_cast<dGeomID>(Simulation::simulation->movableSpace), this, reinterpret_cast<dNearCallback*>(&staticCollisionWithSpaceCallback));
   dSpaceCollide2(geom, reinterpret_cast<dGeomID>(Simulation::simulation->staticSpace), this, reinterpret_cast<dNearCallback*>(&staticCollisionCallback));

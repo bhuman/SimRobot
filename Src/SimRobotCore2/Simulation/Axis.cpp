@@ -1,29 +1,26 @@
 /**
-* @file Simulation/Axis.cpp
-* Implementation of class Axis
-* @author Colin Graf
-*/
+ * @file Simulation/Axis.cpp
+ * Implementation of class Axis
+ * @author Colin Graf
+ */
 
-#include <cmath>
-
-#include "Simulation/Axis.h"
+#include "Axis.h"
+#include "Platform/Assert.h"
 #include "Simulation/Actuators/Joint.h"
 #include "Simulation/Motors/Motor.h"
-#include "Platform/Assert.h"
+#include <cmath>
 
 Axis::~Axis()
 {
-  if(deflection)
-    delete deflection;
-  if(motor)
-    delete motor;
+  delete deflection;
+  delete motor;
 }
 
 void Axis::create()
 {
   // normalize axis
   const float len = std::sqrt(x * x + y * y + z * z);
-  if(len == float())
+  if(len == 0.f)
     x = 1.f;
   else
   {

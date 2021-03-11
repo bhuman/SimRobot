@@ -1,10 +1,11 @@
 /**
-* @file Simulation/Actuator.cpp
-* Implementation of class Actuator
-* @author Colin Graf
-*/
+ * @file Simulation/Actuators/Actuator.cpp
+ * Implementation of class Actuator
+ * @author Colin Graf
+ */
 
 #include "Actuator.h"
+#include "ActuatorsWidget.h"
 #include "CoreModule.h"
 
 void Actuator::addParent(Element& element)

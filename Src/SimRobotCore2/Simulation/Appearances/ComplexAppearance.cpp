@@ -1,15 +1,14 @@
 /**
-* @file Simulation/Appearances/ComplexAppearance.cpp
-* Implementation of class ComplexAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/ComplexAppearance.cpp
+ * Implementation of class ComplexAppearance
+ * @author Colin Graf
+ */
 
-#include <cmath>
-#include "Platform/OpenGL.h"
-
-#include "Simulation/Appearances/ComplexAppearance.h"
+#include "ComplexAppearance.h"
 #include "Tools/Texture.h"
 #include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
+#include <cmath>
 
 void ComplexAppearance::PrimitiveGroup::addParent(Element& element)
 {
@@ -45,20 +44,20 @@ void ComplexAppearance::createGraphics()
 
   if(initializedContexts == 0)
   {
-    size_t verticesSize = vertices->vertices.size();
+    std::size_t verticesSize = vertices->vertices.size();
     if(verticesSize > 0 && !normalsDefined)
     {
-      const Vertex* vertexLibrary = &vertices->vertices[0];
+      const Vertex* vertexLibrary = vertices->vertices.data();
       normals = new Normals();
       normals->normals.resize(verticesSize);
-      Normal* vertexNormals = &normals->normals[0];
+      Normal* vertexNormals = normals->normals.data();
 
-      for(std::list<PrimitiveGroup*>::const_iterator iter = primitiveGroups.begin(), end = primitiveGroups.end(); iter != end; ++iter)
+      for(PrimitiveGroup* iter : primitiveGroups)
       {
-        PrimitiveGroup& primitiveGroup = *(*iter);
+        PrimitiveGroup& primitiveGroup = *iter;
         ASSERT(primitiveGroup.mode == GL_TRIANGLES || primitiveGroup.mode == GL_QUADS);
         ASSERT(primitiveGroup.vertices.size() % (primitiveGroup.mode == GL_TRIANGLES ? 3 : 4) == 0);
-        for(std::list<unsigned int>::iterator iter = primitiveGroup.vertices.begin(), end = primitiveGroup.vertices.end(); iter != end;)
+        for(auto iter = primitiveGroup.vertices.begin(), end = primitiveGroup.vertices.end(); iter != end;)
         {
           unsigned int i1 = *iter;
           if(i1 >= verticesSize)
@@ -105,7 +104,7 @@ void ComplexAppearance::createGraphics()
       for(Normal* i = vertexNormals, * end = vertexNormals + verticesSize; i < end; ++i)
         if(i->length)
         {
-          const float mult = 1.f / float(i->length);
+          const float mult = 1.f / static_cast<float>(i->length);
           i->x *= mult;
           i->y *= mult;
           i->z *= mult;
@@ -126,14 +125,14 @@ void ComplexAppearance::assembleAppearances(SurfaceColor color) const
   {
     surface->set(color, !texCoords);
 
-    const Vertex* vertexLibrary = &vertices->vertices[0];
-    const Normal* vertexNormals = &normals->normals[0];
+    const Vertex* vertexLibrary = vertices->vertices.data();
+    const Normal* vertexNormals = normals->normals.data();
 
-    for(std::list<PrimitiveGroup*>::const_iterator iter = primitiveGroups.begin(), end = primitiveGroups.end(); iter != end; ++iter)
+    for(PrimitiveGroup* iter : primitiveGroups)
     {
-      const PrimitiveGroup& primitiveGroup = *(*iter);
+      const PrimitiveGroup& primitiveGroup = *iter;
       glBegin(primitiveGroup.mode);
-      for(std::list<unsigned int>::const_iterator iter = primitiveGroup.vertices.begin(), end = primitiveGroup.vertices.end(); iter != end; ++iter)
+      for(auto iter = primitiveGroup.vertices.begin(), end = primitiveGroup.vertices.end(); iter != end; ++iter)
       {
         const unsigned int i = *iter;
         if(texCoords && i < texCoords->coords.size())

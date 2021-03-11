@@ -1,12 +1,11 @@
 /**
-* @file Simulation/Appearances/BoxAppearance.cpp
-* Implementation of class BoxAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/BoxAppearance.cpp
+ * Implementation of class BoxAppearance
+ * @author Colin Graf
+ */
 
+#include "BoxAppearance.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Appearances/BoxAppearance.h"
 
 void BoxAppearance::assembleAppearances(SurfaceColor color) const
 {

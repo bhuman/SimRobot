@@ -31,7 +31,7 @@ if(${PLATFORM} STREQUAL macOS)
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}")
 
   set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-  set_source_files_properties(${SIMROBOT_FRAMEWORKS} PROPERTIES 
+  set_source_files_properties(${SIMROBOT_FRAMEWORKS} PROPERTIES
       MACOSX_PACKAGE_LOCATION Frameworks
       XCODE_EXPLICIT_FILE_TYPE wrapper.framwork)
   set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/platforms)
@@ -54,7 +54,7 @@ set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobot PRIVATE Qt5::Core Qt5::Gui Qt5::Svg Qt5::Widgets)
 if(APPLE)
-target_link_libraries(SimRobot PRIVATE Qt5::OpenGL)
+  target_link_libraries(SimRobot PRIVATE Qt5::OpenGL)
 endif()
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 

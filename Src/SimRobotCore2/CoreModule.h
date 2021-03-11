@@ -6,11 +6,10 @@
 
 #pragma once
 
-#include <QIcon>
-
-#include "../SimRobot/SimRobot.h"
-#include "Simulation/Simulation.h"
 #include "ActuatorsWidget.h"
+#include "Simulation/Simulation.h"
+#include <SimRobot.h>
+#include <QIcon>
 
 class SimObject;
 

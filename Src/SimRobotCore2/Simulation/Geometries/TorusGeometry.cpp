@@ -4,10 +4,12 @@
  * @author Arne Hasselbring
  */
 
+#include "TorusGeometry.h"
 #include "Platform/Assert.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Geometries/TorusGeometry.h"
+#include <ode/collision.h>
+#include <ode/collision_space.h>
+#include <ode/odemath.h>
 
 struct TorusData
 {

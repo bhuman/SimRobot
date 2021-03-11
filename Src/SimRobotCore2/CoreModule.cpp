@@ -1,15 +1,14 @@
 /**
- * @file Simulation/CoreModule.h
+ * @file CoreModule.cpp
  * Implementation of class CoreModule
  * @author Colin Graf
  */
 
-#include <QDir>
-#include <QLabel>
-
 #include "CoreModule.h"
 #include "Simulation/PhysicalObject.h"
 #include "Simulation/Scene.h"
+#include <QDir>
+#include <QLabel>
 
 extern "C" DLL_EXPORT SimRobot::Module* createModule(SimRobot::Application& simRobot)
 {
@@ -29,7 +28,7 @@ CoreModule::CoreModule(SimRobot::Application& application) :
 
 bool CoreModule::compile()
 {
-  Q_ASSERT(scene == 0);
+  Q_ASSERT(!scene);
 
   // change working directory
   QString filePath = application->getFilePath();
@@ -40,13 +39,13 @@ bool CoreModule::compile()
   if(!loadFile(filePath.toUtf8().constData(), errors))
   {
     QString errorMessage;
-    for(std::list<std::string>::const_iterator it = errors.begin(), end = errors.end(); it != end; ++it)
+    for(const std::string& error : errors)
     {
       if(!errorMessage.isEmpty())
         errorMessage += "\n";
-      errorMessage += (*it).c_str();
+      errorMessage += error.c_str();
     }
-    application->showWarning(QObject::tr("SimRobotCore"), errorMessage);
+    application->showWarning(QObject::tr("SimRobotCore2"), errorMessage);
     return false;
   }
 
@@ -57,10 +56,7 @@ bool CoreModule::compile()
   // register status bar labels
   class StepsLabel : public QLabel, public SimRobot::StatusLabel
   {
-  public:
-    StepsLabel() : lastStep(-1) {}
-  private:
-    unsigned int lastStep;
+    unsigned int lastStep = -1;
     QWidget* getWidget() override {return this;}
     void update() override
     {
@@ -77,10 +73,7 @@ bool CoreModule::compile()
 
   class StepsPerSecondLabel : public QLabel, public SimRobot::StatusLabel
   {
-  public:
-    StepsPerSecondLabel() : lastFps(-1) {}
-  private:
-    int lastFps;
+    int lastFps = -1;
     QWidget* getWidget() override {return this;}
     void update() override
     {
@@ -97,10 +90,7 @@ bool CoreModule::compile()
 
   class CollisionsLabel : public QLabel, public SimRobot::StatusLabel
   {
-  public:
-    CollisionsLabel() : lastCols(-1) {}
-  private:
-    int lastCols;
+    int lastCols = -1;
     QWidget* getWidget() override {return this;}
     void update() override
     {
@@ -117,10 +107,7 @@ bool CoreModule::compile()
 
   class RendererLabel : public QLabel, public SimRobot::StatusLabel
   {
-  public:
-    RendererLabel() : lastRenderingMethod(-1) {}
-  private:
-    int lastRenderingMethod;
+    int lastRenderingMethod = -1;
     QWidget* getWidget() override {return this;}
     void update() override
     {
@@ -132,7 +119,7 @@ bool CoreModule::compile()
         {
           "unkn renderer", "pbuf renderer", "fbuf renderer", "hwin renderer"
         };
-        setText(renderingMethods[(renderingMethod < 0 || renderingMethod >= int(sizeof(renderingMethods) / sizeof(*renderingMethods))) ? 0 : renderingMethod]);
+        setText(renderingMethods[(renderingMethod < 0 || renderingMethod >= static_cast<int>(sizeof(renderingMethods) / sizeof(*renderingMethods))) ? 0 : renderingMethod]);
       }
     }
   };

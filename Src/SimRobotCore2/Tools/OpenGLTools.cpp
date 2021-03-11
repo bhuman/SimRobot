@@ -4,9 +4,8 @@
  * @author Colin Graf
  */
 
-#include <cmath>
-
 #include "OpenGLTools.h"
+#include <cmath>
 
 void OpenGLTools::computePerspective(float fovY, float aspect, float near, float far, float matrix[])
 {

@@ -4,15 +4,13 @@
  * @author Colin Graf
  */
 
-#include "Platform/OpenGL.h"
-#include <QGLPixelBuffer>
-#include <QGLWidget>
-
-#include "Platform/OffscreenRenderer.h"
+#include "OffscreenRenderer.h"
 #include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/Scene.h"
-#include "SimObjectWidget.h"
+#include <QGLPixelBuffer>
+#include <QGLWidget>
 
 OffscreenRenderer::~OffscreenRenderer()
 {
@@ -38,7 +36,7 @@ bool OffscreenRenderer::makeCurrent(int width, int height, bool sampleBuffers)
   // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
   // So we create an individual buffer for each size in demand.
 
-  std::unordered_map<unsigned int, Buffer>::iterator it = renderBuffers.find(width << 16 | height << 1 | (sampleBuffers ? 1 : 0));
+  auto it = renderBuffers.find(width << 16 | height << 1 | (sampleBuffers ? 1 : 0));
   if(it == renderBuffers.end())
   {
     Buffer& buffer = renderBuffers[width << 16 | height << 1 | (sampleBuffers ? 1 : 0)];

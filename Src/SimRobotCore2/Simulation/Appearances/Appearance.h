@@ -1,13 +1,14 @@
 /**
-* @file Simulation/Appearances/Appearance.h
-* Declaration of class Appearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/Appearance.h
+ * Declaration of class Appearance
+ * @author Colin Graf
+ */
 
 #pragma once
 
-#include "Simulation/SimObject.h"
+#include "SimRobotCore2.h"
 #include "Simulation/GraphicalObject.h"
+#include "Simulation/SimObject.h"
 
 class Texture;
 
@@ -34,9 +35,9 @@ enum SurfaceColor : unsigned char
 };
 
 /**
-* @class Appearance
-* Abstract class for the graphical representation of physical objects
-*/
+ * @class Appearance
+ * Abstract class for the graphical representation of physical objects
+ */
 class Appearance : public SimObject, public GraphicalObject, public SimRobotCore2::Appearance
 {
 public:
@@ -45,11 +46,11 @@ public:
   public:
 
     float diffuseColor[4];
-    bool hasAmbientColor;
+    bool hasAmbientColor = false;
     float ambientColor[4];
     float specularColor[4];
     float emissionColor[4];
-    float shininess;
+    float shininess = 0.f;
     std::string diffuseTexture;
     Texture* texture = nullptr;
 
@@ -57,38 +58,35 @@ public:
     Surface();
 
     /**
-    * Selects this material surface in the currently selected OpenGL context.
-    * @param defaultTextureSize Initialize a default texture size if the surface has a texture.
-    */
+     * Selects this material surface in the currently selected OpenGL context.
+     * @param defaultTextureSize Initialize a default texture size if the surface has a texture.
+     */
     void set(SurfaceColor color = ownColor, bool defaultTextureSize = true) const;
 
     /**
-    * Unbinds a texture that might be bound on a \c set call before. Call function this every time
-    * after using the material in order to allow combining textured and not textured surfaces within
-    * a scene without enabling an disabling GL_TEXTURE_2D
-    * @param defaultTextureSize Clean up the default texture size if the surface has a texture.
-    */
+     * Unbinds a texture that might be bound on a \c set call before. Call function this every time
+     * after using the material in order to allow combining textured and not textured surfaces within
+     * a scene without enabling an disabling GL_TEXTURE_2D
+     * @param defaultTextureSize Clean up the default texture size if the surface has a texture.
+     */
     void unset(bool defaultTextureSize = true) const;
 
   private:
     /**
-    * Registers an element as parent
-    * @param element The element to register
-    */
+     * Registers an element as parent
+     * @param element The element to register
+     */
     void addParent(Element& element) override;
   };
 
-  Surface* surface; /**< The visual material of the object */
-
-  /** Default constructor */
-  Appearance() : surface(0) {}
+  Surface* surface = nullptr; /**< The visual material of the object */
 
 protected:
   /**
-  * Prepares the object and the currently selected OpenGL context for drawing the object.
-  * Loads textures and creates display lists. Hence, this function is called for each OpenGL
-  * context the object should be drawn in.
-  */
+   * Prepares the object and the currently selected OpenGL context for drawing the object.
+   * Loads textures and creates display lists. Hence, this function is called for each OpenGL
+   * context the object should be drawn in.
+   */
   void createGraphics() override;
 
   /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (as fast as possible) */
@@ -96,9 +94,9 @@ protected:
 
 private:
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
   /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (in order to create a display list) */

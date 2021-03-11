@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Appearances/CapsuleAppearance.h
-* Declaration of class CapsuleAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/CapsuleAppearance.h
+ * Declaration of class CapsuleAppearance
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Simulation/Appearances/Appearance.h"
 
 /**
-* @class CapsuleAppearance
-* The graphical representation of a capsule
-*/
+ * @class CapsuleAppearance
+ * The graphical representation of a capsule
+ */
 class CapsuleAppearance : public Appearance
 {
 public:

@@ -1,8 +1,8 @@
 /**
-* @file Simulation/Sensors/ApproxDistanceSensor.cpp
-* Implementation of class ApproxDistanceSensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/ApproxDistanceSensor.cpp
+ * Implementation of class ApproxDistanceSensor
+ * @author Colin Graf
+ */
 
 #include "Platform/OpenGL.h"
 #include <cmath>

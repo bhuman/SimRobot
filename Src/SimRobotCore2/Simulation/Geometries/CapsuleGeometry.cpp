@@ -1,14 +1,13 @@
 /**
-* @file Simulation/Geometries/CapsuleGeometry.cpp
-* Implementation of class CapsuleGeometry
-* @author Colin Graf
-*/
+ * @file Simulation/Geometries/CapsuleGeometry.cpp
+ * Implementation of class CapsuleGeometry
+ * @author Colin Graf
+ */
 
-#include <algorithm>
-
+#include "CapsuleGeometry.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Geometries/CapsuleGeometry.h"
+#include <ode/collision.h>
+#include <algorithm>
 
 dGeomID CapsuleGeometry::createGeometry(dSpaceID space)
 {

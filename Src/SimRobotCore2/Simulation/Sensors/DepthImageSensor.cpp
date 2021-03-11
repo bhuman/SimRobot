@@ -1,8 +1,8 @@
 /**
-* @file Simulation/Sensors/DepthImageSensor.cpp
-* Implementation of class DepthImageSensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/DepthImageSensor.cpp
+ * Implementation of class DepthImageSensor
+ * @author Colin Graf
+ */
 
 #include "Platform/OpenGL.h"
 #include <algorithm>

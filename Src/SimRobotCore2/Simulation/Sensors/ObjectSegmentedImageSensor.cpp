@@ -1,10 +1,10 @@
 /**
-* @file Simulation/Sensors/ObjectSegmentedImageSensor.cpp
-* Implementation of class ObjectSegmentedImageSensor
-*
-* @author Jesse Richter-Klug
-*  includes a lot of duplicated code origin in Simulation/Sensors/Camera.cpp authored by Colin Graf
-*/
+  * @file Simulation/Sensors/ObjectSegmentedImageSensor.cpp
+  * Implementation of class ObjectSegmentedImageSensor
+  *
+  * @author Jesse Richter-Klug
+  *  includes a lot of duplicated code origin in Simulation/Sensors/Camera.cpp authored by Colin Graf
+  */
 
 #include "Platform/OpenGL.h"
 
@@ -109,7 +109,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   // draw all objects
   Simulation::simulation->scene->GraphicalObject::drawAppearances(SurfaceColor(0), false);
   int j = 0;
-  for(std::list<Body*>::const_iterator iter = Simulation::simulation->scene->bodies.begin(),
+  for(auto iter = Simulation::simulation->scene->bodies.begin(),
       end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
     (*iter)->drawAppearances(SurfaceColor((j % (SurfaceColor::numOfSurfaceColors - 1)) + 1), false);
 
@@ -189,7 +189,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       // draw all objects
       Simulation::simulation->scene->GraphicalObject::drawAppearances(SurfaceColor(0), false);
       int j = 0;
-      for(std::list<Body*>::const_iterator iter = Simulation::simulation->scene->bodies.begin(),
+      for(auto iter = Simulation::simulation->scene->bodies.begin(),
           end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
         (*iter)->drawAppearances(SurfaceColor((j % (SurfaceColor::numOfSurfaceColors - 1)) + 1), false);
 

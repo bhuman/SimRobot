@@ -1,22 +1,19 @@
 /**
-* @file Simulation/Appearances/Appearance.cpp
-* Implementation of class Appearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/Appearance.cpp
+ * Implementation of class Appearance
+ * @author Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
-
-#include "Simulation/Appearances/Appearance.h"
-#include "Simulation/Scene.h"
+#include "Appearance.h"
+#include "CoreModule.h"
 #include "Platform/Assert.h"
+#include "Platform/OpenGL.h"
+#include "Simulation/Scene.h"
 #include "Tools/OpenGLTools.h"
 #include "Tools/Texture.h"
-#include "CoreModule.h"
 
-Appearance::Surface::Surface() : texture(0)
+Appearance::Surface::Surface()
 {
-  hasAmbientColor = false;
-
   diffuseColor[0] = 0.8f;
   diffuseColor[1] = 0.8f;
   diffuseColor[2] = 0.8f;
@@ -31,8 +28,6 @@ Appearance::Surface::Surface() : texture(0)
   specularColor[1] = 0.0f;
   specularColor[2] = 0.0f;
   specularColor[3] = 1.0f;
-
-  shininess = 0.0f;
 
   emissionColor[0] = 0.0f;
   emissionColor[1] = 0.0f;

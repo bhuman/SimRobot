@@ -1,8 +1,8 @@
 /**
-* @file Simulation/Sensors/Accelerometer.h
-* Declaration of class Accelerometer
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Accelerometer.h
+ * Declaration of class Accelerometer
+ * @author Colin Graf
+ */
 
 #pragma once
 
@@ -11,9 +11,9 @@
 class Body;
 
 /**
-* @class Accelerometer
-* A simulated accelerometer
-*/
+ * @class Accelerometer
+ * A simulated accelerometer
+ */
 class Accelerometer : public Sensor
 {
 public:
@@ -22,9 +22,9 @@ public:
 
 private:
   /**
-  * @class AccelerometerSensor
-  * The acceleration sensor interface
-  */
+   * @class AccelerometerSensor
+   * The acceleration sensor interface
+   */
   class AccelerometerSensor : public Sensor::Port
   {
   public:
@@ -50,9 +50,9 @@ private:
   void createPhysics() override;
 
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI */

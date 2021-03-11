@@ -1,12 +1,13 @@
 /**
-* @file Simulation/Sensor.cpp
-* Implementation of class Sensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensor.cpp
+ * Implementation of class Sensor
+ * @author Colin Graf
+ */
 
 #include "Sensor.h"
 #include "CoreModule.h"
 #include "SensorWidget.h"
+#include "Simulation/Simulation.h"
 
 const QIcon* Sensor::Port::getIcon() const
 {

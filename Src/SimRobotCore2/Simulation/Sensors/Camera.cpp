@@ -1,24 +1,24 @@
 /**
-* @file Simulation/Sensors/Camera.cpp
-* Implementation of class Camera
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/Camera.cpp
+ * Implementation of class Camera
+ * @author Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
-
-#include "Simulation/Sensors/Camera.h"
-#include "Simulation/Body.h"
-#include "Simulation/Scene.h"
+#include "Camera.h"
+#include "CoreModule.h"
 #include "Platform/Assert.h"
 #include "Platform/OffscreenRenderer.h"
+#include "Platform/OpenGL.h"
+#include "Simulation/Body.h"
+#include "Simulation/Scene.h"
 #include "Tools/OpenGLTools.h"
-#include "CoreModule.h"
+#include <cmath>
 
 Camera::Camera()
 {
   sensor.camera = this;
   sensor.sensorType = SimRobotCore2::SensorPort::cameraSensor;
-  sensor.imageBuffer = 0;
+  sensor.imageBuffer = nullptr;
   sensor.imageBufferSize = 0;
 }
 

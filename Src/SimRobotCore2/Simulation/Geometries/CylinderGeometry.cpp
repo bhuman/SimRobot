@@ -1,11 +1,12 @@
 /**
-* @file Simulation/Geometries/CylinderGeometry.cpp
-* Implementation of class CylinderGeometry
-* @author Colin Graf
-*/
+ * @file Simulation/Geometries/CylinderGeometry.cpp
+ * Implementation of class CylinderGeometry
+ * @author Colin Graf
+ */
 
+#include "CylinderGeometry.h"
 #include "Platform/OpenGL.h"
-#include "Simulation/Geometries/CylinderGeometry.h"
+#include <ode/collision.h>
 #include <cmath>
 
 dGeomID CylinderGeometry::createGeometry(dSpaceID space)

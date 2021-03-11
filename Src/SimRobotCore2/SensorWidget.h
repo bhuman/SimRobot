@@ -6,10 +6,11 @@
 
 #pragma once
 
-#include <QWidget>
-#include <QPainter>
-
 #include "SimRobotCore2.h"
+#include <QList>
+#include <QPainter>
+#include <QPen>
+#include <QWidget>
 
 class QMenu;
 class QMimeData;
@@ -38,7 +39,7 @@ private:
   SimRobotCore2::SensorPort* sensor;
   SimRobotCore2::SensorPort::SensorType sensorType;
   QList<int> sensorDimensions;
-  QMimeData* mineData;
+  QMimeData* mineData = nullptr;
 
   QWidget* getWidget() override {return this;}
   void update() override;

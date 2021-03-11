@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Appearances/CylinderAppearance.h
-* Declaration of class CylinderAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/CylinderAppearance.h
+ * Declaration of class CylinderAppearance
+ * @author Colin Graf
+ */
 
 #pragma once
 
 #include "Simulation/Appearances/Appearance.h"
 
 /**
-* @class CylinderAppearance
-* The graphical representation of a cylinder
-*/
+ * @class CylinderAppearance
+ * The graphical representation of a cylinder
+ */
 class CylinderAppearance : public Appearance
 {
 public:

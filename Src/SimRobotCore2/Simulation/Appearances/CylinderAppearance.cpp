@@ -1,12 +1,11 @@
 /**
-* @file Simulation/Appearances/CylinderAppearance.cpp
-* Implementation of class CylinderAppearance
-* @author Colin Graf
-*/
+ * @file Simulation/Appearances/CylinderAppearance.cpp
+ * Implementation of class CylinderAppearance
+ * @author Colin Graf
+ */
 
+#include "CylinderAppearance.h"
 #include "Platform/OpenGL.h"
-
-#include "Simulation/Appearances/CylinderAppearance.h"
 
 void CylinderAppearance::assembleAppearances(SurfaceColor color) const
 {

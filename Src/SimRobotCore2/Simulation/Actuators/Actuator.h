@@ -1,19 +1,19 @@
 /**
-* @file Simulation/Actuator.h
-* Declaration of class Actuator
-* @author Colin Graf
-*/
+ * @file Simulation/Actuators/Actuator.h
+ * Declaration of class Actuator
+ * @author Colin Graf
+ */
 
 #pragma once
 
+#include "SimRobotCore2.h"
+#include "Simulation/PhysicalObject.h"
 #include <QString>
 
-#include "Simulation/PhysicalObject.h"
-
 /**
-* @class Actuator
-* An abstract class for actuators
-*/
+ * @class Actuator
+ * An abstract class for actuators
+ */
 class Actuator : public PhysicalObject, public SimRobotCore2::Actuator
 {
 public:
@@ -36,9 +36,9 @@ public:
 
 private:
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
 private:

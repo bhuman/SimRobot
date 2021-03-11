@@ -1,41 +1,42 @@
 /**
-* @file Simulation/Simulation.cpp
-* Implementation of class Simulation
-* @author Colin Graf
-*/
+ * @file Simulation/Simulation.cpp
+ * Implementation of class Simulation
+ * @author Colin Graf
+ */
 
-#include <cmath>
-#include <algorithm>
-
+#include "Simulation.h"
+#include "CoreModule.h"
+#include "Parser/Element.h"
+#include "Parser/Parser.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
-#include "Simulation/Simulation.h"
-#include "Simulation/Scene.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
-#include "Parser/Parser.h"
+#include "Simulation/Scene.h"
 #include "Tools/ODETools.h"
-#include "CoreModule.h"
+#include <ode/collision.h>
+#include <ode/collision_space.h>
+#include <ode/objects.h>
+#include <ode/odeinit.h>
+#include <algorithm>
+#include <cmath>
 #ifdef MULTI_THREADING
+#include <ode/threading_impl.h>
 #include <thread>
 #endif
 
-Simulation* Simulation::simulation = 0;
+Simulation* Simulation::simulation = nullptr;
 
-Simulation::Simulation() : scene(0), physicalWorld(0), rootSpace(0), staticSpace(0), movableSpace(0),
-  currentFrameRate(0),
-  simulationStep(0), simulatedTime(0), collisions(0), contactPoints(0),
-  contactGroup(0),
-  lastFrameRateComputationTime(0), lastFrameRateComputationStep(0)
+Simulation::Simulation()
 {
-  ASSERT(simulation == 0);
+  ASSERT(!simulation);
   simulation = this;
 }
 
 Simulation::~Simulation()
 {
-  for(std::list<Element*>::const_iterator iter = elements.begin(), end = elements.end(); iter != end; ++iter)
-    delete *iter;
+  for(Element* element : elements)
+    delete element;
 
   if(contactGroup)
     dJointGroupDestroy(contactGroup);
@@ -55,12 +56,12 @@ Simulation::~Simulation()
   }
 
   ASSERT(simulation == this);
-  simulation = 0;
+  simulation = nullptr;
 }
 
 bool Simulation::loadFile(const std::string& filename, std::list<std::string>& errors)
 {
-  ASSERT(scene == 0);
+  ASSERT(!scene);
 
   Parser parser;
   if(!parser.parse(filename, errors))
@@ -70,12 +71,12 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
 
   dInitODE();
   physicalWorld = dWorldCreate();
-  rootSpace = dHashSpaceCreate(0);
+  rootSpace = dHashSpaceCreate(nullptr);
   staticSpace = dHashSpaceCreate(rootSpace);
   movableSpace = dHashSpaceCreate(rootSpace);
   contactGroup = dJointGroupCreate(0);
 
-  dWorldSetGravity(physicalWorld, 0, 0, scene->gravity);
+  dWorldSetGravity(physicalWorld, REAL(0), REAL(0), static_cast<dReal>(scene->gravity));
   if(scene->erp != -1.f)
     dWorldSetERP(physicalWorld, scene->erp);
   if(scene->cfm != -1.f)
@@ -143,8 +144,8 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
     dBodyID bodyId2 = dGeomGetBody(geomId2);
     ASSERT(bodyId1 || bodyId2);
 
-    Body* body1 = bodyId1 ? static_cast<Body*>(dBodyGetData(bodyId1)) : 0;
-    Body* body2 = bodyId2 ? static_cast<Body*>(dBodyGetData(bodyId2)) : 0;
+    Body* body1 = bodyId1 ? static_cast<Body*>(dBodyGetData(bodyId1)) : nullptr;
+    Body* body2 = bodyId2 ? static_cast<Body*>(dBodyGetData(bodyId2)) : nullptr;
     ASSERT(!body1 || !body2 || body1->rootBody != body2->rootBody);
   }
 #endif
@@ -159,15 +160,15 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
 
   if(geometry1->collisionCallbacks && !geometry2->immaterial)
   {
-    for(std::list<SimRobotCore2::CollisionCallback*>::iterator i = geometry1->collisionCallbacks->begin(), end = geometry1->collisionCallbacks->end(); i != end; ++i)
-      (*i)->collided(*geometry1, *geometry2);
+    for(SimRobotCore2::CollisionCallback* callback : *geometry1->collisionCallbacks)
+      callback->collided(*geometry1, *geometry2);
     if(geometry1->immaterial)
       return;
   }
   if(geometry2->collisionCallbacks && !geometry1->immaterial)
   {
-    for(std::list<SimRobotCore2::CollisionCallback*>::iterator i = geometry2->collisionCallbacks->begin(), end = geometry2->collisionCallbacks->end(); i != end; ++i)
-      (*i)->collided(*geometry2, *geometry1);
+    for(SimRobotCore2::CollisionCallback* callback : *geometry2->collisionCallbacks)
+      callback->collided(*geometry2, *geometry1);
     if(geometry2->immaterial)
       return;
   }
@@ -187,7 +188,7 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
       switch(dGeomGetClass(geomId1))
       {
         case dSphereClass:
-        case dCCylinderClass:
+        case dCapsuleClass:
         case dCylinderClass:
           if(geometry1->material->getRollingFriction(*geometry2->material, rollingFriction))
           {
@@ -203,7 +204,7 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
       switch(dGeomGetClass(geomId2))
       {
         case dSphereClass:
-        case dCCylinderClass:
+        case dCapsuleClass:
         case dCylinderClass:
           if(geometry2->material->getRollingFriction(*geometry1->material, rollingFriction))
           {
@@ -242,13 +243,13 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
 
 void Simulation::updateFrameRate()
 {
-  unsigned int currentTime = System::getTime();
-  unsigned int timeDiff = currentTime - lastFrameRateComputationTime;
+  const unsigned int currentTime = System::getTime();
+  const unsigned int timeDiff = currentTime - lastFrameRateComputationTime;
   //Only update frame rate once in two seconds
   if(timeDiff > 2000)
   {
-    float frameRate = float(simulationStep - lastFrameRateComputationStep) / (float(timeDiff) * 0.001f);
-    currentFrameRate = int(frameRate + 0.5f);
+    const float frameRate = static_cast<float>(simulationStep - lastFrameRateComputationStep) / (static_cast<float>(timeDiff) * 0.001f);
+    currentFrameRate = static_cast<int>(frameRate + 0.5f);
     lastFrameRateComputationTime = currentTime;
     lastFrameRateComputationStep = simulationStep;
   }

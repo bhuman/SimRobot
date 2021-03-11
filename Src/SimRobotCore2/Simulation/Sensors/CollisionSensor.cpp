@@ -1,17 +1,17 @@
 /**
-* @file Simulation/Sensors/CollisionSensor.cpp
-* Implementation of class CollisionSensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/CollisionSensor.cpp
+ * Implementation of class CollisionSensor
+ * @author Colin Graf
+ */
 
+#include "CollisionSensor.h"
+#include "CoreModule.h"
 #include "Platform/OpenGL.h"
-#include "Simulation/Sensors/CollisionSensor.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Tools/OpenGLTools.h"
-#include "CoreModule.h"
 
-CollisionSensor::CollisionSensor() : hasGeometries(false)
+CollisionSensor::CollisionSensor()
 {
   sensor.sensorType = SimRobotCore2::SensorPort::boolSensor;
 }
@@ -21,7 +21,7 @@ void CollisionSensor::createPhysics()
   OpenGLTools::convertTransformation(rotation, translation, transformation);
 
   // add geometries
-  for(std::list< ::PhysicalObject*>::const_iterator iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
+  for(auto iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
   {
     Geometry* geometry = dynamic_cast<Geometry*>(*iter);
     if(geometry)
@@ -52,9 +52,9 @@ void CollisionSensor::createPhysics()
 
 void CollisionSensor::registerCollisionCallback(std::list< ::PhysicalObject*>& geometries, bool setNotCollidable)
 {
-  for(std::list< ::PhysicalObject*>::const_iterator i = geometries.begin(), end = geometries.end(); i != end; ++i)
+  for(::PhysicalObject* i : geometries)
   {
-    Geometry* geometry = dynamic_cast<Geometry*>(*i);
+    Geometry* geometry = dynamic_cast<Geometry*>(i);
     if(geometry && !geometry->immaterial)
     {
       if(setNotCollidable)
@@ -86,15 +86,15 @@ void CollisionSensor::CollisionSensorPort::collided(SimRobotCore2::Geometry&, Si
 void CollisionSensor::drawPhysics(unsigned int flags) const
 {
   if(flags & SimRobotCore2::Renderer::showSensors && !hasGeometries)
-    for(std::list< ::PhysicalObject*>::const_iterator iter = parentBody->physicalDrawings.begin(), end = parentBody->physicalDrawings.end(); iter != end; ++iter)
-      (*iter)->drawPhysics(SimRobotCore2::Renderer::showPhysics);
+    for(const ::PhysicalObject* drawing : parentBody->physicalDrawings)
+      drawing->drawPhysics(SimRobotCore2::Renderer::showPhysics);
 
   glPushMatrix();
   glMultMatrixf(transformation);
 
   if(flags & SimRobotCore2::Renderer::showSensors && hasGeometries)
-    for(std::list< ::PhysicalObject*>::const_iterator iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
-      (*iter)->drawPhysics(SimRobotCore2::Renderer::showPhysics);
+    for(const ::PhysicalObject* drawing : physicalDrawings)
+      drawing->drawPhysics(SimRobotCore2::Renderer::showPhysics);
 
   Sensor::drawPhysics(flags);
   glPopMatrix();

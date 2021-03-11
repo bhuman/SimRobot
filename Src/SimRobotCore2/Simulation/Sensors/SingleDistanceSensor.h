@@ -1,19 +1,18 @@
 /**
-* @file Simulation/Sensors/SingleDistanceSensor.h
-* Declaration of class SingleDistanceSensor
-* @author Colin Graf
-*/
+ * @file Simulation/Sensors/SingleDistanceSensor.h
+ * Declaration of class SingleDistanceSensor
+ * @author Colin Graf
+ */
 
 #pragma once
 
-#include <ode/ode.h>
-
 #include "Simulation/Sensors/Sensor.h"
+#include <ode/common.h>
 
 /**
-* @class SingleDistanceSensor
-* A distance sensor that uses a ray to detect distances to other objects
-*/
+ * @class SingleDistanceSensor
+ * A distance sensor that uses a ray to detect distances to other objects
+ */
 class SingleDistanceSensor : public Sensor
 {
 public:
@@ -25,9 +24,9 @@ public:
 
 private:
   /**
-  * @class DistanceSensor
-  * The distance sensor interface
-  */
+   * @class DistanceSensor
+   * The distance sensor interface
+   */
   class DistanceSensor : public Sensor::Port
   {
   public:
@@ -54,24 +53,24 @@ private:
   } sensor;
 
   /**
-  * Creates the physical objects used by the OpenDynamicsEngine (ODE).
-  * These are a geometry object for collision detection and/or a body,
-  * if the simulation object is movable.
-  */
+   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * These are a geometry object for collision detection and/or a body,
+   * if the simulation object is movable.
+   */
   void createPhysics() override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI. */
   void registerObjects() override;
 
   /**
-  * Registers an element as parent
-  * @param element The element to register
-  */
+   * Registers an element as parent
+   * @param element The element to register
+   */
   void addParent(Element& element) override;
 
   /**
-  * Draws physical primitives of the object (including children) on the currently selected OpenGL context
-  * @param flags Flags to enable or disable certain features
-  */
+   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * @param flags Flags to enable or disable certain features
+   */
   void drawPhysics(unsigned int flags) const override;
 };
