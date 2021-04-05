@@ -380,8 +380,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   menu->addSeparator();
 
   {
-    QAction* action = menu->menuAction();
-    action = menu->addAction(tr("&Reset Camera"));
+    QAction* action = menu->addAction(tr("&Reset Camera"));
     action->setIcon(QIcon(":/Icons/camera.png"));
     action->setShortcut(QKeySequence(Qt::Key_R));
     connect(action, SIGNAL(triggered()), this, SLOT(resetCamera()));
