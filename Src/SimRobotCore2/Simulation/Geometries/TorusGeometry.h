@@ -18,6 +18,9 @@ public:
   float majorRadius; /**< The major radius of the torus (radius of the ring skeleton in the xy plane) */
   float minorRadius; /**< The minor radius of the torus (radius of the "tube") */
 
+  /** Registers the custom torus geometry class */
+  static void registerGeometryClass();
+
 private:
   /**
    * Creates the geometry (not including \c translation and \c rotation)

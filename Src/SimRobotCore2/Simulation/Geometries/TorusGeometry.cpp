@@ -38,7 +38,7 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
   const int nContacts = flags & 0xffff;
   ASSERT(nContacts >= 1);
 
-  const TorusData* torus = static_cast<const TorusData*>(dGeomGetClassData(o1));
+  const auto* torus = static_cast<const TorusData*>(dGeomGetClassData(o1));
   const dReal* torusR = dGeomGetRotation(o1);
   const dReal sphereRadius = dGeomSphereGetRadius(o2);
   const dReal* sphereP = dGeomGetPosition(o2);
@@ -71,38 +71,47 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
   {
     // 2. The sphere is close enough to the torus axis to potentially intersect.
 
+    const auto addContactPoint = [&](const dVector3 ringPoint)
+    {
+      // sphereInRingPoint is the center of the sphere relative to ringPoint.
+      dVector3 sphereInRingPoint;
+      dSubtractVectors3(sphereInRingPoint, sphereInTorus, ringPoint);
+      const dReal distance = dCalcVectorLength3(sphereInRingPoint);
+      // No contact if the sphere is too far away from that point.
+      if(distance > torus->minorRadius + sphereRadius)
+        return;
+      const dReal distanceInv = dRecip(distance);
+      dAddVectorScaledVector3(contactOffset(contact, result * skip)->pos, ringPoint, sphereInRingPoint, -REAL(0.5) * (sphereRadius - torus->minorRadius - distance) * distanceInv);
+      dCopyScaledVector3(contactOffset(contact, result * skip)->normal, sphereInRingPoint, -distanceInv);
+      contactOffset(contact, result * skip)->depth = torus->minorRadius + sphereRadius - distance;
+      ++result;
+    };
+
     // ringPoint is the point on the ring skeleton that is closest to the sphere's center.
-    // sphereInRingPoint is the center of the sphere relativ to that point.
-    dVector3 ringPoint, sphereInRingPoint;
-    ringPoint[0] = sphereInTorus[0] / sphereInTorusPlaneNorm * torus->majorRadius;
-    ringPoint[1] = sphereInTorus[1] / sphereInTorusPlaneNorm * torus->majorRadius;
-    ringPoint[2] = REAL(0);
-    dSubtractVectors3(sphereInRingPoint, sphereInTorus, ringPoint);
+    dVector3 ringPoint;
+    dAssignVector3(ringPoint, sphereInTorus[0] / sphereInTorusPlaneNorm * torus->majorRadius, sphereInTorus[1] / sphereInTorusPlaneNorm * torus->majorRadius, REAL(0));
+    addContactPoint(ringPoint);
 
-    // If the sphere is closer to the ring point than the sum of their radii, there is a collision.
-    const dReal distance = dCalcVectorLength3(sphereInRingPoint);
-    if(distance > torus->minorRadius + sphereRadius)
-      return 0;
-    dCopyVector3(contactOffset(contact, result * skip)->pos, ringPoint);
-    dCopyScaledVector3(contactOffset(contact, result * skip)->normal, sphereInRingPoint, -REAL(1) / distance);
-    contactOffset(contact, result * skip)->depth = torus->minorRadius + sphereRadius - distance;
-    ++result;
-
-    // Only check for another contact if the caller accepts it.
-    if(nContacts > result)
+    // Only check for more contacts if the deepest point created one and the caller accepts more contacts.
+    if(result && result < nContacts)
     {
       // Check for a collision at the mirrored ring point.
       // This means that the sphere is in the inner part of the torus.
-      dVector3 otherRingPoint, sphereInOtherRingPoint;
+      dVector3 otherRingPoint;
       dCopyNegatedVector3(otherRingPoint, ringPoint);
-      dSubtractVectors3(sphereInOtherRingPoint, sphereInTorus, otherRingPoint);
-      const dReal distance = dCalcVectorLength3(sphereInOtherRingPoint);
-      if(distance <= torus->minorRadius + sphereRadius)
+      addContactPoint(otherRingPoint);
+
+      // Add points along the major circle of the torus. This probably only works if the sphere has a similar radius than the major radius of the torus.
+      const dReal baseAngle = dAtan2(ringPoint[1], ringPoint[0]);
+      const int limit = nContacts / 2;
+      // Start at i=1 because i=0 is the original ring point. i=limit is the negated ring point.
+      for(int i = 1; i < limit; ++i)
       {
-        dCopyVector3(contactOffset(contact, result * skip)->pos, otherRingPoint);
-        dCopyScaledVector3(contactOffset(contact, result * skip)->normal, sphereInOtherRingPoint, -REAL(1) / distance);
-        contactOffset(contact, result * skip)->depth = torus->minorRadius + sphereRadius - distance;
-        ++result;
+        const dReal angle = i * M_PI / static_cast<double>(limit);
+        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle + angle), torus->majorRadius * dSin(baseAngle + angle), REAL(0));
+        addContactPoint(otherRingPoint);
+        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle - angle), torus->majorRadius * dSin(baseAngle - angle), REAL(0));
+        addContactPoint(otherRingPoint);
       }
     }
   }
@@ -126,7 +135,7 @@ static void getTorusAABB(dGeomID geom, dReal aabb[6])
 {
   const dReal* R = dGeomGetRotation(geom);
   const dReal* p = dGeomGetPosition(geom);
-  const TorusData* torus = static_cast<const TorusData*>(dGeomGetClassData(geom));
+  const auto* torus = static_cast<const TorusData*>(dGeomGetClassData(geom));
   const dReal xrange = torus->majorRadius * (dFabs(R[0]) + dFabs(R[1])) + torus->minorRadius * dFabs(R[2]);
   const dReal yrange = torus->majorRadius * (dFabs(R[4]) + dFabs(R[5])) + torus->minorRadius * dFabs(R[6]);
   const dReal zrange = torus->majorRadius * (dFabs(R[8]) + dFabs(R[9])) + torus->minorRadius * dFabs(R[10]);
@@ -149,20 +158,21 @@ static dColliderFn* getTorusCollider(int num)
   }
 }
 
+void TorusGeometry::registerGeometryClass()
+{
+  static dGeomClass torusClass;
+  torusClass.bytes = sizeof(TorusData);
+  torusClass.collider = getTorusCollider;
+  torusClass.aabb = getTorusAABB;
+  torusClass.aabb_test = nullptr;
+  torusClass.dtor = nullptr;
+  dTorusClass = dCreateGeomClass(&torusClass);
+  ASSERT(dTorusClass >= dFirstUserClass && dTorusClass <= dLastUserClass);
+}
+
 dGeomID TorusGeometry::createGeometry(dSpaceID space)
 {
   ASSERT(minorRadius < majorRadius);
-  if(dTorusClass == dGeomNumClasses)
-  {
-    static dGeomClass torusClass;
-    torusClass.bytes = sizeof(TorusData);
-    torusClass.collider = getTorusCollider;
-    torusClass.aabb = getTorusAABB;
-    torusClass.aabb_test = nullptr;
-    torusClass.dtor = nullptr;
-    dTorusClass = dCreateGeomClass(&torusClass);
-    ASSERT(dTorusClass >= dFirstUserClass && dTorusClass <= dLastUserClass);
-  }
 
   Geometry::createGeometry(space);
   innerRadius = 0.f;
@@ -172,7 +182,7 @@ dGeomID TorusGeometry::createGeometry(dSpaceID space)
   dGeomID geom = dCreateGeom(dTorusClass);
   if(space)
     dSpaceAdd(space, geom);
-  TorusData* torus = static_cast<TorusData*>(dGeomGetClassData(geom));
+  auto* torus = static_cast<TorusData*>(dGeomGetClassData(geom));
   torus->majorRadius = majorRadius;
   torus->minorRadius = minorRadius;
   return geom;

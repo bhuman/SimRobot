@@ -12,6 +12,7 @@
 #include "Platform/System.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
+#include "Simulation/Geometries/TorusGeometry.h"
 #include "Simulation/Scene.h"
 #include "Tools/ODETools.h"
 #include <ode/collision.h>
@@ -76,6 +77,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   movableSpace = dHashSpaceCreate(rootSpace);
   contactGroup = dJointGroupCreate(0);
 
+  TorusGeometry::registerGeometryClass();
   dWorldSetGravity(physicalWorld, REAL(0), REAL(0), static_cast<dReal>(scene->gravity));
   if(scene->erp != -1.f)
     dWorldSetERP(physicalWorld, scene->erp);
