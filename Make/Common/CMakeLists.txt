@@ -300,7 +300,7 @@ set_target_properties(Eigen::Eigen PROPERTIES
 
 set(SIMROBOT_CONTROLLERS Factory SimpleVehicle Soccer)
 if(${PLATFORM} STREQUAL macOS)
-  set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>/SimRobot.app/Contents/Resources")
+  set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>/SimRobot.app/Contents/lib")
 else()
   set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>")
 endif()

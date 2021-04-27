@@ -441,7 +441,7 @@ bool MainWindow::loadModule(const QString& name, bool manually)
 #ifdef WINDOWS
   const QString& moduleName = name;
 #elif defined MACOS
-  QString moduleName = QFileInfo(application->getAppPath()).dir().path() + "/../Resources/" + name;
+  QString moduleName = QFileInfo(application->getAppPath()).dir().path() + "/../lib/" + name;
 #else
   QString moduleName = QFileInfo(appPath).path() + "/lib" + name + ".so";
 #endif
