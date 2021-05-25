@@ -269,6 +269,13 @@ const float* Body::getPosition() const
   return pose.translation.data();
 }
 
+float Body::getVelocity()
+{
+    Vector3f speed;
+    ODETools::convertVector(dBodyGetLinearVel(body), speed);
+    return speed.norm();
+}
+
 bool Body::getPose(float* pos, float (*rot)[3]) const
 {
   Pose3f& pose = const_cast<Body*>(this)->pose;

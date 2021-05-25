@@ -62,6 +62,7 @@ public:
    */
   void rotate(const RotationMatrix& rotation, const Vector3f& point);
 
+
 private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
   float centerOfMassTransformation[16];
@@ -118,4 +119,5 @@ private:
   void resetDynamics() override;
   SimRobotCore2::Body* getRootBody() override {return rootBody;}
   void enablePhysics(bool enable) override;
+  float getVelocity() override;
 };

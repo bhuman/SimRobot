@@ -333,6 +333,11 @@ namespace SimRobotCore2
      * @param enable Whether to enable or disable the physics simulation
      */
     virtual void enablePhysics(bool enable) = 0;
+
+    /**
+    * Returns velocity of an object
+    */
+    virtual float getVelocity() = 0;
   };
 
   /**
