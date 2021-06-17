@@ -14,8 +14,8 @@
 #include "Simulation/Simulation.h"
 #include "Tools/Math.h"
 #include "Tools/QtTools.h"
-#include <Box2D/Dynamics/b2Body.h>
-#include <Box2D/Dynamics/b2World.h>
+#include <box2d/b2_body.h>
+#include <box2d/b2_world.h>
 #include <QPainter>
 
 Body::~Body()
@@ -46,7 +46,7 @@ void Body::createPhysics()
   bodyDef.type = b2_dynamicBody;
   bodyDef.position = pose.p;
   bodyDef.angle = pose.q.GetAngle();
-  bodyDef.userData = this;
+  reinterpret_cast<Body*&>(bodyDef.userData.pointer) = this;
   body = Simulation::simulation->world->CreateBody(&bodyDef);
 
   // Add geometries.
@@ -207,7 +207,7 @@ SimRobotCore2D::Body* Body::getRootBody() const
 
 void Body::enablePhysics(bool enable)
 {
-  body->SetActive(enable);
+  body->SetEnabled(enable);
   for(Body* child : bodyChildren)
     child->enablePhysics(enable);
 }

@@ -7,7 +7,7 @@
  */
 
 #include "DiskGeometry.h"
-#include <Box2D/Collision/Shapes/b2CircleShape.h>
+#include <box2d/b2_circle_shape.h>
 #include <QPainter>
 
 b2Shape* DiskGeometry::createShape(const b2Transform& pose)

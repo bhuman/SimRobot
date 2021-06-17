@@ -7,7 +7,7 @@
  */
 
 #include "ChainGeometry.h"
-#include <Box2D/Collision/Shapes/b2ChainShape.h>
+#include <box2d/b2_chain_shape.h>
 #include <QPainter>
 
 b2Shape* ChainGeometry::createShape(const b2Transform& pose)
@@ -22,7 +22,7 @@ b2Shape* ChainGeometry::createShape(const b2Transform& pose)
   if(loop)
     shape->CreateLoop(vertices.data(), static_cast<int32>(vertices.size()));
   else
-    shape->CreateChain(vertices.data(), static_cast<int32>(vertices.size()));
+    shape->CreateChain(vertices.data(), static_cast<int32>(vertices.size()), vertices.front(), vertices.back());
   return shape;
 }
 

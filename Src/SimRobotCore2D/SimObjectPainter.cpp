@@ -14,8 +14,8 @@
 #include "Platform/Assert.h"
 #include "Platform/System.h"
 #include "Tools/Math.h"
-#include <Box2D/Dynamics/b2Fixture.h>
-#include <Box2D/Dynamics/b2World.h>
+#include <box2d/b2_fixture.h>
+#include <box2d/b2_world.h>
 #include <algorithm>
 #include <cmath>
 
@@ -259,7 +259,7 @@ Body* SimObjectPainter::selectObject(const b2Vec2& point)
       b2Body* const body = fixture->GetBody();
       if(body == Simulation::simulation->staticBody || !fixture->GetShape()->TestPoint(body->GetTransform(), point))
         return true;
-      result = static_cast<Body*>(body->GetUserData());
+      result = reinterpret_cast<Body*>(body->GetUserData().pointer);
       return false;
     }
 

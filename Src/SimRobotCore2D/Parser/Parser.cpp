@@ -25,7 +25,7 @@
 #include "Simulation/Scene.h"
 #include "Simulation/Simulation.h"
 #include "Tools/Math/Constants.h"
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 #include <QColor>
 #include <cctype>
 #include <cstring>

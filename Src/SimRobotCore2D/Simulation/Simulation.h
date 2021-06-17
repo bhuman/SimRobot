@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <Box2D/Dynamics/b2WorldCallbacks.h>
+#include <box2d/b2_world_callbacks.h>
 #include <list>
 #include <string>
 #include <unordered_map>

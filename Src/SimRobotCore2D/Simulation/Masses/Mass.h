@@ -10,7 +10,7 @@
 
 #include "Simulation/SimObject.h"
 #include "SimRobotCore2D.h"
-#include <Box2D/Collision/Shapes/b2Shape.h>
+#include <box2d/b2_shape.h>
 
 class Mass : public SimObject, public SimRobotCore2D::Mass
 {

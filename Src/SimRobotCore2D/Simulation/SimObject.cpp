@@ -11,7 +11,7 @@
 #include "SimObjectPainter.h"
 #include "SimObjectWidget.h"
 #include <typeinfo>
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 
 SimObject::~SimObject()
 {

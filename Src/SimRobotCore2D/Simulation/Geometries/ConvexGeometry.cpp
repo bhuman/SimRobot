@@ -7,7 +7,7 @@
  */
 
 #include "ConvexGeometry.h"
-#include <Box2D/Collision/Shapes/b2PolygonShape.h>
+#include <box2d/b2_polygon_shape.h>
 #include <QPainter>
 
 b2Shape* ConvexGeometry::createShape(const b2Transform& pose)

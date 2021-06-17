@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Simulation/Geometries/Geometry.h"
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 #include <QColor>
 #include <QPointF>
 #include <vector>

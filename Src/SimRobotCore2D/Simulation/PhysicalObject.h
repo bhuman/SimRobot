@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Simulation/SimObject.h"
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 #include <list>
 
 class Body;

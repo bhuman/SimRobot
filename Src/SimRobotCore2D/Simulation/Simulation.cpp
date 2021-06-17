@@ -14,9 +14,9 @@
 #include "Parser/Parser.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Scene.h"
-#include <Box2D/Dynamics/b2Body.h>
-#include <Box2D/Dynamics/b2World.h>
-#include <Box2D/Dynamics/Contacts/b2Contact.h>
+#include <box2d/b2_body.h>
+#include <box2d/b2_world.h>
+#include <box2d/b2_contact.h>
 
 Simulation* Simulation::simulation = nullptr;
 
@@ -59,7 +59,7 @@ bool Simulation::loadFile(const std::string& fileName, std::list<std::string>& e
   // Create a body to which all fixtures of compounds are attached.
   b2BodyDef bodyDef;
   bodyDef.type = b2_staticBody;
-  bodyDef.userData = this;
+  reinterpret_cast<Simulation*&>(bodyDef.userData.pointer) = this;
   staticBody = world->CreateBody(&bodyDef);
 
   scene->pose.SetIdentity();
@@ -126,8 +126,8 @@ void Simulation::updateFrameRate()
 
 void Simulation::reportCollisions(b2Contact* contact)
 {
-  auto* const geom1 = static_cast<Geometry*>(contact->GetFixtureA()->GetUserData());
-  auto* const geom2 = static_cast<Geometry*>(contact->GetFixtureB()->GetUserData());
+  auto* const geom1 = reinterpret_cast<Geometry*>(contact->GetFixtureA()->GetUserData().pointer);
+  auto* const geom2 = reinterpret_cast<Geometry*>(contact->GetFixtureB()->GetUserData().pointer);
 
   for(SimRobotCore2D::CollisionCallback* callback : geom1->callbacks)
     callback->collided(*geom1, *geom2);

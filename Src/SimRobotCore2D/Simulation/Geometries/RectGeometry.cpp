@@ -7,7 +7,7 @@
  */
 
 #include "RectGeometry.h"
-#include <Box2D/Collision/Shapes/b2PolygonShape.h>
+#include <box2d/b2_polygon_shape.h>
 #include <QPainter>
 
 b2Shape* RectGeometry::createShape(const b2Transform& pose)

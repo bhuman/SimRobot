@@ -7,13 +7,13 @@
  */
 
 #include "EdgeGeometry.h"
-#include <Box2D/Collision/Shapes/b2EdgeShape.h>
+#include <box2d/b2_edge_shape.h>
 #include <QPainter>
 
 b2Shape* EdgeGeometry::createShape(const b2Transform& pose)
 {
   auto* const shape = new b2EdgeShape;
-  shape->Set(b2Mul(pose, b2Vec2(-length * 0.5f, 0.f)), b2Mul(pose, b2Vec2(length * 0.5f, 0.f)));
+  shape->SetTwoSided(b2Mul(pose, b2Vec2(-length * 0.5f, 0.f)), b2Mul(pose, b2Vec2(length * 0.5f, 0.f)));
   return shape;
 }
 

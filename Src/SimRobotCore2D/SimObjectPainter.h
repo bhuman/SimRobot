@@ -9,7 +9,7 @@
 #pragma once
 
 #include "SimRobotCore2D.h"
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 #include <QPainter>
 #include <QPointF>
 

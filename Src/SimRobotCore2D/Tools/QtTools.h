@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Tools/Math/Constants.h"
-#include <Box2D/Common/b2Math.h>
+#include <box2d/b2_math.h>
 #include <QTransform>
 
 class QtTools
@@ -46,7 +46,7 @@ public:
    * @param translation The translation of the pose.
    * @param transformation The resulting Qt transform.
    */
-  static void convertTransformation(const float32 rotation, const b2Vec2& translation, QTransform& transformation)
+  static void convertTransformation(const float rotation, const b2Vec2& translation, QTransform& transformation)
   {
     transformation = QTransform().translate(translation.x, translation.y).rotate(rotation * 180.f / pi);
   }

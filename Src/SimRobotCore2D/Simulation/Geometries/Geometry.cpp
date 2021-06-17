@@ -10,9 +10,9 @@
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Tools/QtTools.h"
-#include <Box2D/Collision/Shapes/b2Shape.h>
-#include <Box2D/Dynamics/b2Body.h>
-#include <Box2D/Dynamics/b2Fixture.h>
+#include <box2d/b2_shape.h>
+#include <box2d/b2_body.h>
+#include <box2d/b2_fixture.h>
 #include <QPainter>
 
 void Geometry::createGeometry(b2Body* body, const b2Transform& geometryPose)
@@ -32,7 +32,7 @@ void Geometry::createGeometry(b2Body* body, const b2Transform& geometryPose)
     fixtureDef.filter.categoryBits = static_cast<std::uint16_t>(1u << category);
     fixtureDef.filter.maskBits = mask;
     fixtureDef.shape = shape;
-    fixtureDef.userData = this;
+    reinterpret_cast<Geometry*&>(fixtureDef.userData.pointer) = this;
     fixture = body->CreateFixture(&fixtureDef);
     delete shape;
   }
