@@ -63,7 +63,7 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
 
     // Simulate this as a single contact (while in fact it is an entire circle) forcing the sphere out of the torus along its axis.
     dZeroVector3(contact->pos);
-    dAssignVector3(contact->normal, REAL(0), REAL(0), -dCopySign(REAL(1), sphereInTorus[2]));
+    dAssignVector3(contact->normal, REAL(0.), REAL(0.), -dCopySign(REAL(1.), sphereInTorus[2]));
     contact->depth = minHeight - dFabs(sphereInTorus[2]);
     ++result;
   }
@@ -89,7 +89,7 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
 
     // ringPoint is the point on the ring skeleton that is closest to the sphere's center.
     dVector3 ringPoint;
-    dAssignVector3(ringPoint, sphereInTorus[0] / sphereInTorusPlaneNorm * torus->majorRadius, sphereInTorus[1] / sphereInTorusPlaneNorm * torus->majorRadius, REAL(0));
+    dAssignVector3(ringPoint, sphereInTorus[0] / sphereInTorusPlaneNorm * torus->majorRadius, sphereInTorus[1] / sphereInTorusPlaneNorm * torus->majorRadius, REAL(0.));
     addContactPoint(ringPoint);
 
     // Only check for more contacts if the deepest point created one and the caller accepts more contacts.
@@ -108,9 +108,9 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
       for(int i = 1; i < limit; ++i)
       {
         const dReal angle = i * M_PI / static_cast<double>(limit);
-        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle + angle), torus->majorRadius * dSin(baseAngle + angle), REAL(0));
+        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle + angle), torus->majorRadius * dSin(baseAngle + angle), REAL(0.));
         addContactPoint(otherRingPoint);
-        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle - angle), torus->majorRadius * dSin(baseAngle - angle), REAL(0));
+        dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle - angle), torus->majorRadius * dSin(baseAngle - angle), REAL(0.));
         addContactPoint(otherRingPoint);
       }
     }

@@ -78,7 +78,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   contactGroup = dJointGroupCreate(0);
 
   TorusGeometry::registerGeometryClass();
-  dWorldSetGravity(physicalWorld, REAL(0), REAL(0), static_cast<dReal>(scene->gravity));
+  dWorldSetGravity(physicalWorld, REAL(0.), REAL(0.), static_cast<dReal>(scene->gravity));
   if(scene->erp != -1.f)
     dWorldSetERP(physicalWorld, scene->erp);
   if(scene->cfm != -1.f)

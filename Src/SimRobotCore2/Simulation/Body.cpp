@@ -328,8 +328,8 @@ void Body::move(const float* pos, const float (*rot)[3])
 
 void Body::resetDynamics()
 {
-  dBodySetLinearVel(body, REAL(0), REAL(0), REAL(0));
-  dBodySetAngularVel(body, REAL(0), REAL(0), REAL(0));
+  dBodySetLinearVel(body, REAL(0.), REAL(0.), REAL(0.));
+  dBodySetAngularVel(body, REAL(0.), REAL(0.), REAL(0.));
   for(Body* child : bodyChildren)
     child->resetDynamics();
 }
