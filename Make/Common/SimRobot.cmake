@@ -15,17 +15,17 @@ set(SIMROBOT_TREE "${SIMROBOT_SOURCES}")
 
 if(APPLE)
   set(SIMROBOT_FRAMEWORKS
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtCore.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtDBus.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtGui.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtOpenGL.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtPrintSupport.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtSvg.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtWidgets.framework")
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtDBus.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtPrintSupport.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework")
 
-  set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/macOS/plugins/platforms/libqcocoa.dylib")
-  set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/macOS/plugins/imageformats/libqjpeg.dylib")
-  set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/macOS/plugins/styles/libqmacstyle.dylib")
+  set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/libqcocoa.dylib")
+  set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/libqjpeg.dylib")
+  set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/styles/libqmacstyle.dylib")
   set(SIMROBOT_PLUGINS "${SIMROBOT_PLUGIN_COCOA}" "${SIMROBOT_PLUGIN_JPEG}" "${SIMROBOT_PLUGIN_MACSTYLE}")
 
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}")
