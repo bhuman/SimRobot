@@ -4,7 +4,7 @@ set(SIMROBOT_OUTPUT_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>")
 file(GLOB_RECURSE SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/*.cpp" "${SIMROBOT_ROOT_DIR}/*.h")
 list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/SimRobot.qrc")
 
-if(${PLATFORM} STREQUAL macOS)
+if(APPLE)
   set(SIMROBOT_ICONS "${SIMROBOT_ROOT_DIR}/Icons/SimRobot.icns" "${SIMROBOT_ROOT_DIR}/Icons/SimRobotDoc.icns")
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ICONS}")
 else()
@@ -13,7 +13,7 @@ endif()
 
 set(SIMROBOT_TREE "${SIMROBOT_SOURCES}")
 
-if(${PLATFORM} STREQUAL macOS)
+if(APPLE)
   set(SIMROBOT_FRAMEWORKS
       "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtCore.framework"
       "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtDBus.framework"
