@@ -30,7 +30,11 @@ if(APPLE)
     -DFIX_MACOS_NO_CENTER_IN_PINCH_GESTURE_BUG
     -DFIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
     -DFIX_MACOS_UNDOCKED_WIDGETS_DISAPPEAR_WHEN_DOCKED_BUG)
-  set(PLATFORM "macOS")
+  if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL arm64) 
+    set(PLATFORM "macOSarm64")
+  else()
+    set(PLATFORM "macOS")
+  endif()
   set(CMAKE_XCODE_ATTRIBUTE_ALWAYS_SEARCH_USER_PATHS "NO")
 elseif(WIN32)
   add_definitions(-DWINDOWS)
@@ -74,9 +78,11 @@ else()
       -Wno-sign-conversion
       -Wno-implicit-int-float-conversion
       -Wunreachable-code
-      -Wsign-compare
-      -march=native)
-  if(${PLATFORM} STREQUAL macOS)
+      -Wsign-compare)
+  if(NOT ${CMAKE_SYSTEM_PROCESSOR} STREQUAL arm64)
+    add_compile_options(-march=native)
+  endif()
+  if(APPLE)
     add_compile_options(-Wno-deprecated)
   else()
     add_link_options(-fuse-ld=lld LINKER:--threads)
