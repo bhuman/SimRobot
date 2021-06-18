@@ -10,7 +10,7 @@ target_include_directories(SimpleVehicle PRIVATE "${SIMPLEVEHICLE_ROOT_DIR}")
 target_link_libraries(SimpleVehicle PRIVATE SimRobotCore2Interface)
 target_link_libraries(SimpleVehicle PRIVATE OpenGL::GL)
 
-if(NOT ${PLATFORM} STREQUAL macOS)
+if(NOT APPLE)
   target_link_libraries(SimpleVehicle PRIVATE GLEW::GLEW OpenGL::GL OpenGL::GLU)
 endif()
 
