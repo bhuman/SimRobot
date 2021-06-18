@@ -18,6 +18,7 @@
 #include <Platform/OpenGL.h>
 #include <QString>
 #include <QVector>
+#include <QList>
 #include <cmath>
 
 /**
