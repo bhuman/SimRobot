@@ -232,7 +232,7 @@ elseif(${PLATFORM} STREQUAL Windows)
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/glew/${PLATFORM}/bin/glew32.dll"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/glew/${PLATFORM}/include")
 
-elseif(${PLATFORM} STREQUAL macOS)
+elseif(APPLE)
   add_library(Qt5::Core SHARED IMPORTED)
   set_target_properties(Qt5::Core PROPERTIES
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework/QtCore"
@@ -279,7 +279,7 @@ endif()
 
 add_library(ODE::ODE STATIC IMPORTED)
 set_target_properties(ODE::ODE PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/ode/${PLATFORM}/include")
-if((${PLATFORM} STREQUAL Linux) OR (${PLATFORM} STREQUAL macOS))
+if((${PLATFORM} STREQUAL Linux) OR APPLE)
   set_target_properties(ODE::ODE PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/ode/${PLATFORM}/lib/libode.a")
 elseif(${PLATFORM} STREQUAL Windows)
   set_target_properties(ODE::ODE PROPERTIES
@@ -290,7 +290,7 @@ endif()
 
 add_library(Box2D::Box2D STATIC IMPORTED)
 set_target_properties(Box2D::Box2D PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/box2d/include")
-if((${PLATFORM} STREQUAL Linux) OR (${PLATFORM} STREQUAL macOS))
+if((${PLATFORM} STREQUAL Linux) OR APPLE)
   set_target_properties(Box2D::Box2D PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/box2d/lib/${PLATFORM}/libbox2d.a")
 elseif(${PLATFORM} STREQUAL Windows)
   set_target_properties(Box2D::Box2D PROPERTIES
@@ -305,7 +305,7 @@ set_target_properties(Eigen::Eigen PROPERTIES
     INTERFACE_COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:EIGEN_INITIALIZE_MATRICES_BY_NAN>")
 
 set(SIMROBOT_CONTROLLERS Factory SimpleVehicle Soccer)
-if(${PLATFORM} STREQUAL macOS)
+if(APPLE)
   set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>/SimRobot.app/Contents/lib")
 else()
   set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>")
