@@ -107,7 +107,7 @@ static int collideTorusSphere(dGeomID o1, dGeomID o2, int flags, dContactGeom* c
       // Start at i=1 because i=0 is the original ring point. i=limit is the negated ring point.
       for(int i = 1; i < limit; ++i)
       {
-        const dReal angle = i * M_PI / static_cast<double>(limit);
+        const dReal angle = static_cast<dReal>(i * M_PI / limit);
         dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle + angle), torus->majorRadius * dSin(baseAngle + angle), REAL(0.));
         addContactPoint(otherRingPoint);
         dAssignVector3(otherRingPoint, torus->majorRadius * dCos(baseAngle - angle), torus->majorRadius * dSin(baseAngle - angle), REAL(0.));
