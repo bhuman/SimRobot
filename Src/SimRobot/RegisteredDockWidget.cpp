@@ -21,7 +21,7 @@ RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* par
   setAllowedAreas(Qt::TopDockWidgetArea);
   setFocusPolicy(Qt::ClickFocus);
 #ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
-  setFeatures(features() & ~DockWidgetMovable);
+  connect(this, SIGNAL(topLevelChanged(bool)), this, SLOT(topLevelChanged(bool)));
 #endif
   connect(this, SIGNAL(visibilityChanged(bool)), this, SLOT(visibilityChanged(bool)));
 }
@@ -204,6 +204,14 @@ void RegisteredDockWidget::contextMenuEvent(QContextMenuEvent* event)
 void RegisteredDockWidget::visibilityChanged(bool visible)
 {
   reallyVisible = visible;
+}
+
+void RegisteredDockWidget::topLevelChanged(bool topLevel)
+{
+  if(topLevel)
+    setFeatures(features() | DockWidgetMovable);
+  else
+    setFeatures(features() & ~DockWidgetMovable);
 }
 
 void RegisteredDockWidget::copy()

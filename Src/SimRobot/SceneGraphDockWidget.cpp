@@ -15,9 +15,6 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   setFocusPolicy(Qt::ClickFocus);
   setObjectName(".SceneGraph");
   setWindowTitle(tr("Scene Graph"));
-#ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
-  setFeatures(features() & ~DockWidgetMovable);
-#endif
   treeWidget = new QTreeWidget(this);
   italicFont = treeWidget->font();
   italicFont.setItalic(true);
@@ -38,6 +35,11 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   settings.beginGroup(".SceneGraph");
   expandedItems = QSet<QString>::fromList(settings.value("ExpandedItems").toStringList());
   settings.endGroup();
+
+#ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
+  connect(this, SIGNAL(topLevelChanged(bool)), this, SLOT(topLevelChanged(bool)));
+  topLevelChanged(isFloating());
+#endif
 }
 
 SceneGraphDockWidget::~SceneGraphDockWidget()
@@ -355,4 +357,12 @@ void SceneGraphDockWidget::expandOrCollapseObject()
     treeWidget->collapseItem(clickedItem);
   else
     treeWidget->expandItem(clickedItem);
+}
+
+void SceneGraphDockWidget::topLevelChanged(bool topLevel)
+{
+  if(topLevel)
+    setFeatures(features() | DockWidgetMovable);
+  else
+    setFeatures(features() & ~DockWidgetMovable);
 }

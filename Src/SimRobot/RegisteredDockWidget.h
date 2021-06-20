@@ -47,6 +47,7 @@ private:
 
 private slots:
   void visibilityChanged(bool visible);
+  void topLevelChanged(bool topLevel);
   void copy();
   void exportAsSvg();
   void exportAsPng();
