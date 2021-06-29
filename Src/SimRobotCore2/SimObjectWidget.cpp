@@ -19,7 +19,7 @@
 #include "Simulation/Simulation.h"
 #include "Simulation/Scene.h"
 
-SimObjectWidget::SimObjectWidget(SimObject& simObject) : QGLWidget(QGLFormat(QGL::SampleBuffers), 0, Simulation::simulation->renderer.getWidget()),
+SimObjectWidget::SimObjectWidget(SimObject& simObject) : QGLWidget(QGLFormat(QGL::SampleBuffers), nullptr, Simulation::simulation->renderer.getWidget()),
   object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
   wKey(false), aKey(false), sKey(false), dKey(false)
 {
