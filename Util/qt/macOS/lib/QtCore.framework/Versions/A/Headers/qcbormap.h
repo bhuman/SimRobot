@@ -52,6 +52,9 @@ typedef QMap<QString, QVariant> QVariantMap;
 template <class Key, class T> class QHash;
 typedef QHash<QString, QVariant> QVariantHash;
 class QJsonObject;
+class QDataStream;
+
+namespace QJsonPrivate { class Variant; }
 
 class QCborContainerPrivate;
 class Q_CORE_EXPORT QCborMap
@@ -117,6 +120,8 @@ public:
         QCborValueRef item;     // points to the value
         friend class Iterator;
         friend class QCborMap;
+        friend class QCborValue;
+        friend class QCborValueRef;
         ConstIterator(QCborContainerPrivate *dd, qsizetype ii) : item(dd, ii) {}
     public:
         typedef std::random_access_iterator_tag iterator_category;
@@ -170,7 +175,7 @@ public:
         : QCborMap()
     {
         detach(args.size());
-        for (auto pair : args)
+        for (const auto &pair : args)
            insert(pair.first, pair.second);
     }
     ~QCborMap();
@@ -242,7 +247,7 @@ public:
     { const_iterator it = find(key); return it != end(); }
 
     int compare(const QCborMap &other) const noexcept Q_DECL_PURE_FUNCTION;
-#if 0 && QT_HAS_INCLUDE(<compare>)
+#if 0 && __has_include(<compare>)
     std::strong_ordering operator<=>(const QCborMap &other) const
     {
         int c = compare(other);
@@ -322,9 +327,11 @@ public:
     QJsonObject toJsonObject() const;
 
 private:
+    friend class QCborValue;
+    friend class QCborValueRef;
+    friend class QJsonPrivate::Variant;
     void detach(qsizetype reserve = 0);
 
-    friend QCborValue;
     explicit QCborMap(QCborContainerPrivate &dd) noexcept;
     QExplicitlySharedDataPointer<QCborContainerPrivate> d;
 };
@@ -351,6 +358,12 @@ Q_CORE_EXPORT uint qHash(const QCborMap &map, uint seed = 0);
 #if !defined(QT_NO_DEBUG_STREAM)
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QCborMap &m);
 #endif
+
+#ifndef QT_NO_DATASTREAM
+Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QCborMap &);
+Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QCborMap &);
+#endif
+
 
 QT_END_NAMESPACE
 

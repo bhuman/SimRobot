@@ -84,6 +84,10 @@ public:
         // note: duplicated in qglobal.cpp (qEnvironmentVariable)
         return QString::fromUtf8(localFileName).normalized(QString::NormalizationForm_C);
     }
+    static inline QString decodeName(const char *localFileName)
+    {
+        return QString::fromUtf8(localFileName).normalized(QString::NormalizationForm_C);
+    }
 #else
     static inline QByteArray encodeName(const QString &fileName)
     {
@@ -93,9 +97,11 @@ public:
     {
         return QString::fromLocal8Bit(localFileName);
     }
+    static inline QString decodeName(const char *localFileName)
+    {
+        return QString::fromLocal8Bit(localFileName);
+    }
 #endif
-    inline static QString decodeName(const char *localFileName)
-        { return decodeName(QByteArray(localFileName)); }
 
 #if QT_DEPRECATED_SINCE(5,0)
     typedef QByteArray (*EncoderFn)(const QString &fileName);
@@ -107,13 +113,20 @@ public:
     bool exists() const;
     static bool exists(const QString &fileName);
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use QFile::symLinkTarget() instead")
     QString readLink() const;
+    QT_DEPRECATED_X("Use QFile::symLinkTarget(QString) instead")
     static QString readLink(const QString &fileName);
-    inline QString symLinkTarget() const { return readLink(); }
-    inline static QString symLinkTarget(const QString &fileName) { return readLink(fileName); }
+#endif
+    QString symLinkTarget() const;
+    static QString symLinkTarget(const QString &fileName);
 
     bool remove();
     static bool remove(const QString &fileName);
+
+    bool moveToTrash();
+    static bool moveToTrash(const QString &fileName, QString *pathInTrash = nullptr);
 
     bool rename(const QString &newName);
     static bool rename(const QString &oldName, const QString &newName);

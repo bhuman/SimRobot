@@ -47,7 +47,6 @@
 #include <QtGui/qbrush.h>
 #include <QtGui/qfont.h>
 #include <QtGui/qtransform.h>
-#include <QtGui/qmatrix.h>
 #include <QtGui/qpen.h>
 
 QT_REQUIRE_CONFIG(graphicsview);
@@ -103,7 +102,9 @@ class Q_WIDGETS_EXPORT QGraphicsScene : public QObject
     Q_PROPERTY(int bspTreeDepth READ bspTreeDepth WRITE setBspTreeDepth)
     Q_PROPERTY(QPalette palette READ palette WRITE setPalette)
     Q_PROPERTY(QFont font READ font WRITE setFont)
+#if QT_DEPRECATED_SINCE(5, 13)
     Q_PROPERTY(bool sortCacheEnabled READ isSortCacheEnabled WRITE setSortCacheEnabled)
+#endif
     Q_PROPERTY(bool stickyFocus READ stickyFocus WRITE setStickyFocus)
     Q_PROPERTY(qreal minimumRenderSize READ minimumRenderSize WRITE setMinimumRenderSize)
     Q_PROPERTY(bool focusOnTouch READ focusOnTouch WRITE setFocusOnTouch)
@@ -113,7 +114,7 @@ public:
         BspTreeIndex,
         NoIndex = -1
     };
-
+    Q_ENUM(ItemIndexMethod)
     enum SceneLayer {
         ItemLayer = 0x1,
         BackgroundLayer = 0x2,
@@ -141,8 +142,10 @@ public:
     ItemIndexMethod itemIndexMethod() const;
     void setItemIndexMethod(ItemIndexMethod method);
 
-    bool isSortCacheEnabled() const;
-    void setSortCacheEnabled(bool enabled);
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED bool isSortCacheEnabled() const;
+    QT_DEPRECATED void setSortCacheEnabled(bool enabled);
+#endif
 
     int bspTreeDepth() const;
     void setBspTreeDepth(int depth);

@@ -47,6 +47,9 @@
 QT_BEGIN_NAMESPACE
 
 class QJsonArray;
+class QDataStream;
+
+namespace QJsonPrivate { class Variant; }
 
 class QCborContainerPrivate;
 class Q_CORE_EXPORT QCborArray
@@ -213,7 +216,7 @@ public:
     bool contains(const QCborValue &value) const;
 
     int compare(const QCborArray &other) const noexcept Q_DECL_PURE_FUNCTION;
-#if 0 && QT_HAS_INCLUDE(<compare>)
+#if 0 && __has_include(<compare>)
     std::strong_ordering operator<=>(const QCborArray &other) const
     {
         int c = compare(other);
@@ -271,6 +274,8 @@ private:
     void detach(qsizetype reserve = 0);
 
     friend QCborValue;
+    friend QCborValueRef;
+    friend class QJsonPrivate::Variant;
     explicit QCborArray(QCborContainerPrivate &dd) noexcept;
     QExplicitlySharedDataPointer<QCborContainerPrivate> d;
 };
@@ -296,6 +301,11 @@ Q_CORE_EXPORT uint qHash(const QCborArray &array, uint seed = 0);
 
 #if !defined(QT_NO_DEBUG_STREAM)
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QCborArray &a);
+#endif
+
+#ifndef QT_NO_DATASTREAM
+Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QCborArray &);
+Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QCborArray &);
 #endif
 
 QT_END_NAMESPACE

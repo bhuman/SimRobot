@@ -133,6 +133,11 @@ Q_CORE_EXPORT QDebug operator<<(QDebug, QCborKnownTags tg);
 Q_CORE_EXPORT QDebug operator<<(QDebug, QCborTag tg);
 #endif
 
+#if !defined(QT_NO_DEBUG_STREAM)
+QDataStream &operator<<(QDataStream &ds, QCborSimpleType st);
+QDataStream &operator>>(QDataStream &ds, QCborSimpleType &st);
+#endif
+
 inline uint qHash(QCborSimpleType tag, uint seed = 0)
 {
     return qHash(quint8(tag), seed);
@@ -142,6 +147,8 @@ inline uint qHash(QCborTag tag, uint seed = 0)
 {
     return qHash(quint64(tag), seed);
 }
+
+enum class QCborNegativeInteger : quint64 {};
 
 QT_END_NAMESPACE
 

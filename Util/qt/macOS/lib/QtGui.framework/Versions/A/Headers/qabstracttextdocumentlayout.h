@@ -87,6 +87,7 @@ public:
     QString anchorAt(const QPointF& pos) const;
     QString imageAt(const QPointF &pos) const;
     QTextFormat formatAt(const QPointF &pos) const;
+    QTextBlock blockWithMarkerAt(const QPointF &pos) const;
 
     virtual int pageCount() const = 0;
     virtual QSizeF documentSize() const = 0;
@@ -143,7 +144,9 @@ public:
     virtual void drawObject(QPainter *painter, const QRectF &rect, QTextDocument *doc, int posInDocument, const QTextFormat &format) = 0;
 };
 
+#ifndef Q_CLANG_QDOC
 Q_DECLARE_INTERFACE(QTextObjectInterface, "org.qt-project.Qt.QTextObjectInterface")
+#endif
 
 QT_END_NAMESPACE
 

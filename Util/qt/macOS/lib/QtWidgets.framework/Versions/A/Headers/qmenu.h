@@ -82,14 +82,10 @@ public:
     QAction *addAction(const QIcon &icon, const QString &text, const QObject *receiver, const char* member, const QKeySequence &shortcut = 0);
 
 #ifdef Q_CLANG_QDOC
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0);
     template<typename Functor>
     QAction *addAction(const QString &text, Functor functor, const QKeySequence &shortcut = 0);
     template<typename Functor>
     QAction *addAction(const QString &text, const QObject *context, Functor functor, const QKeySequence &shortcut = 0);
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QIcon &icon, const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0);
     template<typename Functor>
     QAction *addAction(const QIcon &icon, const QString &text, Functor functor, const QKeySequence &shortcut = 0);
     template<typename Functor>
@@ -274,7 +270,7 @@ private:
     friend void qt_mac_menu_emit_hovered(QMenu *menu, QAction *action);
 };
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
 // ### Qt 4 compatibility; remove in Qt 6
 inline QT_DEPRECATED void qt_mac_set_dock_menu(QMenu *menu) { menu->setAsDockMenu(); }
 #endif

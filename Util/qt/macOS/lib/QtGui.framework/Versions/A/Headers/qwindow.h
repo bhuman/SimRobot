@@ -123,6 +123,7 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
     Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged REVISION 1)
     Q_PROPERTY(Qt::ScreenOrientation contentOrientation READ contentOrientation WRITE reportContentOrientationChange NOTIFY contentOrientationChanged)
     Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged REVISION 1)
+    Q_PRIVATE_PROPERTY(QWindow::d_func(), QWindow* transientParent MEMBER transientParent WRITE setTransientParent NOTIFY transientParentChanged REVISION 13)
 
 public:
     enum Visibility {
@@ -143,7 +144,7 @@ public:
 
     explicit QWindow(QScreen *screen = nullptr);
     explicit QWindow(QWindow *parent);
-    virtual ~QWindow();
+    ~QWindow();
 
     void setSurfaceType(SurfaceType surfaceType);
     SurfaceType surfaceType() const override;
@@ -291,6 +292,8 @@ public Q_SLOTS:
     bool close();
     void raise();
     void lower();
+    bool startSystemResize(Qt::Edges edges);
+    bool startSystemMove();
 
     void setTitle(const QString &);
 
@@ -336,6 +339,8 @@ Q_SIGNALS:
 
     Q_REVISION(1) void opacityChanged(qreal opacity);
 
+    Q_REVISION(13) void transientParentChanged(QWindow *transientParent);
+
 protected:
     virtual void exposeEvent(QExposeEvent *);
     virtual void resizeEvent(QResizeEvent *);
@@ -361,7 +366,11 @@ protected:
 #if QT_CONFIG(tabletevent)
     virtual void tabletEvent(QTabletEvent *);
 #endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    virtual bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
+#else
     virtual bool nativeEvent(const QByteArray &eventType, void *message, long *result);
+#endif
 
     QWindow(QWindowPrivate &dd, QWindow *parent);
 

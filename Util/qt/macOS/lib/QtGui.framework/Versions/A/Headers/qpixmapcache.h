@@ -55,18 +55,16 @@ public:
     public:
         Key();
         Key(const Key &other);
-#ifdef Q_COMPILER_RVALUE_REFS
-        Key(Key &&other) Q_DECL_NOTHROW : d(other.d) { other.d = nullptr; }
-        Key &operator =(Key &&other) Q_DECL_NOTHROW { swap(other); return *this; }
-#endif
+        Key(Key &&other) noexcept : d(other.d) { other.d = nullptr; }
+        Key &operator =(Key &&other) noexcept { swap(other); return *this; }
         ~Key();
         bool operator ==(const Key &key) const;
         inline bool operator !=(const Key &key) const
         { return !operator==(key); }
         Key &operator =(const Key &other);
 
-        void swap(Key &other) Q_DECL_NOTHROW { qSwap(d, other.d); }
-        bool isValid() const Q_DECL_NOTHROW;
+        void swap(Key &other) noexcept { qSwap(d, other.d); }
+        bool isValid() const noexcept;
 
     private:
         KeyData *d;
@@ -76,8 +74,12 @@ public:
 
     static int cacheLimit();
     static void setCacheLimit(int);
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use bool find(const QString &, QPixmap *) instead")
     static QPixmap *find(const QString &key);
+    QT_DEPRECATED_X("Use bool find(const QString &, QPixmap *) instead")
     static bool find(const QString &key, QPixmap &pixmap);
+#endif
     static bool find(const QString &key, QPixmap *pixmap);
     static bool find(const Key &key, QPixmap *pixmap);
     static bool insert(const QString &key, const QPixmap &pixmap);

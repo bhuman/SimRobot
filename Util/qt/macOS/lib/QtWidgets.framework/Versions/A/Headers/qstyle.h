@@ -141,8 +141,10 @@ public:
         PE_FrameGroupBox,
         PE_FrameLineEdit,
         PE_FrameMenu,
-        PE_FrameStatusBar, // ### Qt 6: remove
-        PE_FrameStatusBarItem = PE_FrameStatusBar,
+        PE_FrameStatusBarItem,
+#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
+        PE_FrameStatusBar Q_DECL_ENUMERATOR_DEPRECATED = PE_FrameStatusBarItem,
+#endif
         PE_FrameTabWidget,
         PE_FrameWindow,
         PE_FrameButtonBevel,
@@ -162,8 +164,10 @@ public:
         PE_IndicatorArrowUp,
         PE_IndicatorBranch,
         PE_IndicatorButtonDropDown,
-        PE_IndicatorViewItemCheck, // ### Qt 6: remove
-        PE_IndicatorItemViewItemCheck = PE_IndicatorViewItemCheck,
+        PE_IndicatorItemViewItemCheck,
+#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
+        PE_IndicatorViewItemCheck Q_DECL_ENUMERATOR_DEPRECATED = PE_IndicatorItemViewItemCheck,
+#endif
         PE_IndicatorCheckBox,
         PE_IndicatorDockWidgetResizeHandle,
         PE_IndicatorHeaderArrow,
@@ -187,7 +191,7 @@ public:
         PE_IndicatorItemViewItemDrop,
 
         PE_PanelItemViewItem,
-        PE_PanelItemViewRow, // ### Qt 6: remove
+        PE_PanelItemViewRow,
 
         PE_PanelStatusBar,
 
@@ -308,9 +312,10 @@ public:
         SE_TabWidgetLeftCorner,
         SE_TabWidgetRightCorner,
 
-        SE_ViewItemCheckIndicator, // ### Qt 6: remove
-        SE_ItemViewItemCheckIndicator = SE_ViewItemCheckIndicator,
-
+        SE_ItemViewItemCheckIndicator,
+#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
+        SE_ViewItemCheckIndicator Q_DECL_ENUMERATOR_DEPRECATED = SE_ItemViewItemCheckIndicator,
+#endif
         SE_TabBarTearIndicator,
         SE_TabBarTearIndicatorLeft = SE_TabBarTearIndicator,
 
@@ -327,8 +332,10 @@ public:
         SE_CheckBoxLayoutItem,
         SE_ComboBoxLayoutItem,
         SE_DateTimeEditLayoutItem,
-        SE_DialogButtonBoxLayoutItem, // ### Qt 6: remove
-        SE_LabelLayoutItem,
+#if QT_DEPRECATED_SINCE(5, 15) // ### Qt 6: remove
+        SE_DialogButtonBoxLayoutItem Q_DECL_ENUMERATOR_DEPRECATED,
+#endif
+        SE_LabelLayoutItem = SE_DateTimeEditLayoutItem + 2,
         SE_ProgressBarLayoutItem,
         SE_PushButtonLayoutItem,
         SE_RadioButtonLayoutItem,
@@ -355,6 +362,8 @@ public:
         SE_TabBarScrollLeftButton,
         SE_TabBarScrollRightButton,
         SE_TabBarTearIndicatorRight,
+
+        SE_PushButtonBevel,
 
         // do not add any values below/greater than this
         SE_CustomBase = 0xf0000000
@@ -506,9 +515,11 @@ public:
         PM_DialogButtonsButtonHeight,
 
         PM_MdiSubWindowFrameWidth,
-        PM_MDIFrameWidth = PM_MdiSubWindowFrameWidth,         // ### Qt 6: remove
         PM_MdiSubWindowMinimizedWidth,
-        PM_MDIMinimizedWidth = PM_MdiSubWindowMinimizedWidth, // ### Qt 6: remove
+#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
+        PM_MDIFrameWidth Q_DECL_ENUMERATOR_DEPRECATED = PM_MdiSubWindowFrameWidth,
+        PM_MDIMinimizedWidth Q_DECL_ENUMERATOR_DEPRECATED = PM_MdiSubWindowMinimizedWidth,
+#endif
 
         PM_HeaderMargin,
         PM_HeaderMarkSize,
@@ -526,11 +537,13 @@ public:
 
         PM_SpinBoxSliderHeight,
 
-        PM_DefaultTopLevelMargin, // ### Qt 6: remove
-        PM_DefaultChildMargin,    // ### Qt 6: remove
-        PM_DefaultLayoutSpacing,  // ### Qt 6: remove
+#if QT_DEPRECATED_SINCE(5, 15) // ### Qt 6: remove
+        PM_DefaultTopLevelMargin Q_DECL_ENUMERATOR_DEPRECATED,
+        PM_DefaultChildMargin Q_DECL_ENUMERATOR_DEPRECATED,
+        PM_DefaultLayoutSpacing Q_DECL_ENUMERATOR_DEPRECATED,
+#endif
 
-        PM_ToolBarIconSize,
+        PM_ToolBarIconSize = PM_SpinBoxSliderHeight + 4,
         PM_ListViewIconSize,
         PM_IconViewIconSize,
         PM_SmallIconSize,
@@ -649,7 +662,9 @@ public:
         SH_ComboBox_Popup,
         SH_TitleBar_NoBorder,
         SH_Slider_StopMouseOverSlider,
-        SH_ScrollBar_StopMouseOverSlider = SH_Slider_StopMouseOverSlider, // ### Qt 6: remove
+#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
+        SH_ScrollBar_StopMouseOverSlider Q_DECL_ENUMERATOR_DEPRECATED = SH_Slider_StopMouseOverSlider,
+#endif
         SH_BlinkCursorWhenTextSelected,
         SH_RichText_FullWidthSelection,
         SH_Menu_Scrollable,
@@ -823,6 +838,13 @@ public:
         SP_MediaVolume,
         SP_MediaVolumeMuted,
         SP_LineEditClearButton,
+        SP_DialogYesToAllButton,
+        SP_DialogNoToAllButton,
+        SP_DialogSaveAllButton,
+        SP_DialogAbortButton,
+        SP_DialogRetryButton,
+        SP_DialogIgnoreButton,
+        SP_RestoreDefaultsButton,
         // do not add any values below/greater than this
         SP_CustomBase = 0xf0000000
     };

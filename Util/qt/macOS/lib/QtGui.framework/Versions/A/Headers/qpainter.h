@@ -72,7 +72,6 @@ class QPen;
 class QPolygon;
 class QTextItem;
 class QTextEngine;
-class QMatrix;
 class QTransform;
 class QStaticText;
 class QGlyphRun;
@@ -89,9 +88,12 @@ public:
         Antialiasing = 0x01,
         TextAntialiasing = 0x02,
         SmoothPixmapTransform = 0x04,
-        HighQualityAntialiasing = 0x08,
-        NonCosmeticDefaultPen = 0x10,
-        Qt4CompatiblePainting = 0x20
+#if QT_DEPRECATED_SINCE(5, 14)
+        HighQualityAntialiasing Q_DECL_ENUMERATOR_DEPRECATED_X("Use Antialiasing instead") = 0x08,
+        NonCosmeticDefaultPen Q_DECL_ENUMERATOR_DEPRECATED_X("Default pen is non-cosmetic now") = 0x10,
+#endif
+        Qt4CompatiblePainting = 0x20,
+        LosslessImageRendering = 0x40,
     };
     Q_FLAG(RenderHint)
 
@@ -131,7 +133,10 @@ public:
     bool end();
     bool isActive() const;
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use begin(QPaintDevice*) instead")
     void initFrom(const QPaintDevice *device);
+#endif
 
     enum CompositionMode {
         CompositionMode_SourceOver,
@@ -231,27 +236,39 @@ public:
     void restore();
 
     // XForm functions
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use setTransform() instead")
     void setMatrix(const QMatrix &matrix, bool combine = false);
+    QT_DEPRECATED_X("Use transform() instead")
     const QMatrix &matrix() const;
+    QT_DEPRECATED_X("Use deviceTransform() instead")
     const QMatrix &deviceMatrix() const;
+    QT_DEPRECATED_X("Use resetTransform() instead")
     void resetMatrix();
+#endif
 
     void setTransform(const QTransform &transform, bool combine = false);
     const QTransform &transform() const;
     const QTransform &deviceTransform() const;
     void resetTransform();
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use setWorldTransform() instead")
     void setWorldMatrix(const QMatrix &matrix, bool combine = false);
+    QT_DEPRECATED_X("Use worldTransform() instead")
     const QMatrix &worldMatrix() const;
+    QT_DEPRECATED_X("Use combinedTransform() instead")
+    QMatrix combinedMatrix() const;
+    QT_DEPRECATED_X("Use setWorldMatrixEnabled() instead")
+    void setMatrixEnabled(bool enabled);
+    QT_DEPRECATED_X("Use worldMatrixEnabled() instead")
+    bool matrixEnabled() const;
+#endif
 
     void setWorldTransform(const QTransform &matrix, bool combine = false);
     const QTransform &worldTransform() const;
 
-    QMatrix combinedMatrix() const;
     QTransform combinedTransform() const;
-
-    void setMatrixEnabled(bool enabled);
-    bool matrixEnabled() const;
 
     void setWorldMatrixEnabled(bool enabled);
     bool worldMatrixEnabled() const;
@@ -354,9 +371,14 @@ public:
     inline void drawRoundedRect(const QRect &rect, qreal xRadius, qreal yRadius,
                                 Qt::SizeMode mode = Qt::AbsoluteSize);
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use drawRoundedRect(..., Qt::RelativeSize) instead")
     void drawRoundRect(const QRectF &r, int xround = 25, int yround = 25);
-    inline void drawRoundRect(int x, int y, int w, int h, int = 25, int = 25);
-    inline void drawRoundRect(const QRect &r, int xround = 25, int yround = 25);
+    QT_DEPRECATED_X("Use drawRoundedRect(..., Qt::RelativeSize) instead")
+    void drawRoundRect(int x, int y, int w, int h, int = 25, int = 25);
+    QT_DEPRECATED_X("Use drawRoundedRect(..., Qt::RelativeSize) instead")
+    void drawRoundRect(const QRect &r, int xround = 25, int yround = 25);
+#endif
 
     void drawTiledPixmap(const QRectF &rect, const QPixmap &pm, const QPointF &offset = QPointF());
     inline void drawTiledPixmap(int x, int y, int w, int h, const QPixmap &, int sx=0, int sy=0);
@@ -463,10 +485,15 @@ public:
 
     QPaintEngine *paintEngine() const;
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use QWidget::render() instead")
     static void setRedirected(const QPaintDevice *device, QPaintDevice *replacement,
                               const QPoint& offset = QPoint());
+    QT_DEPRECATED_X("Use QWidget::render() instead")
     static QPaintDevice *redirected(const QPaintDevice *device, QPoint *offset = nullptr);
+    QT_DEPRECATED_X("Use QWidget::render() instead")
     static void restoreRedirected(const QPaintDevice *device);
+#endif
 
     void beginNativePainting();
     void endNativePainting();
@@ -626,16 +653,6 @@ inline void QPainter::drawPoints(const QPolygonF &points)
 inline void QPainter::drawPoints(const QPolygon &points)
 {
     drawPoints(points.constData(), points.size());
-}
-
-inline void QPainter::drawRoundRect(int x, int y, int w, int h, int xRnd, int yRnd)
-{
-    drawRoundRect(QRectF(x, y, w, h), xRnd, yRnd);
-}
-
-inline void QPainter::drawRoundRect(const QRect &rect, int xRnd, int yRnd)
-{
-    drawRoundRect(QRectF(rect), xRnd, yRnd);
 }
 
 inline void QPainter::drawRoundedRect(int x, int y, int w, int h, qreal xRadius, qreal yRadius,

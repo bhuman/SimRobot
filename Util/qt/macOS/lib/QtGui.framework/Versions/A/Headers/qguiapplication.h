@@ -86,7 +86,7 @@ public:
 #else
     QGuiApplication(int &argc, char **argv, int = ApplicationFlags);
 #endif
-    virtual ~QGuiApplication();
+    ~QGuiApplication();
 
     static void setApplicationDisplayName(const QString &name);
     static QString applicationDisplayName();
@@ -155,6 +155,9 @@ public:
     static bool quitOnLastWindowClosed();
 
     static Qt::ApplicationState applicationState();
+
+    static void setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy policy);
+    static Qt::HighDpiScaleFactorRoundingPolicy highDpiScaleFactorRoundingPolicy();
 
     static int exec();
     bool notify(QObject *, QEvent *) override;

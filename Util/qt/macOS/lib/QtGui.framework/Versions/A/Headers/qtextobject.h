@@ -151,11 +151,11 @@ public:
     public:
         iterator(); // ### Qt 6: inline
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
-        iterator(const iterator &o) Q_DECL_NOTHROW; // = default
-        iterator &operator=(const iterator &o) Q_DECL_NOTHROW; // = default
-        iterator(iterator &&other) Q_DECL_NOTHROW // = default
+        iterator(const iterator &o) noexcept; // = default
+        iterator &operator=(const iterator &o) noexcept; // = default
+        iterator(iterator &&other) noexcept // = default
         { memcpy(static_cast<void *>(this), static_cast<void *>(&other), sizeof(iterator)); }
-        iterator &operator=(iterator &&other) Q_DECL_NOTHROW // = default
+        iterator &operator=(iterator &&other) noexcept // = default
         { memcpy(static_cast<void *>(this), static_cast<void *>(&other), sizeof(iterator)); return *this; }
 #endif
 
@@ -263,6 +263,7 @@ public:
         iterator() : p(nullptr), b(0), e(0), n(0) {}
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         iterator(const iterator &o) : p(o.p), b(o.b), e(o.e), n(o.n) {}
+        iterator &operator=(const iterator &o) = default;
 #endif
 
         QTextFragment fragment() const;

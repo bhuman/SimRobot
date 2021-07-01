@@ -59,15 +59,9 @@ class Q_WIDGETS_EXPORT QToolBar : public QWidget
 {
     Q_OBJECT
 
-    Q_PROPERTY(bool movable READ isMovable WRITE setMovable
-               DESIGNABLE (qobject_cast<QMainWindow *>(parentWidget()) != 0)
-               NOTIFY movableChanged)
-    Q_PROPERTY(Qt::ToolBarAreas allowedAreas READ allowedAreas WRITE setAllowedAreas
-               DESIGNABLE (qobject_cast<QMainWindow *>(parentWidget()) != 0)
-               NOTIFY allowedAreasChanged)
-    Q_PROPERTY(Qt::Orientation orientation READ orientation WRITE setOrientation
-               DESIGNABLE (qobject_cast<QMainWindow *>(parentWidget()) == 0)
-               NOTIFY orientationChanged)
+    Q_PROPERTY(bool movable READ isMovable WRITE setMovable NOTIFY movableChanged)
+    Q_PROPERTY(Qt::ToolBarAreas allowedAreas READ allowedAreas WRITE setAllowedAreas NOTIFY allowedAreasChanged)
+    Q_PROPERTY(Qt::Orientation orientation READ orientation WRITE setOrientation NOTIFY orientationChanged)
     Q_PROPERTY(QSize iconSize READ iconSize WRITE setIconSize NOTIFY iconSizeChanged)
     Q_PROPERTY(Qt::ToolButtonStyle toolButtonStyle READ toolButtonStyle WRITE setToolButtonStyle
                NOTIFY toolButtonStyleChanged)
@@ -99,15 +93,11 @@ public:
     QAction *addAction(const QString &text, const QObject *receiver, const char* member);
     QAction *addAction(const QIcon &icon, const QString &text,
                        const QObject *receiver, const char* member);
-#ifdef Q_QDOC
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QString &text, const QObject *receiver, PointerToMemberFunction method);
+#ifdef Q_CLANG_QDOC
     template<typename Functor>
     QAction *addAction(const QString &text, Functor functor);
     template<typename Functor>
     QAction *addAction(const QString &text, const QObject *context, Functor functor);
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QIcon &icon, const QString &text, const QObject *receiver, PointerToMemberFunction method);
     template<typename Functor>
     QAction *addAction(const QIcon &icon, const QString &text, Functor functor);
     template<typename Functor>
@@ -149,7 +139,7 @@ public:
         connect(result, &QAction::triggered, slot);
         return result;
     }
-#endif // !Q_QDOC
+#endif // !Q_CLANG_QDOC
 
     QAction *addSeparator();
     QAction *insertSeparator(QAction *before);

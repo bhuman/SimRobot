@@ -42,6 +42,7 @@
 
 #include <QtGui/qtguiglobal.h>
 #include <QtGui/qmatrix.h>
+#include <QtGui/qtransform.h>
 #include <QtCore/qglobal.h>
 #include <QtCore/qrect.h>
 #include <QtCore/qline.h>
@@ -88,16 +89,19 @@ public:
         inline bool operator!=(const Element &e) const { return !operator==(e); }
     };
 
-    QPainterPath() Q_DECL_NOEXCEPT;
+    QPainterPath() noexcept;
     explicit QPainterPath(const QPointF &startPoint);
     QPainterPath(const QPainterPath &other);
     QPainterPath &operator=(const QPainterPath &other);
-#ifdef Q_COMPILER_RVALUE_REFS
-    inline QPainterPath &operator=(QPainterPath &&other) Q_DECL_NOEXCEPT
+    inline QPainterPath &operator=(QPainterPath &&other) noexcept
     { qSwap(d_ptr, other.d_ptr); return *this; }
-#endif
     ~QPainterPath();
-    inline void swap(QPainterPath &other) Q_DECL_NOEXCEPT { d_ptr.swap(other.d_ptr); }
+
+    inline void swap(QPainterPath &other) noexcept { d_ptr.swap(other.d_ptr); }
+
+    void clear();
+    void reserve(int size);
+    int capacity() const;
 
     void closeSubpath();
 
@@ -138,12 +142,18 @@ public:
                                qreal xRadius, qreal yRadius,
                                Qt::SizeMode mode = Qt::AbsoluteSize);
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use addRoundedRect(..., Qt::RelativeSize) instead")
     void addRoundRect(const QRectF &rect, int xRnd, int yRnd);
-    inline void addRoundRect(qreal x, qreal y, qreal w, qreal h,
-                             int xRnd, int yRnd);
-    inline void addRoundRect(const QRectF &rect, int roundness);
-    inline void addRoundRect(qreal x, qreal y, qreal w, qreal h,
-                             int roundness);
+    QT_DEPRECATED_X("Use addRoundedRect(..., Qt::RelativeSize) instead")
+    void addRoundRect(qreal x, qreal y, qreal w, qreal h,
+                      int xRnd, int yRnd);
+    QT_DEPRECATED_X("Use addRoundedRect(..., Qt::RelativeSize) instead")
+    void addRoundRect(const QRectF &rect, int roundness);
+    QT_DEPRECATED_X("Use addRoundedRect(..., Qt::RelativeSize) instead")
+    void addRoundRect(qreal x, qreal y, qreal w, qreal h,
+                      int roundness);
+#endif
 
     void connectPath(const QPainterPath &path);
 
@@ -166,12 +176,18 @@ public:
     bool isEmpty() const;
 
     Q_REQUIRED_RESULT QPainterPath toReversed() const;
-    QList<QPolygonF> toSubpathPolygons(const QMatrix &matrix = QMatrix()) const;
-    QList<QPolygonF> toFillPolygons(const QMatrix &matrix = QMatrix()) const;
-    QPolygonF toFillPolygon(const QMatrix &matrix = QMatrix()) const;
-    QList<QPolygonF> toSubpathPolygons(const QTransform &matrix) const;
-    QList<QPolygonF> toFillPolygons(const QTransform &matrix) const;
-    QPolygonF toFillPolygon(const QTransform &matrix) const;
+
+#if QT_DEPRECATED_SINCE(5, 15)
+    QT_DEPRECATED_X("Use toSubpathPolygons(const QTransform &)")
+    QList<QPolygonF> toSubpathPolygons(const QMatrix &matrix) const;
+    QT_DEPRECATED_X("Use toFillPolygons(const QTransform &")
+    QList<QPolygonF> toFillPolygons(const QMatrix &matrix) const;
+    QT_DEPRECATED_X("Use toFillPolygon(const QTransform &)")
+    QPolygonF toFillPolygon(const QMatrix &matrix) const;
+#endif // QT_DEPRECATED_SINCE(5, 15)
+    QList<QPolygonF> toSubpathPolygons(const QTransform &matrix = QTransform()) const;
+    QList<QPolygonF> toFillPolygons(const QTransform &matrix = QTransform()) const;
+    QPolygonF toFillPolygon(const QTransform &matrix = QTransform()) const;
 
     int elementCount() const;
     QPainterPath::Element elementAt(int i) const;
@@ -188,7 +204,10 @@ public:
     Q_REQUIRED_RESULT QPainterPath united(const QPainterPath &r) const;
     Q_REQUIRED_RESULT QPainterPath intersected(const QPainterPath &r) const;
     Q_REQUIRED_RESULT QPainterPath subtracted(const QPainterPath &r) const;
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use r.subtracted() instead")
     Q_REQUIRED_RESULT QPainterPath subtractedInverted(const QPainterPath &r) const;
+#endif
 
     Q_REQUIRED_RESULT QPainterPath simplified() const;
 
@@ -333,30 +352,6 @@ inline void QPainterPath::addRoundedRect(qreal x, qreal y, qreal w, qreal h,
     addRoundedRect(QRectF(x, y, w, h), xRadius, yRadius, mode);
 }
 
-inline void QPainterPath::addRoundRect(qreal x, qreal y, qreal w, qreal h,
-                                       int xRnd, int yRnd)
-{
-    addRoundRect(QRectF(x, y, w, h), xRnd, yRnd);
-}
-
-inline void QPainterPath::addRoundRect(const QRectF &rect,
-                                       int roundness)
-{
-    int xRnd = roundness;
-    int yRnd = roundness;
-    if (rect.width() > rect.height())
-        xRnd = int(roundness * rect.height()/rect.width());
-    else
-        yRnd = int(roundness * rect.width()/rect.height());
-    addRoundRect(rect, xRnd, yRnd);
-}
-
-inline void QPainterPath::addRoundRect(qreal x, qreal y, qreal w, qreal h,
-                                       int roundness)
-{
-    addRoundRect(QRectF(x, y, w, h), roundness);
-}
-
 inline void QPainterPath::addText(qreal x, qreal y, const QFont &f, const QString &text)
 {
     addText(QPointF(x, y), f, text);
@@ -368,6 +363,8 @@ inline void QPainterPath::translate(const QPointF &offset)
 inline QPainterPath QPainterPath::translated(const QPointF &offset) const
 { return translated(offset.x(), offset.y()); }
 
+inline QPainterPath operator *(const QPainterPath &p, const QTransform &m)
+{ return m.map(p); }
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_GUI_EXPORT QDebug operator<<(QDebug, const QPainterPath &);

@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -67,11 +67,9 @@ public:
     ~QFileInfo();
 
     QFileInfo &operator=(const QFileInfo &fileinfo);
-#ifdef Q_COMPILER_RVALUE_REFS
-    QFileInfo &operator=(QFileInfo &&other) Q_DECL_NOTHROW { swap(other); return *this; }
-#endif
+    QFileInfo &operator=(QFileInfo &&other) noexcept { swap(other); return *this; }
 
-    void swap(QFileInfo &other) Q_DECL_NOTHROW
+    void swap(QFileInfo &other) noexcept
     { qSwap(d_ptr, other.d_ptr); }
 
     bool operator==(const QFileInfo &fileinfo) const;
@@ -113,11 +111,17 @@ public:
     bool isFile() const;
     bool isDir() const;
     bool isSymLink() const;
+    bool isSymbolicLink() const;
+    bool isShortcut() const;
+    bool isJunction() const;
     bool isRoot() const;
     bool isBundle() const;
 
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use QFileInfo::symLinkTarget() instead")
     QString readLink() const;
-    inline QString symLinkTarget() const { return readLink(); }
+#endif
+    QString symLinkTarget() const;
 
     QString owner() const;
     uint ownerId() const;
@@ -147,6 +151,8 @@ protected:
     QSharedDataPointer<QFileInfoPrivate> d_ptr;
 
 private:
+    friend class QFileInfoGatherer;
+    void stat();
     QFileInfoPrivate* d_func();
     inline const QFileInfoPrivate* d_func() const
     {

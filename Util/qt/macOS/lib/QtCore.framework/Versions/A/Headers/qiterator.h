@@ -44,6 +44,8 @@
 
 QT_BEGIN_NAMESPACE
 
+#if !defined(QT_NO_JAVA_STYLE_ITERATORS)
+
 #define Q_DECLARE_SEQUENTIAL_ITERATOR(C) \
 \
 template <class T> \
@@ -115,11 +117,11 @@ template <class Key, class T> \
 class Q##C##Iterator \
 { \
     typedef typename Q##C<Key,T>::const_iterator const_iterator; \
-    typedef const_iterator Item; \
     Q##C<Key,T> c; \
     const_iterator i, n; \
     inline bool item_exists() const { return n != c.constEnd(); } \
 public: \
+    typedef const_iterator Item; \
     inline Q##C##Iterator(const Q##C<Key,T> &container) \
         : c(container), i(c.constBegin()), n(c.constEnd()) {} \
     inline Q##C##Iterator &operator=(const Q##C<Key,T> &container) \
@@ -148,11 +150,11 @@ class QMutable##C##Iterator \
 { \
     typedef typename Q##C<Key,T>::iterator iterator; \
     typedef typename Q##C<Key,T>::const_iterator const_iterator; \
-    typedef iterator Item; \
     Q##C<Key,T> *c; \
     iterator i, n; \
     inline bool item_exists() const { return const_iterator(n) != c->constEnd(); } \
 public: \
+    typedef iterator Item; \
     inline QMutable##C##Iterator(Q##C<Key,T> &container) \
         : c(&container) \
     { i = c->begin(); n = c->end(); } \
@@ -179,6 +181,13 @@ public: \
       n = c->end(); return false; } \
 };
 
+#else // QT_NO_JAVA_STYLE_ITERATORS
+#define Q_DECLARE_SEQUENTIAL_ITERATOR(C)
+#define Q_DECLARE_MUTABLE_SEQUENTIAL_ITERATOR(C)
+#define Q_DECLARE_ASSOCIATIVE_ITERATOR(C)
+#define Q_DECLARE_MUTABLE_ASSOCIATIVE_ITERATOR(C)
+#endif // QT_NO_JAVA_STYLE_ITERATORS
+
 template<typename Key, typename T, class Iterator>
 class QKeyValueIterator
 {
@@ -186,19 +195,43 @@ public:
     typedef typename Iterator::iterator_category iterator_category;
     typedef typename Iterator::difference_type difference_type;
     typedef std::pair<Key, T> value_type;
-    typedef const value_type *pointer;
     typedef const value_type &reference;
 
     QKeyValueIterator() = default;
-    Q_DECL_CONSTEXPR explicit QKeyValueIterator(Iterator o) Q_DECL_NOEXCEPT_EXPR(std::is_nothrow_move_constructible<Iterator>::value)
+    Q_DECL_CONSTEXPR explicit QKeyValueIterator(Iterator o) noexcept(std::is_nothrow_move_constructible<Iterator>::value)
         : i(std::move(o)) {}
 
     std::pair<Key, T> operator*() const {
         return std::pair<Key, T>(i.key(), i.value());
     }
 
-    friend bool operator==(QKeyValueIterator lhs, QKeyValueIterator rhs) Q_DECL_NOEXCEPT { return lhs.i == rhs.i; }
-    friend bool operator!=(QKeyValueIterator lhs, QKeyValueIterator rhs) Q_DECL_NOEXCEPT { return lhs.i != rhs.i; }
+    struct pointer {
+        pointer(value_type&& r_)
+            : r(std::move(r_))
+        {}
+
+        pointer() = default;
+        pointer(const pointer &other) = default;
+        pointer(pointer &&other) = default;
+        pointer& operator=(const pointer &other) = default;
+        pointer& operator=(pointer &&other) = default;
+
+        value_type& operator*() const {
+            return r;
+        }
+
+        value_type r;
+        const value_type *operator->() const {
+            return &r;
+        }
+    };
+
+    pointer operator->() const {
+        return pointer(std::pair<Key, T>(i.key(), i.value()));
+    }
+
+    friend bool operator==(QKeyValueIterator lhs, QKeyValueIterator rhs) noexcept { return lhs.i == rhs.i; }
+    friend bool operator!=(QKeyValueIterator lhs, QKeyValueIterator rhs) noexcept { return lhs.i != rhs.i; }
 
     inline QKeyValueIterator &operator++() { ++i; return *this; }
     inline QKeyValueIterator operator++(int) { return QKeyValueIterator(i++);}

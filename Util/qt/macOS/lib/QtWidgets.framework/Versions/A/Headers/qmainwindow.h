@@ -158,7 +158,11 @@ public:
 
     bool unifiedTitleAndToolBarOnMac() const;
 
-    Qt::ToolBarArea toolBarArea(QToolBar *toolbar) const;
+    Qt::ToolBarArea toolBarArea(
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+        const
+#endif
+        QToolBar *toolbar) const;
     bool toolBarBreak(QToolBar *toolbar) const;
 #endif
 #if QT_CONFIG(dockwidget)
@@ -167,8 +171,10 @@ public:
                        Qt::Orientation orientation);
     void splitDockWidget(QDockWidget *after, QDockWidget *dockwidget,
                          Qt::Orientation orientation);
+#if QT_CONFIG(tabbar)
     void tabifyDockWidget(QDockWidget *first, QDockWidget *second);
     QList<QDockWidget*> tabifiedDockWidgets(QDockWidget *dockwidget) const;
+#endif
     void removeDockWidget(QDockWidget *dockwidget);
     bool restoreDockWidget(QDockWidget *dockwidget);
 

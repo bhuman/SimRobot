@@ -55,7 +55,7 @@
 
 #include <QtCore/qobject_impl.h>
 
-#if QT_HAS_INCLUDE(<chrono>)
+#if __has_include(<chrono>)
 #  include <chrono>
 #endif
 
@@ -71,11 +71,15 @@ class QObjectPrivate;
 class QObject;
 class QThread;
 class QWidget;
+class QAccessibleWidget;
 #ifndef QT_NO_REGEXP
 class QRegExp;
 #endif
 #if QT_CONFIG(regularexpression)
 class QRegularExpression;
+#endif
+#if !QT_DEPRECATED_SINCE(5, 14) || QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+# define QT_NO_USERDATA
 #endif
 #ifndef QT_NO_USERDATA
 class QObjectUserData;
@@ -93,7 +97,9 @@ Q_CORE_EXPORT void qt_qFindChildren_helper(const QObject *parent, const QRegular
 Q_CORE_EXPORT QObject *qt_qFindChild_helper(const QObject *parent, const QString &name, const QMetaObject &mo, Qt::FindChildOptions options);
 
 class Q_CORE_EXPORT QObjectData {
+    Q_DISABLE_COPY(QObjectData)
 public:
+    QObjectData() = default;
     virtual ~QObjectData() = 0;
     QObject *q_ptr;
     QObject *parent;
@@ -111,12 +117,17 @@ public:
     int postedEvents;
     QDynamicMetaObjectData *metaObject;
     QMetaObject *dynamicMetaObject() const;
+
+#ifdef QT_DEBUG
+    enum { CheckForParentChildLoopsWarnDepth = 4096 };
+#endif
 };
 
 
 class Q_CORE_EXPORT QObject
 {
     Q_OBJECT
+
     Q_PROPERTY(QString objectName READ objectName WRITE setObjectName NOTIFY objectNameChanged)
     Q_DECLARE_PRIVATE(QObject)
 
@@ -127,7 +138,7 @@ public:
     virtual bool event(QEvent *event);
     virtual bool eventFilter(QObject *watched, QEvent *event);
 
-#if defined(QT_NO_TRANSLATION)
+#if defined(QT_NO_TRANSLATION) || defined(Q_CLANG_QDOC)
     static QString tr(const char *sourceText, const char * = nullptr, int = -1)
         { return QString::fromUtf8(sourceText); }
 #if QT_DEPRECATED_SINCE(5, 0)
@@ -142,14 +153,14 @@ public:
     inline bool isWidgetType() const { return d_ptr->isWidget; }
     inline bool isWindowType() const { return d_ptr->isWindow; }
 
-    inline bool signalsBlocked() const Q_DECL_NOTHROW { return d_ptr->blockSig; }
-    bool blockSignals(bool b) Q_DECL_NOTHROW;
+    inline bool signalsBlocked() const noexcept { return d_ptr->blockSig; }
+    bool blockSignals(bool b) noexcept;
 
     QThread *thread() const;
     void moveToThread(QThread *thread);
 
     int startTimer(int interval, Qt::TimerType timerType = Qt::CoarseTimer);
-#if QT_HAS_INCLUDE(<chrono>)
+#if __has_include(<chrono>)
     Q_ALWAYS_INLINE
     int startTimer(std::chrono::milliseconds time, Qt::TimerType timerType = Qt::CoarseTimer)
     {
@@ -176,7 +187,9 @@ public:
     }
 
 #ifndef QT_NO_REGEXP
+#if QT_DEPRECATED_SINCE(5, 13)
     template<typename T>
+    QT_DEPRECATED_X("Use findChildren(const QRegularExpression &, ...) instead.")
     inline QList<T> findChildren(const QRegExp &re, Qt::FindChildOptions options = Qt::FindChildrenRecursively) const
     {
         typedef typename std::remove_cv<typename std::remove_pointer<T>::type>::type ObjType;
@@ -185,6 +198,7 @@ public:
                                 reinterpret_cast<QList<void *> *>(&list), options);
         return list;
     }
+#endif
 #endif
 
 #if QT_CONFIG(regularexpression)
@@ -395,8 +409,11 @@ public:
 #endif // QT_NO_PROPERTIES
 
 #ifndef QT_NO_USERDATA
+    QT_DEPRECATED_VERSION_5_14
     static uint registerUserData();
+    QT_DEPRECATED_VERSION_X_5_14("Use setProperty()")
     void setUserData(uint id, QObjectUserData* data);
+    QT_DEPRECATED_VERSION_X_5_14("Use property()")
     QObjectUserData* userData(uint id) const;
 #endif // QT_NO_USERDATA
 
@@ -433,7 +450,7 @@ protected:
     QScopedPointer<QObjectData> d_ptr;
 
     static const QMetaObject staticQtMetaObject;
-    friend inline const QMetaObject *qt_getQtMetaObject() Q_DECL_NOEXCEPT;
+    friend inline const QMetaObject *qt_getQtMetaObject() noexcept;
 
     friend struct QMetaObject;
     friend struct QMetaObjectPrivate;
@@ -443,6 +460,7 @@ protected:
     friend class QCoreApplication;
     friend class QCoreApplicationPrivate;
     friend class QWidget;
+    friend class QAccessibleWidget;
     friend class QThreadData;
 
 private:
@@ -464,12 +482,14 @@ inline QMetaObject::Connection QObject::connect(const QObject *asender, const ch
                                             const char *amember, Qt::ConnectionType atype) const
 { return connect(asender, asignal, this, amember, atype); }
 
-inline const QMetaObject *qt_getQtMetaObject() Q_DECL_NOEXCEPT
+inline const QMetaObject *qt_getQtMetaObject() noexcept
 { return &QObject::staticQtMetaObject; }
 
 #ifndef QT_NO_USERDATA
 class Q_CORE_EXPORT QObjectUserData {
+    Q_DISABLE_COPY(QObjectUserData)
 public:
+    QObjectUserData() = default;
     virtual ~QObjectUserData();
 };
 #endif
@@ -517,7 +537,10 @@ inline T qobject_cast(const QObject *object)
 template <class T> inline const char * qobject_interface_iid()
 { return nullptr; }
 
-#if !defined(Q_MOC_RUN) && !defined(Q_CLANG_QDOC)
+
+#if defined(Q_CLANG_QDOC)
+#  define Q_DECLARE_INTERFACE(IFace, IId)
+#elif !defined(Q_MOC_RUN)
 #  define Q_DECLARE_INTERFACE(IFace, IId) \
     template <> inline const char *qobject_interface_iid<IFace *>() \
     { return IId; } \
@@ -534,17 +557,15 @@ Q_CORE_EXPORT QDebug operator<<(QDebug, const QObject *);
 class QSignalBlocker
 {
 public:
-    inline explicit QSignalBlocker(QObject *o) Q_DECL_NOTHROW;
-    inline explicit QSignalBlocker(QObject &o) Q_DECL_NOTHROW;
+    inline explicit QSignalBlocker(QObject *o) noexcept;
+    inline explicit QSignalBlocker(QObject &o) noexcept;
     inline ~QSignalBlocker();
 
-#ifdef Q_COMPILER_RVALUE_REFS
-    inline QSignalBlocker(QSignalBlocker &&other) Q_DECL_NOTHROW;
-    inline QSignalBlocker &operator=(QSignalBlocker &&other) Q_DECL_NOTHROW;
-#endif
+    inline QSignalBlocker(QSignalBlocker &&other) noexcept;
+    inline QSignalBlocker &operator=(QSignalBlocker &&other) noexcept;
 
-    inline void reblock() Q_DECL_NOTHROW;
-    inline void unblock() Q_DECL_NOTHROW;
+    inline void reblock() noexcept;
+    inline void unblock() noexcept;
 private:
     Q_DISABLE_COPY(QSignalBlocker)
     QObject * m_o;
@@ -552,20 +573,19 @@ private:
     bool m_inhibited;
 };
 
-QSignalBlocker::QSignalBlocker(QObject *o) Q_DECL_NOTHROW
+QSignalBlocker::QSignalBlocker(QObject *o) noexcept
     : m_o(o),
       m_blocked(o && o->blockSignals(true)),
       m_inhibited(false)
 {}
 
-QSignalBlocker::QSignalBlocker(QObject &o) Q_DECL_NOTHROW
+QSignalBlocker::QSignalBlocker(QObject &o) noexcept
     : m_o(&o),
       m_blocked(o.blockSignals(true)),
       m_inhibited(false)
 {}
 
-#ifdef Q_COMPILER_RVALUE_REFS
-QSignalBlocker::QSignalBlocker(QSignalBlocker &&other) Q_DECL_NOTHROW
+QSignalBlocker::QSignalBlocker(QSignalBlocker &&other) noexcept
     : m_o(other.m_o),
       m_blocked(other.m_blocked),
       m_inhibited(other.m_inhibited)
@@ -573,7 +593,7 @@ QSignalBlocker::QSignalBlocker(QSignalBlocker &&other) Q_DECL_NOTHROW
     other.m_o = nullptr;
 }
 
-QSignalBlocker &QSignalBlocker::operator=(QSignalBlocker &&other) Q_DECL_NOTHROW
+QSignalBlocker &QSignalBlocker::operator=(QSignalBlocker &&other) noexcept
 {
     if (this != &other) {
         // if both *this and other block the same object's signals:
@@ -588,7 +608,6 @@ QSignalBlocker &QSignalBlocker::operator=(QSignalBlocker &&other) Q_DECL_NOTHROW
     }
     return *this;
 }
-#endif
 
 QSignalBlocker::~QSignalBlocker()
 {
@@ -596,13 +615,13 @@ QSignalBlocker::~QSignalBlocker()
         m_o->blockSignals(m_blocked);
 }
 
-void QSignalBlocker::reblock() Q_DECL_NOTHROW
+void QSignalBlocker::reblock() noexcept
 {
     if (m_o) m_o->blockSignals(true);
     m_inhibited = false;
 }
 
-void QSignalBlocker::unblock() Q_DECL_NOTHROW
+void QSignalBlocker::unblock() noexcept
 {
     if (m_o) m_o->blockSignals(m_blocked);
     m_inhibited = true;

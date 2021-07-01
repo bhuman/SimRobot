@@ -282,6 +282,20 @@
 // Q_BYTE_ORDER not defined, use endianness auto-detection
 
 /*
+    RISC-V family, known variants: 32- and 64-bit
+
+    RISC-V is little-endian.
+*/
+#elif defined(__riscv)
+#  define Q_PROCESSOR_RISCV
+#  if __riscv_xlen == 64
+#    define Q_PROCESSOR_RISCV_64
+#  else
+#    define Q_PROCESSOR_RISCV_32
+#  endif
+#  define Q_BYTE_ORDER Q_LITTLE_ENDIAN
+
+/*
     S390 family, known variant: S390X (64-bit)
 
     S390 is big-endian.
@@ -324,7 +338,6 @@
 // -- Web Assembly --
 #elif defined(__EMSCRIPTEN__)
 #  define Q_PROCESSOR_WASM
-#  define Q_PROCESSOR_X86 6   // enables SIMD support
 #  define Q_BYTE_ORDER Q_LITTLE_ENDIAN
 #  define Q_PROCESSOR_WORDSIZE 8
 #endif
