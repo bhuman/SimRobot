@@ -967,12 +967,12 @@ bool MainWindow::closeFile()
   statusBar->removeAllLabels();
   registeredModules.clear();
 
-  // unload all modules
-  for(LoadedModule* loadedModule : loadedModules)
+  // unload all modules in reverse order
+  for(auto loadedModule = loadedModules.rbegin(); loadedModule != loadedModules.rend(); ++loadedModule)
   {
-    delete loadedModule->module;
-    loadedModule->unload();
-    delete loadedModule;
+    delete (*loadedModule)->module;
+    (*loadedModule)->unload();
+    delete *loadedModule;
   }
   loadedModules.clear();
   loadedModulesByName.clear();
