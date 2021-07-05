@@ -184,7 +184,7 @@ typedef unsigned long     duint64;
   union _dNaNUnion
   {
       _dNaNUnion(): m_ui(0x7FC00000) {}
-      duint32 m_ui; 
+      duint32 m_ui;
       float m_f;
   };
   #define dNaN (_dNaNUnion().m_f)

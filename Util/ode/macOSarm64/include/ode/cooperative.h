@@ -47,7 +47,7 @@ struct dxResourceContainer;
  * @brief A container for cooperative algorithms shared context
  *
  * The Cooperative is a container for cooperative algorithms shared context.
- * At present it contains threading object (either a real one or a defaulted 
+ * At present it contains threading object (either a real one or a defaulted
  * self-threading).
  *
  * Cooperative use in functions performing computations must be serialized. That is,
@@ -62,12 +62,12 @@ typedef struct dxCooperative *dCooperativeID;
  *
  * The ResourceRequirements object is a container for descriptive information
  * regarding what resources (memory, synchronization objects, etc.) need to be
- * allocated for particular computations. The object can be used for accumulating 
+ * allocated for particular computations. The object can be used for accumulating
  * resource requirement maxima over multiple functions and then allocating resources
  * that would suffice for any of those function calls.
  *
  * ResourceRequirements objects maintain relations to Cooperative objects since
- * amounts of resources that could be required can depend on characteristics of 
+ * amounts of resources that could be required can depend on characteristics of
  * shared context, e.g. on maximal number of threads in the threading object.
  *
  * @ingroup coop
@@ -78,9 +78,9 @@ typedef struct dxResourceRequirements *dResourceRequirementsID;
 
 /**
  * @brief A container for algorithm allocated resources
- * 
+ *
  * The ResourceContainer object can contain resources allocated according to information
- * in a ResourceRequirements. The resources inherit link to the threading object 
+ * in a ResourceRequirements. The resources inherit link to the threading object
  * from the requirements they are allocated according to.
  *
  * @ingroup coop
@@ -96,7 +96,7 @@ typedef struct dxResourceContainer *dResourceContainerID;
  * NULL's are allowed for the threading. In this case the default (global) self-threading
  * object will be used.
  *
- * Use @c dCooperativeDestroy to destroy the object. The Cooperative object must exist 
+ * Use @c dCooperativeDestroy to destroy the object. The Cooperative object must exist
  * until after all the objects referencing it are destroyed.
  *
  * @param functionInfo The threading functions to use
@@ -125,7 +125,7 @@ ODE_API void dCooperativeDestroy(dCooperativeID cooperative);
  * The object is purely descriptive and does not contain any resources by itself.
  * The actual resources are allocated by means of ResourceContainer object.
  *
- * The object is created with empty requirements. It can be then used to accumulate 
+ * The object is created with empty requirements. It can be then used to accumulate
  * requirements for one or more function calls and can be cloned or merged with others.
  * The actual requirements information is added to the object by computation related
  * functions.
@@ -146,7 +146,7 @@ ODE_API dResourceRequirementsID dResourceRequirementsCreate(dCooperativeID coope
  /**
  * @brief Destroys ResourceRequirements object.
  *
- * The ResourceRequirements object can be destroyed at any time with no regards 
+ * The ResourceRequirements object can be destroyed at any time with no regards
  * to other objects' lifetime.
  *
  * @param requirements A ResourceRequirements object to be deleted (NULL is allowed)
@@ -158,8 +158,8 @@ ODE_API void dResourceRequirementsDestroy(dResourceRequirementsID requirements);
  /**
  * @brief Clones ResourceRequirements object.
  *
- * The function creates a copy of the ResourceRequirements object with all the 
- * contents and the relation to Cooperative matching. The object passed in 
+ * The function creates a copy of the ResourceRequirements object with all the
+ * contents and the relation to Cooperative matching. The object passed in
  * the parameter is not changed.
  *
  * The object created with the function must later be destroyed with @c dResourceRequirementsDestroy.
@@ -178,7 +178,7 @@ ODE_API dResourceRequirementsID dResourceRequirementsClone(/*const */dResourceRe
  *
  * The function updates @a summaryRequirements requirements to be also sufficient
  * for the purposes @a extraRequirements could be used for. The @a extraRequirements
- * object is not changed. The both objects should normally have had been created 
+ * object is not changed. The both objects should normally have had been created
  * with the same Cooperative object.
  *
  * @param summaryRequirements A ResourceRequirements object to be changed
@@ -196,11 +196,11 @@ ODE_API void dResourceRequirementsMergeIn(dResourceRequirementsID summaryRequire
  *
  * The ResourceContainer object can be used in cooperative computation algorithms.
  *
- * The same @a requirements object can be passed to many resource allocations 
+ * The same @a requirements object can be passed to many resource allocations
  * (with or without modifications) and can be deleted immediately, without waiting
  * for the ResourceContainer object destruction.
  *
- * Use @c dResourceContainerDestroy to delete the object and release the resources 
+ * Use @c dResourceContainerDestroy to delete the object and release the resources
  * when they are no longer needed.
  *
  * @param requirements The ResourceRequirements object to allocate resources according to

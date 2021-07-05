@@ -46,11 +46,11 @@ extern "C" {
  * @brief Estimates resource requirements for a @c dCooperativelyFactorLDLT call
  *
  * The function updates the contents of @a requirements to also suffice for calling
- * @c dCooperativelyFactorLDLT with the given parameters. 
- * 
+ * @c dCooperativelyFactorLDLT with the given parameters.
+ *
  * Note: The requirements that could have already been in the @a requirements parameter
  * are never decreased.
- * 
+ *
  * @param requirements The ResourceRequirements object to update
  * @param maximalAllowedThreadCount Maximal value of allowedThreadCount parameter that is going to be used
  * @param maximalRowCount Maximal value of rowCount parameter that is going to be used
@@ -67,12 +67,12 @@ ODE_API void dEstimateCooperativelyFactorLDLTResourceRequirements(dResourceRequi
  * The function factorizes a matrix `A' into L*D*L', where `L' is lower triangular with ones on
  * the diagonal, and `D' is diagonal.
  * @a A is a rowCount*rowCount matrix stored by rows, with a leading dimension of @a rowCount rounded
- * up at least to 4 elements. `L; is written into the strict lower triangle of @a A 
+ * up at least to 4 elements. `L; is written into the strict lower triangle of @a A
  * (the ones are not written) and the reciprocal of the diagonal elements of `D' are written into @a d.
  *
- * The @a resources must have had been allocated from a ResourceRequirements object 
+ * The @a resources must have had been allocated from a ResourceRequirements object
  * estimated in @c dEstimateCooperativelyFactorLDLTResourceRequirements.
- * 
+ *
  * The operation is performed cooperatively by up to @a allowedThreadCount threads
  * from thread pool available in @a resources. The threading must must not be simultaneously
  * used (via other @c dResourceContainerID instances) in other calls that employ its features.
@@ -88,7 +88,7 @@ ODE_API void dEstimateCooperativelyFactorLDLTResourceRequirements(dResourceRequi
  * @see dResourceContainerAcquire
  * @see dCooperativelySolveLDLT
  */
-ODE_API void dCooperativelyFactorLDLT(dResourceContainerID resources, unsigned allowedThreadCount, 
+ODE_API void dCooperativelyFactorLDLT(dResourceContainerID resources, unsigned allowedThreadCount,
     dReal *A, dReal *d, unsigned rowCount, unsigned rowSkip);
 
 
@@ -96,11 +96,11 @@ ODE_API void dCooperativelyFactorLDLT(dResourceContainerID resources, unsigned a
  * @brief Estimates resource requirements for a @c dCooperativelySolveLDLT call
  *
  * The function updates the contents of @a requirements to also suffice for calling
- * @c dCooperativelySolveLDLT with the given parameters. 
- * 
+ * @c dCooperativelySolveLDLT with the given parameters.
+ *
  * Note: The requirements that could have already been in the @a requirements parameter
  * are never decreased.
- * 
+ *
  * @param requirements The ResourceRequirements object to update
  * @param maximalAllowedThreadCount Maximal value of allowedThreadCount parameter that is going to be used
  * @param maximalRowCount Maximal value of rowCount parameter that is going to be used
@@ -113,15 +113,15 @@ ODE_API void dEstimateCooperativelySolveLDLTResourceRequirements(dResourceRequir
 
 /**
  * @brief Cooperatively solves L*D*L'*x=b
- * 
+ *
  * Given `L', a rowCount*rowCount lower triangular matrix with ones on the diagonal,
  * and `d', a rowCount*1 vector of the reciprocal diagonal elements of a rowCount*rowCount matrix
- * D, the function solves L*D*L'*x=b where `x' and `b' are rowCount*1. 
+ * D, the function solves L*D*L'*x=b where `x' and `b' are rowCount*1.
  * The leading dimension of @a L is @a rowSkip. The resulting vector `x' overwrites @a b.
  *
- * The @a resources must have had been allocated from a ResourceRequirements object 
+ * The @a resources must have had been allocated from a ResourceRequirements object
  * estimated in @c dEstimateCooperativelySolveLDLTResourceRequirements.
- * 
+ *
  * The operation is performed cooperatively by up to @a allowedThreadCount threads
  * from thread pool available in @a resources. The threading must must not be simultaneously
  * used (via other @c dResourceContainerID instances) in other calls that employ its features.
@@ -138,7 +138,7 @@ ODE_API void dEstimateCooperativelySolveLDLTResourceRequirements(dResourceRequir
  * @see dResourceContainerAcquire
  * @see dCooperativelyFactorLDLT
  */
-ODE_API void dCooperativelySolveLDLT(dResourceContainerID resources, unsigned allowedThreadCount, 
+ODE_API void dCooperativelySolveLDLT(dResourceContainerID resources, unsigned allowedThreadCount,
     const dReal *L, const dReal *d, dReal *b, unsigned rowCount, unsigned rowSkip);
 
 
@@ -146,11 +146,11 @@ ODE_API void dCooperativelySolveLDLT(dResourceContainerID resources, unsigned al
  * @brief Estimates resource requirements for a @c dCooperativelySolveL1Straight call
  *
  * The function updates the contents of @a requirements to also suffice for calling
- * @c dCooperativelySolveL1Straight with the given parameters. 
- * 
+ * @c dCooperativelySolveL1Straight with the given parameters.
+ *
  * Note: The requirements that could have already been in the @a requirements parameter
  * are never decreased.
- * 
+ *
  * @param requirements The ResourceRequirements object to update
  * @param maximalAllowedThreadCount Maximal value of allowedThreadCount parameter that is going to be used
  * @param maximalRowCount Maximal value of rowCount parameter that is going to be used
@@ -163,14 +163,14 @@ ODE_API void dEstimateCooperativelySolveL1StraightResourceRequirements(dResource
 
 /**
  * @brief Cooperatively solves L*x=b
- * 
+ *
  * The function solves L*x=b, where `L' is rowCount*rowCount lower triangular with ones on the diagonal,
  * and `x', `b' are rowCount*1. The leading dimension of @a L is @a rowSkip.
  * @a b is overwritten with `x'.
  *
- * The @a resources must have had been allocated from a ResourceRequirements object 
+ * The @a resources must have had been allocated from a ResourceRequirements object
  * estimated in @c dEstimateCooperativelySolveL1StraightResourceRequirements.
- * 
+ *
  * The operation is performed cooperatively by up to @a allowedThreadCount threads
  * from thread pool available in @a resources. The threading must must not be simultaneously
  * used (via other @c dResourceContainerID instances) in other calls that employ its features.
@@ -186,7 +186,7 @@ ODE_API void dEstimateCooperativelySolveL1StraightResourceRequirements(dResource
  * @see dResourceContainerAcquire
  * @see dCooperativelyFactorLDLT
  */
-ODE_API void dCooperativelySolveL1Straight(dResourceContainerID resources, unsigned allowedThreadCount, 
+ODE_API void dCooperativelySolveL1Straight(dResourceContainerID resources, unsigned allowedThreadCount,
     const dReal *L, dReal *b, unsigned rowCount, unsigned rowSkip);
 
 
@@ -194,11 +194,11 @@ ODE_API void dCooperativelySolveL1Straight(dResourceContainerID resources, unsig
  * @brief Estimates resource requirements for a @c dCooperativelySolveL1Transposed call
  *
  * The function updates the contents of @a requirements to also suffice for calling
- * @c dCooperativelySolveL1Transposed with the given parameters. 
- * 
+ * @c dCooperativelySolveL1Transposed with the given parameters.
+ *
  * Note: The requirements that could have already been in the @a requirements parameter
  * are never decreased.
- * 
+ *
  * @param requirements The ResourceRequirements object to update
  * @param maximalAllowedThreadCount Maximal value of allowedThreadCount parameter that is going to be used
  * @param maximalRowCount Maximal value of rowCount parameter that is going to be used
@@ -206,7 +206,7 @@ ODE_API void dCooperativelySolveL1Straight(dResourceContainerID resources, unsig
  * @see dCooperativelySolveL1Transposed
  * @see dResourceRequirementsCreate
  */
-ODE_API void dEstimateCooperativelySolveL1TransposedResourceRequirements(dResourceRequirementsID requirements, 
+ODE_API void dEstimateCooperativelySolveL1TransposedResourceRequirements(dResourceRequirementsID requirements,
     unsigned maximalAllowedThreadCount, unsigned maximalRowCount);
 
 /**
@@ -216,9 +216,9 @@ ODE_API void dEstimateCooperativelySolveL1TransposedResourceRequirements(dResour
  * and `x', b are rowCount*1. The leading dimension of @a L is @a rowSkip.
  * @a b is overwritten with `x'.
  *
- * The @a resources must have had been allocated from a ResourceRequirements object 
+ * The @a resources must have had been allocated from a ResourceRequirements object
  * estimated in @c dEstimateCooperativelySolveL1TransposedResourceRequirements.
- * 
+ *
  * The operation is performed cooperatively by up to @a allowedThreadCount threads
  * from thread pool available in @a resources. The threading must must not be simultaneously
  * used (via other @c dResourceContainerID instances) in other calls that employ its features.
@@ -234,7 +234,7 @@ ODE_API void dEstimateCooperativelySolveL1TransposedResourceRequirements(dResour
  * @see dResourceContainerAcquire
  * @see dCooperativelyFactorLDLT
  */
-ODE_API void dCooperativelySolveL1Transposed(dResourceContainerID resources, unsigned allowedThreadCount, 
+ODE_API void dCooperativelySolveL1Transposed(dResourceContainerID resources, unsigned allowedThreadCount,
     const dReal *L, dReal *b, unsigned rowCount, unsigned rowSkip);
 
 
@@ -242,11 +242,11 @@ ODE_API void dCooperativelySolveL1Transposed(dResourceContainerID resources, uns
  * @brief Estimates resource requirements for a @c dCooperativelyScaleVector call
  *
  * The function updates the contents of @a requirements to also suffice for calling
- * @c dCooperativelyScaleVector with the given parameters. 
- * 
+ * @c dCooperativelyScaleVector with the given parameters.
+ *
  * Note: The requirements that could have already been in the @a requirements parameter
  * are never decreased.
- * 
+ *
  * @param requirements The ResourceRequirements object to update
  * @param maximalAllowedThreadCount Maximal value of allowedThreadCount parameter that is going to be used
  * @param maximalElementCount Maximal value of elementCount parameter that is going to be used
@@ -259,12 +259,12 @@ ODE_API void dEstimateCooperativelyScaleVectorResourceRequirements(dResourceRequ
 
 /**
  * @brief Multiplies elements of one vector by corresponding element of another one
- * 
- * In matlab syntax, the operation performed is: dataVector(1:elementCount) = dataVector(1:elementCount) .* scaleVector(1:elementCount) 
  *
- * The @a resources must have had been allocated from a ResourceRequirements object 
+ * In matlab syntax, the operation performed is: dataVector(1:elementCount) = dataVector(1:elementCount) .* scaleVector(1:elementCount)
+ *
+ * The @a resources must have had been allocated from a ResourceRequirements object
  * estimated in @c dEstimateCooperativelyScaleVectorResourceRequirements.
- * 
+ *
  * The operation is performed cooperatively by up to @a allowedThreadCount threads
  * from thread pool available in @a resources. The threading must must not be simultaneously
  * used (via other @c dResourceContainerID instances) in other calls that employ its features.
@@ -279,7 +279,7 @@ ODE_API void dEstimateCooperativelyScaleVectorResourceRequirements(dResourceRequ
  * @see dResourceContainerAcquire
  * @see dCooperativelyFactorLDLT
  */
-ODE_API void dCooperativelyScaleVector(dResourceContainerID resources, unsigned allowedThreadCount, 
+ODE_API void dCooperativelyScaleVector(dResourceContainerID resources, unsigned allowedThreadCount,
     dReal *dataVector, const dReal *scaleVector, unsigned elementCount);
 
 

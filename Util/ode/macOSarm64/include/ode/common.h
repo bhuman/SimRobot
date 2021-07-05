@@ -164,7 +164,7 @@ typedef enum {
     dM3E__MIN,
 
     dM3E__X_MIN = dM3E__MIN + dSA_X * dV3E__MAX,
-    
+
     dM3E__X_AXES_MIN = dM3E__X_MIN + dV3E__AXES_MIN,
 
     dM3E_XX = dM3E__X_MIN + dV3E_X,
