@@ -1,8 +1,13 @@
 ODE 1.16.2 (at least for macOS and macOSarm64)
 
-Building on Linux/macOS
------------------------
+Building on Linux/macOSarm64
+----------------------------
 CFLAGS=-O2 CXXFLAGS=-O2 ./configure --disable-asserts --disable-demos --enable-double-precision --enable-static
+make
+
+Building on macOS (Rosetta compatible)
+--------------------------------------
+CFLAGS="-O2 -mssse3" CXXFLAGS="-O2 -mssse3" ./configure --disable-asserts --disable-demos --enable-double-precision --enable-static
 make
 
 Copy include/ode and ode/src/.libs/libode.a
