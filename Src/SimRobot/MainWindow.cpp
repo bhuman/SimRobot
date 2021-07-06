@@ -75,11 +75,11 @@ MainWindow::MainWindow(int, char* argv[]) :
 
   fileExitAct = new QAction(/*QIcon(":/Icons/Exit.png"), */tr("E&xit"), this);
 #ifdef WINDOWS
-  fileExitAct->setShortcut(QKeySequence(Qt::ALT + Qt::Key_F4));
+  fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::ALT) + static_cast<int>(Qt::Key_F4)));
 #elif defined MACOS
-  fileExitAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
+  fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_Q)));
 #else
-  fileExitAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q, Qt::ALT + Qt::Key_F4));
+  fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_Q), static_cast<int>(Qt::ALT) + static_cast<int>(Qt::Key_F4)));
 #endif
   fileExitAct->setStatusTip(tr("Exit the application"));
   connect(fileExitAct, SIGNAL(triggered()), this, SLOT(close()));
@@ -90,7 +90,7 @@ MainWindow::MainWindow(int, char* argv[]) :
 
   simResetAct = new QAction(QIcon(":/Icons/control_start_blue.png"), tr("&Reset"), this);
   simResetAct->setStatusTip(tr("Reset the simulation to the beginning"));
-  simResetAct->setShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F5));
+  simResetAct->setShortcut(QKeySequence(static_cast<int>(Qt::SHIFT) + static_cast<int>(Qt::Key_F5)));
   simResetAct->setEnabled(false);
   connect(simResetAct, SIGNAL(triggered()), this, SLOT(simReset()));
 
