@@ -129,7 +129,7 @@ SETTINGSDIR=$PROJECTPATH/project.xcworkspace/xcuserdata/$USER.xcuserdatad
 SETTINGSPATH=$SETTINGSDIR/WorkspaceSettings.xcsettings
 mkdir -p "$SETTINGSDIR"
 $PLIST "Set :BuildLocationStyle CustomLocation" $SETTINGSPATH >/dev/null 2>>/dev/null || $PLIST "Add :BuildLocationStyle string CustomLocation" $SETTINGSPATH  >/dev/null
-$PLIST "Set :CustomBuildIntermediatesPath ../../Build/macOS" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildIntermediatesPath string ../../Build/macOS" $SETTINGSPATH 
+$PLIST "Set :CustomBuildIntermediatesPath ../../Build/macOS" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildIntermediatesPath string ../../Build/macOS" $SETTINGSPATH
 $PLIST "Set :CustomBuildLocationType RelativeToWorkspace" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildLocationType string RelativeToWorkspace" $SETTINGSPATH
 $PLIST "Set :CustomBuildProductsPath ../../Build/macOS" $SETTINGSPATH 2>/dev/null || $PLIST "Add :CustomBuildProductsPath string ../../Build/macOS" $SETTINGSPATH
 $PLIST "Set :DerivedDataLocationStyle Default" $SETTINGSPATH 2>/dev/null || $PLIST "Add :DerivedDataLocationStyle string Default" $SETTINGSPATH

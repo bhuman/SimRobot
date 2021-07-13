@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
 if(CMAKE_HOST_UNIX)
   set(CMAKE_CXX_COMPILER clang++)
 endif()
@@ -24,16 +24,16 @@ set(OUTPUT_PREFIX "${PROJECT_SOURCE_DIR}/../..")
 if(APPLE)
   set(CMAKE_SUPPRESS_REGENERATION ON)
   add_definitions(
-    -DMACOS
-    -DFIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
-    -DFIX_MACOS_PINCH_SCALE_RELATIVE_BUG
-    -DFIX_MACOS_NO_CENTER_IN_PINCH_GESTURE_BUG
-    -DFIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
-    -DFIX_MACOS_UNDOCKED_WIDGETS_DISAPPEAR_WHEN_DOCKED_BUG)
-  if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL arm64) 
+      -DMACOS
+      -DFIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
+      -DFIX_MACOS_PINCH_SCALE_RELATIVE_BUG
+      -DFIX_MACOS_NO_CENTER_IN_PINCH_GESTURE_BUG
+      -DFIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
+      -DFIX_MACOS_UNDOCKED_WIDGETS_DISAPPEAR_WHEN_DOCKED_BUG)
+  if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL arm64)
     set(PLATFORM "macOSarm64")
   else()
-    set(OS "macOS")
+    set(PLATFORM "macOS")
   endif()
   set(OS "macOS")
   set(CMAKE_XCODE_ATTRIBUTE_ALWAYS_SEARCH_USER_PATHS "NO")
@@ -70,7 +70,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "")
 set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "")
 
 if(MSVC)
-  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /arch:AVX)
+  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /Zc:preprocessor /arch:AVX)
   add_definitions(-DNOMINMAX -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
 else()
   add_compile_options(-pipe
@@ -88,7 +88,7 @@ else()
   if(APPLE)
     add_compile_options(-Wno-deprecated)
   else()
-    add_link_options(-fuse-ld=lld LINKER:--threads)
+    add_link_options(-fuse-ld=lld)
   endif()
 endif()
 
@@ -100,7 +100,8 @@ add_library(Flags::ForDevelop INTERFACE IMPORTED)
 target_compile_definitions(Flags::ForDevelop INTERFACE
     $<$<CONFIG:Release>:NDEBUG>)
 target_compile_options(Flags::ForDevelop INTERFACE
-    $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/ZI>>
+    $<${_is_msvc}:$<$<CONFIG:Debug>:/ZI>>
+    $<${_is_msvc}:$<$<CONFIG:Develop>:/Zi>>
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/Od>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/Ob2>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/Oi>>
@@ -116,8 +117,8 @@ target_compile_options(Flags::ForDevelop INTERFACE
     $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-lambda-capture>>)
 target_link_options(Flags::ForDevelop INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/DEBUG>>
+    $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/INCREMENTAL:NO>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/SAFESEH:NO>>
-    $<${_is_msvc}:$<$<CONFIG:Release>:/INCREMENTAL:NO>>
     $<$<AND:${_not_mac},${_is_clang}>:$<$<CONFIG:Release>:-s>>)
 
 add_library(Flags::Default INTERFACE IMPORTED)
@@ -137,13 +138,13 @@ target_compile_options(Flags::Default INTERFACE
 target_link_options(Flags::Default INTERFACE
     $<${_is_msvc}:$<$<CONFIG:Debug>:/DEBUG>>
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/INCREMENTAL:NO>>
-    $<$<AND:${_not_mac},${_is_clang}>:$<$<NOT:$<CONFIG:Debug>>:-s>>)
+    $<$<AND:${_not_mac},${_is_clang}>:$<$<CONFIG:Release>:-s>>)
 
 set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
 
 if(${PLATFORM} STREQUAL Linux)
-  find_package(Qt5 COMPONENTS Core Gui Svg OpenGL Widgets REQUIRED)
+  find_package(Qt5 COMPONENTS Core Gui OpenGL Svg Widgets REQUIRED)
   find_package(GLEW REQUIRED)
 
 elseif(${PLATFORM} STREQUAL Windows)
