@@ -21,7 +21,8 @@ if(APPLE)
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtPrintSupport.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework")
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework"
+      "${CONTROLLER_FRAMEWORKS}")
 
   set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/libqcocoa.dylib")
   set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/libqjpeg.dylib")
