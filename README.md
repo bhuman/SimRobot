@@ -1,7 +1,6 @@
 # SimRobot
 
-A physical robotics simulator, which is able to simulate arbitrary user-defined robots in three-dimensional space. It includes a physical model which is based on rigid body dynamics. To allow an extensive flexibility in building accurate models, a variety of different generic bodies, sensors, and actuators has been implemented. Furthermore, the simulator follows a user-oriented approach by includ- ing several mechanisms for visualization, direct actuator manipulation, and interaction with the simulated world. 
-
+A physical robotics simulator, which is able to simulate arbitrary user-defined robots in three-dimensional space. It includes a physical model which is based on rigid body dynamics. To allow an extensive flexibility in building accurate models, a variety of different generic bodies, sensors, and actuators has been implemented. Furthermore, the simulator follows a user-oriented approach by including several mechanisms for visualization, direct actuator manipulation, and interaction with the simulated world.
 
 ## Microsoft Windows
 
