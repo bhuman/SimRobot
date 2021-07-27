@@ -143,5 +143,5 @@ elseif(APPLE)
   set_target_properties(Qt5::rcc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/rcc")
 
   set(Qt5Core_VERSION_MAJOR 5)
-  set(Qt5Core_VERSION_MINOR 12)
+  set(Qt5Core_VERSION_MINOR 15)
 endif()
