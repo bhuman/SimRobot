@@ -63,8 +63,6 @@ void Hinge::createPhysics()
     {
       dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
       dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
-      // this has to be done due to the way ODE sets joint stops
-      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
       if(deflection.stopCFM != -1.f)
         dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
       if(deflection.stopERP != -1.f)

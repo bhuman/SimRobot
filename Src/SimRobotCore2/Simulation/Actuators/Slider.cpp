@@ -62,8 +62,6 @@ void Slider::createPhysics()
     }
     dJointSetSliderParam(joint, dParamLoStop, minSliderLimit);
     dJointSetSliderParam(joint, dParamHiStop, maxSliderLimit);
-    // this has to be done due to the way ODE sets joint stops
-    dJointSetSliderParam(joint, dParamLoStop, minSliderLimit);
     if(deflection.stopCFM != -1.f)
       dJointSetSliderParam(joint, dParamStopCFM, deflection.stopCFM);
     if(deflection.stopERP != -1.f)
