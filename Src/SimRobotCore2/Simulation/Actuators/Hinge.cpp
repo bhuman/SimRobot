@@ -11,6 +11,7 @@
 #include "Simulation/Axis.h"
 #include "Simulation/Body.h"
 #include "Simulation/Motors/ServoMotor.h"
+#include "Simulation/Motors/VelocityMotor.h"
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
 #include "Platform/OpenGL.h"
@@ -74,7 +75,7 @@ void Hinge::createPhysics()
   if(axis->motor)
   {
     axis->motor->create(this);
-    if(axis->deflection) // Move setpoint to a position inside the deflection range
+    if(!dynamic_cast<VelocityMotor*>(axis->motor) && axis->deflection) // Move setpoint to a position inside the deflection range
       axis->motor->setpoint = axis->deflection->offset;
   }
 
