@@ -84,7 +84,6 @@ private:
   bool opened = false;
   bool compiled = false;
   bool running = false;
-  bool performStep = false;
   bool layoutRestored = true;
   int guiUpdateRate = 100;
   unsigned int lastGuiUpdate = 0;

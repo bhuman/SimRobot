@@ -331,8 +331,6 @@ void MainWindow::closeEvent(QCloseEvent* event)
 
 void MainWindow::timerEvent(QTimerEvent* event)
 {
-  performStep = false;
-
   for(LoadedModule* loadedModule : loadedModules)
     loadedModule->module->update();
 
@@ -990,13 +988,11 @@ bool MainWindow::closeFile()
     simResetAct->setEnabled(false);
     simStartAct->setEnabled(false);
     simStepAct->setEnabled(false);
-    simStartAct->setChecked(false);
     viewUpdateRateMenu->setEnabled(false);
     setWindowTitle(tr("SimRobot"));
     statusBar->setUserMessage(QString());
     compiled = false;
     running = false;
-    performStep = false;
   }
 
   return true;
@@ -1113,7 +1109,6 @@ void MainWindow::simStep()
 {
   if(running)
     simStart(); // stop
-  performStep = true;
   if(!timerId)
     timerId = startTimer(0);
 }

@@ -74,7 +74,7 @@ mkdir -p $PROJECTPATH
 # Move generated/updated CMakeFiles directory back here.
 mv "$PROJECTDIR/CMakeFiles" "$PROJECTPATH"
 
-# Restore cache files if they exist. 
+# Restore cache files if they exist.
 if [ -e "$PROJECTDIR/CMakeFiles-temp" ]; then
   mv "$PROJECTDIR/CMakeFiles-temp" "$PROJECTDIR/CMakeFiles"
 fi
