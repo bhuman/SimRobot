@@ -61,7 +61,4 @@ $RUN_MANAGER
   </component>
 </project>"
   fi
-
-  mkdir -p .idea/fileTemplates/includes
-  echo -n "#set( \$Author = \"$(git config user.name)\" )" > ".idea/fileTemplates/includes/Set Author."
 fi
