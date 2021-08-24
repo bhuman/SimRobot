@@ -25,6 +25,10 @@ target_link_libraries(SimRobotCore2 PRIVATE SimRobotCommon)
 target_compile_options(SimRobotCore2 PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CONFIG:Debug>>:/GL>>)
 target_link_options(SimRobotCore2 PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CONFIG:Debug>>:/LTCG>>)
 target_link_libraries(SimRobotCore2 PRIVATE Flags::Default)
+target_precompile_headers(SimRobotCore2 PRIVATE
+    "${SIMROBOTCORE2_ROOT_DIR}/CoreModule.h"
+    "${SIMROBOTCORE2_ROOT_DIR}/Platform/OpenGL.h"
+    "${SIMROBOTCORE2_ROOT_DIR}/Simulation/SimObject.h")
 
 source_group(TREE "${SIMROBOTCORE2_ROOT_DIR}" FILES ${SIMROBOTCORE2_SOURCES})
 

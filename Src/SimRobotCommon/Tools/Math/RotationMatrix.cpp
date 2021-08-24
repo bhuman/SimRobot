@@ -9,6 +9,33 @@
 #include "Rotation.h"
 #include "RotationMatrix.h"
 
+RotationMatrix::RotationMatrix(const AngleAxisf& angleAxis) : Matrix3f(angleAxis.toRotationMatrix()) {}
+RotationMatrix::RotationMatrix(const Quaternionf& quat) : Matrix3f(quat.toRotationMatrix()) {}
+
+RotationMatrix& RotationMatrix::operator=(const AngleAxisf& angleAxis)
+{
+  Matrix3f::operator=(angleAxis.toRotationMatrix());
+  return *this;
+}
+
+RotationMatrix& RotationMatrix::operator=(const Quaternionf& quat)
+{
+  Matrix3f::operator=(quat.toRotationMatrix());
+  return *this;
+}
+
+RotationMatrix& RotationMatrix::operator*=(const AngleAxisf& rot)
+{
+  Matrix3f::operator*=(rot.toRotationMatrix());
+  return *this;
+}
+
+RotationMatrix& RotationMatrix::operator*=(const Quaternionf& rot)
+{
+  Matrix3f::operator*=(rot.toRotationMatrix());
+  return *this;
+}
+
 AngleAxisf RotationMatrix::getAngleAxis() const
 {
   return AngleAxisf(*this);

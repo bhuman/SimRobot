@@ -19,6 +19,11 @@ target_link_libraries(SimRobotCore2D PRIVATE SimRobotCommon)
 target_compile_options(SimRobotCore2D PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CONFIG:Debug>>:/GL>>)
 target_link_options(SimRobotCore2D PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CONFIG:Debug>>:/LTCG>>)
 target_link_libraries(SimRobotCore2D PRIVATE Flags::Default)
+target_precompile_headers(SimRobotCore2D PRIVATE
+    "${SIMROBOTCORE2D_ROOT_DIR}/Simulation/SimObject.h"
+    <box2d/b2_math.h>
+    <QIcon>
+    <QPainter>)
 
 source_group(TREE "${SIMROBOTCORE2D_ROOT_DIR}" FILES ${SIMROBOTCORE2D_SOURCES})
 

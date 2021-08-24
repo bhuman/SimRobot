@@ -19,8 +19,8 @@ class RotationMatrix : public Matrix3f
 public:
   RotationMatrix() : Matrix3f(Matrix3f::Identity()) {}
   RotationMatrix(const Matrix3f& other) : Matrix3f(other) {}
-  RotationMatrix(const AngleAxisf& angleAxis) : Matrix3f(angleAxis.toRotationMatrix()) {}
-  RotationMatrix(const Quaternionf& quat) : Matrix3f(quat.toRotationMatrix()) {}
+  RotationMatrix(const AngleAxisf& angleAxis);
+  RotationMatrix(const Quaternionf& quat);
 
   RotationMatrix& operator=(const Matrix3f& other)
   {
@@ -28,17 +28,9 @@ public:
     return *this;
   }
 
-  RotationMatrix& operator=(const AngleAxisf& angleAxis)
-  {
-    Matrix3f::operator=(angleAxis.toRotationMatrix());
-    return *this;
-  }
+  RotationMatrix& operator=(const AngleAxisf& angleAxis);
 
-  RotationMatrix& operator=(const Quaternionf& quat)
-  {
-    Matrix3f::operator=(quat.toRotationMatrix());
-    return *this;
-  }
+  RotationMatrix& operator=(const Quaternionf& quat);
 
   /**
    * Multiplication of this matrix by vector.
@@ -61,17 +53,9 @@ public:
     return RotationMatrix(Base::operator*(other));
   }
 
-  RotationMatrix& operator*=(const AngleAxisf& rot)
-  {
-    Matrix3f::operator*=(rot.toRotationMatrix());
-    return *this;
-  }
+  RotationMatrix& operator*=(const AngleAxisf& rot);
 
-  RotationMatrix& operator*=(const Quaternionf& rot)
-  {
-    Matrix3f::operator*=(rot.toRotationMatrix());
-    return *this;
-  }
+  RotationMatrix& operator*=(const Quaternionf& rot);
 
   RotationMatrix& operator*=(const RotationMatrix& rot)
   {
