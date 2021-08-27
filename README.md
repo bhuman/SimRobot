@@ -22,13 +22,13 @@ Run `Make/VS2019/generate.cmd` and open the solution `Make/VS2019/SimRobot.sln` 
 - A 64-bit Linux, e.g. Ubuntu 20.04.2 LTS
 - The following packages (here for Ubuntu 20.04.2 LTS):
 ```
-sudo apt-get install clang cmake libglew-dev libqt5opengl5-dev libqt5svg5-dev lld llvm make ninja-build qtbase5-dev
+sudo apt-get install clang cmake libglew-dev libqt5opengl5-dev libqt5svg5-dev lld llvm ninja-build qtbase5-dev
 ```
 - (optionally) CLion 2019.3 or newer
 
 ### Compiling (no IDE)
 
-In the directory `Make/Linux` run `NO_CLION=true ./generate` to generate CMake caches and `make [CONFIG=<Debug|Develop|Release>]` to compile the code. The executable will be located in `Build/Linux/SimRobot/<Debug|Develop|Release>/SimRobot`.
+In the directory `Make/Linux` run `NO_CLION=true ./generate` to generate CMake caches and `./compile [Debug|Develop|Release]` to compile the code. The executable will be located in `Build/Linux/SimRobot/<Debug|Develop|Release>/SimRobot`.
 
 ### Compiling (CLion)
 
