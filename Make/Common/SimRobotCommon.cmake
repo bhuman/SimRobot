@@ -10,5 +10,6 @@ target_link_libraries(SimRobotCommon PUBLIC Eigen::Eigen)
 
 target_compile_options(SimRobotCommon PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CONFIG:Debug>>:/GL>>)
 target_link_libraries(SimRobotCommon PRIVATE Flags::Default)
+set_property(TARGET SimRobotCommon PROPERTY XCODE_ATTRIBUTE_OTHER_LIBTOOLFLAGS -no_warning_for_no_symbols)
 
 source_group(TREE "${SIMROBOTCOMMON_ROOT_DIR}" FILES ${SIMROBOTCOMMON_SOURCES})
