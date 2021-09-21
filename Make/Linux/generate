@@ -3,7 +3,7 @@
 
 cd "$(dirname "$(which "$0")")"
 
-if $NO_CLION; then
+if [ -n "$NO_CLION" ]; then
   for CONFIG in Debug Develop Release; do
     cmake -DCMAKE_BUILD_TYPE=$CONFIG -G Ninja -S . -B ../../Build/Linux/CMake/$CONFIG
   done
