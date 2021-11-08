@@ -49,7 +49,7 @@ endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER CMake)
-set_property(GLOBAL PROPERTY AUTOGEN_SOURCE_GROUP "Generated Files")
+set_property(GLOBAL PROPERTY AUTOGEN_SOURCE_GROUP ".Generated Files")
 set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT SimRobot)
 
 set(CMAKE_CXX_FLAGS_DEBUG "")
@@ -70,7 +70,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "")
 set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "")
 
 if(MSVC)
-  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /Zc:preprocessor /arch:AVX)
+  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /Zc:preprocessor /wd5105 /arch:AVX)
   add_definitions(-DNOMINMAX -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
 else()
   add_compile_options(-pipe
@@ -160,3 +160,7 @@ include("../Common/SimRobotEditor.cmake")
 include("../Common/SimpleVehicle.cmake")
 include("../Common/Factory.cmake")
 include("../Common/Soccer.cmake")
+
+source_group(".PCH" REGULAR_EXPRESSION ".*[ch]xx$")
+source_group(".Visualizers" REGULAR_EXPRESSION ".*natvis$")
+source_group(".CMake Rules" REGULAR_EXPRESSION ".*rule$")

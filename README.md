@@ -12,7 +12,7 @@ A physical robotics simulator, which is able to simulate arbitrary user-defined 
 
 ### Compiling
 
-Run `Make/VS2022/generate.cmd` and open the solution `Make/VS2022/SimRobot.sln` in Visual Studio. Select the desired configuration (*Develop* is a good start) and build the target *SimRobot*. Select *SimRobot* as *StartUp Project* and select *Debug/Start Debugging* to run it.
+Run `Make/VS2022/generate.cmd` as administrator (on the first run, the script creates a symlink) and open the solution `Make/VS2022/SimRobot.sln` in Visual Studio. Select the desired configuration (*Develop* is a good start) and build the target *SimRobot*. Select *SimRobot* as *StartUp Project* and select *Debug/Start Debugging* to run it.
 
 
 ## Linux
