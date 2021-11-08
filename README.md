@@ -7,12 +7,12 @@ A physical robotics simulator, which is able to simulate arbitrary user-defined 
 ### Prerequisites
 
 - Microsoft Windows 10 64-bit Version 20H2
--  Microsoft Visual Studio Community 2019 Version 16.8.2 or newer. Installing the workload *Desktop development with C++* as well as the packages *MSVC v142 - VS 2019 C++ x86/x64 build tools* and *Windows 10 SDK 10.0.18362.0* or newer is sufficient.
+-  Microsoft Visual Studio Community 2022 Version 17.0.0 or newer. Installing the workload *Desktop development with C++* (including the packages *MSVC v143 - VS 2022 C++ x64/x86 build tools* and *Windows 10 SDK 10.0.19041.0* or newer) is sufficient.
 -  CMake 3.16 or newer
 
 ### Compiling
 
-Run `Make/VS2019/generate.cmd` and open the solution `Make/VS2019/SimRobot.sln` in Visual Studio. Select the desired configuration (*Develop* is a good start) and build the target *SimRobot*. Select *SimRobot* as *StartUp Project* and select *Debug/Start Debugging* to run it.
+Run `Make/VS2022/generate.cmd` and open the solution `Make/VS2022/SimRobot.sln` in Visual Studio. Select the desired configuration (*Develop* is a good start) and build the target *SimRobot*. Select *SimRobot* as *StartUp Project* and select *Debug/Start Debugging* to run it.
 
 
 ## Linux
