@@ -6,9 +6,9 @@ A physical robotics simulator, which is able to simulate arbitrary user-defined 
 
 ### Prerequisites
 
-- Microsoft Windows 10 64-bit Version 20H2
+- Microsoft Windows 10 64-bit Version 21H1
 -  Microsoft Visual Studio Community 2022 Version 17.0.0 or newer. Installing the workload *Desktop development with C++* (including the packages *MSVC v143 - VS 2022 C++ x64/x86 build tools* and *Windows 10 SDK 10.0.19041.0* or newer) is sufficient.
--  CMake 3.16 or newer
+-  CMake 3.21 or newer
 
 ### Compiling
 
