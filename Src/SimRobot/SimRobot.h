@@ -6,8 +6,9 @@
 
 #pragma once
 
+#include <QVector>
+
 class QString;
-template<typename T> class QVector;
 class QIcon;
 class QMenu;
 class QSettings;

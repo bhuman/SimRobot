@@ -33,7 +33,8 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   // load layout settings
   QSettings& settings = MainWindow::application->getLayoutSettings();
   settings.beginGroup(".SceneGraph");
-  expandedItems = QSet<QString>::fromList(settings.value("ExpandedItems").toStringList());
+  QStringList expandedItemsList = settings.value("ExpandedItems").toStringList();
+  expandedItems = QSet<QString>(expandedItemsList.begin(), expandedItemsList.end());
   settings.endGroup();
 
 #ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
@@ -59,7 +60,7 @@ void SceneGraphDockWidget::registerObject(const SimRobot::Module* module, SimRob
 {
   QTreeWidgetItem* parentItem = parent ? registeredObjectsByObject.value(parent) : treeWidget->invisibleRootItem();
   RegisteredObject* newItem = new RegisteredObject(module, object, parentItem, flags);
-  const int parentFullNameLength = parent ? static_cast<RegisteredObject*>(parentItem)->fullName.length() : 0;
+  const auto parentFullNameLength = parent ? static_cast<RegisteredObject*>(parentItem)->fullName.length() : 0;
   newItem->setText(0, parent ? newItem->fullName.mid(parentFullNameLength + 1) : newItem->fullName);
   const QIcon* icon = object->getIcon();
   if(icon)
@@ -138,7 +139,7 @@ SimRobot::Object* SceneGraphDockWidget::resolveObject(const QString& fullName, i
 
 SimRobot::Object* SceneGraphDockWidget::resolveObject(const SimRobot::Object* parent, const QVector<QString>& parts, int kind)
 {
-  const int partsCount = parts.count();
+  const auto partsCount = parts.count();
   if(partsCount <= 0)
     return nullptr;
   for(QHash<int, QHash<QString, RegisteredObject*>*>::iterator i = kind ? registeredObjectsByKindAndName.find(kind) : registeredObjectsByKindAndName.begin(); i != registeredObjectsByKindAndName.end(); ++i)
@@ -152,7 +153,7 @@ SimRobot::Object* SceneGraphDockWidget::resolveObject(const SimRobot::Object* pa
       if(object->fullName.endsWith(lastPart))
       {
         RegisteredObject* currentObject = object;
-        for(int i = partsCount - 2; i >= 0; --i)
+        for(auto i = partsCount - 2; i >= 0; --i)
         {
           currentObject = static_cast<RegisteredObject*>(currentObject->parent());
           const QString& currentPart = parts.at(i);

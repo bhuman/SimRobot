@@ -106,7 +106,7 @@ void EditorObject::loadFromSettings()
 EditorObject::~EditorObject()
 {
   QSettings& settings = EditorModule::application->getLayoutSettings();
-  settings.beginWriteArray(fullName, editors.size());
+  settings.beginWriteArray(fullName, static_cast<int>(editors.size()));
   int i = 0;
   for(const EditorObject* editor : editors)
   {
@@ -187,7 +187,7 @@ EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileCo
   tabStopWidth = settings.value("tabStopWidth", 2).toInt();
   settings.endGroup();
 
-  setTabStopWidth(tabStopWidth * QFontMetrics(font).width(' '));
+  setTabStopDistance(tabStopWidth * QFontMetrics(font).horizontalAdvance(' '));
 
   connect(this, SIGNAL(copyAvailable(bool)), this, SLOT(copyAvailable(bool)));
   connect(this, SIGNAL(undoAvailable(bool)), this, SLOT(undoAvailable(bool)));
@@ -266,7 +266,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
     QSet<QString> inculdeFilesSet;
     QString suffix = QFileInfo(editorObject->name).suffix();
     QRegularExpressionMatch match;
-    int pos = 0;
+    decltype(match.capturedEnd()) pos = 0;
     while((match = rx.match(fileContent, pos)).hasMatch())
     {
       QString file = match.captured(1).remove('\"');
@@ -573,7 +573,7 @@ void EditorWidget::findAndReplace(int action)
   if(findText.isEmpty())
     return;
 
-  QTextDocument::FindFlags findFlags = 0;
+  QTextDocument::FindFlags findFlags = static_cast<QTextDocument::FindFlags>(0);
   if(action == findBackwards)
     findFlags |= QTextDocument::FindBackward;
   if(findAndReplaceDialog->caseCheckBox->isChecked())
@@ -644,7 +644,7 @@ void EditorWidget::updateSettingsFromDialog()
 {
   useTabStop = editorSettingsDialog->useTabStopCheckBox->isChecked();
   tabStopWidth = editorSettingsDialog->tabStopWidthSpinBox->value();
-  setTabStopWidth(tabStopWidth * QFontMetrics(font()).width(' '));
+  setTabStopDistance(tabStopWidth * QFontMetrics(font()).horizontalAdvance(' '));
 }
 
 void EditorWidget::openFile(const QString& fileName)

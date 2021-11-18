@@ -11,6 +11,7 @@
 #include "Simulation/SimObject.h"
 #include "Simulation/Scene.h"
 #include <QApplication>
+#include <QActionGroup>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QResizeEvent>
@@ -133,7 +134,7 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 {
   QWidget::mousePressEvent(event);
 
-  if(event->button() == Qt::LeftButton || event->button() == Qt::MidButton)
+  if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
     objectPainter.startDrag(event->x(), event->y(), m & Qt::ShiftModifier ? SimObjectPainter::dragRotate : SimObjectPainter::dragNormal);
@@ -166,7 +167,8 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
   QWidget::wheelEvent(event);
 
-  objectPainter.zoom(static_cast<float>(event->delta()), event->x(), event->y());
+  objectPainter.zoom(static_cast<float>(event->pixelDelta().y()),
+                     static_cast<int>(event->position().x()), static_cast<int>(event->position().y()));
   event->accept();
   update();
 }

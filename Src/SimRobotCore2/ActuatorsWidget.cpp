@@ -51,7 +51,7 @@ public:
   int verticalSpacing() const {return 0;}
 #endif
   Qt::Orientations expandingDirections() const {return Qt::Horizontal;}
-  int count() const {return itemList.size();}
+  int count() const {return static_cast<int>(itemList.size());}
   QLayoutItem* itemAt(int index) const {return itemList.value(index);}
   QSize minimumSize() const;
   void setGeometry(const QRect& rect);
@@ -90,7 +90,8 @@ QSize FlowLayout::minimumSize() const
   for(QLayoutItem* item : itemList)
     size += size.expandedTo(item->minimumSize());
 
-  return size + QSize(2 * margin(), 2 * margin());
+  return size + QSize(contentsMargins().left() + contentsMargins().right(),
+                      contentsMargins().top() + contentsMargins().bottom());
 }
 
 int FlowLayout::doLayout(const QRect& rect, bool testOnly) const

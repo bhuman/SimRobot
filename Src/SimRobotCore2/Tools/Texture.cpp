@@ -81,7 +81,7 @@ bool Texture::load(const std::string& file)
     height = image.height();
     byteOrder = image.format() == QImage::Format_RGB888 ? GL_BGR : GL_BGRA;
     hasAlpha = image.hasAlphaChannel();
-    imageData = new GLubyte[image.byteCount()];
+    imageData = new GLubyte[image.sizeInBytes()];
     if(!imageData)
       return false;
 

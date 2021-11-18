@@ -25,7 +25,8 @@ protected:
   void highlightBlock(const QString& text) override;
 
 private:
-  void highlightSubBlock(const QString& text, const int startIndex, const int currState);
+  using IndexType = decltype(QString().length());
+  void highlightSubBlock(const QString& text, const IndexType startIndex, const int currState);
 
   QRegularExpression xmlCommentStartExpression;
   QRegularExpression xmlCommentEndExpression;

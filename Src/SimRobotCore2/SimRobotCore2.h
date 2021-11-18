@@ -7,9 +7,8 @@
 #pragma once
 
 #include <SimRobot.h>
-
-template<typename T> class QList;
-class QStringList;
+#include <QList>
+#include <QStringList>
 
 namespace SimRobotCore2
 {
