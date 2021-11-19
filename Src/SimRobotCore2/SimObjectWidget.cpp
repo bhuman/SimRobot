@@ -275,8 +275,13 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
   if(event->orientation() == Qt::Vertical)
   {
-    objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(event->position().x()) * devicePixelRatio(),
-                        static_cast<float>(event->position().y()) * devicePixelRatio());
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    const QPointF position = event->position();
+#else
+    const QPointF position = event->posF();
+#endif
+    objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(position.x()) * devicePixelRatio(),
+                        static_cast<float>(position.y()) * devicePixelRatio());
     update();
     event->accept();
     return;
