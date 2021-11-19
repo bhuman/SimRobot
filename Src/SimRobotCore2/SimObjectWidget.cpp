@@ -119,7 +119,7 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 {
   QGLWidget::mousePressEvent(event);
 
-  if(event->button() == Qt::LeftButton || event->button() == Qt::MidButton)
+  if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
     if(objectRenderer.startDrag(event->x() * devicePixelRatio(), event->y() * devicePixelRatio(), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
@@ -273,25 +273,14 @@ bool SimObjectWidget::event(QEvent* event)
 
 void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
-#ifndef MACOS
   if(event->orientation() == Qt::Vertical)
   {
-    objectRenderer.zoom(event->delta(), event->x() * devicePixelRatio(), event->y() * devicePixelRatio());
+    objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(event->position().x()) * devicePixelRatio(),
+                        static_cast<float>(event->position().y()) * devicePixelRatio());
     update();
     event->accept();
     return;
   }
-#else
-  if(event->delta())
-  {
-    if(event->orientation() == Qt::Horizontal)
-      objectRenderer.rotateCamera(static_cast<float>(event->delta()) * -0.002f, 0.f);
-    else
-      objectRenderer.rotateCamera(0.f, static_cast<float>(event->delta()) * -0.002f);
-    update();
-    return;
-  }
-#endif
   QGLWidget::wheelEvent(event);
 }
 

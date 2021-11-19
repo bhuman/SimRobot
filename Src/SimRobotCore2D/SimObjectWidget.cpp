@@ -167,8 +167,8 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
   QWidget::wheelEvent(event);
 
-  objectPainter.zoom(static_cast<float>(event->pixelDelta().y()),
-                     static_cast<int>(event->position().x()), static_cast<int>(event->position().y()));
+  objectPainter.zoom(event->angleDelta().y(), static_cast<int>(event->position().x() * devicePixelRatio()),
+                     static_cast<int>(event->position().y() * devicePixelRatio()));
   event->accept();
   update();
 }
