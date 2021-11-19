@@ -573,7 +573,7 @@ void EditorWidget::findAndReplace(int action)
   if(findText.isEmpty())
     return;
 
-  QTextDocument::FindFlags findFlags = static_cast<QTextDocument::FindFlags>(0);
+  QTextDocument::FindFlags findFlags({});
   if(action == findBackwards)
     findFlags |= QTextDocument::FindBackward;
   if(findAndReplaceDialog->caseCheckBox->isChecked())

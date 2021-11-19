@@ -273,7 +273,7 @@ bool SimObjectWidget::event(QEvent* event)
 
 void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
-  if(event->orientation() == Qt::Vertical)
+  if(event->angleDelta().y() != 0.f)
   {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     const QPointF position = event->position();
