@@ -43,9 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qwidget.h>
 
-#if QT_CONFIG(scrollbar)
-
 #include <QtWidgets/qabstractslider.h>
+
+QT_REQUIRE_CONFIG(scrollbar);
 
 QT_BEGIN_NAMESPACE
 
@@ -56,25 +56,25 @@ class Q_WIDGETS_EXPORT QScrollBar : public QAbstractSlider
 {
     Q_OBJECT
 public:
-    explicit QScrollBar(QWidget *parent = Q_NULLPTR);
-    explicit QScrollBar(Qt::Orientation, QWidget *parent = Q_NULLPTR);
+    explicit QScrollBar(QWidget *parent = nullptr);
+    explicit QScrollBar(Qt::Orientation, QWidget *parent = nullptr);
     ~QScrollBar();
 
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
+    QSize sizeHint() const override;
+    bool event(QEvent *event) override;
 
 protected:
-#ifndef QT_NO_WHEELEVENT
-    void wheelEvent(QWheelEvent *) Q_DECL_OVERRIDE;
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent *) override;
 #endif
-    void paintEvent(QPaintEvent *) Q_DECL_OVERRIDE;
-    void mousePressEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void hideEvent(QHideEvent*) Q_DECL_OVERRIDE;
-    void sliderChange(SliderChange change) Q_DECL_OVERRIDE;
+    void paintEvent(QPaintEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void hideEvent(QHideEvent*) override;
+    void sliderChange(SliderChange change) override;
 #ifndef QT_NO_CONTEXTMENU
-    void contextMenuEvent(QContextMenuEvent *) Q_DECL_OVERRIDE;
+    void contextMenuEvent(QContextMenuEvent *) override;
 #endif
     void initStyleOption(QStyleOptionSlider *option) const;
 
@@ -85,7 +85,7 @@ private:
 
     Q_DISABLE_COPY(QScrollBar)
     Q_DECLARE_PRIVATE(QScrollBar)
-#ifndef QT_NO_ITEMVIEWS
+#if QT_CONFIG(itemviews)
     friend class QTableView;
     friend class QTreeViewPrivate;
     friend class QCommonListViewBase;
@@ -95,7 +95,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-#endif // QT_CONFIG(scrollbar)
 
 #endif // QSCROLLBAR_H

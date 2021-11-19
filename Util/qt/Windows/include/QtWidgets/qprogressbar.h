@@ -43,10 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qframe.h>
 
+QT_REQUIRE_CONFIG(progressbar);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_PROGRESSBAR
 
 class QProgressBarPrivate;
 class QStyleOptionProgressBar;
@@ -69,7 +68,7 @@ public:
     enum Direction { TopToBottom, BottomToTop };
     Q_ENUM(Direction)
 
-    explicit QProgressBar(QWidget *parent = Q_NULLPTR);
+    explicit QProgressBar(QWidget *parent = nullptr);
     ~QProgressBar();
 
     int minimum() const;
@@ -84,8 +83,8 @@ public:
     Qt::Alignment alignment() const;
     void setAlignment(Qt::Alignment alignment);
 
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
+    QSize sizeHint() const override;
+    QSize minimumSizeHint() const override;
 
     Qt::Orientation orientation() const;
 
@@ -110,16 +109,14 @@ Q_SIGNALS:
     void valueChanged(int value);
 
 protected:
-    bool event(QEvent *e) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *) Q_DECL_OVERRIDE;
+    bool event(QEvent *e) override;
+    void paintEvent(QPaintEvent *) override;
     void initStyleOption(QStyleOptionProgressBar *option) const;
 
 private:
     Q_DECLARE_PRIVATE(QProgressBar)
     Q_DISABLE_COPY(QProgressBar)
 };
-
-#endif // QT_NO_PROGRESSBAR
 
 QT_END_NAMESPACE
 

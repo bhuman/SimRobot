@@ -56,18 +56,18 @@ public:
     static QT_DEPRECATED QString licensedProducts();
 #endif
 
-#ifndef QT_NO_DATESTRING
+#if QT_CONFIG(datestring)
 #if QT_DEPRECATED_SINCE(5, 5)
     static QT_DEPRECATED QDate buildDate();
 #endif // QT_DEPRECATED_SINCE(5, 5)
-#endif //QT_NO_DATESTRING
+#endif // datestring
 
-    static const char * build() Q_DECL_NOTHROW;
+    static const char * build() noexcept;
 
     static bool isDebugBuild();
 
 #ifndef QT_BOOTSTRAPPED
-    static QVersionNumber version() Q_DECL_NOTHROW Q_DECL_CONST_FUNCTION;
+    static QVersionNumber version() noexcept Q_DECL_CONST_FUNCTION;
 #endif
 
     enum LibraryLocation
@@ -107,6 +107,7 @@ public:
     enum PathGroup { FinalPaths, EffectivePaths, EffectiveSourcePaths, DevicePaths };
     static QString rawLocation(LibraryLocation, PathGroup);
     static void reload();
+    static void sysrootify(QString *path);
 #endif
 
     static QStringList platformPluginArguments(const QString &platformName);

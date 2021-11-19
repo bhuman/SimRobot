@@ -42,12 +42,13 @@
 
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qabstractscrollarea.h>
+#if QT_CONFIG(tabwidget)
 #include <QtWidgets/qtabwidget.h>
+#endif
+
+QT_REQUIRE_CONFIG(mdiarea);
 
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_MDIAREA
 
 class QMdiSubWindow;
 
@@ -58,12 +59,12 @@ class Q_WIDGETS_EXPORT QMdiArea : public QAbstractScrollArea
     Q_PROPERTY(QBrush background READ background WRITE setBackground)
     Q_PROPERTY(WindowOrder activationOrder READ activationOrder WRITE setActivationOrder)
     Q_PROPERTY(ViewMode viewMode READ viewMode WRITE setViewMode)
-#ifndef QT_NO_TABBAR
+#if QT_CONFIG(tabbar)
     Q_PROPERTY(bool documentMode READ documentMode WRITE setDocumentMode)
     Q_PROPERTY(bool tabsClosable READ tabsClosable WRITE setTabsClosable)
     Q_PROPERTY(bool tabsMovable READ tabsMovable WRITE setTabsMovable)
 #endif
-#ifndef QT_NO_TABWIDGET
+#if QT_CONFIG(tabwidget)
     Q_PROPERTY(QTabWidget::TabShape tabShape READ tabShape WRITE setTabShape)
     Q_PROPERTY(QTabWidget::TabPosition tabPosition READ tabPosition WRITE setTabPosition)
 #endif
@@ -86,11 +87,11 @@ public:
     };
     Q_ENUM(ViewMode)
 
-    QMdiArea(QWidget *parent = Q_NULLPTR);
+    QMdiArea(QWidget *parent = nullptr);
     ~QMdiArea();
 
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
+    QSize sizeHint() const override;
+    QSize minimumSizeHint() const override;
 
     QMdiSubWindow *currentSubWindow() const;
     QMdiSubWindow *activeSubWindow() const;
@@ -111,7 +112,7 @@ public:
     void setViewMode(ViewMode mode);
     ViewMode viewMode() const;
 
-#ifndef QT_NO_TABBAR
+#if QT_CONFIG(tabbar)
     bool documentMode() const;
     void setDocumentMode(bool enabled);
 
@@ -121,7 +122,7 @@ public:
     void setTabsMovable(bool movable);
     bool tabsMovable() const;
 #endif
-#ifndef QT_NO_TABWIDGET
+#if QT_CONFIG(tabwidget)
     void setTabShape(QTabWidget::TabShape shape);
     QTabWidget::TabShape tabShape() const;
 
@@ -142,18 +143,18 @@ public Q_SLOTS:
     void activatePreviousSubWindow();
 
 protected Q_SLOTS:
-    void setupViewport(QWidget *viewport) Q_DECL_OVERRIDE;
+    void setupViewport(QWidget *viewport) override;
 
 protected:
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
-    bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *paintEvent) Q_DECL_OVERRIDE;
-    void childEvent(QChildEvent *childEvent) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *resizeEvent) Q_DECL_OVERRIDE;
-    void timerEvent(QTimerEvent *timerEvent) Q_DECL_OVERRIDE;
-    void showEvent(QShowEvent *showEvent) Q_DECL_OVERRIDE;
-    bool viewportEvent(QEvent *event) Q_DECL_OVERRIDE;
-    void scrollContentsBy(int dx, int dy) Q_DECL_OVERRIDE;
+    bool event(QEvent *event) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
+    void paintEvent(QPaintEvent *paintEvent) override;
+    void childEvent(QChildEvent *childEvent) override;
+    void resizeEvent(QResizeEvent *resizeEvent) override;
+    void timerEvent(QTimerEvent *timerEvent) override;
+    void showEvent(QShowEvent *showEvent) override;
+    bool viewportEvent(QEvent *event) override;
+    void scrollContentsBy(int dx, int dy) override;
 
 private:
     Q_DISABLE_COPY(QMdiArea)
@@ -169,5 +170,4 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QMdiArea::AreaOptions)
 
 QT_END_NAMESPACE
 
-#endif // QT_NO_MDIAREA
 #endif // QMDIAREA_H

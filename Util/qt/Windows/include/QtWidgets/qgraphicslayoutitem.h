@@ -45,17 +45,16 @@
 #include <QtWidgets/qsizepolicy.h>
 #include <QtGui/qevent.h>
 
+QT_REQUIRE_CONFIG(graphicsview);
+
 QT_BEGIN_NAMESPACE
-
-
-#if !defined(QT_NO_GRAPHICSVIEW)
 
 class QGraphicsLayoutItemPrivate;
 class QGraphicsItem;
 class Q_WIDGETS_EXPORT QGraphicsLayoutItem
 {
 public:
-    QGraphicsLayoutItem(QGraphicsLayoutItem *parent = Q_NULLPTR, bool isLayout = false);
+    QGraphicsLayoutItem(QGraphicsLayoutItem *parent = nullptr, bool isLayout = false);
     virtual ~QGraphicsLayoutItem();
 
     void setSizePolicy(const QSizePolicy &policy);
@@ -117,7 +116,9 @@ private:
     friend class QGraphicsLayout;
 };
 
+#ifndef Q_CLANG_QDOC
 Q_DECLARE_INTERFACE(QGraphicsLayoutItem, "org.qt-project.Qt.QGraphicsLayoutItem")
+#endif
 
 inline void QGraphicsLayoutItem::setMinimumSize(qreal aw, qreal ah)
 { setMinimumSize(QSizeF(aw, ah)); }
@@ -140,8 +141,6 @@ inline qreal QGraphicsLayoutItem::maximumWidth() const
 { return effectiveSizeHint(Qt::MaximumSize).width(); }
 inline qreal QGraphicsLayoutItem::maximumHeight() const
 { return effectiveSizeHint(Qt::MaximumSize).height(); }
-
-#endif
 
 QT_END_NAMESPACE
 

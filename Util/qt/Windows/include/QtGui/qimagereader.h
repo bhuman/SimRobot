@@ -117,8 +117,12 @@ public:
     void setAutoTransform(bool enabled);
     bool autoTransform() const;
 
+#if QT_DEPRECATED_SINCE(5, 15)
+    QT_DEPRECATED_VERSION_X_5_15("Use QColorSpace instead")
     void setGamma(float gamma);
+    QT_DEPRECATED_VERSION_X_5_15("Use QColorSpace instead")
     float gamma() const;
+#endif
 
     QByteArray subType() const;
     QList<QByteArray> supportedSubTypes() const;
@@ -144,6 +148,7 @@ public:
     static QByteArray imageFormat(QIODevice *device);
     static QList<QByteArray> supportedImageFormats();
     static QList<QByteArray> supportedMimeTypes();
+    static QList<QByteArray> imageFormatsForMimeType(const QByteArray &mimeType);
 
 private:
     Q_DISABLE_COPY(QImageReader)

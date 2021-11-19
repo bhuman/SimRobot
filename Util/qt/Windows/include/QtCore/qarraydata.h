@@ -113,14 +113,14 @@ struct Q_CORE_EXPORT QArrayData
     }
 
     Q_REQUIRED_RESULT static QArrayData *allocate(size_t objectSize, size_t alignment,
-            size_t capacity, AllocationOptions options = Default) Q_DECL_NOTHROW;
+            size_t capacity, AllocationOptions options = Default) noexcept;
     Q_REQUIRED_RESULT static QArrayData *reallocateUnaligned(QArrayData *data, size_t objectSize,
-            size_t newCapacity, AllocationOptions newOptions = Default) Q_DECL_NOTHROW;
+            size_t newCapacity, AllocationOptions newOptions = Default) noexcept;
     static void deallocate(QArrayData *data, size_t objectSize,
-            size_t alignment) Q_DECL_NOTHROW;
+            size_t alignment) noexcept;
 
     static const QArrayData shared_null[2];
-    static QArrayData *sharedNull() Q_DECL_NOTHROW { return const_cast<QArrayData*>(shared_null); }
+    static QArrayData *sharedNull() noexcept { return const_cast<QArrayData*>(shared_null); }
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QArrayData::AllocationOptions)
@@ -139,7 +139,7 @@ struct QTypedArrayData
         typedef T *pointer;
         typedef T &reference;
 
-        inline iterator() : i(Q_NULLPTR) {}
+        inline iterator() : i(nullptr) {}
         inline iterator(T *n) : i(n) {}
         inline iterator(const iterator &o): i(o.i){} // #### Qt 6: remove, the implicit version is fine
         inline T &operator*() const { return *i; }
@@ -159,6 +159,7 @@ struct QTypedArrayData
         inline iterator &operator-=(int j) { i-=j; return *this; }
         inline iterator operator+(int j) const { return iterator(i+j); }
         inline iterator operator-(int j) const { return iterator(i-j); }
+        friend inline iterator operator+(int j, iterator k) { return k + j; }
         inline int operator-(iterator j) const { return i - j.i; }
         inline operator T*() const { return i; }
     };
@@ -173,7 +174,7 @@ struct QTypedArrayData
         typedef const T *pointer;
         typedef const T &reference;
 
-        inline const_iterator() : i(Q_NULLPTR) {}
+        inline const_iterator() : i(nullptr) {}
         inline const_iterator(const T *n) : i(n) {}
         inline const_iterator(const const_iterator &o): i(o.i) {} // #### Qt 6: remove, the default version is fine
         inline explicit const_iterator(const iterator &o): i(o.i) {}
@@ -194,6 +195,7 @@ struct QTypedArrayData
         inline const_iterator &operator-=(int j) { i-=j; return *this; }
         inline const_iterator operator+(int j) const { return const_iterator(i+j); }
         inline const_iterator operator-(int j) const { return const_iterator(i-j); }
+        friend inline const_iterator operator+(int j, const_iterator k) { return k + j; }
         inline int operator-(const_iterator j) const { return i - j.i; }
         inline operator const T*() const { return i; }
     };
@@ -252,7 +254,7 @@ struct QTypedArrayData
         return result;
     }
 
-    static QTypedArrayData *sharedNull() Q_DECL_NOTHROW
+    static QTypedArrayData *sharedNull() noexcept
     {
         Q_STATIC_ASSERT(sizeof(QTypedArrayData) == sizeof(QArrayData));
         return static_cast<QTypedArrayData *>(QArrayData::sharedNull());
@@ -304,8 +306,6 @@ struct QArrayDataPointerRef
 // accomplished by hiding a static const instance of QStaticArrayData, which is
 // POD.
 
-#if defined(Q_COMPILER_VARIADIC_MACROS)
-#if defined(Q_COMPILER_LAMBDA)
 // Hide array inside a lambda
 #define Q_ARRAY_LITERAL(Type, ...)                                              \
     ([]() -> QArrayDataPointerRef<Type> {                                       \
@@ -322,15 +322,18 @@ struct QArrayDataPointerRef
             return StaticWrapper::get();                                        \
         }())                                                                    \
     /**/
-#endif
-#endif // defined(Q_COMPILER_VARIADIC_MACROS)
 
-#if defined(Q_ARRAY_LITERAL)
+#ifdef Q_COMPILER_CONSTEXPR
+#define Q_ARRAY_LITERAL_CHECK_LITERAL_TYPE(Type) Q_STATIC_ASSERT(std::is_literal_type<Type>::value)
+#else
+#define Q_ARRAY_LITERAL_CHECK_LITERAL_TYPE(Type) do {} while (0)
+#endif
+
 #define Q_ARRAY_LITERAL_IMPL(Type, ...)                                         \
-    union { Type type_must_be_POD; } dummy; Q_UNUSED(dummy)                     \
+    Q_ARRAY_LITERAL_CHECK_LITERAL_TYPE(Type);                                   \
                                                                                 \
     /* Portable compile-time array size computation */                          \
-    Type data[] = { __VA_ARGS__ }; Q_UNUSED(data)                               \
+    Q_CONSTEXPR Type data[] = { __VA_ARGS__ }; Q_UNUSED(data);                  \
     enum { Size = sizeof(data) / sizeof(data[0]) };                             \
                                                                                 \
     static const QStaticArrayData<Type, Size> literal = {                       \
@@ -340,31 +343,6 @@ struct QArrayDataPointerRef
         { static_cast<QTypedArrayData<Type> *>(                                 \
             const_cast<QArrayData *>(&literal.header)) };                       \
     /**/
-#else
-// As a fallback, memory is allocated and data copied to the heap.
-
-// The fallback macro does NOT use variadic macros and does NOT support
-// variable number of arguments. It is suitable for char arrays.
-
-namespace QtPrivate {
-    template <class T, size_t N>
-    inline QArrayDataPointerRef<T> qMakeArrayLiteral(const T (&array)[N])
-    {
-        union { T type_must_be_POD; } dummy; Q_UNUSED(dummy)
-
-        QArrayDataPointerRef<T> result = { QTypedArrayData<T>::allocate(N) };
-        Q_CHECK_PTR(result.ptr);
-
-        ::memcpy(result.ptr->data(), array, N * sizeof(T));
-        result.ptr->size = N;
-
-        return result;
-    }
-}
-
-#define Q_ARRAY_LITERAL(Type, Array) \
-    QT_PREPEND_NAMESPACE(QtPrivate::qMakeArrayLiteral)<Type>( Array )
-#endif // !defined(Q_ARRAY_LITERAL)
 
 namespace QtPrivate {
 struct Q_CORE_EXPORT QContainerImplHelper

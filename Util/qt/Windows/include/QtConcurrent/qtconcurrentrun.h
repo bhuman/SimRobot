@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the QtCore module of the Qt Toolkit.
+** This file is part of the QtConcurrent module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -43,15 +43,16 @@
 
 #include <QtConcurrent/qtconcurrentcompilertest.h>
 
-#ifndef QT_NO_CONCURRENT
+#if !defined(QT_NO_CONCURRENT) || defined(Q_CLANG_QDOC)
 
 #include <QtConcurrent/qtconcurrentrunbase.h>
 #include <QtConcurrent/qtconcurrentstoredfunctioncall.h>
 
 QT_BEGIN_NAMESPACE
 
+#ifdef Q_CLANG_QDOC
 
-#ifdef Q_QDOC
+typedef int Function;
 
 namespace QtConcurrent {
 
@@ -97,8 +98,6 @@ QFuture<T> run(T (*functionPointer)(Param1, Param2, Param3, Param4, Param5), con
 {
     return (new StoredFunctorCall5<T, T (*)(Param1, Param2, Param3, Param4, Param5), Arg1, Arg2, Arg3, Arg4, Arg5>(functionPointer, arg1, arg2, arg3, arg4, arg5))->start();
 }
-
-#if defined(Q_COMPILER_DECLTYPE) && defined(Q_COMPILER_AUTO_FUNCTION)
 
 template <typename Functor>
 auto run(Functor functor) -> typename std::enable_if<!QtPrivate::HasResultType<Functor>::Value, QFuture<decltype(functor())>>::type
@@ -146,8 +145,6 @@ auto run(Functor functor, const Arg1 &arg1, const Arg2 &arg2, const Arg3 &arg3, 
     typedef decltype(functor(arg1, arg2, arg3, arg4, arg5)) result_type;
     return (new StoredFunctorCall5<result_type, Functor, Arg1, Arg2, Arg3, Arg4, Arg5>(functor, arg1, arg2, arg3, arg4, arg5))->start();
 }
-
-#endif
 
 template <typename FunctionObject>
 QFuture<typename FunctionObject::result_type> run(FunctionObject functionObject)
@@ -369,8 +366,6 @@ QFuture<T> run(QThreadPool *pool, T (*functionPointer)(Param1, Param2, Param3, P
     return (new StoredFunctorCall5<T, T (*)(Param1, Param2, Param3, Param4, Param5), Arg1, Arg2, Arg3, Arg4, Arg5>(functionPointer, arg1, arg2, arg3, arg4, arg5))->start(pool);
 }
 
-#if defined(Q_COMPILER_DECLTYPE) && defined(Q_COMPILER_AUTO_FUNCTION)
-
 template <typename Functor>
 auto run(QThreadPool *pool, Functor functor) -> typename std::enable_if<!QtPrivate::HasResultType<Functor>::Value, QFuture<decltype(functor())>>::type
 {
@@ -417,8 +412,6 @@ auto run(QThreadPool *pool, Functor functor, const Arg1 &arg1, const Arg2 &arg2,
     typedef decltype(functor(arg1, arg2, arg3, arg4, arg5)) result_type;
     return (new StoredFunctorCall5<result_type, Functor, Arg1, Arg2, Arg3, Arg4, Arg5>(functor, arg1, arg2, arg3, arg4, arg5))->start(pool);
 }
-
-#endif
 
 template <typename FunctionObject>
 QFuture<typename FunctionObject::result_type> run(QThreadPool *pool, FunctionObject functionObject)
@@ -919,7 +912,7 @@ QFuture<T> run(QThreadPool *pool, const Class *object, T (Class::*fn)(Param1, Pa
 
 } //namespace QtConcurrent
 
-#endif // Q_QDOC
+#endif // Q_CLANG_QDOC
 
 QT_END_NAMESPACE
 

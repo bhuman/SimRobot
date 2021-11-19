@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the QtCore module of the Qt Toolkit.
+** This file is part of the QtConcurrent module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -43,12 +43,9 @@
 #include <QtConcurrent/qtconcurrentcompilertest.h>
 #include <QtCore/QStringList>
 
-#ifndef QT_NO_CONCURRENT
+#if !defined(QT_NO_CONCURRENT) || defined(Q_CLANG_QDOC)
 
 QT_BEGIN_NAMESPACE
-
-
-#ifndef Q_QDOC
 
 namespace QtConcurrent {
 
@@ -228,13 +225,11 @@ struct PushBackWrapper
         return c.push_back(u);
     }
 
-#ifdef Q_COMPILER_RVALUE_REFS
     template <class C, class U>
     inline void operator()(C &c, U &&u) const
     {
         return c.push_back(u);
     }
-#endif
 };
 
 template <typename Functor, bool foo = HasResultType<Functor>::Value>
@@ -375,7 +370,6 @@ struct MapResultType<QStringList, U(C::*)() const noexcept>
 
 } // namespace QtPrivate.
 
-#endif //Q_QDOC
 
 QT_END_NAMESPACE
 

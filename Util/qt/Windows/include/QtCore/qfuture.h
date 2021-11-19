@@ -42,10 +42,10 @@
 
 #include <QtCore/qglobal.h>
 
-#ifndef QT_NO_QFUTURE
-
 #include <QtCore/qfutureinterface.h>
 #include <QtCore/qstring.h>
+
+QT_REQUIRE_CONFIG(future);
 
 QT_BEGIN_NAMESPACE
 
@@ -65,6 +65,11 @@ public:
     explicit QFuture(QFutureInterface<T> *p) // internal
         : d(*p)
     { }
+#if defined(Q_CLANG_QDOC)
+    ~QFuture() { }
+    QFuture(const QFuture<T> &) { }
+    QFuture<T> & operator=(const QFuture<T> &) { }
+#endif
 
     bool operator==(const QFuture &other) const { return (d == other.d); }
     bool operator!=(const QFuture &other) const { return (d != other.d); }
@@ -106,32 +111,79 @@ public:
         typedef const T &reference;
 
         inline const_iterator() {}
-        inline const_iterator(QFuture const * const _future, int _index) : future(_future), index(_index) {}
+        inline const_iterator(QFuture const * const _future, int _index)
+        : future(_future), index(advanceIndex(_index, 0)) { }
         inline const_iterator(const const_iterator &o) : future(o.future), index(o.index)  {}
         inline const_iterator &operator=(const const_iterator &o)
         { future = o.future; index = o.index; return *this; }
         inline const T &operator*() const { return future->d.resultReference(index); }
         inline const T *operator->() const { return future->d.resultPointer(index); }
-
-        inline bool operator!=(const const_iterator &other) const
+        inline bool operator!=(const const_iterator &other) const { return index != other.index; }
+        inline bool operator==(const const_iterator &o) const { return !operator!=(o); }
+        inline const_iterator &operator++()
+        { index = advanceIndex(index, 1); return *this; }
+        inline const_iterator &operator--()
+        { index = advanceIndex(index, -1); return *this; }
+        inline const_iterator operator++(int)
         {
-            if (index == -1 && other.index == -1) // comparing end != end?
-                return false;
-            if (other.index == -1)
-                return (future->isRunning() || (index < future->resultCount()));
-            return (index != other.index);
+            const_iterator r = *this;
+            index = advanceIndex(index, 1);
+            return r;
+        }
+        inline const_iterator operator--(int)
+        {
+            const_iterator r = *this;
+            index = advanceIndex(index, -1);
+            return r;
+        }
+        inline const_iterator operator+(int j) const
+        { return const_iterator(future, advanceIndex(index, j)); }
+        inline const_iterator operator-(int j) const
+        { return const_iterator(future, advanceIndex(index, -j)); }
+        inline const_iterator &operator+=(int j)
+        { index = advanceIndex(index, j); return *this; }
+        inline const_iterator &operator-=(int j)
+        { index = advanceIndex(index, -j); return *this; }
+        friend inline const_iterator operator+(int j, const_iterator k)
+        { return const_iterator(k.future, k.advanceIndex(k.index, j)); }
+
+    private:
+        /*! \internal
+
+            Advances the iterator index \a idx \a n steps, waits for the
+            result at the target index, and returns the target index.
+
+            The index may be -1, indicating the end iterator, either
+            as the argument or as the return value. The end iterator
+            may be decremented.
+
+            The caller is responsible for not advancing the iterator
+            before begin() or past end(), with the exception that
+            attempting to advance a non-end iterator past end() for
+            a running future is allowed and will return the end iterator.
+
+            Note that n == 0 is valid and will wait for the result
+            at the given index.
+        */
+        int advanceIndex(int idx, int n) const
+        {
+            // The end iterator can be decremented, leave as-is for other cases
+            if (idx == -1 && n >= 0)
+                return idx;
+
+            // Special case for decrementing the end iterator: wait for
+            // finished to get the total result count.
+            if (idx == -1 && future->isRunning())
+                future->d.waitForFinished();
+
+            // Wait for result at target index
+            const int targetIndex = (idx == -1) ? future->resultCount() + n : idx + n;
+            future->d.waitForResult(targetIndex);
+
+            // After waiting there is either a result or the end was reached
+            return (targetIndex < future->resultCount()) ? targetIndex : -1;
         }
 
-        inline bool operator==(const const_iterator &o) const { return !operator!=(o); }
-        inline const_iterator &operator++() { ++index; return *this; }
-        inline const_iterator operator++(int) { const_iterator r = *this; ++index; return r; }
-        inline const_iterator &operator--() { --index; return *this; }
-        inline const_iterator operator--(int) { const_iterator r = *this; --index; return r; }
-        inline const_iterator operator+(int j) const { return const_iterator(future, index + j); }
-        inline const_iterator operator-(int j) const { return const_iterator(future, index - j); }
-        inline const_iterator &operator+=(int j) { index += j; return *this; }
-        inline const_iterator &operator-=(int j) { index -= j; return *this; }
-    private:
         QFuture const * future;
         int index;
     };
@@ -241,7 +293,5 @@ QFuture<void> qToVoidFuture(const QFuture<T> &future)
 }
 
 QT_END_NAMESPACE
-
-#endif // QT_NO_QFUTURE
 
 #endif // QFUTURE_H

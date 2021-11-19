@@ -64,7 +64,7 @@ class Q_WIDGETS_EXPORT QAbstractButton : public QWidget
     Q_PROPERTY(QKeySequence shortcut READ shortcut WRITE setShortcut)
 #endif
     Q_PROPERTY(bool checkable READ isCheckable WRITE setCheckable)
-    Q_PROPERTY(bool checked READ isChecked WRITE setChecked DESIGNABLE isCheckable NOTIFY toggled USER true)
+    Q_PROPERTY(bool checked READ isChecked WRITE setChecked NOTIFY toggled USER true)
     Q_PROPERTY(bool autoRepeat READ autoRepeat WRITE setAutoRepeat)
     Q_PROPERTY(bool autoExclusive READ autoExclusive WRITE setAutoExclusive)
     Q_PROPERTY(int autoRepeatDelay READ autoRepeatDelay WRITE setAutoRepeatDelay)
@@ -72,7 +72,7 @@ class Q_WIDGETS_EXPORT QAbstractButton : public QWidget
     Q_PROPERTY(bool down READ isDown WRITE setDown DESIGNABLE false)
 
 public:
-    explicit QAbstractButton(QWidget *parent = Q_NULLPTR);
+    explicit QAbstractButton(QWidget *parent = nullptr);
     ~QAbstractButton();
 
     void setText(const QString &text);
@@ -108,7 +108,7 @@ public:
     void setAutoExclusive(bool);
     bool autoExclusive() const;
 
-#ifndef QT_NO_BUTTONGROUP
+#if QT_CONFIG(buttongroup)
     QButtonGroup *group() const;
 #endif
 
@@ -126,25 +126,25 @@ Q_SIGNALS:
     void toggled(bool checked);
 
 protected:
-    void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE = 0;
+    void paintEvent(QPaintEvent *e) override = 0;
     virtual bool hitButton(const QPoint &pos) const;
     virtual void checkStateSet();
     virtual void nextCheckState();
 
-    bool event(QEvent *e) Q_DECL_OVERRIDE;
-    void keyPressEvent(QKeyEvent *e) Q_DECL_OVERRIDE;
-    void keyReleaseEvent(QKeyEvent *e) Q_DECL_OVERRIDE;
-    void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
-    void focusInEvent(QFocusEvent *e) Q_DECL_OVERRIDE;
-    void focusOutEvent(QFocusEvent *e) Q_DECL_OVERRIDE;
-    void changeEvent(QEvent *e) Q_DECL_OVERRIDE;
-    void timerEvent(QTimerEvent *e) Q_DECL_OVERRIDE;
+    bool event(QEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
+    void keyReleaseEvent(QKeyEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void focusInEvent(QFocusEvent *e) override;
+    void focusOutEvent(QFocusEvent *e) override;
+    void changeEvent(QEvent *e) override;
+    void timerEvent(QTimerEvent *e) override;
 
 
 protected:
-    QAbstractButton(QAbstractButtonPrivate &dd, QWidget* parent = Q_NULLPTR);
+    QAbstractButton(QAbstractButtonPrivate &dd, QWidget* parent = nullptr);
 
 private:
     Q_DECLARE_PRIVATE(QAbstractButton)

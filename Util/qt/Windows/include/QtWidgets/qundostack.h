@@ -44,22 +44,21 @@
 #include <QtCore/qobject.h>
 #include <QtCore/qstring.h>
 
-QT_BEGIN_NAMESPACE
+QT_REQUIRE_CONFIG(undocommand);
 
+QT_BEGIN_NAMESPACE
 
 class QAction;
 class QUndoCommandPrivate;
 class QUndoStackPrivate;
-
-#ifndef QT_NO_UNDOCOMMAND
 
 class Q_WIDGETS_EXPORT QUndoCommand
 {
     QUndoCommandPrivate *d;
 
 public:
-    explicit QUndoCommand(QUndoCommand *parent = Q_NULLPTR);
-    explicit QUndoCommand(const QString &text, QUndoCommand *parent = Q_NULLPTR);
+    explicit QUndoCommand(QUndoCommand *parent = nullptr);
+    explicit QUndoCommand(const QString &text, QUndoCommand *parent = nullptr);
     virtual ~QUndoCommand();
 
     virtual void undo();
@@ -83,9 +82,7 @@ private:
     friend class QUndoStack;
 };
 
-#endif // QT_NO_UNDOCOMMAND
-
-#ifndef QT_NO_UNDOSTACK
+#if QT_CONFIG(undostack)
 
 class Q_WIDGETS_EXPORT QUndoStack : public QObject
 {
@@ -93,9 +90,14 @@ class Q_WIDGETS_EXPORT QUndoStack : public QObject
     Q_DECLARE_PRIVATE(QUndoStack)
     Q_PROPERTY(bool active READ isActive WRITE setActive)
     Q_PROPERTY(int undoLimit READ undoLimit WRITE setUndoLimit)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY canRedoChanged)
+    Q_PROPERTY(QString undoText READ undoText NOTIFY undoTextChanged)
+    Q_PROPERTY(QString redoText READ redoText NOTIFY redoTextChanged)
+    Q_PROPERTY(bool clean READ isClean NOTIFY cleanChanged)
 
 public:
-    explicit QUndoStack(QObject *parent = Q_NULLPTR);
+    explicit QUndoStack(QObject *parent = nullptr);
     ~QUndoStack();
     void clear();
 
@@ -150,7 +152,7 @@ private:
     friend class QUndoGroup;
 };
 
-#endif // QT_NO_UNDOSTACK
+#endif // QT_CONFIG(undostack)
 
 QT_END_NAMESPACE
 

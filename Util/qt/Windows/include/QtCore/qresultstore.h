@@ -40,12 +40,10 @@
 #ifndef QTCORE_RESULTSTORE_H
 #define QTCORE_RESULTSTORE_H
 
-#include <QtCore/qglobal.h>
-
-#ifndef QT_NO_QFUTURE
-
 #include <QtCore/qmap.h>
 #include <QtCore/qdebug.h>
+
+QT_REQUIRE_CONFIG(future);
 
 QT_BEGIN_NAMESPACE
 
@@ -58,7 +56,6 @@ QT_BEGIN_NAMESPACE
     either individually or in batches.
 */
 
-#ifndef Q_QDOC
 
 namespace QtPrivate {
 
@@ -67,8 +64,8 @@ class ResultItem
 public:
     ResultItem(const void *_result, int _count) : m_count(_count), result(_result) { } // contruct with vector of results
     ResultItem(const void *_result) : m_count(0), result(_result) { } // construct with result
-    ResultItem() : m_count(0), result(Q_NULLPTR) { }
-    bool isValid() const { return result != Q_NULLPTR; }
+    ResultItem() : m_count(0), result(nullptr) { }
+    bool isValid() const { return result != nullptr; }
     bool isVector() const { return m_count != 0; }
     int count() const { return (m_count == 0) ?  1 : m_count; }
     int m_count;          // result is either a pointer to a result or to a vector of results,
@@ -145,7 +142,7 @@ public:
     template <typename T>
     int addResult(int index, const T *result)
     {
-        if (result == 0)
+        if (result == nullptr)
             return addResult(index, static_cast<void *>(nullptr));
         else
             return addResult(index, static_cast<void *>(new T(*result)));
@@ -161,7 +158,7 @@ public:
     int addResults(int index, const QVector<T> *results, int totalCount)
     {
         if (m_filterMode == true && results->count() != totalCount && 0 == results->count())
-            return addResults(index, 0, 0, totalCount);
+            return addResults(index, nullptr, 0, totalCount);
         else
             return addResults(index, new QVector<T>(*results), results->count(), totalCount);
     }
@@ -196,10 +193,9 @@ public:
 
 } // namespace QtPrivate
 
-#endif //Q_QDOC
+Q_DECLARE_TYPEINFO(QtPrivate::ResultItem, Q_PRIMITIVE_TYPE);
+
 
 QT_END_NAMESPACE
-
-#endif // QT_NO_QFUTURE
 
 #endif

@@ -42,9 +42,8 @@
 
 #include <QtCore/qjsonvalue.h>
 #include <QtCore/qiterator.h>
-#if defined(Q_COMPILER_INITIALIZER_LISTS)
+#include <QtCore/qshareddata.h>
 #include <initializer_list>
-#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -58,19 +57,20 @@ class Q_CORE_EXPORT QJsonArray
 public:
     QJsonArray();
 
-#if defined(Q_COMPILER_INITIALIZER_LISTS) || defined(Q_QDOC)
-    QJsonArray(std::initializer_list<QJsonValue> args)
-    {
-        initialize();
-        for (std::initializer_list<QJsonValue>::const_iterator i = args.begin(); i != args.end(); ++i)
-            append(*i);
-    }
-#endif
+    QJsonArray(std::initializer_list<QJsonValue> args);
 
     ~QJsonArray();
 
     QJsonArray(const QJsonArray &other);
     QJsonArray &operator =(const QJsonArray &other);
+
+    QJsonArray(QJsonArray &&other) noexcept;
+
+    QJsonArray &operator =(QJsonArray &&other) noexcept
+    {
+        swap(other);
+        return *this;
+    }
 
     static QJsonArray fromStringList(const QStringList &list);
     static QJsonArray fromVariantList(const QVariantList &list);
@@ -101,6 +101,11 @@ public:
     bool operator==(const QJsonArray &other) const;
     bool operator!=(const QJsonArray &other) const;
 
+    void swap(QJsonArray &other) noexcept
+    {
+        qSwap(a, other.a);
+    }
+
     class const_iterator;
 
     class iterator {
@@ -113,7 +118,7 @@ public:
         typedef QJsonValueRef reference;
         typedef QJsonValueRefPtr pointer;
 
-        inline iterator() : a(Q_NULLPTR), i(0) { }
+        inline iterator() : a(nullptr), i(0) { }
         explicit inline iterator(QJsonArray *array, int index) : a(array), i(index) { }
 
         inline QJsonValueRef operator*() const { return QJsonValueRef(a, i); }
@@ -158,7 +163,7 @@ public:
         typedef QJsonValue reference;
         typedef QJsonValuePtr pointer;
 
-        inline const_iterator() : a(Q_NULLPTR), i(0) { }
+        inline const_iterator() : a(nullptr), i(0) { }
         explicit inline const_iterator(const QJsonArray *array, int index) : a(array), i(index) { }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         inline const_iterator(const const_iterator &o) : a(o.a), i(o.i) {} // ### Qt 6: Removed so class can be trivially-copyable
@@ -194,9 +199,11 @@ public:
     inline iterator begin() { detach2(); return iterator(this, 0); }
     inline const_iterator begin() const { return const_iterator(this, 0); }
     inline const_iterator constBegin() const { return const_iterator(this, 0); }
+    inline const_iterator cbegin() const { return const_iterator(this, 0); }
     inline iterator end() { detach2(); return iterator(this, size()); }
     inline const_iterator end() const { return const_iterator(this, size()); }
     inline const_iterator constEnd() const { return const_iterator(this, size()); }
+    inline const_iterator cend() const { return const_iterator(this, size()); }
     iterator insert(iterator before, const QJsonValue &value) { insert(before.i, value); return before; }
     iterator erase(iterator it) { removeAt(it.i); return it; }
 
@@ -227,24 +234,34 @@ public:
     typedef int difference_type;
 
 private:
-    friend class QJsonPrivate::Data;
     friend class QJsonValue;
     friend class QJsonDocument;
+    friend class QCborArray;
     friend Q_CORE_EXPORT QDebug operator<<(QDebug, const QJsonArray &);
 
-    QJsonArray(QJsonPrivate::Data *data, QJsonPrivate::Array *array);
+    QJsonArray(QCborContainerPrivate *array);
     void initialize();
     void compact();
     // ### Qt 6: remove me and merge with detach2
     void detach(uint reserve = 0);
     bool detach2(uint reserve = 0);
 
-    QJsonPrivate::Data *d;
-    QJsonPrivate::Array *a;
+    // ### Qt 6: remove
+    void *dead = nullptr;
+    QExplicitlySharedDataPointer<QCborContainerPrivate> a;
 };
+
+Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QJsonArray)
+
+Q_CORE_EXPORT uint qHash(const QJsonArray &array, uint seed = 0);
 
 #if !defined(QT_NO_DEBUG_STREAM) && !defined(QT_JSON_READONLY)
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QJsonArray &);
+#endif
+
+#ifndef QT_NO_DATASTREAM
+Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QJsonArray &);
+Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QJsonArray &);
 #endif
 
 QT_END_NAMESPACE

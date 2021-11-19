@@ -90,10 +90,11 @@ public:
         QPixmap pixmap;
     };
 
+    // ### Qt6: move content to proper virtual functions
     virtual void virtual_hook(int id, void *data);
 
 private:
-    QIconEngine &operator=(const QIconEngine &other) Q_DECL_EQ_DELETE;
+    QIconEngine &operator=(const QIconEngine &other) = delete;
 };
 
 #if QT_DEPRECATED_SINCE(5, 0)

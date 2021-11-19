@@ -79,9 +79,9 @@ public:
     };
     Q_ENUM(CacheMode)
 
-    explicit QMovie(QObject *parent = Q_NULLPTR);
-    explicit QMovie(QIODevice *device, const QByteArray &format = QByteArray(), QObject *parent = Q_NULLPTR);
-    explicit QMovie(const QString &fileName, const QByteArray &format = QByteArray(), QObject *parent = Q_NULLPTR);
+    explicit QMovie(QObject *parent = nullptr);
+    explicit QMovie(QIODevice *device, const QByteArray &format = QByteArray(), QObject *parent = nullptr);
+    explicit QMovie(const QString &fileName, const QByteArray &format = QByteArray(), QObject *parent = nullptr);
     ~QMovie();
 
     static QList<QByteArray> supportedFormats();
@@ -105,6 +105,8 @@ public:
     QPixmap currentPixmap() const;
 
     bool isValid() const;
+    QImageReader::ImageReaderError lastError() const;
+    QString lastErrorString() const;
 
     bool jumpToFrame(int frameNumber);
     int loopCount() const;

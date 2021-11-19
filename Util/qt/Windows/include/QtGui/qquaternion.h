@@ -171,6 +171,7 @@ inline QQuaternion::QQuaternion(float aScalar, float xpos, float ypos, float zpo
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_CLANG("-Wfloat-equal")
 QT_WARNING_DISABLE_GCC("-Wfloat-equal")
+QT_WARNING_DISABLE_INTEL(1572)
 inline bool QQuaternion::isNull() const
 {
     return wp == 0.0f && xp == 0.0f && yp == 0.0f && zp == 0.0f;
@@ -210,8 +211,8 @@ inline QQuaternion QQuaternion::inverted() const
                  double(yp) * double(yp) +
                  double(zp) * double(zp);
     if (!qFuzzyIsNull(len))
-        return QQuaternion(double(wp) / len, double(-xp) / len,
-                           double(-yp) / len, double(-zp) / len);
+        return QQuaternion(float(double(wp) / len), float(double(-xp) / len),
+                           float(double(-yp) / len), float(double(-zp) / len));
     return QQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
 }
 

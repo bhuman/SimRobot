@@ -76,10 +76,12 @@ class Q_WIDGETS_EXPORT QApplication : public QGuiApplication
     Q_PROPERTY(int cursorFlashTime READ cursorFlashTime WRITE setCursorFlashTime)
     Q_PROPERTY(int doubleClickInterval  READ doubleClickInterval WRITE setDoubleClickInterval)
     Q_PROPERTY(int keyboardInputInterval READ keyboardInputInterval WRITE setKeyboardInputInterval)
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
     Q_PROPERTY(int wheelScrollLines  READ wheelScrollLines WRITE setWheelScrollLines)
 #endif
+#if QT_DEPRECATED_SINCE(5, 15)
     Q_PROPERTY(QSize globalStrut READ globalStrut WRITE setGlobalStrut)
+#endif
     Q_PROPERTY(int startDragTime  READ startDragTime WRITE setStartDragTime)
     Q_PROPERTY(int startDragDistance  READ startDragDistance WRITE setStartDragDistance)
 #ifndef QT_NO_STYLE_STYLESHEET
@@ -110,11 +112,11 @@ public:
     using QGuiApplication::palette;
     static QPalette palette(const QWidget *);
     static QPalette palette(const char *className);
-    static void setPalette(const QPalette &, const char* className = Q_NULLPTR);
+    static void setPalette(const QPalette &, const char* className = nullptr);
     static QFont font();
     static QFont font(const QWidget*);
     static QFont font(const char *className);
-    static void setFont(const QFont &, const char* className = Q_NULLPTR);
+    static void setFont(const QFont &, const char* className = nullptr);
     static QFontMetrics fontMetrics();
 
 #if QT_VERSION < 0x060000 // remove these forwarders in Qt 6
@@ -154,12 +156,14 @@ public:
     static void setKeyboardInputInterval(int);
     static int keyboardInputInterval();
 
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
     static void setWheelScrollLines(int);
     static int wheelScrollLines();
 #endif
+#if QT_DEPRECATED_SINCE(5, 15)
     static void setGlobalStrut(const QSize &);
     static QSize globalStrut();
+#endif
 
     static void setStartDragTime(int ms);
     static int startDragTime();
@@ -177,11 +181,15 @@ public:
 #endif
 
     static int exec();
-    bool notify(QObject *, QEvent *) Q_DECL_OVERRIDE;
+    bool notify(QObject *, QEvent *) override;
 
 #ifdef QT_KEYPAD_NAVIGATION
-    static Q_DECL_DEPRECATED void setKeypadNavigationEnabled(bool);
-    static bool keypadNavigationEnabled();
+# if QT_DEPRECATED_SINCE(5, 13)
+    static QT_DEPRECATED_X ("Use QApplication::setNavigationMode() instead")
+    void setKeypadNavigationEnabled(bool);
+    static QT_DEPRECATED_X ("Use QApplication::navigationMode() instead")
+    bool keypadNavigationEnabled();
+# endif
     static void setNavigationMode(Qt::NavigationMode mode);
     static Qt::NavigationMode navigationMode();
 #endif
@@ -201,8 +209,8 @@ public Q_SLOTS:
     static void aboutQt();
 
 protected:
-    bool event(QEvent *) Q_DECL_OVERRIDE;
-    bool compressEvent(QEvent *, QObject *receiver, QPostEventList *) Q_DECL_OVERRIDE;
+    bool event(QEvent *) override;
+    bool compressEvent(QEvent *, QObject *receiver, QPostEventList *) override;
 
 private:
     Q_DISABLE_COPY(QApplication)

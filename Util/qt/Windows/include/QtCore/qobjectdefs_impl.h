@@ -38,8 +38,6 @@
 **
 ****************************************************************************/
 
-#ifndef Q_QDOC
-
 #ifndef QOBJECTDEFS_H
 #error Do not include qobjectdefs_impl.h directly
 #include <QtCore/qnamespace.h>
@@ -51,7 +49,7 @@
 #endif
 
 QT_BEGIN_NAMESPACE
-
+class QObject;
 
 namespace QtPrivate {
     template <typename T> struct RemoveRef { typedef T Type; };
@@ -114,13 +112,31 @@ namespace QtPrivate {
        The Functor<Func,N> struct is the helper to call a functor of N argument.
        its call function is the same as the FunctionPointer::call function.
      */
-    template <int...> struct IndexesList {};
-    template <typename IndexList, int Right> struct IndexesAppend;
-    template <int... Left, int Right> struct IndexesAppend<IndexesList<Left...>, Right>
-    { typedef IndexesList<Left..., Right> Value; };
-    template <int N> struct Indexes
-    { typedef typename IndexesAppend<typename Indexes<N - 1>::Value, N - 1>::Value Value; };
-    template <> struct Indexes<0> { typedef IndexesList<> Value; };
+    template<class T> using InvokeGenSeq = typename T::Type;
+
+    template<int...> struct IndexesList { using Type = IndexesList; };
+
+    template<int N, class S1, class S2> struct ConcatSeqImpl;
+
+    template<int N, int... I1, int... I2>
+    struct ConcatSeqImpl<N, IndexesList<I1...>, IndexesList<I2...>>
+        : IndexesList<I1..., (N + I2)...>{};
+
+    template<int N, class S1, class S2>
+    using ConcatSeq = InvokeGenSeq<ConcatSeqImpl<N, S1, S2>>;
+
+    template<int N> struct GenSeq;
+    template<int N> using makeIndexSequence = InvokeGenSeq<GenSeq<N>>;
+
+    template<int N>
+    struct GenSeq : ConcatSeq<N/2, makeIndexSequence<N/2>, makeIndexSequence<N - N/2>>{};
+
+    template<> struct GenSeq<0> : IndexesList<>{};
+    template<> struct GenSeq<1> : IndexesList<0>{};
+
+    template<int N>
+    struct Indexes { using Value = makeIndexSequence<N>; };
+
     template<typename Func> struct FunctionPointer { enum {ArgumentCount = -1, IsPointerToMemberFunction = false}; };
 
     template <typename, typename, typename, typename> struct FunctorCall;
@@ -269,11 +285,15 @@ namespace QtPrivate {
     {
     };
 
+    template <typename T>
+    using is_bool = std::is_same<bool, typename std::decay<T>::type>;
+
     template<typename From, typename To>
     struct AreArgumentsNarrowedBase<From, To, typename std::enable_if<sizeof(From) && sizeof(To)>::type>
         : std::integral_constant<bool,
               (std::is_floating_point<From>::value && std::is_integral<To>::value) ||
               (std::is_floating_point<From>::value && std::is_floating_point<To>::value && sizeof(From) > sizeof(To)) ||
+              ((std::is_pointer<From>::value || std::is_member_pointer<From>::value) && QtPrivate::is_bool<To>::value) ||
               ((std::is_integral<From>::value || std::is_enum<From>::value) && std::is_floating_point<To>::value) ||
               (std::is_integral<From>::value && std::is_integral<To>::value
                && (sizeof(From) > sizeof(To)
@@ -350,8 +370,99 @@ namespace QtPrivate {
         template <typename D> static D dummy();
         typedef decltype(dummy<Functor>().operator()((dummy<ArgList>())...)) Value;
     };
+
+    // internal base class (interface) containing functions required to call a slot managed by a pointer to function.
+    class QSlotObjectBase {
+        QAtomicInt m_ref;
+        // don't use virtual functions here; we don't want the
+        // compiler to create tons of per-polymorphic-class stuff that
+        // we'll never need. We just use one function pointer.
+        typedef void (*ImplFn)(int which, QSlotObjectBase* this_, QObject *receiver, void **args, bool *ret);
+        const ImplFn m_impl;
+    protected:
+        enum Operation {
+            Destroy,
+            Call,
+            Compare,
+
+            NumOperations
+        };
+    public:
+        explicit QSlotObjectBase(ImplFn fn) : m_ref(1), m_impl(fn) {}
+
+        inline int ref() noexcept { return m_ref.ref(); }
+        inline void destroyIfLastRef() noexcept
+        { if (!m_ref.deref()) m_impl(Destroy, this, nullptr, nullptr, nullptr); }
+
+        inline bool compare(void **a) { bool ret = false; m_impl(Compare, this, nullptr, a, &ret); return ret; }
+        inline void call(QObject *r, void **a)  { m_impl(Call,    this, r, a, nullptr); }
+    protected:
+        ~QSlotObjectBase() {}
+    private:
+        Q_DISABLE_COPY_MOVE(QSlotObjectBase)
+    };
+
+    // implementation of QSlotObjectBase for which the slot is a pointer to member function of a QObject
+    // Args and R are the List of arguments and the return type of the signal to which the slot is connected.
+    template<typename Func, typename Args, typename R> class QSlotObject : public QSlotObjectBase
+    {
+        typedef QtPrivate::FunctionPointer<Func> FuncType;
+        Func function;
+        static void impl(int which, QSlotObjectBase *this_, QObject *r, void **a, bool *ret)
+        {
+            switch (which) {
+            case Destroy:
+                delete static_cast<QSlotObject*>(this_);
+                break;
+            case Call:
+                FuncType::template call<Args, R>(static_cast<QSlotObject*>(this_)->function, static_cast<typename FuncType::Object *>(r), a);
+                break;
+            case Compare:
+                *ret = *reinterpret_cast<Func *>(a) == static_cast<QSlotObject*>(this_)->function;
+                break;
+            case NumOperations: ;
+            }
+        }
+    public:
+        explicit QSlotObject(Func f) : QSlotObjectBase(&impl), function(f) {}
+    };
+    // implementation of QSlotObjectBase for which the slot is a functor (or lambda)
+    // N is the number of arguments
+    // Args and R are the List of arguments and the return type of the signal to which the slot is connected.
+    template<typename Func, int N, typename Args, typename R> class QFunctorSlotObject : public QSlotObjectBase
+    {
+        typedef QtPrivate::Functor<Func, N> FuncType;
+        Func function;
+        static void impl(int which, QSlotObjectBase *this_, QObject *r, void **a, bool *ret)
+        {
+            switch (which) {
+            case Destroy:
+                delete static_cast<QFunctorSlotObject*>(this_);
+                break;
+            case Call:
+                FuncType::template call<Args, R>(static_cast<QFunctorSlotObject*>(this_)->function, r, a);
+                break;
+            case Compare: // not implemented
+            case NumOperations:
+                Q_UNUSED(ret);
+            }
+        }
+    public:
+        explicit QFunctorSlotObject(Func f) : QSlotObjectBase(&impl), function(std::move(f)) {}
+    };
+
+    // typedefs for readability for when there are no parameters
+    template <typename Func>
+    using QSlotObjectWithNoArgs = QSlotObject<Func,
+                                              QtPrivate::List<>,
+                                              typename QtPrivate::FunctionPointer<Func>::ReturnType>;
+
+    template <typename Func, typename R>
+    using QFunctorSlotObjectWithNoArgs = QFunctorSlotObject<Func, 0, QtPrivate::List<>, R>;
+
+    template <typename Func>
+    using QFunctorSlotObjectWithNoArgsImplicitReturn = QFunctorSlotObjectWithNoArgs<Func, typename QtPrivate::FunctionPointer<Func>::ReturnType>;
 }
 
 QT_END_NAMESPACE
 
-#endif

@@ -51,10 +51,9 @@
 #include <QtCore/qhash.h>
 #endif
 
+QT_REQUIRE_CONFIG(graphicsview);
+
 QT_BEGIN_NAMESPACE
-
-
-#if !defined(QT_NO_GRAPHICSVIEW)
 
 class QMimeData;
 class QPointF;
@@ -321,7 +320,9 @@ public:
     void setNewPos(const QPointF &pos);
 };
 
-#endif // QT_NO_GRAPHICSVIEW
+#ifndef QT_NO_DEBUG_STREAM
+Q_WIDGETS_EXPORT QDebug operator<<(QDebug, const QGraphicsSceneEvent *);
+#endif
 
 QT_END_NAMESPACE
 

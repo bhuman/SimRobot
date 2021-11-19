@@ -43,10 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qframe.h>
 
+QT_REQUIRE_CONFIG(groupbox);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_GROUPBOX
 
 class QGroupBoxPrivate;
 class QStyleOptionGroupBox;
@@ -58,10 +57,10 @@ class Q_WIDGETS_EXPORT QGroupBox : public QWidget
     Q_PROPERTY(Qt::Alignment alignment READ alignment WRITE setAlignment)
     Q_PROPERTY(bool flat READ isFlat WRITE setFlat)
     Q_PROPERTY(bool checkable READ isCheckable WRITE setCheckable)
-    Q_PROPERTY(bool checked READ isChecked WRITE setChecked DESIGNABLE isCheckable NOTIFY toggled USER true)
+    Q_PROPERTY(bool checked READ isChecked WRITE setChecked NOTIFY toggled USER true)
 public:
-    explicit QGroupBox(QWidget *parent = Q_NULLPTR);
-    explicit QGroupBox(const QString &title, QWidget *parent = Q_NULLPTR);
+    explicit QGroupBox(QWidget *parent = nullptr);
+    explicit QGroupBox(const QString &title, QWidget *parent = nullptr);
     ~QGroupBox();
 
     QString title() const;
@@ -70,7 +69,7 @@ public:
     Qt::Alignment alignment() const;
     void setAlignment(int alignment);
 
-    QSize minimumSizeHint() const Q_DECL_OVERRIDE;
+    QSize minimumSizeHint() const override;
 
     bool isFlat() const;
     void setFlat(bool flat);
@@ -86,15 +85,15 @@ Q_SIGNALS:
     void toggled(bool);
 
 protected:
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
-    void childEvent(QChildEvent *event) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
-    void focusInEvent(QFocusEvent *event) Q_DECL_OVERRIDE;
-    void changeEvent(QEvent *event) Q_DECL_OVERRIDE;
-    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    bool event(QEvent *event) override;
+    void childEvent(QChildEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+    void changeEvent(QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void initStyleOption(QStyleOptionGroupBox *option) const;
 
 
@@ -103,8 +102,6 @@ private:
     Q_DECLARE_PRIVATE(QGroupBox)
     Q_PRIVATE_SLOT(d_func(), void _q_setChildrenEnabled(bool b))
 };
-
-#endif // QT_NO_GROUPBOX
 
 QT_END_NAMESPACE
 

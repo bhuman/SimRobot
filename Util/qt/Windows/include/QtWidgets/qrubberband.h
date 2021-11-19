@@ -43,10 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qwidget.h>
 
+QT_REQUIRE_CONFIG(rubberband);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_RUBBERBAND
 
 class QRubberBandPrivate;
 class QStyleOptionRubberBand;
@@ -57,7 +56,7 @@ class Q_WIDGETS_EXPORT QRubberBand : public QWidget
 
 public:
     enum Shape { Line, Rectangle };
-    explicit QRubberBand(Shape, QWidget * = Q_NULLPTR);
+    explicit QRubberBand(Shape, QWidget * = nullptr);
     ~QRubberBand();
 
     Shape shape() const;
@@ -74,12 +73,12 @@ public:
     { resize(s.width(), s.height()); }
 
 protected:
-    bool event(QEvent *e) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *) Q_DECL_OVERRIDE;
-    void changeEvent(QEvent *) Q_DECL_OVERRIDE;
-    void showEvent(QShowEvent *) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *) Q_DECL_OVERRIDE;
-    void moveEvent(QMoveEvent *) Q_DECL_OVERRIDE;
+    bool event(QEvent *e) override;
+    void paintEvent(QPaintEvent *) override;
+    void changeEvent(QEvent *) override;
+    void showEvent(QShowEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
+    void moveEvent(QMoveEvent *) override;
     void initStyleOption(QStyleOptionRubberBand *option) const;
 
 private:
@@ -90,8 +89,6 @@ inline void QRubberBand::setGeometry(int ax, int ay, int aw, int ah)
 { setGeometry(QRect(ax, ay, aw, ah)); }
 inline void QRubberBand::move(int ax, int ay)
 { setGeometry(ax, ay, width(), height()); }
-
-#endif // QT_NO_RUBBERBAND
 
 QT_END_NAMESPACE
 

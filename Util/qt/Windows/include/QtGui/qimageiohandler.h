@@ -69,6 +69,7 @@ public:
     void setFormat(const QByteArray &format) const;
     QByteArray format() const;
 
+    QT_DEPRECATED_X("Use QImageIOHandler::format() instead")
     virtual QByteArray name() const;
 
     virtual bool canRead() const = 0;
@@ -140,8 +141,8 @@ class Q_GUI_EXPORT QImageIOPlugin : public QObject
 {
     Q_OBJECT
 public:
-    explicit QImageIOPlugin(QObject *parent = Q_NULLPTR);
-    virtual ~QImageIOPlugin();
+    explicit QImageIOPlugin(QObject *parent = nullptr);
+    ~QImageIOPlugin();
 
     enum Capability {
         CanRead = 0x1,

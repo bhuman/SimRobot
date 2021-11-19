@@ -43,29 +43,43 @@
 
 #include <QtCore/qglobal.h>
 
-#ifndef QT_NO_MIMETYPE
+QT_REQUIRE_CONFIG(mimetype);
 
+#include <QtCore/qobjectdefs.h>
 #include <QtCore/qshareddata.h>
 #include <QtCore/qstring.h>
+#include <QtCore/qstringlist.h>
 
 QT_BEGIN_NAMESPACE
 
 class QMimeTypePrivate;
-class QStringList;
 class QMimeType;
 
-Q_CORE_EXPORT uint qHash(const QMimeType &key, uint seed = 0) Q_DECL_NOTHROW;
+Q_CORE_EXPORT uint qHash(const QMimeType &key, uint seed = 0) noexcept;
 
 class Q_CORE_EXPORT QMimeType
 {
+    Q_GADGET
+    Q_PROPERTY(bool valid READ isValid CONSTANT)
+    Q_PROPERTY(bool isDefault READ isDefault CONSTANT)
+    Q_PROPERTY(QString name READ name CONSTANT)
+    Q_PROPERTY(QString comment READ comment CONSTANT)
+    Q_PROPERTY(QString genericIconName READ genericIconName CONSTANT)
+    Q_PROPERTY(QString iconName READ iconName CONSTANT)
+    Q_PROPERTY(QStringList globPatterns READ globPatterns CONSTANT)
+    Q_PROPERTY(QStringList parentMimeTypes READ parentMimeTypes CONSTANT)
+    Q_PROPERTY(QStringList allAncestors READ allAncestors CONSTANT)
+    Q_PROPERTY(QStringList aliases READ aliases CONSTANT)
+    Q_PROPERTY(QStringList suffixes READ suffixes CONSTANT)
+    Q_PROPERTY(QString preferredSuffix READ preferredSuffix CONSTANT)
+    Q_PROPERTY(QString filterString READ filterString CONSTANT)
+
 public:
     QMimeType();
     QMimeType(const QMimeType &other);
     QMimeType &operator=(const QMimeType &other);
-#ifdef Q_COMPILER_RVALUE_REFS
-    QMimeType &operator=(QMimeType &&other) Q_DECL_NOTHROW { swap(other); return *this; }
-#endif
-    void swap(QMimeType &other) Q_DECL_NOTHROW
+    QMimeType &operator=(QMimeType &&other) noexcept { swap(other); return *this; }
+    void swap(QMimeType &other) noexcept
     {
         qSwap(d, other.d);
     }
@@ -94,7 +108,7 @@ public:
     QStringList suffixes() const;
     QString preferredSuffix() const;
 
-    bool inherits(const QString &mimeTypeName) const;
+    Q_INVOKABLE bool inherits(const QString &mimeTypeName) const;
 
     QString filterString() const;
 
@@ -105,7 +119,7 @@ protected:
     friend class QMimeXMLProvider;
     friend class QMimeBinaryProvider;
     friend class QMimeTypePrivate;
-    friend Q_CORE_EXPORT uint qHash(const QMimeType &key, uint seed) Q_DECL_NOTHROW;
+    friend Q_CORE_EXPORT uint qHash(const QMimeType &key, uint seed) noexcept;
 
     QExplicitlySharedDataPointer<QMimeTypePrivate> d;
 };
@@ -119,5 +133,4 @@ Q_CORE_EXPORT QDebug operator<<(QDebug debug, const QMimeType &mime);
 
 QT_END_NAMESPACE
 
-#endif // QT_NO_MIMETYPE
 #endif // QMIMETYPE_H

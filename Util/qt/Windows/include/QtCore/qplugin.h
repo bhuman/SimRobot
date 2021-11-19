@@ -1,6 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2018 Intel Corporation.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -55,14 +56,50 @@ QT_BEGIN_NAMESPACE
 #  endif
 #endif
 
+inline constexpr unsigned char qPluginArchRequirements()
+{
+    return 0
+#ifndef QT_NO_DEBUG
+            | 1
+#endif
+#ifdef __AVX2__
+            | 2
+#  ifdef __AVX512F__
+            | 4
+#  endif
+#endif
+    ;
+}
+
 typedef QObject *(*QtPluginInstanceFunction)();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 typedef const char *(*QtPluginMetaDataFunction)();
+#else
+struct QPluginMetaData
+{
+    const uchar *data;
+    size_t size;
+};
+typedef QPluginMetaData (*QtPluginMetaDataFunction)();
+#endif
+
 
 struct Q_CORE_EXPORT QStaticPlugin
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+public:
+    constexpr QStaticPlugin(QtPluginInstanceFunction i, QtPluginMetaDataFunction m)
+        : instance(i), rawMetaData(m().data), rawMetaDataSize(m().size)
+    {}
+    QtPluginInstanceFunction instance;
+private:
+    // ### Qt 6: revise, as this is not standard-layout
+    const void *rawMetaData;
+    qsizetype rawMetaDataSize;
+public:
+#elif !defined(Q_QDOC)
     // Note: This struct is initialized using an initializer list.
     // As such, it cannot have any new constructors or variables.
-#ifndef Q_QDOC
     QtPluginInstanceFunction instance;
     QtPluginMetaDataFunction rawMetaData;
 #else
@@ -90,7 +127,6 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
 #  define QT_PLUGIN_METADATA_SECTION \
     __declspec(allocate(".qtmetadata"))
 #else
-#  define QT_PLUGIN_VERIFICATION_SECTION
 #  define QT_PLUGIN_METADATA_SECTION
 #endif
 
@@ -105,16 +141,36 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
         }; \
        static Static##PLUGIN##PluginInstance static##PLUGIN##Instance;
 
+#if defined(QT_PLUGIN_RESOURCE_INIT_FUNCTION)
+#  define QT_PLUGIN_RESOURCE_INIT \
+          extern void QT_PLUGIN_RESOURCE_INIT_FUNCTION(); \
+          QT_PLUGIN_RESOURCE_INIT_FUNCTION();
+#else
+#  define QT_PLUGIN_RESOURCE_INIT
+#endif
+
 #define Q_PLUGIN_INSTANCE(IMPLEMENTATION) \
         { \
             static QT_PREPEND_NAMESPACE(QPointer)<QT_PREPEND_NAMESPACE(QObject)> _instance; \
-            if (!_instance)      \
+            if (!_instance) {    \
+                QT_PLUGIN_RESOURCE_INIT \
                 _instance = new IMPLEMENTATION; \
+            } \
             return _instance; \
         }
 
 #if defined(QT_STATICPLUGIN)
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#  define QT_MOC_EXPORT_PLUGIN(PLUGINCLASS, PLUGINCLASSNAME) \
+    static QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance_##PLUGINCLASSNAME() \
+    Q_PLUGIN_INSTANCE(PLUGINCLASS) \
+    static QPluginMetaData qt_plugin_query_metadata_##PLUGINCLASSNAME() \
+        { return { qt_pluginMetaData, sizeof qt_pluginMetaData }; } \
+    const QT_PREPEND_NAMESPACE(QStaticPlugin) qt_static_plugin_##PLUGINCLASSNAME() { \
+        return { qt_plugin_instance_##PLUGINCLASSNAME, qt_plugin_query_metadata_##PLUGINCLASSNAME}; \
+    }
+#else
 #  define QT_MOC_EXPORT_PLUGIN(PLUGINCLASS, PLUGINCLASSNAME) \
     static QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance_##PLUGINCLASSNAME() \
     Q_PLUGIN_INSTANCE(PLUGINCLASS) \
@@ -123,6 +179,17 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
         QT_PREPEND_NAMESPACE(QStaticPlugin) plugin = { qt_plugin_instance_##PLUGINCLASSNAME, qt_plugin_query_metadata_##PLUGINCLASSNAME}; \
         return plugin; \
     }
+#endif
+
+#else
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+
+#  define QT_MOC_EXPORT_PLUGIN(PLUGINCLASS, PLUGINCLASSNAME)      \
+            Q_EXTERN_C Q_DECL_EXPORT \
+            QPluginMetaData qt_plugin_query_metadata() \
+            { return { qt_pluginMetaData, sizeof qt_pluginMetaData }; } \
+            Q_EXTERN_C Q_DECL_EXPORT QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance() \
+            Q_PLUGIN_INSTANCE(PLUGINCLASS)
 
 #else
 
@@ -135,6 +202,7 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
 
 #endif
 
+#endif
 
 #define Q_EXPORT_PLUGIN(PLUGIN) \
             Q_EXPORT_PLUGIN2(PLUGIN, PLUGIN)

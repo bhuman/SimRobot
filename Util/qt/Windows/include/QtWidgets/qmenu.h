@@ -46,14 +46,13 @@
 #include <QtGui/qicon.h>
 #include <QtWidgets/qaction.h>
 
-#ifdef Q_OS_OSX
+#if defined(Q_OS_MACOS) || defined(Q_CLANG_QDOC)
 Q_FORWARD_DECLARE_OBJC_CLASS(NSMenu);
 #endif
 
+QT_REQUIRE_CONFIG(menu);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_MENU
 
 class QMenuPrivate;
 class QStyleOptionMenuItem;
@@ -72,8 +71,8 @@ private:
     Q_PROPERTY(bool toolTipsVisible READ toolTipsVisible WRITE setToolTipsVisible)
 
 public:
-    explicit QMenu(QWidget *parent = Q_NULLPTR);
-    explicit QMenu(const QString &title, QWidget *parent = Q_NULLPTR);
+    explicit QMenu(QWidget *parent = nullptr);
+    explicit QMenu(const QString &title, QWidget *parent = nullptr);
     ~QMenu();
 
     using QWidget::addAction;
@@ -82,15 +81,11 @@ public:
     QAction *addAction(const QString &text, const QObject *receiver, const char* member, const QKeySequence &shortcut = 0);
     QAction *addAction(const QIcon &icon, const QString &text, const QObject *receiver, const char* member, const QKeySequence &shortcut = 0);
 
-#ifdef Q_QDOC
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0);
+#ifdef Q_CLANG_QDOC
     template<typename Functor>
     QAction *addAction(const QString &text, Functor functor, const QKeySequence &shortcut = 0);
     template<typename Functor>
     QAction *addAction(const QString &text, const QObject *context, Functor functor, const QKeySequence &shortcut = 0);
-    template<typename PointerToMemberFunction>
-    QAction *addAction(const QIcon &icon, const QString &text, const QObject *receiver, PointerToMemberFunction method, const QKeySequence &shortcut = 0);
     template<typename Functor>
     QAction *addAction(const QIcon &icon, const QString &text, Functor functor, const QKeySequence &shortcut = 0);
     template<typename Functor>
@@ -108,7 +103,7 @@ public:
 #else
         result->setShortcut(shortcut);
 #endif
-        connect(result, &QAction::triggered, object, slot);
+        connect(result, &QAction::triggered, object, std::move(slot));
         return result;
     }
     // addAction(QString): Connect to a functor or function pointer (without context)
@@ -121,7 +116,7 @@ public:
 #else
         result->setShortcut(shortcut);
 #endif
-        connect(result, &QAction::triggered, slot);
+        connect(result, &QAction::triggered, std::move(slot));
         return result;
     }
     // addAction(QIcon, QString): Connect to a QObject slot / functor or function pointer (with context)
@@ -136,7 +131,7 @@ public:
 #else
         result->setShortcut(shortcut);
 #endif
-        connect(result, &QAction::triggered, object, slot);
+        connect(result, &QAction::triggered, object, std::move(slot));
         return result;
     }
     // addAction(QIcon, QString): Connect to a functor or function pointer (without context)
@@ -149,10 +144,10 @@ public:
 #else
         result->setShortcut(shortcut);
 #endif
-        connect(result, &QAction::triggered, slot);
+        connect(result, &QAction::triggered, std::move(slot));
         return result;
     }
-#endif // !Q_QDOC
+#endif // !Q_CLANG_QDOC
 
     QAction *addMenu(QMenu *menu);
     QMenu *addMenu(const QString &title);
@@ -185,17 +180,17 @@ public:
     void setActiveAction(QAction *act);
     QAction *activeAction() const;
 
-    void popup(const QPoint &pos, QAction *at = Q_NULLPTR);
+    void popup(const QPoint &pos, QAction *at = nullptr);
     QAction *exec();
-    QAction *exec(const QPoint &pos, QAction *at = Q_NULLPTR);
+    QAction *exec(const QPoint &pos, QAction *at = nullptr);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-    static QAction *exec(const QList<QAction *> &actions, const QPoint &pos, QAction *at = Q_NULLPTR, QWidget *parent = Q_NULLPTR);
+    static QAction *exec(const QList<QAction *> &actions, const QPoint &pos, QAction *at = nullptr, QWidget *parent = nullptr);
 #else
-    static QAction *exec(QList<QAction*> actions, const QPoint &pos, QAction *at = Q_NULLPTR, QWidget *parent = Q_NULLPTR);
+    static QAction *exec(QList<QAction*> actions, const QPoint &pos, QAction *at = nullptr, QWidget *parent = nullptr);
 #endif
 
-    QSize sizeHint() const Q_DECL_OVERRIDE;
+    QSize sizeHint() const override;
 
     QRect actionGeometry(QAction *) const;
     QAction *actionAt(const QPoint &) const;
@@ -212,7 +207,7 @@ public:
     QPlatformMenu *platformMenu();
     void setPlatformMenu(QPlatformMenu *platformMenu);
 
-#ifdef Q_OS_OSX
+#if defined(Q_OS_MACOS) || defined(Q_CLANG_QDOC)
     NSMenu* toNSMenu();
     void setAsDockMenu();
 #endif
@@ -232,22 +227,22 @@ Q_SIGNALS:
 protected:
     int columnCount() const;
 
-    void changeEvent(QEvent *) Q_DECL_OVERRIDE;
-    void keyPressEvent(QKeyEvent *) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mousePressEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-#ifndef QT_NO_WHEELEVENT
-    void wheelEvent(QWheelEvent *) Q_DECL_OVERRIDE;
+    void changeEvent(QEvent *) override;
+    void keyPressEvent(QKeyEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent *) override;
 #endif
-    void enterEvent(QEvent *) Q_DECL_OVERRIDE;
-    void leaveEvent(QEvent *) Q_DECL_OVERRIDE;
-    void hideEvent(QHideEvent *) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *) Q_DECL_OVERRIDE;
-    void actionEvent(QActionEvent *) Q_DECL_OVERRIDE;
-    void timerEvent(QTimerEvent *) Q_DECL_OVERRIDE;
-    bool event(QEvent *) Q_DECL_OVERRIDE;
-    bool focusNextPrevChild(bool next) Q_DECL_OVERRIDE;
+    void enterEvent(QEvent *) override;
+    void leaveEvent(QEvent *) override;
+    void hideEvent(QHideEvent *) override;
+    void paintEvent(QPaintEvent *) override;
+    void actionEvent(QActionEvent *) override;
+    void timerEvent(QTimerEvent *) override;
+    bool event(QEvent *) override;
+    bool focusNextPrevChild(bool next) override;
     void initStyleOption(QStyleOptionMenuItem *option, const QAction *action) const;
 
 private Q_SLOTS:
@@ -260,7 +255,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void _q_platformMenuAboutToShow())
 
 protected:
-    QMenu(QMenuPrivate &dd, QWidget* parent = Q_NULLPTR);
+    QMenu(QMenuPrivate &dd, QWidget* parent = nullptr);
 
 private:
     Q_DISABLE_COPY(QMenu)
@@ -275,12 +270,10 @@ private:
     friend void qt_mac_menu_emit_hovered(QMenu *menu, QAction *action);
 };
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
 // ### Qt 4 compatibility; remove in Qt 6
 inline QT_DEPRECATED void qt_mac_set_dock_menu(QMenu *menu) { menu->setAsDockMenu(); }
 #endif
-
-#endif // QT_NO_MENU
 
 QT_END_NAMESPACE
 

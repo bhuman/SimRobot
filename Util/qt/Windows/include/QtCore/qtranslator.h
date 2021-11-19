@@ -55,13 +55,16 @@ class Q_CORE_EXPORT QTranslator : public QObject
 {
     Q_OBJECT
 public:
-    explicit QTranslator(QObject *parent = Q_NULLPTR);
+    explicit QTranslator(QObject *parent = nullptr);
     ~QTranslator();
 
     virtual QString translate(const char *context, const char *sourceText,
-                              const char *disambiguation = Q_NULLPTR, int n = -1) const;
+                              const char *disambiguation = nullptr, int n = -1) const;
 
     virtual bool isEmpty() const;
+
+    QString language() const;
+    QString filePath() const;
 
     bool load(const QString & filename,
               const QString & directory = QString(),

@@ -43,10 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include "QtCore/qobject.h"
 
-#ifndef QT_NO_DATAWIDGETMAPPER
+QT_REQUIRE_CONFIG(datawidgetmapper);
 
 QT_BEGIN_NAMESPACE
-
 
 class QAbstractItemDelegate;
 class QAbstractItemModel;
@@ -62,7 +61,7 @@ class Q_WIDGETS_EXPORT QDataWidgetMapper: public QObject
     Q_PROPERTY(SubmitPolicy submitPolicy READ submitPolicy WRITE setSubmitPolicy)
 
 public:
-    explicit QDataWidgetMapper(QObject *parent = Q_NULLPTR);
+    explicit QDataWidgetMapper(QObject *parent = nullptr);
     ~QDataWidgetMapper();
 
     void setModel(QAbstractItemModel *model);
@@ -117,6 +116,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // QT_NO_DATAWIDGETMAPPER
 #endif
-

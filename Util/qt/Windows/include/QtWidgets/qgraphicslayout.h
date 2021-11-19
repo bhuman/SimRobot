@@ -43,10 +43,9 @@
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qgraphicslayoutitem.h>
 
+QT_REQUIRE_CONFIG(graphicsview);
+
 QT_BEGIN_NAMESPACE
-
-
-#if !defined(QT_NO_GRAPHICSVIEW)
 
 class QGraphicsLayoutPrivate;
 class QGraphicsLayoutItem;
@@ -55,16 +54,16 @@ class QGraphicsWidget;
 class Q_WIDGETS_EXPORT QGraphicsLayout : public QGraphicsLayoutItem
 {
 public:
-    QGraphicsLayout(QGraphicsLayoutItem *parent = Q_NULLPTR);
+    QGraphicsLayout(QGraphicsLayoutItem *parent = nullptr);
     ~QGraphicsLayout();
 
     void setContentsMargins(qreal left, qreal top, qreal right, qreal bottom);
-    void getContentsMargins(qreal *left, qreal *top, qreal *right, qreal *bottom) const Q_DECL_OVERRIDE;
+    void getContentsMargins(qreal *left, qreal *top, qreal *right, qreal *bottom) const override;
 
     void activate();
     bool isActivated() const;
     virtual void invalidate();
-    virtual void updateGeometry() Q_DECL_OVERRIDE;
+    virtual void updateGeometry() override;
 
     virtual void widgetEvent(QEvent *e);
 
@@ -84,11 +83,10 @@ private:
     friend class QGraphicsWidget;
 };
 
+#ifndef Q_CLANG_QDOC
 Q_DECLARE_INTERFACE(QGraphicsLayout, "org.qt-project.Qt.QGraphicsLayout")
-
 #endif
 
 QT_END_NAMESPACE
 
 #endif
-

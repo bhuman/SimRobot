@@ -44,18 +44,17 @@
 #include <QtWidgets/qgraphicsitem.h>
 #include <QtWidgets/qgraphicslayout.h>
 
+QT_REQUIRE_CONFIG(graphicsview);
+
 QT_BEGIN_NAMESPACE
-
-
-#if !defined(QT_NO_GRAPHICSVIEW)
 
 class QGraphicsLinearLayoutPrivate;
 
 class Q_WIDGETS_EXPORT QGraphicsLinearLayout : public QGraphicsLayout
 {
 public:
-    QGraphicsLinearLayout(QGraphicsLayoutItem *parent = Q_NULLPTR);
-    QGraphicsLinearLayout(Qt::Orientation orientation, QGraphicsLayoutItem *parent = Q_NULLPTR);
+    QGraphicsLinearLayout(QGraphicsLayoutItem *parent = nullptr);
+    QGraphicsLinearLayout(Qt::Orientation orientation, QGraphicsLayoutItem *parent = nullptr);
     virtual ~QGraphicsLinearLayout();
 
     void setOrientation(Qt::Orientation orientation);
@@ -68,7 +67,7 @@ public:
     void insertStretch(int index, int stretch = 1);
 
     void removeItem(QGraphicsLayoutItem *item);
-    void removeAt(int index) Q_DECL_OVERRIDE;
+    void removeAt(int index) override;
 
     void setSpacing(qreal spacing);
     qreal spacing() const;
@@ -81,13 +80,13 @@ public:
     void setAlignment(QGraphicsLayoutItem *item, Qt::Alignment alignment);
     Qt::Alignment alignment(QGraphicsLayoutItem *item) const;
 
-    void setGeometry(const QRectF &rect) Q_DECL_OVERRIDE;
+    void setGeometry(const QRectF &rect) override;
 
-    int count() const Q_DECL_OVERRIDE;
-    QGraphicsLayoutItem *itemAt(int index) const Q_DECL_OVERRIDE;
+    int count() const override;
+    QGraphicsLayoutItem *itemAt(int index) const override;
 
-    void invalidate() Q_DECL_OVERRIDE;
-    QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const Q_DECL_OVERRIDE;
+    void invalidate() override;
+    QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const override;
 
 #if 0 // ###
     Q5SizePolicy::ControlTypes controlTypes(LayoutSide side) const;
@@ -105,9 +104,6 @@ private:
     Q_DECLARE_PRIVATE(QGraphicsLinearLayout)
 };
 
-#endif
-
 QT_END_NAMESPACE
 
 #endif
-

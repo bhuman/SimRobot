@@ -57,6 +57,13 @@
 #include <QtGui/QOpenGLVersionFunctions>
 #include <QtGui/qopenglcontext.h>
 
+// MemoryBarrier is a macro on some architectures on Windows
+#ifdef Q_OS_WIN
+#pragma push_macro("MemoryBarrier")
+#undef MemoryBarrier
+#endif
+
+
 QT_BEGIN_NAMESPACE
 
 class Q_GUI_EXPORT QOpenGLFunctions_4_3_Core : public QAbstractOpenGLFunctions
@@ -65,7 +72,7 @@ public:
     QOpenGLFunctions_4_3_Core();
     ~QOpenGLFunctions_4_3_Core();
 
-    bool initializeOpenGLFunctions() Q_DECL_OVERRIDE;
+    bool initializeOpenGLFunctions() override;
 
     // OpenGL 1.0 core functions
     void glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
@@ -3229,6 +3236,10 @@ inline void QOpenGLFunctions_4_3_Core::glClearBufferData(GLenum target, GLenum i
 
 
 QT_END_NAMESPACE
+
+#ifdef Q_OS_WIN
+#pragma pop_macro("MemoryBarrier")
+#endif
 
 #endif // QT_NO_OPENGL && !QT_OPENGL_ES_2
 

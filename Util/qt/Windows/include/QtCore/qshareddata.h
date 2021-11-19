@@ -52,17 +52,21 @@ QT_BEGIN_NAMESPACE
 
 template <class T> class QSharedDataPointer;
 
-class Q_CORE_EXPORT QSharedData
+class
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+Q_CORE_EXPORT
+#endif
+QSharedData
 {
 public:
     mutable QAtomicInt ref;
 
-    inline QSharedData() : ref(0) { }
-    inline QSharedData(const QSharedData &) : ref(0) { }
+    inline QSharedData() noexcept : ref(0) { }
+    inline QSharedData(const QSharedData &) noexcept : ref(0) { }
 
-private:
     // using the assignment operator would lead to corruption in the ref-counting
-    QSharedData &operator=(const QSharedData &);
+    QSharedData &operator=(const QSharedData &) = delete;
+    ~QSharedData() = default;
 };
 
 template <class T> class QSharedDataPointer
@@ -71,7 +75,7 @@ public:
     typedef T Type;
     typedef T *pointer;
 
-    inline void detach() { if (d && d->ref.load() != 1) detach_helper(); }
+    inline void detach() { if (d && d->ref.loadRelaxed() != 1) detach_helper(); }
     inline T &operator*() { detach(); return *d; }
     inline const T &operator*() const { return *d; }
     inline T *operator->() { detach(); return d; }
@@ -85,10 +89,10 @@ public:
     inline bool operator==(const QSharedDataPointer<T> &other) const { return d == other.d; }
     inline bool operator!=(const QSharedDataPointer<T> &other) const { return d != other.d; }
 
-    inline QSharedDataPointer() { d = Q_NULLPTR; }
+    inline QSharedDataPointer() { d = nullptr; }
     inline ~QSharedDataPointer() { if (d && !d->ref.deref()) delete d; }
 
-    explicit QSharedDataPointer(T *data) Q_DECL_NOTHROW;
+    explicit QSharedDataPointer(T *data) noexcept;
     inline QSharedDataPointer(const QSharedDataPointer<T> &o) : d(o.d) { if (d) d->ref.ref(); }
     inline QSharedDataPointer<T> & operator=(const QSharedDataPointer<T> &o) {
         if (o.d != d) {
@@ -112,15 +116,17 @@ public:
         }
         return *this;
     }
-#ifdef Q_COMPILER_RVALUE_REFS
-    QSharedDataPointer(QSharedDataPointer &&o) Q_DECL_NOTHROW : d(o.d) { o.d = Q_NULLPTR; }
-    inline QSharedDataPointer<T> &operator=(QSharedDataPointer<T> &&other) Q_DECL_NOTHROW
-    { qSwap(d, other.d); return *this; }
-#endif
+    QSharedDataPointer(QSharedDataPointer &&o) noexcept : d(o.d) { o.d = nullptr; }
+    inline QSharedDataPointer<T> &operator=(QSharedDataPointer<T> &&other) noexcept
+    {
+        QSharedDataPointer moved(std::move(other));
+        swap(moved);
+        return *this;
+    }
 
     inline bool operator!() const { return !d; }
 
-    inline void swap(QSharedDataPointer &other) Q_DECL_NOTHROW
+    inline void swap(QSharedDataPointer &other) noexcept
     { qSwap(d, other.d); }
 
 protected:
@@ -131,6 +137,18 @@ private:
 
     T *d;
 };
+
+template <class T> inline bool operator==(std::nullptr_t p1, const QSharedDataPointer<T> &p2)
+{
+    Q_UNUSED(p1);
+    return !p2;
+}
+
+template <class T> inline bool operator==(const QSharedDataPointer<T> &p1, std::nullptr_t p2)
+{
+    Q_UNUSED(p2);
+    return !p1;
+}
 
 template <class T> class QExplicitlySharedDataPointer
 {
@@ -143,28 +161,29 @@ public:
     inline T *operator->() const { return d; }
     inline T *data() const { return d; }
     inline const T *constData() const { return d; }
+    inline T *take() { T *x = d; d = nullptr; return x; }
 
-    inline void detach() { if (d && d->ref.load() != 1) detach_helper(); }
+    inline void detach() { if (d && d->ref.loadRelaxed() != 1) detach_helper(); }
 
     inline void reset()
     {
         if(d && !d->ref.deref())
             delete d;
 
-        d = Q_NULLPTR;
+        d = nullptr;
     }
 
-    inline operator bool () const { return d != Q_NULLPTR; }
+    inline operator bool () const { return d != nullptr; }
 
     inline bool operator==(const QExplicitlySharedDataPointer<T> &other) const { return d == other.d; }
     inline bool operator!=(const QExplicitlySharedDataPointer<T> &other) const { return d != other.d; }
     inline bool operator==(const T *ptr) const { return d == ptr; }
     inline bool operator!=(const T *ptr) const { return d != ptr; }
 
-    inline QExplicitlySharedDataPointer() { d = Q_NULLPTR; }
+    inline QExplicitlySharedDataPointer() { d = nullptr; }
     inline ~QExplicitlySharedDataPointer() { if (d && !d->ref.deref()) delete d; }
 
-    explicit QExplicitlySharedDataPointer(T *data) Q_DECL_NOTHROW;
+    explicit QExplicitlySharedDataPointer(T *data) noexcept;
     inline QExplicitlySharedDataPointer(const QExplicitlySharedDataPointer<T> &o) : d(o.d) { if (d) d->ref.ref(); }
 
     template<class X>
@@ -201,15 +220,17 @@ public:
         }
         return *this;
     }
-#ifdef Q_COMPILER_RVALUE_REFS
-    inline QExplicitlySharedDataPointer(QExplicitlySharedDataPointer &&o) Q_DECL_NOTHROW : d(o.d) { o.d = Q_NULLPTR; }
-    inline QExplicitlySharedDataPointer<T> &operator=(QExplicitlySharedDataPointer<T> &&other) Q_DECL_NOTHROW
-    { qSwap(d, other.d); return *this; }
-#endif
+    inline QExplicitlySharedDataPointer(QExplicitlySharedDataPointer &&o) noexcept : d(o.d) { o.d = nullptr; }
+    inline QExplicitlySharedDataPointer<T> &operator=(QExplicitlySharedDataPointer<T> &&other) noexcept
+    {
+        QExplicitlySharedDataPointer moved(std::move(other));
+        swap(moved);
+        return *this;
+    }
 
     inline bool operator!() const { return !d; }
 
-    inline void swap(QExplicitlySharedDataPointer &other) Q_DECL_NOTHROW
+    inline void swap(QExplicitlySharedDataPointer &other) noexcept
     { qSwap(d, other.d); }
 
 protected:
@@ -222,7 +243,7 @@ private:
 };
 
 template <class T>
-Q_INLINE_TEMPLATE QSharedDataPointer<T>::QSharedDataPointer(T *adata) Q_DECL_NOTHROW
+Q_INLINE_TEMPLATE QSharedDataPointer<T>::QSharedDataPointer(T *adata) noexcept
     : d(adata)
 { if (d) d->ref.ref(); }
 
@@ -259,37 +280,37 @@ Q_OUTOFLINE_TEMPLATE void QExplicitlySharedDataPointer<T>::detach_helper()
 }
 
 template <class T>
-Q_INLINE_TEMPLATE QExplicitlySharedDataPointer<T>::QExplicitlySharedDataPointer(T *adata) Q_DECL_NOTHROW
+Q_INLINE_TEMPLATE QExplicitlySharedDataPointer<T>::QExplicitlySharedDataPointer(T *adata) noexcept
     : d(adata)
 { if (d) d->ref.ref(); }
 
-template <class T>
-Q_INLINE_TEMPLATE void qSwap(QSharedDataPointer<T> &p1, QSharedDataPointer<T> &p2)
-{ p1.swap(p2); }
-
-template <class T>
-Q_INLINE_TEMPLATE void qSwap(QExplicitlySharedDataPointer<T> &p1, QExplicitlySharedDataPointer<T> &p2)
-{ p1.swap(p2); }
-
-QT_END_NAMESPACE
-namespace std {
-    template <class T>
-    Q_INLINE_TEMPLATE void swap(QT_PREPEND_NAMESPACE(QSharedDataPointer)<T> &p1, QT_PREPEND_NAMESPACE(QSharedDataPointer)<T> &p2)
-    { p1.swap(p2); }
-
-    template <class T>
-    Q_INLINE_TEMPLATE void swap(QT_PREPEND_NAMESPACE(QExplicitlySharedDataPointer)<T> &p1, QT_PREPEND_NAMESPACE(QExplicitlySharedDataPointer)<T> &p2)
-    { p1.swap(p2); }
+template <class T> inline bool operator==(std::nullptr_t p1, const QExplicitlySharedDataPointer<T> &p2)
+{
+    Q_UNUSED(p1);
+    return !p2;
 }
-QT_BEGIN_NAMESPACE
+
+template <class T> inline bool operator==(const QExplicitlySharedDataPointer<T> &p1, std::nullptr_t p2)
+{
+    Q_UNUSED(p2);
+    return !p1;
+}
 
 template <class T>
-Q_INLINE_TEMPLATE uint qHash(const QSharedDataPointer<T> &ptr, uint seed = 0) Q_DECL_NOTHROW
+Q_INLINE_TEMPLATE void swap(QSharedDataPointer<T> &p1, QSharedDataPointer<T> &p2)
+{ p1.swap(p2); }
+
+template <class T>
+Q_INLINE_TEMPLATE void swap(QExplicitlySharedDataPointer<T> &p1, QExplicitlySharedDataPointer<T> &p2)
+{ p1.swap(p2); }
+
+template <class T>
+Q_INLINE_TEMPLATE uint qHash(const QSharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
     return qHash(ptr.data(), seed);
 }
 template <class T>
-Q_INLINE_TEMPLATE uint qHash(const QExplicitlySharedDataPointer<T> &ptr, uint seed = 0) Q_DECL_NOTHROW
+Q_INLINE_TEMPLATE uint qHash(const QExplicitlySharedDataPointer<T> &ptr, uint seed = 0) noexcept
 {
     return qHash(ptr.data(), seed);
 }

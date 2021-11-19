@@ -98,7 +98,7 @@ public:
     explicit QTextStream(const QByteArray &array, QIODevice::OpenMode openMode = QIODevice::ReadOnly);
     virtual ~QTextStream();
 
-#ifndef QT_NO_TEXTCODEC
+#if QT_CONFIG(textcodec)
     void setCodec(QTextCodec *codec);
     void setCodec(const char *codecName);
     QTextCodec *codec() const;
@@ -184,6 +184,7 @@ public:
     QTextStream &operator<<(float f);
     QTextStream &operator<<(double f);
     QTextStream &operator<<(const QString &s);
+    QTextStream &operator<<(QStringView s);
     QTextStream &operator<<(QLatin1String s);
     QTextStream &operator<<(const QStringRef &s);
     QTextStream &operator<<(const QByteArray &array);
@@ -212,8 +213,8 @@ typedef void (QTextStream::*QTSMFC)(QChar); // manipulator w/QChar argument
 class Q_CORE_EXPORT QTextStreamManipulator
 {
 public:
-    Q_DECL_CONSTEXPR QTextStreamManipulator(QTSMFI m, int a) Q_DECL_NOTHROW : mf(m), mc(Q_NULLPTR), arg(a), ch() {}
-    Q_DECL_CONSTEXPR QTextStreamManipulator(QTSMFC m, QChar c) Q_DECL_NOTHROW : mf(Q_NULLPTR), mc(m), arg(-1), ch(c) {}
+    Q_DECL_CONSTEXPR QTextStreamManipulator(QTSMFI m, int a) noexcept : mf(m), mc(nullptr), arg(a), ch() {}
+    Q_DECL_CONSTEXPR QTextStreamManipulator(QTSMFC m, QChar c) noexcept : mf(nullptr), mc(m), arg(-1), ch(c) {}
     void exec(QTextStream &s) { if (mf) { (s.*mf)(arg); } else { (s.*mc)(ch); } }
 
 private:
@@ -232,6 +233,7 @@ inline QTextStream &operator<<(QTextStream &s, QTextStreamFunction f)
 inline QTextStream &operator<<(QTextStream &s, QTextStreamManipulator m)
 { m.exec(s); return s; }
 
+namespace Qt {
 Q_CORE_EXPORT QTextStream &bin(QTextStream &s);
 Q_CORE_EXPORT QTextStream &oct(QTextStream &s);
 Q_CORE_EXPORT QTextStream &dec(QTextStream &s);
@@ -263,6 +265,45 @@ Q_CORE_EXPORT QTextStream &reset(QTextStream &s);
 Q_CORE_EXPORT QTextStream &bom(QTextStream &s);
 
 Q_CORE_EXPORT QTextStream &ws(QTextStream &s);
+
+} // namespace Qt
+
+#if QT_DEPRECATED_SINCE(5, 15)
+// This namespace only exists for 'using namespace' declarations.
+namespace QTextStreamFunctions {
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::bin") QTextStream &bin(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::oct") QTextStream &oct(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::dec") QTextStream &dec(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::hex") QTextStream &hex(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::showbase") QTextStream &showbase(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::forcesign") QTextStream &forcesign(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::forcepoint") QTextStream &forcepoint(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::noshowbase") QTextStream &noshowbase(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::noforcesign") QTextStream &noforcesign(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::noforcepoint") QTextStream &noforcepoint(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::uppercasebase") QTextStream &uppercasebase(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::uppercasedigits") QTextStream &uppercasedigits(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::lowercasebase") QTextStream &lowercasebase(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::lowercasedigits") QTextStream &lowercasedigits(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::fixed") QTextStream &fixed(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::scientific") QTextStream &scientific(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::left") QTextStream &left(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::right") QTextStream &right(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::center") QTextStream &center(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::endl") QTextStream &endl(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::flush") QTextStream &flush(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::reset") QTextStream &reset(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::bom") QTextStream &bom(QTextStream &s);
+Q_CORE_EXPORT QT_DEPRECATED_VERSION_X(5, 15, "Use Qt::ws") QTextStream &ws(QTextStream &s);
+} // namespace QTextStreamFunctions
+
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_CLANG("-Wheader-hygiene")
+// We use 'using namespace' as that doesn't cause
+// conflicting definitions compiler errors.
+using namespace QTextStreamFunctions;
+QT_WARNING_POP
+#endif // QT_DEPRECATED_SINCE(5, 15)
 
 inline QTextStreamManipulator qSetFieldWidth(int width)
 {

@@ -47,10 +47,9 @@
 #include <QtGui/qicon.h>
 #include <QtCore/qdiriterator.h>
 
+QT_REQUIRE_CONFIG(filesystemmodel);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_FILESYSTEMMODEL
 
 class ExtendedInformation;
 class QFileSystemModelPrivate;
@@ -62,6 +61,7 @@ class Q_WIDGETS_EXPORT QFileSystemModel : public QAbstractItemModel
     Q_PROPERTY(bool resolveSymlinks READ resolveSymlinks WRITE setResolveSymlinks)
     Q_PROPERTY(bool readOnly READ isReadOnly WRITE setReadOnly)
     Q_PROPERTY(bool nameFilterDisables READ nameFilterDisables WRITE setNameFilterDisables)
+    Q_PROPERTY(Options options READ options WRITE setOptions)
 
 Q_SIGNALS:
     void rootPathChanged(const QString &newPath);
@@ -76,36 +76,45 @@ public:
         FilePermissions = Qt::UserRole + 3
     };
 
-    explicit QFileSystemModel(QObject *parent = Q_NULLPTR);
+    enum Option
+    {
+        DontWatchForChanges         = 0x00000001,
+        DontResolveSymlinks         = 0x00000002,
+        DontUseCustomDirectoryIcons = 0x00000004
+    };
+    Q_ENUM(Option)
+    Q_DECLARE_FLAGS(Options, Option)
+
+    explicit QFileSystemModel(QObject *parent = nullptr);
     ~QFileSystemModel();
 
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
+    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex index(const QString &path, int column = 0) const;
-    QModelIndex parent(const QModelIndex &child) const Q_DECL_OVERRIDE;
+    QModelIndex parent(const QModelIndex &child) const override;
     using QObject::parent;
-    QModelIndex sibling(int row, int column, const QModelIndex &idx) const Q_DECL_OVERRIDE;
-    bool hasChildren(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
-    bool canFetchMore(const QModelIndex &parent) const Q_DECL_OVERRIDE;
-    void fetchMore(const QModelIndex &parent) Q_DECL_OVERRIDE;
+    QModelIndex sibling(int row, int column, const QModelIndex &idx) const override;
+    bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
+    bool canFetchMore(const QModelIndex &parent) const override;
+    void fetchMore(const QModelIndex &parent) override;
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
     QVariant myComputer(int role = Qt::DisplayRole) const;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const Q_DECL_OVERRIDE;
-    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) Q_DECL_OVERRIDE;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
-    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const Q_DECL_OVERRIDE;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) Q_DECL_OVERRIDE;
+    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
-    QStringList mimeTypes() const Q_DECL_OVERRIDE;
-    QMimeData *mimeData(const QModelIndexList &indexes) const Q_DECL_OVERRIDE;
+    QStringList mimeTypes() const override;
+    QMimeData *mimeData(const QModelIndexList &indexes) const override;
     bool dropMimeData(const QMimeData *data, Qt::DropAction action,
-                      int row, int column, const QModelIndex &parent) Q_DECL_OVERRIDE;
-    Qt::DropActions supportedDropActions() const Q_DECL_OVERRIDE;
+                      int row, int column, const QModelIndex &parent) override;
+    Qt::DropActions supportedDropActions() const override;
 
     // QFileSystemModel specific API
     QModelIndex setRootPath(const QString &path);
@@ -130,6 +139,11 @@ public:
     void setNameFilters(const QStringList &filters);
     QStringList nameFilters() const;
 
+    void setOption(Option option, bool on = true);
+    bool testOption(Option option) const;
+    void setOptions(Options options);
+    Options options() const;
+
     QString filePath(const QModelIndex &index) const;
     bool isDir(const QModelIndex &index) const;
     qint64 size(const QModelIndex &index) const;
@@ -145,9 +159,9 @@ public:
     bool remove(const QModelIndex &index);
 
 protected:
-    QFileSystemModel(QFileSystemModelPrivate &, QObject *parent = Q_NULLPTR);
-    void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
+    QFileSystemModel(QFileSystemModelPrivate &, QObject *parent = nullptr);
+    void timerEvent(QTimerEvent *event) override;
+    bool event(QEvent *event) override;
 
 private:
     Q_DECLARE_PRIVATE(QFileSystemModel)
@@ -166,9 +180,8 @@ inline QString QFileSystemModel::fileName(const QModelIndex &aindex) const
 inline QIcon QFileSystemModel::fileIcon(const QModelIndex &aindex) const
 { return qvariant_cast<QIcon>(aindex.data(Qt::DecorationRole)); }
 
-#endif // QT_NO_FILESYSTEMMODEL
+Q_DECLARE_OPERATORS_FOR_FLAGS(QFileSystemModel::Options)
 
 QT_END_NAMESPACE
 
 #endif // QFILESYSTEMMODEL_H
-

@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the QtCore module of the Qt Toolkit.
+** This file is part of the QtConcurrent module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -42,7 +42,7 @@
 
 #include <QtConcurrent/qtconcurrent_global.h>
 
-#ifndef QT_NO_CONCURRENT
+#if !defined(QT_NO_CONCURRENT) || defined(Q_CLANG_QDOC)
 
 #include <QtCore/qatomic.h>
 #include <QtConcurrent/qtconcurrentmedian.h>
@@ -53,7 +53,6 @@
 QT_BEGIN_NAMESPACE
 
 
-#ifndef Q_QDOC
 
 namespace QtConcurrent {
 
@@ -159,7 +158,7 @@ public:
     inline ResultReporter(ThreadEngine<void> *) { }
     inline void reserveSpace(int) { }
     inline void reportResults(int) { }
-    inline void * getPointer() { return Q_NULLPTR; }
+    inline void * getPointer() { return nullptr; }
 };
 
 inline bool selectIteration(std::bidirectional_iterator_tag)
@@ -207,9 +206,9 @@ public:
     bool shouldStartThread() override
     {
         if (forIteration)
-            return (currentIndex.load() < iterationCount) && !this->shouldThrottleThread();
+            return (currentIndex.loadRelaxed() < iterationCount) && !this->shouldThrottleThread();
         else // whileIteration
-            return (iteratorThreads.load() == 0);
+            return (iteratorThreads.loadRelaxed() == 0);
     }
 
     ThreadFunctionResult threadFunction() override
@@ -231,7 +230,7 @@ public:
 
             const int currentBlockSize = blockSizeManager.blockSize();
 
-            if (currentIndex.load() >= iterationCount)
+            if (currentIndex.loadRelaxed() >= iterationCount)
                 break;
 
             // Atomically reserve a block of iterationCount for this thread.
@@ -262,7 +261,7 @@ public:
             // Report progress if progress reporting enabled.
             if (progressReportingEnabled) {
                 completed.fetchAndAddAcquire(finalBlockSize);
-                this->setProgressValue(this->completed.load());
+                this->setProgressValue(this->completed.loadRelaxed());
             }
 
             if (this->shouldThrottleThread())
@@ -323,7 +322,6 @@ public:
 
 } // namespace QtConcurrent
 
-#endif //Q_QDOC
 
 QT_END_NAMESPACE
 

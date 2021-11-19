@@ -85,6 +85,7 @@ class QDragEnterEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
 class QDropEvent;
+class QScreen;
 class QShowEvent;
 class QHideEvent;
 class QIcon;
@@ -174,19 +175,19 @@ class Q_WIDGETS_EXPORT QWidget : public QObject, public QPaintDevice
     Q_PROPERTY(QSize sizeHint READ sizeHint)
     Q_PROPERTY(QSize minimumSizeHint READ minimumSizeHint)
     Q_PROPERTY(bool acceptDrops READ acceptDrops WRITE setAcceptDrops)
-    Q_PROPERTY(QString windowTitle READ windowTitle WRITE setWindowTitle NOTIFY windowTitleChanged DESIGNABLE isWindow)
-    Q_PROPERTY(QIcon windowIcon READ windowIcon WRITE setWindowIcon NOTIFY windowIconChanged DESIGNABLE isWindow)
-    Q_PROPERTY(QString windowIconText READ windowIconText WRITE setWindowIconText NOTIFY windowIconTextChanged DESIGNABLE isWindow) // deprecated
-    Q_PROPERTY(double windowOpacity READ windowOpacity WRITE setWindowOpacity DESIGNABLE isWindow)
-    Q_PROPERTY(bool windowModified READ isWindowModified WRITE setWindowModified DESIGNABLE isWindow)
+    Q_PROPERTY(QString windowTitle READ windowTitle WRITE setWindowTitle NOTIFY windowTitleChanged)
+    Q_PROPERTY(QIcon windowIcon READ windowIcon WRITE setWindowIcon NOTIFY windowIconChanged)
+    Q_PROPERTY(QString windowIconText READ windowIconText WRITE setWindowIconText NOTIFY windowIconTextChanged) // deprecated
+    Q_PROPERTY(double windowOpacity READ windowOpacity WRITE setWindowOpacity)
+    Q_PROPERTY(bool windowModified READ isWindowModified WRITE setWindowModified)
 #ifndef QT_NO_TOOLTIP
     Q_PROPERTY(QString toolTip READ toolTip WRITE setToolTip)
     Q_PROPERTY(int toolTipDuration READ toolTipDuration WRITE setToolTipDuration)
 #endif
-#ifndef QT_NO_STATUSTIP
+#if QT_CONFIG(statustip)
     Q_PROPERTY(QString statusTip READ statusTip WRITE setStatusTip)
 #endif
-#ifndef QT_NO_WHATSTHIS
+#if QT_CONFIG(whatsthis)
     Q_PROPERTY(QString whatsThis READ whatsThis WRITE setWhatsThis)
 #endif
 #ifndef QT_NO_ACCESSIBILITY
@@ -200,7 +201,7 @@ class Q_WIDGETS_EXPORT QWidget : public QObject, public QPaintDevice
     Q_PROPERTY(QString styleSheet READ styleSheet WRITE setStyleSheet)
 #endif
     Q_PROPERTY(QLocale locale READ locale WRITE setLocale RESET unsetLocale)
-    Q_PROPERTY(QString windowFilePath READ windowFilePath WRITE setWindowFilePath DESIGNABLE isWindow)
+    Q_PROPERTY(QString windowFilePath READ windowFilePath WRITE setWindowFilePath)
     Q_PROPERTY(Qt::InputMethodHints inputMethodHints READ inputMethodHints WRITE setInputMethodHints)
 
 public:
@@ -211,10 +212,10 @@ public:
     };
     Q_DECLARE_FLAGS(RenderFlags, RenderFlag)
 
-    explicit QWidget(QWidget* parent = Q_NULLPTR, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     ~QWidget();
 
-    int devType() const Q_DECL_OVERRIDE;
+    int devType() const override;
 
     WId winId() const;
     void createWinId(); // internal, going away
@@ -235,7 +236,10 @@ public:
 
     bool isEnabled() const;
     bool isEnabledTo(const QWidget *) const;
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X ("Use isEnabled() instead")
     bool isEnabledToTLW() const;
+#endif
 
 public Q_SLOTS:
     void setEnabled(bool);
@@ -347,10 +351,10 @@ public:
 
     Q_INVOKABLE QPixmap grab(const QRect &rectangle = QRect(QPoint(0, 0), QSize(-1, -1)));
 
-#ifndef QT_NO_GRAPHICSEFFECT
+#if QT_CONFIG(graphicseffect)
     QGraphicsEffect *graphicsEffect() const;
     void setGraphicsEffect(QGraphicsEffect *effect);
-#endif //QT_NO_GRAPHICSEFFECT
+#endif // QT_CONFIG(graphicseffect)
 
 #ifndef QT_NO_GESTURES
     void grabGesture(Qt::GestureType type, Qt::GestureFlags flags = Qt::GestureFlags());
@@ -386,11 +390,11 @@ public:
     void setToolTipDuration(int msec);
     int toolTipDuration() const;
 #endif
-#ifndef QT_NO_STATUSTIP
+#if QT_CONFIG(statustip)
     void setStatusTip(const QString &);
     QString statusTip() const;
 #endif
-#ifndef QT_NO_WHATSTHIS
+#if QT_CONFIG(whatsthis)
     void setWhatsThis(const QString &);
     QString whatsThis() const;
 #endif
@@ -451,7 +455,7 @@ public:
     inline bool updatesEnabled() const;
     void setUpdatesEnabled(bool enable);
 
-#ifndef QT_NO_GRAPHICSVIEW
+#if QT_CONFIG(graphicsview)
     QGraphicsProxyWidget *graphicsProxyWidget() const;
 #endif
 
@@ -521,7 +525,10 @@ public:
 
     void setContentsMargins(int left, int top, int right, int bottom);
     void setContentsMargins(const QMargins &margins);
+#if QT_DEPRECATED_SINCE(5, 14)
+    QT_DEPRECATED_X("use contentsMargins()")
     void getContentsMargins(int *left, int *top, int *right, int *bottom) const;
+#endif
     QMargins contentsMargins() const;
 
     QRect contentsRect() const;
@@ -552,7 +559,7 @@ public:
     void addAction(QAction *action);
 #if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
     void addActions(const QList<QAction*> &actions);
-    void insertActions(const QAction *before, const QList<QAction*> &actions);
+    void insertActions(QAction *before, const QList<QAction*> &actions);
 #else
     void addActions(QList<QAction*> actions);
     void insertActions(QAction *before, QList<QAction*> actions);
@@ -578,7 +585,7 @@ public:
     void setAttribute(Qt::WidgetAttribute, bool on = true);
     inline bool testAttribute(Qt::WidgetAttribute) const;
 
-    QPaintEngine *paintEngine() const Q_DECL_OVERRIDE;
+    QPaintEngine *paintEngine() const override;
 
     void ensurePolished() const;
 
@@ -595,8 +602,9 @@ public:
     QBackingStore *backingStore() const;
 
     QWindow *windowHandle() const;
+    QScreen *screen() const;
 
-    static QWidget *createWindowContainer(QWindow *window, QWidget *parent=Q_NULLPTR, Qt::WindowFlags flags=Qt::WindowFlags());
+    static QWidget *createWindowContainer(QWindow *window, QWidget *parent=nullptr, Qt::WindowFlags flags=Qt::WindowFlags());
 
     friend class QDesktopScreenWidget;
 
@@ -608,12 +616,12 @@ Q_SIGNALS:
 
 protected:
     // Event handlers
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
+    bool event(QEvent *event) override;
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
     virtual void mouseDoubleClickEvent(QMouseEvent *event);
     virtual void mouseMoveEvent(QMouseEvent *event);
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
     virtual void wheelEvent(QWheelEvent *event);
 #endif
     virtual void keyPressEvent(QKeyEvent *event);
@@ -629,14 +637,14 @@ protected:
 #ifndef QT_NO_CONTEXTMENU
     virtual void contextMenuEvent(QContextMenuEvent *event);
 #endif
-#ifndef QT_NO_TABLETEVENT
+#if QT_CONFIG(tabletevent)
     virtual void tabletEvent(QTabletEvent *event);
 #endif
 #ifndef QT_NO_ACTION
     virtual void actionEvent(QActionEvent *event);
 #endif
 
-#ifndef QT_NO_DRAGANDDROP
+#if QT_CONFIG(draganddrop)
     virtual void dragEnterEvent(QDragEnterEvent *event);
     virtual void dragMoveEvent(QDragMoveEvent *event);
     virtual void dragLeaveEvent(QDragLeaveEvent *event);
@@ -645,15 +653,20 @@ protected:
 
     virtual void showEvent(QShowEvent *event);
     virtual void hideEvent(QHideEvent *event);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    virtual bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
+#else
     virtual bool nativeEvent(const QByteArray &eventType, void *message, long *result);
+#endif
 
     // Misc. protected functions
     virtual void changeEvent(QEvent *);
 
-    int metric(PaintDeviceMetric) const Q_DECL_OVERRIDE;
-    void initPainter(QPainter *painter) const Q_DECL_OVERRIDE;
-    QPaintDevice *redirected(QPoint *offset) const Q_DECL_OVERRIDE;
-    QPainter *sharedPainter() const Q_DECL_OVERRIDE;
+    int metric(PaintDeviceMetric) const override;
+    void initPainter(QPainter *painter) const override;
+    QPaintDevice *redirected(QPoint *offset) const override;
+    QPainter *sharedPainter() const override;
 
     virtual void inputMethodEvent(QInputMethodEvent *);
 public:
@@ -686,7 +699,7 @@ private:
     QLayout *takeLayout();
 
     friend class QBackingStoreDevice;
-    friend class QWidgetBackingStore;
+    friend class QWidgetRepaintManager;
     friend class QApplication;
     friend class QApplicationPrivate;
     friend class QGuiApplication;
@@ -714,6 +727,7 @@ private:
     friend class QWidgetWindow;
     friend class QAccessibleWidget;
     friend class QAccessibleTable;
+    friend class QAccessibleTabButton;
 #ifndef QT_NO_GESTURES
     friend class QGestureManager;
     friend class QWinNativePanGestureRecognizer;
@@ -738,12 +752,12 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QWidget::RenderFlags)
 #ifndef Q_QDOC
 template <> inline QWidget *qobject_cast<QWidget*>(QObject *o)
 {
-    if (!o || !o->isWidgetType()) return Q_NULLPTR;
+    if (!o || !o->isWidgetType()) return nullptr;
     return static_cast<QWidget*>(o);
 }
 template <> inline const QWidget *qobject_cast<const QWidget*>(const QObject *o)
 {
-    if (!o || !o->isWidgetType()) return Q_NULLPTR;
+    if (!o || !o->isWidgetType()) return nullptr;
     return static_cast<const QWidget*>(o);
 }
 #endif // !Q_QDOC
@@ -768,8 +782,10 @@ inline bool QWidget::isEnabled() const
 inline bool QWidget::isModal() const
 { return data->window_modality != Qt::NonModal; }
 
+#if QT_DEPRECATED_SINCE(5, 13)
 inline bool QWidget::isEnabledToTLW() const
 { return isEnabled(); }
+#endif
 
 inline int QWidget::minimumWidth() const
 { return minimumSize().width(); }

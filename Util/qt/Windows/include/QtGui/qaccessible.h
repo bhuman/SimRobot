@@ -280,7 +280,7 @@ public:
         HotkeyField    = 0x00000032,
         Slider         = 0x00000033,
         SpinBox        = 0x00000034,
-        Canvas         = 0x00000035, // Diagram for MSAA
+        Canvas         = 0x00000035, // MSAA: ROLE_SYSTEM_DIAGRAM - The object represents a graphical image that is used to diagram data.
         Animation      = 0x00000036,
         Equation       = 0x00000037,
         ButtonDropDown = 0x00000038, // The object represents a button that expands a grid.
@@ -299,9 +299,10 @@ public:
         Paragraph      = 0x00000083,
         WebDocument    = 0x00000084,
         Section        = 0x00000085,
+        Notification   = 0x00000086,
 
         // IAccessible2 roles
-        // IA2_ROLE_CANVAS = 0x401, ### Qt 6 use this one instead of Canvas above
+        // IA2_ROLE_CANVAS = 0x401, // An object that can be drawn into and to manage events from the objects drawn into it
         // IA2_ROLE_CAPTION = 0x402,
         // IA2_ROLE_CHECK_MENU_ITEM = 0x403,
         ColorChooser = 0x404,
@@ -511,7 +512,7 @@ public:
     virtual void virtual_hook(int id, void *data);
 
     virtual void *interface_cast(QAccessible::InterfaceType)
-    { return Q_NULLPTR; }
+    { return nullptr; }
 
 protected:
     friend class QAccessibleCache;
@@ -682,7 +683,7 @@ public:
     }
 
     inline QAccessibleEvent(QAccessibleInterface *iface, QAccessible::Event typ)
-        : m_type(typ), m_object(Q_NULLPTR)
+        : m_type(typ), m_object(nullptr)
     {
         Q_ASSERT(iface);
         Q_ASSERT(m_type != QAccessible::ValueChanged);
@@ -966,8 +967,10 @@ protected:
     int m_lastColumn;
 };
 
+#ifndef Q_CLANG_QDOC
 #define QAccessibleInterface_iid "org.qt-project.Qt.QAccessibleInterface"
 Q_DECLARE_INTERFACE(QAccessibleInterface, QAccessibleInterface_iid)
+#endif
 
 Q_GUI_EXPORT const char *qAccessibleRoleString(QAccessible::Role role);
 Q_GUI_EXPORT const char *qAccessibleEventString(QAccessible::Event event);

@@ -1,6 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -41,8 +42,21 @@
 #define QTHREAD_H
 
 #include <QtCore/qobject.h>
+#include <QtCore/qdeadlinetimer.h>
 
-#include <limits.h>
+// For QThread::create. The configure-time test just checks for the availability
+// of std::future and std::async; for the C++17 codepath we perform some extra
+// checks here (for std::invoke and C++14 lambdas).
+#if QT_CONFIG(cxx11_future)
+#  include <future> // for std::async
+#  include <functional> // for std::invoke; no guard needed as it's a C++98 header
+
+#  if defined(__cpp_lib_invoke) && __cpp_lib_invoke >= 201411 \
+      && defined(__cpp_init_captures) && __cpp_init_captures >= 201304 \
+      && defined(__cpp_generic_lambdas) &&  __cpp_generic_lambdas >= 201304
+#    define QTHREAD_HAS_VARIADIC_CREATE
+#  endif
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -51,17 +65,16 @@ class QThreadData;
 class QThreadPrivate;
 class QAbstractEventDispatcher;
 
-#ifndef QT_NO_THREAD
 class Q_CORE_EXPORT QThread : public QObject
 {
     Q_OBJECT
 public:
-    static Qt::HANDLE currentThreadId() Q_DECL_NOTHROW Q_DECL_PURE_FUNCTION;
+    static Qt::HANDLE currentThreadId() noexcept Q_DECL_PURE_FUNCTION;
     static QThread *currentThread();
-    static int idealThreadCount() Q_DECL_NOTHROW;
+    static int idealThreadCount() noexcept;
     static void yieldCurrentThread();
 
-    explicit QThread(QObject *parent = Q_NULLPTR);
+    explicit QThread(QObject *parent = nullptr);
     ~QThread();
 
     enum Priority {
@@ -95,8 +108,25 @@ public:
     QAbstractEventDispatcher *eventDispatcher() const;
     void setEventDispatcher(QAbstractEventDispatcher *eventDispatcher);
 
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
+    bool event(QEvent *event) override;
     int loopLevel() const;
+
+#ifdef Q_CLANG_QDOC
+    template <typename Function, typename... Args>
+    static QThread *create(Function &&f, Args &&... args);
+    template <typename Function>
+    static QThread *create(Function &&f);
+#else
+#  if QT_CONFIG(cxx11_future)
+#    ifdef QTHREAD_HAS_VARIADIC_CREATE
+    template <typename Function, typename... Args>
+    static QThread *create(Function &&f, Args &&... args);
+#    else
+    template <typename Function>
+    static QThread *create(Function &&f);
+#    endif // QTHREAD_HAS_VARIADIC_CREATE
+#  endif // QT_CONFIG(cxx11_future)
+#endif // Q_CLANG_QDOC
 
 public Q_SLOTS:
     void start(Priority = InheritPriority);
@@ -104,8 +134,9 @@ public Q_SLOTS:
     void quit();
 
 public:
-    // default argument causes thread to block indefinetely
-    bool wait(unsigned long time = ULONG_MAX);
+    bool wait(QDeadlineTimer deadline = QDeadlineTimer(QDeadlineTimer::Forever));
+    // ### Qt6 inline this function
+    bool wait(unsigned long time);
 
     static void sleep(unsigned long);
     static void msleep(unsigned long);
@@ -122,37 +153,88 @@ protected:
     static void setTerminationEnabled(bool enabled = true);
 
 protected:
-    QThread(QThreadPrivate &dd, QObject *parent = Q_NULLPTR);
-
-private:
-    Q_DECLARE_PRIVATE(QThread)
-
-    friend class QCoreApplication;
-    friend class QThreadData;
-};
-
-#else // QT_NO_THREAD
-
-class Q_CORE_EXPORT QThread : public QObject
-{
-public:
-    static Qt::HANDLE currentThreadId() { return Qt::HANDLE(currentThread()); }
-    static QThread* currentThread();
-
-protected:
     QThread(QThreadPrivate &dd, QObject *parent = nullptr);
 
 private:
-    explicit QThread(QObject *parent = nullptr);
-    static QThread *instance;
+    Q_DECLARE_PRIVATE(QThread)
+
+#if QT_CONFIG(cxx11_future)
+    static QThread *createThreadImpl(std::future<void> &&future);
+#endif
 
     friend class QCoreApplication;
     friend class QThreadData;
-    friend class QAdoptedThread;
-    Q_DECLARE_PRIVATE(QThread)
 };
 
-#endif // QT_NO_THREAD
+#if QT_CONFIG(cxx11_future)
+
+#if defined(QTHREAD_HAS_VARIADIC_CREATE) || defined(Q_CLANG_QDOC)
+// C++17: std::thread's constructor complying call
+template <typename Function, typename... Args>
+QThread *QThread::create(Function &&f, Args &&... args)
+{
+    using DecayedFunction = typename std::decay<Function>::type;
+    auto threadFunction =
+        [f = static_cast<DecayedFunction>(std::forward<Function>(f))](auto &&... largs) mutable -> void
+        {
+            (void)std::invoke(std::move(f), std::forward<decltype(largs)>(largs)...);
+        };
+
+    return createThreadImpl(std::async(std::launch::deferred,
+                                       std::move(threadFunction),
+                                       std::forward<Args>(args)...));
+}
+#elif defined(__cpp_init_captures) && __cpp_init_captures >= 201304
+// C++14: implementation for just one callable
+template <typename Function>
+QThread *QThread::create(Function &&f)
+{
+    using DecayedFunction = typename std::decay<Function>::type;
+    auto threadFunction =
+        [f = static_cast<DecayedFunction>(std::forward<Function>(f))]() mutable -> void
+        {
+            (void)f();
+        };
+
+    return createThreadImpl(std::async(std::launch::deferred, std::move(threadFunction)));
+}
+#else
+// C++11: same as C++14, but with a workaround for not having generalized lambda captures
+namespace QtPrivate {
+template <typename Function>
+struct Callable
+{
+    explicit Callable(Function &&f)
+        : m_function(std::forward<Function>(f))
+    {
+    }
+
+    // Apply the same semantics of a lambda closure type w.r.t. the special
+    // member functions, if possible: delete the copy assignment operator,
+    // bring back all the others as per the RO5 (cf. §8.1.5.1/11 [expr.prim.lambda.closure])
+    ~Callable() = default;
+    Callable(const Callable &) = default;
+    Callable(Callable &&) = default;
+    Callable &operator=(const Callable &) = delete;
+    Callable &operator=(Callable &&) = default;
+
+    void operator()()
+    {
+        (void)m_function();
+    }
+
+    typename std::decay<Function>::type m_function;
+};
+} // namespace QtPrivate
+
+template <typename Function>
+QThread *QThread::create(Function &&f)
+{
+    return createThreadImpl(std::async(std::launch::deferred, QtPrivate::Callable<Function>(std::forward<Function>(f))));
+}
+#endif // QTHREAD_HAS_VARIADIC_CREATE
+
+#endif // QT_CONFIG(cxx11_future)
 
 QT_END_NAMESPACE
 

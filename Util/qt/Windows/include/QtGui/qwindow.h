@@ -71,11 +71,11 @@ class QShowEvent;
 class QHideEvent;
 class QKeyEvent;
 class QMouseEvent;
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
 class QWheelEvent;
 #endif
 class QTouchEvent;
-#ifndef QT_NO_TABLETEVENT
+#if QT_CONFIG(tabletevent)
 class QTabletEvent;
 #endif
 
@@ -87,6 +87,9 @@ class QAccessibleInterface;
 class QWindowContainer;
 #ifndef QT_NO_DEBUG_STREAM
 class QDebug;
+#endif
+#if QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+class QVulkanInstance;
 #endif
 
 class Q_GUI_EXPORT QWindow : public QObject, public QSurface
@@ -120,6 +123,7 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
     Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged REVISION 1)
     Q_PROPERTY(Qt::ScreenOrientation contentOrientation READ contentOrientation WRITE reportContentOrientationChange NOTIFY contentOrientationChanged)
     Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged REVISION 1)
+    Q_PRIVATE_PROPERTY(QWindow::d_func(), QWindow* transientParent MEMBER transientParent WRITE setTransientParent NOTIFY transientParentChanged REVISION 13)
 
 public:
     enum Visibility {
@@ -138,12 +142,12 @@ public:
     };
     Q_ENUM(AncestorMode)
 
-    explicit QWindow(QScreen *screen = Q_NULLPTR);
+    explicit QWindow(QScreen *screen = nullptr);
     explicit QWindow(QWindow *parent);
-    virtual ~QWindow();
+    ~QWindow();
 
     void setSurfaceType(SurfaceType surfaceType);
-    SurfaceType surfaceType() const Q_DECL_OVERRIDE;
+    SurfaceType surfaceType() const override;
 
     bool isVisible() const;
 
@@ -165,7 +169,7 @@ public:
     void setModality(Qt::WindowModality modality);
 
     void setFormat(const QSurfaceFormat &format);
-    QSurfaceFormat format() const Q_DECL_OVERRIDE;
+    QSurfaceFormat format() const override;
     QSurfaceFormat requestedFormat() const;
 
     void setFlags(Qt::WindowFlags flags);
@@ -189,7 +193,9 @@ public:
     qreal devicePixelRatio() const;
 
     Qt::WindowState windowState() const;
+    Qt::WindowStates windowStates() const;
     void setWindowState(Qt::WindowState state);
+    void setWindowStates(Qt::WindowStates states);
 
     void setTransientParent(QWindow *parent);
     QWindow *transientParent() const;
@@ -213,8 +219,6 @@ public:
     void setBaseSize(const QSize &size);
     void setSizeIncrement(const QSize &size);
 
-    void setGeometry(int posx, int posy, int w, int h);
-    void setGeometry(const QRect &rect);
     QRect geometry() const;
 
     QMargins frameMargins() const;
@@ -228,7 +232,7 @@ public:
     inline int x() const { return geometry().x(); }
     inline int y() const { return geometry().y(); }
 
-    QSize size() const Q_DECL_OVERRIDE { return geometry().size(); }
+    QSize size() const override { return geometry().size(); }
     inline QPoint position() const { return geometry().topLeft(); }
 
     void setPosition(const QPoint &pt);
@@ -267,6 +271,11 @@ public:
 
     static QWindow *fromWinId(WId id);
 
+#if QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+    void setVulkanInstance(QVulkanInstance *instance);
+    QVulkanInstance *vulkanInstance() const;
+#endif
+
 public Q_SLOTS:
     Q_REVISION(1) void requestActivate();
 
@@ -283,6 +292,8 @@ public Q_SLOTS:
     bool close();
     void raise();
     void lower();
+    bool startSystemResize(Qt::Edges edges);
+    bool startSystemMove();
 
     void setTitle(const QString &);
 
@@ -290,6 +301,8 @@ public Q_SLOTS:
     void setY(int arg);
     void setWidth(int arg);
     void setHeight(int arg);
+    void setGeometry(int posx, int posy, int w, int h);
+    void setGeometry(const QRect &rect);
 
     void setMinimumWidth(int w);
     void setMinimumHeight(int h);
@@ -326,6 +339,8 @@ Q_SIGNALS:
 
     Q_REVISION(1) void opacityChanged(qreal opacity);
 
+    Q_REVISION(13) void transientParentChanged(QWindow *transientParent);
+
 protected:
     virtual void exposeEvent(QExposeEvent *);
     virtual void resizeEvent(QResizeEvent *);
@@ -337,27 +352,31 @@ protected:
     virtual void hideEvent(QHideEvent *);
     // TODO Qt 6 - add closeEvent virtual handler
 
-    virtual bool event(QEvent *) Q_DECL_OVERRIDE;
+    virtual bool event(QEvent *) override;
     virtual void keyPressEvent(QKeyEvent *);
     virtual void keyReleaseEvent(QKeyEvent *);
     virtual void mousePressEvent(QMouseEvent *);
     virtual void mouseReleaseEvent(QMouseEvent *);
     virtual void mouseDoubleClickEvent(QMouseEvent *);
     virtual void mouseMoveEvent(QMouseEvent *);
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
     virtual void wheelEvent(QWheelEvent *);
 #endif
     virtual void touchEvent(QTouchEvent *);
-#ifndef QT_NO_TABLETEVENT
+#if QT_CONFIG(tabletevent)
     virtual void tabletEvent(QTabletEvent *);
 #endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    virtual bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
+#else
     virtual bool nativeEvent(const QByteArray &eventType, void *message, long *result);
+#endif
 
     QWindow(QWindowPrivate &dd, QWindow *parent);
 
 private:
     Q_PRIVATE_SLOT(d_func(), void _q_clearAlert())
-    QPlatformSurface *surfaceHandle() const Q_DECL_OVERRIDE;
+    QPlatformSurface *surfaceHandle() const override;
 
     Q_DISABLE_COPY(QWindow)
 
@@ -368,14 +387,15 @@ private:
 };
 
 #ifndef Q_QDOC
+// should these be seen by clang-qdoc?
 template <> inline QWindow *qobject_cast<QWindow*>(QObject *o)
 {
-    if (!o || !o->isWindowType()) return Q_NULLPTR;
+    if (!o || !o->isWindowType()) return nullptr;
     return static_cast<QWindow*>(o);
 }
 template <> inline const QWindow *qobject_cast<const QWindow*>(const QObject *o)
 {
-    if (!o || !o->isWindowType()) return Q_NULLPTR;
+    if (!o || !o->isWindowType()) return nullptr;
     return static_cast<const QWindow*>(o);
 }
 #endif // !Q_QDOC

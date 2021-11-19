@@ -41,13 +41,11 @@
 #define QWIZARD_H
 
 #include <QtWidgets/qtwidgetsglobal.h>
-
-#ifndef QT_NO_WIZARD
-
 #include <QtWidgets/qdialog.h>
 
-QT_BEGIN_NAMESPACE
+QT_REQUIRE_CONFIG(wizard);
 
+QT_BEGIN_NAMESPACE
 
 class QAbstractButton;
 class QWizardPage;
@@ -122,7 +120,7 @@ public:
     Q_DECLARE_FLAGS(WizardOptions, WizardOption)
     Q_FLAG(WizardOptions)
 
-    explicit QWizard(QWidget *parent = Q_NULLPTR, Qt::WindowFlags flags = Qt::WindowFlags());
+    explicit QWizard(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
     ~QWizard();
 
     int addPage(QWizardPage *page);
@@ -130,7 +128,10 @@ public:
     void removePage(int id);
     QWizardPage *page(int id) const;
     bool hasVisitedPage(int id) const;
-    QList<int> visitedPages() const;    // ### Qt 6: visitedIds()?
+#if QT_DEPRECATED_SINCE(5, 15)
+    QT_DEPRECATED_VERSION_X_5_15("Use visitedIds() instead") QList<int> visitedPages() const;
+#endif
+    QList<int> visitedIds() const;
     QList<int> pageIds() const;
     void setStartId(int id);
     int startId() const;
@@ -170,8 +171,8 @@ public:
     void setDefaultProperty(const char *className, const char *property,
                             const char *changedSignal);
 
-    void setVisible(bool visible) Q_DECL_OVERRIDE;
-    QSize sizeHint() const Q_DECL_OVERRIDE;
+    void setVisible(bool visible) override;
+    QSize sizeHint() const override;
 
 Q_SIGNALS:
     void currentIdChanged(int id);
@@ -186,13 +187,17 @@ public Q_SLOTS:
     void restart();
 
 protected:
-    bool event(QEvent *event) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
+    bool event(QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 #if defined(Q_OS_WIN) || defined(Q_CLANG_QDOC)
-    bool nativeEvent(const QByteArray &eventType, void *message, long *result) Q_DECL_OVERRIDE;
+#  if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
+#  else
+    bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
+#  endif
 #endif
-    void done(int result) Q_DECL_OVERRIDE;
+    void done(int result) override;
     virtual void initializePage(int id);
     virtual void cleanupPage(int id);
 
@@ -217,7 +222,7 @@ class Q_WIDGETS_EXPORT QWizardPage : public QWidget
     Q_PROPERTY(QString subTitle READ subTitle WRITE setSubTitle)
 
 public:
-    explicit QWizardPage(QWidget *parent = Q_NULLPTR);
+    explicit QWizardPage(QWidget *parent = nullptr);
     ~QWizardPage();
 
     void setTitle(const QString &title);
@@ -245,8 +250,8 @@ Q_SIGNALS:
 protected:
     void setField(const QString &name, const QVariant &value);
     QVariant field(const QString &name) const;
-    void registerField(const QString &name, QWidget *widget, const char *property = Q_NULLPTR,
-                       const char *changedSignal = Q_NULLPTR);
+    void registerField(const QString &name, QWidget *widget, const char *property = nullptr,
+                       const char *changedSignal = nullptr);
     QWizard *wizard() const;
 
 private:
@@ -260,7 +265,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-#endif // QT_NO_WIZARD
 
 #endif // QWIZARD_H

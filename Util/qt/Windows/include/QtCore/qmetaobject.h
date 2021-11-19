@@ -54,7 +54,7 @@ template <typename T> class QList;
 class Q_CORE_EXPORT QMetaMethod
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaMethod() : mobj(Q_NULLPTR), handle(0) {}
+    Q_DECL_CONSTEXPR inline QMetaMethod() : mobj(nullptr), handle(0) {}
 
     QByteArray methodSignature() const;
     QByteArray name() const;
@@ -80,7 +80,7 @@ public:
     bool invoke(QObject *object,
                 Qt::ConnectionType connectionType,
                 QGenericReturnArgument returnValue,
-                QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
+                QGenericArgument val0 = QGenericArgument(nullptr),
                 QGenericArgument val1 = QGenericArgument(),
                 QGenericArgument val2 = QGenericArgument(),
                 QGenericArgument val3 = QGenericArgument(),
@@ -92,7 +92,7 @@ public:
                 QGenericArgument val9 = QGenericArgument()) const;
     inline bool invoke(QObject *object,
                        QGenericReturnArgument returnValue,
-                       QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
+                       QGenericArgument val0 = QGenericArgument(nullptr),
                        QGenericArgument val1 = QGenericArgument(),
                        QGenericArgument val2 = QGenericArgument(),
                        QGenericArgument val3 = QGenericArgument(),
@@ -108,7 +108,7 @@ public:
     }
     inline bool invoke(QObject *object,
                        Qt::ConnectionType connectionType,
-                       QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
+                       QGenericArgument val0 = QGenericArgument(nullptr),
                        QGenericArgument val1 = QGenericArgument(),
                        QGenericArgument val2 = QGenericArgument(),
                        QGenericArgument val3 = QGenericArgument(),
@@ -123,7 +123,7 @@ public:
                       val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
     }
     inline bool invoke(QObject *object,
-                       QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
+                       QGenericArgument val0 = QGenericArgument(nullptr),
                        QGenericArgument val1 = QGenericArgument(),
                        QGenericArgument val2 = QGenericArgument(),
                        QGenericArgument val3 = QGenericArgument(),
@@ -137,36 +137,35 @@ public:
         return invoke(object, Qt::AutoConnection, QGenericReturnArgument(),
                       val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
     }
-
     bool invokeOnGadget(void *gadget,
-                QGenericReturnArgument returnValue,
-                QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
-                QGenericArgument val1 = QGenericArgument(),
-                QGenericArgument val2 = QGenericArgument(),
-                QGenericArgument val3 = QGenericArgument(),
-                QGenericArgument val4 = QGenericArgument(),
-                QGenericArgument val5 = QGenericArgument(),
-                QGenericArgument val6 = QGenericArgument(),
-                QGenericArgument val7 = QGenericArgument(),
-                QGenericArgument val8 = QGenericArgument(),
-                QGenericArgument val9 = QGenericArgument()) const;
+                        QGenericReturnArgument returnValue,
+                        QGenericArgument val0 = QGenericArgument(nullptr),
+                        QGenericArgument val1 = QGenericArgument(),
+                        QGenericArgument val2 = QGenericArgument(),
+                        QGenericArgument val3 = QGenericArgument(),
+                        QGenericArgument val4 = QGenericArgument(),
+                        QGenericArgument val5 = QGenericArgument(),
+                        QGenericArgument val6 = QGenericArgument(),
+                        QGenericArgument val7 = QGenericArgument(),
+                        QGenericArgument val8 = QGenericArgument(),
+                        QGenericArgument val9 = QGenericArgument()) const;
     inline bool invokeOnGadget(void *gadget,
-                       QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
-                       QGenericArgument val1 = QGenericArgument(),
-                       QGenericArgument val2 = QGenericArgument(),
-                       QGenericArgument val3 = QGenericArgument(),
-                       QGenericArgument val4 = QGenericArgument(),
-                       QGenericArgument val5 = QGenericArgument(),
-                       QGenericArgument val6 = QGenericArgument(),
-                       QGenericArgument val7 = QGenericArgument(),
-                       QGenericArgument val8 = QGenericArgument(),
-                       QGenericArgument val9 = QGenericArgument()) const
+                               QGenericArgument val0 = QGenericArgument(nullptr),
+                               QGenericArgument val1 = QGenericArgument(),
+                               QGenericArgument val2 = QGenericArgument(),
+                               QGenericArgument val3 = QGenericArgument(),
+                               QGenericArgument val4 = QGenericArgument(),
+                               QGenericArgument val5 = QGenericArgument(),
+                               QGenericArgument val6 = QGenericArgument(),
+                               QGenericArgument val7 = QGenericArgument(),
+                               QGenericArgument val8 = QGenericArgument(),
+                               QGenericArgument val9 = QGenericArgument()) const
     {
         return invokeOnGadget(gadget, QGenericReturnArgument(),
-                      val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
+                              val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
     }
 
-    inline bool isValid() const { return mobj != Q_NULLPTR; }
+    inline bool isValid() const { return mobj != nullptr; }
 
     template <typename PointerToMemberFunction>
     static inline QMetaMethod fromSignal(PointerToMemberFunction signal)
@@ -183,7 +182,7 @@ private:
     // signature() has been renamed to methodSignature() in Qt 5.
     // Warning, that function returns a QByteArray; check the life time if
     // you convert to char*.
-    char *signature(struct renamedInQt5_warning_checkTheLifeTime * = Q_NULLPTR) Q_DECL_EQ_DELETE;
+    char *signature(struct renamedInQt5_warning_checkTheLifeTime * = nullptr) = delete;
 #endif
     static QMetaMethod fromSignalImpl(const QMetaObject *, void **);
 
@@ -206,9 +205,10 @@ inline bool operator!=(const QMetaMethod &m1, const QMetaMethod &m2)
 class Q_CORE_EXPORT QMetaEnum
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaEnum() : mobj(Q_NULLPTR), handle(0) {}
+    Q_DECL_CONSTEXPR inline QMetaEnum() : mobj(nullptr), handle(0) {}
 
     const char *name() const;
+    const char *enumName() const;
     bool isFlag() const;
     bool isScoped() const;
 
@@ -218,18 +218,19 @@ public:
 
     const char *scope() const;
 
-    int keyToValue(const char *key, bool *ok = Q_NULLPTR) const;
+    int keyToValue(const char *key, bool *ok = nullptr) const;
     const char* valueToKey(int value) const;
-    int keysToValue(const char * keys, bool *ok = Q_NULLPTR) const;
+    int keysToValue(const char * keys, bool *ok = nullptr) const;
     QByteArray valueToKeys(int value) const;
 
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }
 
-    inline bool isValid() const { return name() != Q_NULLPTR; }
+    inline bool isValid() const { return name() != nullptr; }
 
     template<typename T> static QMetaEnum fromType() {
         Q_STATIC_ASSERT_X(QtPrivate::IsQEnumHelper<T>::Value,
-                          "QMetaEnum::fromType only works with enums declared as Q_ENUM or Q_FLAG");
+                          "QMetaEnum::fromType only works with enums declared as "
+                          "Q_ENUM, Q_ENUM_NS, Q_FLAG or Q_FLAG_NS");
         const QMetaObject *metaObject = qt_getEnumMetaObject(T());
         const char *name = qt_getEnumName(T());
         return metaObject->enumerator(metaObject->indexOfEnumerator(name));
@@ -252,17 +253,21 @@ public:
     QVariant::Type type() const;
     int userType() const;
     int propertyIndex() const;
+    int relativePropertyIndex() const;
 
     bool isReadable() const;
     bool isWritable() const;
     bool isResettable() const;
-    bool isDesignable(const QObject *obj = Q_NULLPTR) const;
-    bool isScriptable(const QObject *obj = Q_NULLPTR) const;
-    bool isStored(const QObject *obj = Q_NULLPTR) const;
-    bool isEditable(const QObject *obj = Q_NULLPTR) const;
-    bool isUser(const QObject *obj = Q_NULLPTR) const;
+    bool isDesignable(const QObject *obj = nullptr) const;
+    bool isScriptable(const QObject *obj = nullptr) const;
+    bool isStored(const QObject *obj = nullptr) const;
+#if QT_DEPRECATED_SINCE(5, 15)
+    QT_DEPRECATED_VERSION_5_15 bool isEditable(const QObject *obj = nullptr) const;
+#endif
+    bool isUser(const QObject *obj = nullptr) const;
     bool isConstant() const;
     bool isFinal() const;
+    bool isRequired() const;
 
     bool isFlagType() const;
     bool isEnumType() const;
@@ -300,7 +305,7 @@ private:
 class Q_CORE_EXPORT QMetaClassInfo
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaClassInfo() : mobj(Q_NULLPTR), handle(0) {}
+    Q_DECL_CONSTEXPR inline QMetaClassInfo() : mobj(nullptr), handle(0) {}
     const char *name() const;
     const char *value() const;
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }

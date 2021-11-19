@@ -42,12 +42,11 @@
 
 #include <QtWidgets/qtwidgetsglobal.h>
 
-#ifndef QT_NO_ERRORMESSAGE
-
 #include <QtWidgets/qdialog.h>
 
-QT_BEGIN_NAMESPACE
+QT_REQUIRE_CONFIG(errormessage);
 
+QT_BEGIN_NAMESPACE
 
 class QErrorMessagePrivate;
 
@@ -56,7 +55,7 @@ class Q_WIDGETS_EXPORT QErrorMessage: public QDialog
     Q_OBJECT
     Q_DECLARE_PRIVATE(QErrorMessage)
 public:
-    explicit QErrorMessage(QWidget* parent = Q_NULLPTR);
+    explicit QErrorMessage(QWidget* parent = nullptr);
     ~QErrorMessage();
 
     static QErrorMessage * qtHandler();
@@ -66,15 +65,13 @@ public Q_SLOTS:
     void showMessage(const QString &message, const QString &type);
 
 protected:
-    void done(int) Q_DECL_OVERRIDE;
-    void changeEvent(QEvent *e) Q_DECL_OVERRIDE;
+    void done(int) override;
+    void changeEvent(QEvent *e) override;
 
 private:
     Q_DISABLE_COPY(QErrorMessage)
 };
 
 QT_END_NAMESPACE
-
-#endif // QT_NO_ERRORMESSAGE
 
 #endif // QERRORMESSAGE_H

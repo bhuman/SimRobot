@@ -55,7 +55,6 @@ class QByteArray;
 class QIODevice;
 
 template <typename T> class QList;
-template <typename T> class QLinkedList;
 template <typename T> class QVector;
 template <typename T> class QSet;
 template <class Key, class T> class QHash;
@@ -96,10 +95,23 @@ public:
         Qt_5_7 = Qt_5_6,
         Qt_5_8 = Qt_5_7,
         Qt_5_9 = Qt_5_8,
-#if QT_VERSION >= 0x050a00
+        Qt_5_10 = Qt_5_9,
+        Qt_5_11 = Qt_5_10,
+        Qt_5_12 = 18,
+        Qt_5_13 = 19,
+        Qt_5_14 = Qt_5_13,
+#if QT_VERSION >= 0x050f00
+        Qt_5_15 = Qt_5_14,
+        Qt_DefaultCompiledVersion = Qt_5_15
+#elif QT_VERSION >= 0x060000
+        Qt_6_0 = Qt_5_15,
+        Qt_DefaultCompiledVersion = Qt_6_0
+#else
+        Qt_DefaultCompiledVersion = Qt_5_14
+#endif
+#if QT_VERSION >= 0x060100
 #error Add the datastream version for this Qt version and update Qt_DefaultCompiledVersion
 #endif
-        Qt_DefaultCompiledVersion = Qt_5_9
     };
 
     enum ByteOrder {
@@ -127,7 +139,10 @@ public:
 
     QIODevice *device() const;
     void setDevice(QIODevice *);
+#if QT_DEPRECATED_SINCE(5, 13)
+    QT_DEPRECATED_X("Use QDataStream::setDevice(nullptr) instead")
     void unsetDevice();
+#endif
 
     bool atEnd() const;
 
@@ -149,7 +164,7 @@ public:
     QDataStream &operator>>(qint16 &i);
     QDataStream &operator>>(quint16 &i);
     QDataStream &operator>>(qint32 &i);
-    QDataStream &operator>>(quint32 &i);
+    inline QDataStream &operator>>(quint32 &i);
     QDataStream &operator>>(qint64 &i);
     QDataStream &operator>>(quint64 &i);
     QDataStream &operator>>(std::nullptr_t &ptr) { ptr = nullptr; return *this; }
@@ -165,7 +180,7 @@ public:
     QDataStream &operator<<(qint16 i);
     QDataStream &operator<<(quint16 i);
     QDataStream &operator<<(qint32 i);
-    QDataStream &operator<<(quint32 i);
+    inline QDataStream &operator<<(quint32 i);
     QDataStream &operator<<(qint64 i);
     QDataStream &operator<<(quint64 i);
     QDataStream &operator<<(std::nullptr_t) { return *this; }
@@ -270,6 +285,13 @@ QDataStream &readListBasedContainer(QDataStream &s, Container &c)
     return s;
 }
 
+template <typename T>
+struct MultiContainer { using type = T; };
+template <typename K, typename V>
+struct MultiContainer<QMap<K, V>> { using type = QMultiMap<K, V>; };
+template <typename K, typename V>
+struct MultiContainer<QHash<K, V>> { using type = QMultiHash<K, V>; };
+
 template <typename Container>
 QDataStream &readAssociativeContainer(QDataStream &s, Container &c)
 {
@@ -286,7 +308,7 @@ QDataStream &readAssociativeContainer(QDataStream &s, Container &c)
             c.clear();
             break;
         }
-        c.insertMulti(k, t);
+        static_cast<typename MultiContainer<Container>::type &>(c).insert(k, t);
     }
 
     return s;
@@ -306,15 +328,33 @@ template <typename Container>
 QDataStream &writeAssociativeContainer(QDataStream &s, const Container &c)
 {
     s << quint32(c.size());
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0) && QT_DEPRECATED_SINCE(5, 15)
     // Deserialization should occur in the reverse order.
     // Otherwise, value() will return the least recently inserted
     // value instead of the most recently inserted one.
     auto it = c.constEnd();
     auto begin = c.constBegin();
     while (it != begin) {
+        QT_WARNING_PUSH
+        QT_WARNING_DISABLE_DEPRECATED
         --it;
+        QT_WARNING_POP
         s << it.key() << it.value();
     }
+#else
+    auto it = c.constBegin();
+    auto end = c.constEnd();
+    while (it != end) {
+        const auto rangeStart = it++;
+        while (it != end && rangeStart.key() == it.key())
+            ++it;
+        const qint64 last = std::distance(rangeStart, it) - 1;
+        for (qint64 i = last; i >= 0; --i) {
+            auto next = std::next(rangeStart, i);
+            s << next.key() << next.value();
+        }
+    }
+#endif
 
     return s;
 }
@@ -370,6 +410,16 @@ inline QDataStream &operator>>(QDataStream &s, QFlags<Enum> &e)
 { return s >> e.i; }
 
 template <typename T>
+typename std::enable_if<std::is_enum<T>::value, QDataStream &>::type&
+operator<<(QDataStream &s, const T &t)
+{ return s << static_cast<typename std::underlying_type<T>::type>(t); }
+
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value, QDataStream &>::type&
+operator>>(QDataStream &s, T &t)
+{ return s >> reinterpret_cast<typename std::underlying_type<T>::type &>(t); }
+
+template <typename T>
 inline QDataStream &operator>>(QDataStream &s, QList<T> &l)
 {
     return QtPrivate::readArrayBasedContainer(s, l);
@@ -377,18 +427,6 @@ inline QDataStream &operator>>(QDataStream &s, QList<T> &l)
 
 template <typename T>
 inline QDataStream &operator<<(QDataStream &s, const QList<T> &l)
-{
-    return QtPrivate::writeSequentialContainer(s, l);
-}
-
-template <typename T>
-inline QDataStream &operator>>(QDataStream &s, QLinkedList<T> &l)
-{
-    return QtPrivate::readListBasedContainer(s, l);
-}
-
-template <typename T>
-inline QDataStream &operator<<(QDataStream &s, const QLinkedList<T> &l)
 {
     return QtPrivate::writeSequentialContainer(s, l);
 }

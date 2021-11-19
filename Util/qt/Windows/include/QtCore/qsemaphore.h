@@ -42,10 +42,9 @@
 
 #include <QtCore/qglobal.h>
 
+QT_REQUIRE_CONFIG(thread);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_THREAD
 
 class QSemaphorePrivate;
 
@@ -66,10 +65,49 @@ public:
 private:
     Q_DISABLE_COPY(QSemaphore)
 
-    QSemaphorePrivate *d;
+    union {
+        QSemaphorePrivate *d;
+        QBasicAtomicInteger<quintptr> u;        // ### Qt6: make 64-bit
+    };
 };
 
-#endif // QT_NO_THREAD
+class QSemaphoreReleaser
+{
+public:
+    QSemaphoreReleaser() = default;
+    explicit QSemaphoreReleaser(QSemaphore &sem, int n = 1) noexcept
+        : m_sem(&sem), m_n(n) {}
+    explicit QSemaphoreReleaser(QSemaphore *sem, int n = 1) noexcept
+        : m_sem(sem), m_n(n) {}
+    QSemaphoreReleaser(QSemaphoreReleaser &&other) noexcept
+        : m_sem(other.cancel()), m_n(other.m_n) {}
+    QSemaphoreReleaser &operator=(QSemaphoreReleaser &&other) noexcept
+    { QSemaphoreReleaser moved(std::move(other)); swap(moved); return *this; }
+
+    ~QSemaphoreReleaser()
+    {
+        if (m_sem)
+            m_sem->release(m_n);
+    }
+
+    void swap(QSemaphoreReleaser &other) noexcept
+    {
+        qSwap(m_sem, other.m_sem);
+        qSwap(m_n, other.m_n);
+    }
+
+    QSemaphore *semaphore() const noexcept
+    { return m_sem; }
+
+    QSemaphore *cancel() noexcept
+    {
+        return qExchange(m_sem, nullptr);
+    }
+
+private:
+    QSemaphore *m_sem = nullptr;
+    int m_n;
+};
 
 QT_END_NAMESPACE
 

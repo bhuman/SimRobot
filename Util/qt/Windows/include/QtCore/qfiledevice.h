@@ -45,6 +45,7 @@
 
 QT_BEGIN_NAMESPACE
 
+class QDateTime;
 class QFileDevicePrivate;
 
 class Q_CORE_EXPORT QFileDevice : public QIODevice
@@ -73,6 +74,13 @@ public:
         CopyError = 14
     };
 
+    enum FileTime {
+        FileAccessTime,
+        FileBirthTime,
+        FileMetadataChangeTime,
+        FileModificationTime
+    };
+
     enum Permission {
         ReadOwner = 0x4000, WriteOwner = 0x2000, ExeOwner = 0x1000,
         ReadUser  = 0x0400, WriteUser  = 0x0200, ExeUser  = 0x0100,
@@ -92,19 +100,19 @@ public:
     FileError error() const;
     void unsetError();
 
-    virtual void close() Q_DECL_OVERRIDE;
+    void close() override;
 
-    bool isSequential() const Q_DECL_OVERRIDE;
+    bool isSequential() const override;
 
     int handle() const;
     virtual QString fileName() const;
 
-    qint64 pos() const Q_DECL_OVERRIDE;
-    bool seek(qint64 offset) Q_DECL_OVERRIDE;
-    bool atEnd() const Q_DECL_OVERRIDE;
+    qint64 pos() const override;
+    bool seek(qint64 offset) override;
+    bool atEnd() const override;
     bool flush();
 
-    qint64 size() const Q_DECL_OVERRIDE;
+    qint64 size() const override;
 
     virtual bool resize(qint64 sz);
     virtual Permissions permissions() const;
@@ -119,18 +127,21 @@ public:
     uchar *map(qint64 offset, qint64 size, MemoryMapFlags flags = NoOptions);
     bool unmap(uchar *address);
 
+    QDateTime fileTime(QFileDevice::FileTime time) const;
+    bool setFileTime(const QDateTime &newDate, QFileDevice::FileTime fileTime);
+
 protected:
     QFileDevice();
 #ifdef QT_NO_QOBJECT
     QFileDevice(QFileDevicePrivate &dd);
 #else
     explicit QFileDevice(QObject *parent);
-    QFileDevice(QFileDevicePrivate &dd, QObject *parent = Q_NULLPTR);
+    QFileDevice(QFileDevicePrivate &dd, QObject *parent = nullptr);
 #endif
 
-    qint64 readData(char *data, qint64 maxlen) Q_DECL_OVERRIDE;
-    qint64 writeData(const char *data, qint64 len) Q_DECL_OVERRIDE;
-    qint64 readLineData(char *data, qint64 maxlen) Q_DECL_OVERRIDE;
+    qint64 readData(char *data, qint64 maxlen) override;
+    qint64 writeData(const char *data, qint64 len) override;
+    qint64 readLineData(char *data, qint64 maxlen) override;
 
 private:
     Q_DISABLE_COPY(QFileDevice)

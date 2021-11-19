@@ -44,12 +44,11 @@
 #include <QtGui/qwindowdefs.h>
 #include <QtGui/qfont.h>
 
-#ifndef QT_NO_FONTDIALOG
-
 #include <QtWidgets/qdialog.h>
 
-QT_BEGIN_NAMESPACE
+QT_REQUIRE_CONFIG(fontdialog);
 
+QT_BEGIN_NAMESPACE
 
 class QFontDialogPrivate;
 
@@ -73,8 +72,8 @@ public:
 
     Q_DECLARE_FLAGS(FontDialogOptions, FontDialogOption)
 
-    explicit QFontDialog(QWidget *parent = Q_NULLPTR);
-    explicit QFontDialog(const QFont &initial, QWidget *parent = Q_NULLPTR);
+    explicit QFontDialog(QWidget *parent = nullptr);
+    explicit QFontDialog(const QFont &initial, QWidget *parent = nullptr);
     ~QFontDialog();
 
     void setCurrentFont(const QFont &font);
@@ -90,10 +89,10 @@ public:
     using QDialog::open;
     void open(QObject *receiver, const char *member);
 
-    void setVisible(bool visible) Q_DECL_OVERRIDE;
+    void setVisible(bool visible) override;
 
-    static QFont getFont(bool *ok, QWidget *parent = Q_NULLPTR);
-    static QFont getFont(bool *ok, const QFont &initial, QWidget *parent = Q_NULLPTR, const QString &title = QString(),
+    static QFont getFont(bool *ok, QWidget *parent = nullptr);
+    static QFont getFont(bool *ok, const QFont &initial, QWidget *parent = nullptr, const QString &title = QString(),
                          FontDialogOptions options = FontDialogOptions());
 
 Q_SIGNALS:
@@ -101,9 +100,9 @@ Q_SIGNALS:
     void fontSelected(const QFont &font);
 
 protected:
-    void changeEvent(QEvent *event) Q_DECL_OVERRIDE;
-    void done(int result) Q_DECL_OVERRIDE;
-    bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
+    void changeEvent(QEvent *event) override;
+    void done(int result) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
     Q_DISABLE_COPY(QFontDialog)
@@ -119,7 +118,5 @@ private:
 Q_DECLARE_OPERATORS_FOR_FLAGS(QFontDialog::FontDialogOptions)
 
 QT_END_NAMESPACE
-
-#endif // QT_NO_FONTDIALOG
 
 #endif // QFONTDIALOG_H

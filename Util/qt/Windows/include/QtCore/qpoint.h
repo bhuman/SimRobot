@@ -64,6 +64,8 @@ public:
 
     Q_DECL_CONSTEXPR inline int manhattanLength() const;
 
+    Q_DECL_CONSTEXPR QPoint transposed() const noexcept { return {yp, xp}; }
+
     Q_DECL_RELAXED_CONSTEXPR inline int &rx();
     Q_DECL_RELAXED_CONSTEXPR inline int &ry();
 
@@ -94,7 +96,7 @@ public:
     friend Q_DECL_CONSTEXPR inline const QPoint operator/(const QPoint &, qreal);
 
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
-    Q_REQUIRED_RESULT CGPoint toCGPoint() const Q_DECL_NOTHROW;
+    Q_REQUIRED_RESULT CGPoint toCGPoint() const noexcept;
 #endif
 
 private:
@@ -232,6 +234,8 @@ public:
     Q_DECL_RELAXED_CONSTEXPR inline void setX(qreal x);
     Q_DECL_RELAXED_CONSTEXPR inline void setY(qreal y);
 
+    Q_DECL_CONSTEXPR QPointF transposed() const noexcept { return {yp, xp}; }
+
     Q_DECL_RELAXED_CONSTEXPR inline qreal &rx();
     Q_DECL_RELAXED_CONSTEXPR inline qreal &ry();
 
@@ -256,8 +260,8 @@ public:
     Q_DECL_CONSTEXPR QPoint toPoint() const;
 
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
-    Q_REQUIRED_RESULT static QPointF fromCGPoint(CGPoint point) Q_DECL_NOTHROW;
-    Q_REQUIRED_RESULT CGPoint toCGPoint() const Q_DECL_NOTHROW;
+    Q_REQUIRED_RESULT static QPointF fromCGPoint(CGPoint point) noexcept;
+    Q_REQUIRED_RESULT CGPoint toCGPoint() const noexcept;
 #endif
 
 private:
@@ -345,15 +349,23 @@ Q_DECL_RELAXED_CONSTEXPR inline QPointF &QPointF::operator*=(qreal c)
     xp*=c; yp*=c; return *this;
 }
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_CLANG("-Wfloat-equal")
+QT_WARNING_DISABLE_GCC("-Wfloat-equal")
+QT_WARNING_DISABLE_INTEL(1572)
+
 Q_DECL_CONSTEXPR inline bool operator==(const QPointF &p1, const QPointF &p2)
 {
-    return qFuzzyIsNull(p1.xp - p2.xp) && qFuzzyIsNull(p1.yp - p2.yp);
+    return ((!p1.xp || !p2.xp) ? qFuzzyIsNull(p1.xp - p2.xp) : qFuzzyCompare(p1.xp, p2.xp))
+        && ((!p1.yp || !p2.yp) ? qFuzzyIsNull(p1.yp - p2.yp) : qFuzzyCompare(p1.yp, p2.yp));
 }
 
 Q_DECL_CONSTEXPR inline bool operator!=(const QPointF &p1, const QPointF &p2)
 {
-    return !qFuzzyIsNull(p1.xp - p2.xp) || !qFuzzyIsNull(p1.yp - p2.yp);
+    return !(p1 == p2);
 }
+
+QT_WARNING_POP
 
 Q_DECL_CONSTEXPR inline const QPointF operator+(const QPointF &p1, const QPointF &p2)
 {

@@ -44,30 +44,31 @@
 #include <QtCore/qobject.h>
 #include <QtGui/qcursor.h>
 
+QT_REQUIRE_CONFIG(whatsthis);
+
 QT_BEGIN_NAMESPACE
 
-
-#ifndef QT_NO_WHATSTHIS
-
+#if QT_CONFIG(action)
 class QAction;
+#endif // QT_CONFIG(action)
 
 class Q_WIDGETS_EXPORT QWhatsThis
 {
-    QWhatsThis() Q_DECL_EQ_DELETE;
+    QWhatsThis() = delete;
 
 public:
     static void enterWhatsThisMode();
     static bool inWhatsThisMode();
     static void leaveWhatsThisMode();
 
-    static void showText(const QPoint &pos, const QString &text, QWidget *w = Q_NULLPTR);
+    static void showText(const QPoint &pos, const QString &text, QWidget *w = nullptr);
     static void hideText();
 
-    static QAction *createAction(QObject *parent = Q_NULLPTR);
+#if QT_CONFIG(action)
+    static QAction *createAction(QObject *parent = nullptr);
+#endif // QT_CONFIG(action)
 
 };
-
-#endif // QT_NO_WHATSTHIS
 
 QT_END_NAMESPACE
 

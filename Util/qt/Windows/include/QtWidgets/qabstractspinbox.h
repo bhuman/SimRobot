@@ -44,10 +44,9 @@
 #include <QtWidgets/qwidget.h>
 #include <QtGui/qvalidator.h>
 
+QT_REQUIRE_CONFIG(spinbox);
+
 QT_BEGIN_NAMESPACE
-
-
-#ifndef QT_NO_SPINBOX
 
 class QLineEdit;
 
@@ -71,7 +70,7 @@ class Q_WIDGETS_EXPORT QAbstractSpinBox : public QWidget
     Q_PROPERTY(bool keyboardTracking READ keyboardTracking WRITE setKeyboardTracking)
     Q_PROPERTY(bool showGroupSeparator READ isGroupSeparatorShown WRITE setGroupSeparatorShown)
 public:
-    explicit QAbstractSpinBox(QWidget *parent = Q_NULLPTR);
+    explicit QAbstractSpinBox(QWidget *parent = nullptr);
     ~QAbstractSpinBox();
 
     enum StepEnabledFlag { StepNone = 0x00, StepUpEnabled = 0x01,
@@ -128,6 +127,13 @@ public:
     virtual void fixup(QString &input) const;
 
     virtual void stepBy(int steps);
+
+    enum StepType {
+        DefaultStepType,
+        AdaptiveDecimalStepType
+    };
+    Q_ENUM(StepType)
+
 public Q_SLOTS:
     void stepUp();
     void stepDown();
@@ -137,7 +143,7 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent *event) override;
 #endif
     void focusInEvent(QFocusEvent *event) override;
@@ -163,7 +169,7 @@ protected:
 Q_SIGNALS:
     void editingFinished();
 protected:
-    QAbstractSpinBox(QAbstractSpinBoxPrivate &dd, QWidget *parent = Q_NULLPTR);
+    QAbstractSpinBox(QAbstractSpinBoxPrivate &dd, QWidget *parent = nullptr);
 
 private:
     Q_PRIVATE_SLOT(d_func(), void _q_editorTextChanged(const QString &))
@@ -174,8 +180,6 @@ private:
     friend class QAccessibleAbstractSpinBox;
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(QAbstractSpinBox::StepEnabled)
-
-#endif // QT_NO_SPINBOX
 
 QT_END_NAMESPACE
 

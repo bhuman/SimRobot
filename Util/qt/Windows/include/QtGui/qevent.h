@@ -169,49 +169,79 @@ protected:
     QPointF p, op;
 };
 
-#ifndef QT_NO_WHEELEVENT
+#if QT_CONFIG(wheelevent)
 class Q_GUI_EXPORT QWheelEvent : public QInputEvent
 {
 public:
     enum { DefaultDeltasPerStep = 120 };
 
+#if QT_DEPRECATED_SINCE(5, 15)
+    // Actually deprecated since 5.0, in docs
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, int delta,
                 Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers,
                 Qt::Orientation orient = Qt::Vertical);
+    // Actually deprecated since 5.0, in docs
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, const QPointF& globalPos, int delta,
                 Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers,
                 Qt::Orientation orient = Qt::Vertical);
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, const QPointF& globalPos,
                 QPoint pixelDelta, QPoint angleDelta, int qt4Delta, Qt::Orientation qt4Orientation,
                 Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers);
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, const QPointF& globalPos,
                 QPoint pixelDelta, QPoint angleDelta, int qt4Delta, Qt::Orientation qt4Orientation,
                 Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers, Qt::ScrollPhase phase);
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, const QPointF &globalPos, QPoint pixelDelta, QPoint angleDelta,
                 int qt4Delta, Qt::Orientation qt4Orientation, Qt::MouseButtons buttons,
                 Qt::KeyboardModifiers modifiers, Qt::ScrollPhase phase, Qt::MouseEventSource source);
+    QT_DEPRECATED_VERSION_X_5_15("Use the last QWheelEvent constructor taking pixelDelta, angleDelta, phase, and inverted")
     QWheelEvent(const QPointF &pos, const QPointF &globalPos, QPoint pixelDelta, QPoint angleDelta,
                 int qt4Delta, Qt::Orientation qt4Orientation, Qt::MouseButtons buttons,
                 Qt::KeyboardModifiers modifiers, Qt::ScrollPhase phase, Qt::MouseEventSource source, bool inverted);
+#endif
+
+    QWheelEvent(QPointF pos, QPointF globalPos, QPoint pixelDelta, QPoint angleDelta,
+                Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers, Qt::ScrollPhase phase,
+                bool inverted, Qt::MouseEventSource source = Qt::MouseEventNotSynthesized);
     ~QWheelEvent();
 
 
     inline QPoint pixelDelta() const { return pixelD; }
     inline QPoint angleDelta() const { return angleD; }
 
+#if QT_DEPRECATED_SINCE(5, 15)
+    // Actually deprecated since 5.0, in docs
+    QT_DEPRECATED_VERSION_X_5_15("Use angleDelta()")
     inline int delta() const  { return qt4D; }
+    // Actually deprecated since 5.0, in docs
+    QT_DEPRECATED_VERSION_X_5_15("Use angleDelta()")
     inline Qt::Orientation orientation() const { return qt4O; }
-
 #ifndef QT_NO_INTEGER_EVENT_COORDINATES
+    QT_DEPRECATED_VERSION_X_5_15("Use position()")
     inline QPoint pos() const { return p.toPoint(); }
+    QT_DEPRECATED_VERSION_X_5_15("Use globalPosition()")
     inline QPoint globalPos()   const { return g.toPoint(); }
-    inline int x() const { return p.x(); }
-    inline int y() const { return p.y(); }
-    inline int globalX() const { return g.x(); }
-    inline int globalY() const { return g.y(); }
+    QT_DEPRECATED_VERSION_X_5_15("Use position()")
+    inline int x() const { return int(p.x()); }
+    QT_DEPRECATED_VERSION_X_5_15("Use position()")
+    inline int y() const { return int(p.y()); }
+    QT_DEPRECATED_VERSION_X_5_15("Use globalPosition()")
+    inline int globalX() const { return int(g.x()); }
+    QT_DEPRECATED_VERSION_X_5_15("Use globalPosition()")
+    inline int globalY() const { return int(g.y()); }
 #endif
+    QT_DEPRECATED_VERSION_X_5_15("Use position()")
     inline const QPointF &posF() const { return p; }
+    QT_DEPRECATED_VERSION_X_5_15("Use globalPosition()")
     inline const QPointF &globalPosF()   const { return g; }
+#endif // QT_DEPRECATED_SINCE(5, 15)
+
+    inline QPointF position() const { return p; }
+    inline QPointF globalPosition() const { return g; }
 
     inline Qt::MouseButtons buttons() const { return mouseState; }
 
@@ -225,19 +255,20 @@ protected:
     QPointF g;
     QPoint pixelD;
     QPoint angleD;
-    int qt4D;
-    Qt::Orientation qt4O;
-    Qt::MouseButtons mouseState;
-    uint ph : 2;
+    int qt4D = 0;
+    Qt::Orientation qt4O = Qt::Vertical;
+    Qt::MouseButtons mouseState = Qt::NoButton;
+    uint _unused_ : 2; // Kept for binary compatibility
     uint src: 2;
     bool invertedScrolling : 1;
-    int reserved : 27;
+    uint ph : 3;
+    int reserved : 24;
 
     friend class QApplication;
 };
 #endif
 
-#ifndef QT_NO_TABLETEVENT
+#if QT_CONFIG(tabletevent)
 class Q_GUI_EXPORT QTabletEvent : public QInputEvent
 {
     Q_GADGET
@@ -247,10 +278,15 @@ public:
     Q_ENUM(TabletDevice)
     enum PointerType { UnknownPointer, Pen, Cursor, Eraser };
     Q_ENUM(PointerType)
+
+#if QT_DEPRECATED_SINCE(5, 15)
+    // Actually deprecated since 5.4, in docs
+    QT_DEPRECATED_VERSION_X_5_15("Use the other QTabletEvent constructor")
     QTabletEvent(Type t, const QPointF &pos, const QPointF &globalPos,
                  int device, int pointerType, qreal pressure, int xTilt, int yTilt,
                  qreal tangentialPressure, qreal rotation, int z,
                  Qt::KeyboardModifiers keyState, qint64 uniqueID); // ### remove in Qt 6
+#endif
     QTabletEvent(Type t, const QPointF &pos, const QPointF &globalPos,
                  int device, int pointerType, qreal pressure, int xTilt, int yTilt,
                  qreal tangentialPressure, qreal rotation, int z,
@@ -271,9 +307,15 @@ public:
     inline int y() const { return qRound(mPos.y()); }
     inline int globalX() const { return qRound(mGPos.x()); }
     inline int globalY() const { return qRound(mGPos.y()); }
+#if QT_DEPRECATED_SINCE(5, 15)
+    QT_DEPRECATED_VERSION_X_5_15("use globalPosF().x()")
     inline qreal hiResGlobalX() const { return mGPos.x(); }
+    QT_DEPRECATED_VERSION_X_5_15("use globalPosF().y()")
     inline qreal hiResGlobalY() const { return mGPos.y(); }
+    QT_DEPRECATED_VERSION_X_5_15("Use deviceType()")
     inline TabletDevice device() const { return TabletDevice(mDev); }
+#endif
+    inline TabletDevice deviceType() const { return TabletDevice(mDev); }
     inline PointerType pointerType() const { return PointerType(mPointerType); }
     inline qint64 uniqueId() const { return mUnique; }
     inline qreal pressure() const { return mPress; }
@@ -295,14 +337,19 @@ protected:
     // ### Qt 6: QPointingEvent will have Buttons, QTabletEvent will inherit
     void *mExtra;
 };
-#endif // QT_NO_TABLETEVENT
+#endif // QT_CONFIG(tabletevent)
 
 #ifndef QT_NO_GESTURES
 class Q_GUI_EXPORT QNativeGestureEvent : public QInputEvent
 {
 public:
-    QNativeGestureEvent(Qt::NativeGestureType type, const QPointF &localPos, const QPointF &windowPos,
+#if QT_DEPRECATED_SINCE(5, 10)
+    QT_DEPRECATED QNativeGestureEvent(Qt::NativeGestureType type, const QPointF &localPos, const QPointF &windowPos,
                         const QPointF &screenPos, qreal value, ulong sequenceId, quint64 intArgument);
+#endif
+    QNativeGestureEvent(Qt::NativeGestureType type, const QTouchDevice *dev, const QPointF &localPos, const QPointF &windowPos,
+                        const QPointF &screenPos, qreal value, ulong sequenceId, quint64 intArgument);
+    ~QNativeGestureEvent();
     Qt::NativeGestureType gestureType() const { return mGestureType; }
     qreal value() const { return mRealValue; }
 
@@ -313,6 +360,8 @@ public:
     const QPointF &localPos() const { return mLocalPos; }
     const QPointF &windowPos() const { return mWindowPos; }
     const QPointF &screenPos() const { return mScreenPos; }
+
+    const QTouchDevice *device() const;
 
 protected:
     Qt::NativeGestureType mGestureType;
@@ -537,7 +586,7 @@ public:
     };
     class Attribute {
     public:
-        Attribute(AttributeType typ, int s, int l, QVariant val) : type(typ), start(s), length(l), value(qMove(val)) {}
+        Attribute(AttributeType typ, int s, int l, QVariant val) : type(typ), start(s), length(l), value(std::move(val)) {}
         Attribute(AttributeType typ, int s, int l) : type(typ), start(s), length(l), value() {}
 
         AttributeType type;
@@ -591,7 +640,7 @@ Q_DECLARE_TYPEINFO(QInputMethodQueryEvent::QueryPair, Q_MOVABLE_TYPE);
 
 #endif // QT_NO_INPUTMETHOD
 
-#ifndef QT_NO_DRAGANDDROP
+#if QT_CONFIG(draganddrop)
 
 class QMimeData;
 
@@ -664,7 +713,7 @@ public:
     QDragLeaveEvent();
     ~QDragLeaveEvent();
 };
-#endif // QT_NO_DRAGANDDROP
+#endif // QT_CONFIG(draganddrop)
 
 
 class Q_GUI_EXPORT QHelpEvent : public QEvent
@@ -699,7 +748,7 @@ private:
 };
 #endif
 
-#ifndef QT_NO_WHATSTHIS
+#if QT_CONFIG(whatsthis)
 class Q_GUI_EXPORT QWhatsThisClickedEvent : public QEvent
 {
 public:
@@ -717,7 +766,7 @@ class Q_GUI_EXPORT QActionEvent : public QEvent
 {
     QAction *act, *bef;
 public:
-    QActionEvent(int type, QAction *action, QAction *before = Q_NULLPTR);
+    QActionEvent(int type, QAction *action, QAction *before = nullptr);
     ~QActionEvent();
 
     inline QAction *action() const { return act; }
@@ -799,14 +848,14 @@ class Q_GUI_EXPORT QPointingDeviceUniqueId
     Q_PROPERTY(qint64 numericId READ numericId CONSTANT)
 public:
     Q_ALWAYS_INLINE
-    Q_DECL_CONSTEXPR QPointingDeviceUniqueId() Q_DECL_NOTHROW : m_numericId(-1) {}
+    Q_DECL_CONSTEXPR QPointingDeviceUniqueId() noexcept : m_numericId(-1) {}
     // compiler-generated copy/move ctor/assignment operators are ok!
     // compiler-generated dtor is ok!
 
     static QPointingDeviceUniqueId fromNumericId(qint64 id);
 
-    Q_ALWAYS_INLINE Q_DECL_CONSTEXPR bool isValid() const Q_DECL_NOTHROW { return m_numericId != -1; }
-    qint64 numericId() const Q_DECL_NOTHROW;
+    Q_ALWAYS_INLINE Q_DECL_CONSTEXPR bool isValid() const noexcept { return m_numericId != -1; }
+    qint64 numericId() const noexcept;
 
 private:
     // TODO: for TUIO 2, or any other type of complex token ID, an internal
@@ -815,12 +864,19 @@ private:
     qint64 m_numericId;
 };
 Q_DECLARE_TYPEINFO(QPointingDeviceUniqueId, Q_MOVABLE_TYPE);
-template <> class QList<QPointingDeviceUniqueId> {}; // to prevent instantiation: use QVector instead
 
-Q_GUI_EXPORT bool operator==(QPointingDeviceUniqueId lhs, QPointingDeviceUniqueId rhs) Q_DECL_NOTHROW;
-inline bool operator!=(QPointingDeviceUniqueId lhs, QPointingDeviceUniqueId rhs) Q_DECL_NOTHROW
+#if 0
+#pragma qt_sync_suspend_processing
+#endif
+template <> class QList<QPointingDeviceUniqueId> {}; // to prevent instantiation: use QVector instead
+#if 0
+#pragma qt_sync_resume_processing
+#endif
+
+Q_GUI_EXPORT bool operator==(QPointingDeviceUniqueId lhs, QPointingDeviceUniqueId rhs) noexcept;
+inline bool operator!=(QPointingDeviceUniqueId lhs, QPointingDeviceUniqueId rhs) noexcept
 { return !operator==(lhs, rhs); }
-Q_GUI_EXPORT uint qHash(QPointingDeviceUniqueId key, uint seed = 0) Q_DECL_NOTHROW;
+Q_GUI_EXPORT uint qHash(QPointingDeviceUniqueId key, uint seed = 0) noexcept;
 
 
 
@@ -843,19 +899,17 @@ public:
 
         explicit TouchPoint(int id = -1);
         TouchPoint(const TouchPoint &other);
-#ifdef Q_COMPILER_RVALUE_REFS
-        TouchPoint(TouchPoint &&other) Q_DECL_NOEXCEPT
-            : d(Q_NULLPTR)
+        TouchPoint(TouchPoint &&other) noexcept
+            : d(nullptr)
         { qSwap(d, other.d); }
-        TouchPoint &operator=(TouchPoint &&other) Q_DECL_NOEXCEPT
+        TouchPoint &operator=(TouchPoint &&other) noexcept
         { qSwap(d, other.d); return *this; }
-#endif
         ~TouchPoint();
 
         TouchPoint &operator=(const TouchPoint &other)
         { if ( d != other.d ) { TouchPoint copy(other); swap(copy); } return *this; }
 
-        void swap(TouchPoint &other) Q_DECL_NOEXCEPT
+        void swap(TouchPoint &other) noexcept
         { qSwap(d, other.d); }
 
         int id() const;
@@ -879,10 +933,23 @@ public:
         QPointF startNormalizedPos() const;
         QPointF lastNormalizedPos() const;
 
+#if QT_DEPRECATED_SINCE(5, 15)
+        // All these are actually deprecated since 5.9, in docs
+        QT_DEPRECATED_VERSION_X_5_15("Use pos() and ellipseDiameters()")
         QRectF rect() const;
+        QT_DEPRECATED_VERSION_X_5_15("Use scenePos() and ellipseDiameters()")
         QRectF sceneRect() const;
+        QT_DEPRECATED_VERSION_X_5_15("Use screenPos() and ellipseDiameters()")
         QRectF screenRect() const;
 
+        // internal
+        QT_DEPRECATED_VERSION_X_5_15("Use setPos() and setEllipseDiameters()")
+        void setRect(const QRectF &rect); // deprecated
+        QT_DEPRECATED_VERSION_X_5_15("Use setScenePos() and setEllipseDiameters()")
+        void setSceneRect(const QRectF &sceneRect); // deprecated
+        QT_DEPRECATED_VERSION_X_5_15("Use setScreenPos() and setEllipseDiameters()")
+        void setScreenRect(const QRectF &screenRect); // deprecated
+#endif
         qreal pressure() const;
         qreal rotation() const;
         QSizeF ellipseDiameters() const;
@@ -907,9 +974,6 @@ public:
         void setLastScenePos(const QPointF &lastScenePos);
         void setLastScreenPos(const QPointF &lastScreenPos);
         void setLastNormalizedPos(const QPointF &lastNormalizedPos);
-        void setRect(const QRectF &rect); // deprecated
-        void setSceneRect(const QRectF &sceneRect); // deprecated
-        void setScreenRect(const QRectF &screenRect); // deprecated
         void setPressure(qreal pressure);
         void setRotation(qreal angle);
         void setEllipseDiameters(const QSizeF &dia);
@@ -923,6 +987,8 @@ public:
         friend class QGuiApplicationPrivate;
         friend class QApplication;
         friend class QApplicationPrivate;
+        friend class QQuickPointerTouchEvent;
+        friend class QQuickMultiPointTouchArea;
     };
 
 #if QT_DEPRECATED_SINCE(5, 0)
@@ -933,7 +999,7 @@ public:
 #endif
 
     explicit QTouchEvent(QEvent::Type eventType,
-                         QTouchDevice *device = Q_NULLPTR,
+                         QTouchDevice *device = nullptr,
                          Qt::KeyboardModifiers modifiers = Qt::NoModifier,
                          Qt::TouchPointStates touchPointStates = Qt::TouchPointStates(),
                          const QList<QTouchEvent::TouchPoint> &touchPoints = QList<QTouchEvent::TouchPoint>());
