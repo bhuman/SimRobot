@@ -4,4 +4,4 @@
 !/Make/Linux/.idea/misc.xml
 /Make/macOS/cmake
 /Make/macOS/SimRobot.xcodeproj
-/Make/VS20*/*.sln
+/Make/Windows/*.sln
