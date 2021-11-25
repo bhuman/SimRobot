@@ -117,7 +117,7 @@ bool CoreModule::compile()
         lastRenderingMethod = renderingMethod;
         static const char* renderingMethods[] =
         {
-          "unkn renderer", "pbuf renderer", "fbuf renderer", "hwin renderer"
+          "unkn renderer", "fbuf renderer"
         };
         setText(renderingMethods[(renderingMethod < 0 || renderingMethod >= static_cast<int>(sizeof(renderingMethods) / sizeof(*renderingMethods))) ? 0 : renderingMethod]);
       }

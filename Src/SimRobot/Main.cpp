@@ -5,6 +5,7 @@
  */
 
 #include <QApplication>
+#include <QSurfaceFormat>
 
 #ifdef WINDOWS
 #include <crtdbg.h>
@@ -72,6 +73,15 @@ int main(int argc, char* argv[])
 #if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+  QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+  QSurfaceFormat format;
+  format.setVersion(2, 1);
+  format.setProfile(QSurfaceFormat::NoProfile);
+  format.setSamples(1);
+  format.setStencilBufferSize(0);
+  QSurfaceFormat::setDefaultFormat(format);
 #endif
   QApplication app(argc, argv);
 #ifndef WINDOWS

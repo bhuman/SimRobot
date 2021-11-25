@@ -147,6 +147,10 @@ private:
   void updateViewMenu(QMenu* menu);
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
 
+#ifdef MACOS
+  bool event(QEvent* event) override;
+#endif
+
 public slots:
   void openFile(const QString& fileName);
 

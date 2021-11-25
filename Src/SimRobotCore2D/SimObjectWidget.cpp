@@ -172,8 +172,8 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 #else
   const QPointF position = event->posF();
 #endif
-  objectPainter.zoom(event->angleDelta().y(), static_cast<int>(position.x() * devicePixelRatio()),
-                     static_cast<int>(position.y() * devicePixelRatio()));
+  objectPainter.zoom(event->angleDelta().y(), static_cast<int>(position.x()),
+                     static_cast<int>(position.y()));
   event->accept();
   update();
 }

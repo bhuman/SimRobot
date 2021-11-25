@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Platform/OpenGL.h"
-#include <QGLWidget>
+#include <QOpenGLWidget>
 
 #include "SimRobotCore2.h"
 #include "SimObjectRenderer.h"
@@ -20,7 +20,7 @@ class Simulation;
  * @class SimObjectWidget
  * A class that implements the 3D-view for simulated objects
  */
-class SimObjectWidget : public QGLWidget, public SimRobot::Widget
+class SimObjectWidget : public QOpenGLWidget, public SimRobot::Widget
 {
   Q_OBJECT
 

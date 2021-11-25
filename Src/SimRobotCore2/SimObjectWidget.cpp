@@ -19,10 +19,17 @@
 #include "Simulation/Simulation.h"
 #include "Simulation/Scene.h"
 
-SimObjectWidget::SimObjectWidget(SimObject& simObject) : QGLWidget(QGLFormat(QGL::SampleBuffers), nullptr, Simulation::simulation->renderer.getWidget()),
+#include <QOpenGLContext>
+#include <QOpenGLFramebufferObject>
+
+SimObjectWidget::SimObjectWidget(SimObject& simObject) : QOpenGLWidget(),
   object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
   wKey(false), aKey(false), sKey(false), dKey(false)
 {
+  QSurfaceFormat format = Simulation::simulation->renderer.getContext()->format();
+  format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+  setFormat(format);
+
   setFocusPolicy(Qt::StrongFocus);
   grabGesture(Qt::PinchGesture);
   setAttribute(Qt::WA_AcceptTouchEvents);
@@ -85,7 +92,7 @@ SimObjectWidget::~SimObjectWidget()
 
 void SimObjectWidget::initializeGL()
 {
-  objectRenderer.init(isSharing());
+  objectRenderer.init(QOpenGLContext::areSharing(context(), Simulation::simulation->renderer.getContext()));
   #ifdef FIX_MACOS_BROKEN_TEXTURES_ON_NVIDIA_BUG
     Simulation::simulation->renderer.makeCurrent(8, 8);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -106,9 +113,18 @@ void SimObjectWidget::resizeGL(int width, int height)
 
 void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 {
-  QGLWidget::mouseMoveEvent(event);
+  QOpenGLWidget::mouseMoveEvent(event);
+
   const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-  if(objectRenderer.moveDrag(event->x() * devicePixelRatio(), event->y() * devicePixelRatio(), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
+   if(objectRenderer.moveDrag(event->x(),
+                              event->y(),
+                              m & Qt::ShiftModifier
+                              ? (m & Qt::ControlModifier
+                                 ? SimObjectRenderer::dragRotateWorld
+                                 : SimObjectRenderer::dragRotate)
+                              : (m & Qt::ControlModifier
+                                 ? SimObjectRenderer::dragNormalObject
+                                 : SimObjectRenderer::dragNormal)))
   {
     event->accept();
     update();
@@ -117,12 +133,12 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 
 void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 {
-  QGLWidget::mousePressEvent(event);
+  QOpenGLWidget::mousePressEvent(event);
 
   if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-    if(objectRenderer.startDrag(event->x() * devicePixelRatio(), event->y() * devicePixelRatio(), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
+    if(objectRenderer.startDrag(event->x(), event->y(), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
     {
       event->accept();
       update();
@@ -132,9 +148,9 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 {
-  QGLWidget::mouseReleaseEvent(event);
+  QOpenGLWidget::mouseReleaseEvent(event);
 
-  if(objectRenderer.releaseDrag(event->x() * devicePixelRatio(), event->y() * devicePixelRatio()))
+  if(objectRenderer.releaseDrag(event->x(), event->y()))
   {
     event->accept();
     update();
@@ -143,7 +159,7 @@ void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
-  QGLWidget::mouseDoubleClickEvent(event);
+  QOpenGLWidget::mouseDoubleClickEvent(event);
 
   if(event->button() == Qt::LeftButton)
   {
@@ -157,7 +173,7 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
-    QGLWidget::keyPressEvent(event);
+    QOpenGLWidget::keyPressEvent(event);
     return;
   }
 
@@ -202,7 +218,7 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
       break;
 
     default:
-      QGLWidget::keyPressEvent(event);
+      QOpenGLWidget::keyPressEvent(event);
       break;
   }
 }
@@ -211,7 +227,7 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
-    QGLWidget::keyReleaseEvent(event);
+    QOpenGLWidget::keyReleaseEvent(event);
     return;
   }
 
@@ -245,7 +261,7 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
       break;
 
     default:
-      QGLWidget::keyReleaseEvent(event);
+      QOpenGLWidget::keyReleaseEvent(event);
       break;
   }
 }
@@ -268,7 +284,7 @@ bool SimObjectWidget::event(QEvent* event)
       return true;
     }
   }
-  return QGLWidget::event(event);
+  return QOpenGLWidget::event(event);
 }
 
 void SimObjectWidget::wheelEvent(QWheelEvent* event)
@@ -280,18 +296,18 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 #else
     const QPointF position = event->posF();
 #endif
-    objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(position.x()) * devicePixelRatio(),
-                        static_cast<float>(position.y()) * devicePixelRatio());
+    objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(position.x()),
+                        static_cast<float>(position.y()));
     update();
     event->accept();
     return;
   }
-  QGLWidget::wheelEvent(event);
+  QOpenGLWidget::wheelEvent(event);
 }
 
 void SimObjectWidget::update()
 {
-  QGLWidget::update();
+  QOpenGLWidget::update();
 }
 
 QMenu* SimObjectWidget::createEditMenu() const
@@ -616,7 +632,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 void SimObjectWidget::copy()
 {
   QApplication::clipboard()->clear();
-  QApplication::clipboard()->setPixmap(QPixmap::fromImage(grabFrameBuffer()));
+  QApplication::clipboard()->setPixmap(QPixmap::fromImage(grabFramebuffer()));
 }
 
 void SimObjectWidget::exportAsImage(int resolution)
@@ -635,22 +651,16 @@ void SimObjectWidget::exportAsImage(int resolution)
   {
     unsigned int winWidth, winHeight;
     objectRenderer.getSize(winWidth, winHeight);
-
-    // render object using a temporary widget
-    QGLFormat format = this->format();
-    format.setDoubleBuffer(false);
-    QGLWidget widget(format, 0, 0, Qt::CustomizeWindowHint);
-    widget.setWindowOpacity(0.f);
-    widget.show();
-    widget.setMaximumSize(width / devicePixelRatio(), height / devicePixelRatio());
-    widget.resize(width / devicePixelRatio(), height / devicePixelRatio());
-    widget.makeCurrent();
-    objectRenderer.resize(fovY, width, height);
-    objectRenderer.init(false);
-    objectRenderer.draw();
-    image = widget.grabFrameBuffer();
-
     makeCurrent();
+
+    // render object using a temporary framebuffer
+    QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
+    framebuffer.bind();
+    objectRenderer.resize(fovY, width, height);
+    objectRenderer.draw();
+    image = framebuffer.toImage();
+    framebuffer.release();
+
     objectRenderer.resize(fovY, winWidth, winHeight);
   }
 

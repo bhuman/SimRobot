@@ -29,18 +29,7 @@ RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* par
 void RegisteredDockWidget::setWidget(SimRobot::Widget* widget, const SimRobot::Module* module, SimRobot::Object* object, int flags)
 {
   if(widget)
-  {
-#ifdef FIX_MACOS_UNDOCKED_WIDGETS_DISAPPEAR_WHEN_DOCKED_BUG
-    if(isFloating() && widget->getWidget()->inherits("QGLWidget"))
-    {
-      setFloating(false);
-      QDockWidget::setWidget(widget->getWidget());
-      setFloating(true);
-    }
-    else
-#endif
-      QDockWidget::setWidget(widget->getWidget());
-  }
+    QDockWidget::setWidget(widget->getWidget());
   else
     QDockWidget::setWidget(nullptr);
   if(this->widget)
