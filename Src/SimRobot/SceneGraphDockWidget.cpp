@@ -40,11 +40,6 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   expandedItems = QSet<QString>::fromList(expandedItemsList);
 #endif
   settings.endGroup();
-
-#ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
-  connect(this, SIGNAL(topLevelChanged(bool)), this, SLOT(topLevelChanged(bool)));
-  topLevelChanged(isFloating());
-#endif
 }
 
 SceneGraphDockWidget::~SceneGraphDockWidget()

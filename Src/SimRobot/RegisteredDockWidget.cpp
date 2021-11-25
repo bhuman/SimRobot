@@ -10,19 +10,12 @@
 #include "RegisteredDockWidget.h"
 #include "MainWindow.h"
 
-#ifdef FIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
-extern MainWindow* mainWindow;
-#endif
-
 RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* parent) :
   QDockWidget(parent), fullName(fullName), module(0), object(0), widget(0), flags(0), reallyVisible(false)
 {
   setObjectName(fullName);
   setAllowedAreas(Qt::TopDockWidgetArea);
   setFocusPolicy(Qt::ClickFocus);
-#ifdef FIX_MACOS_DOCKED_WIDGETS_DRAG_BUG
-  connect(this, SIGNAL(topLevelChanged(bool)), this, SLOT(topLevelChanged(bool)));
-#endif
   connect(this, SIGNAL(visibilityChanged(bool)), this, SLOT(visibilityChanged(bool)));
 }
 
@@ -122,18 +115,7 @@ void RegisteredDockWidget::closeEvent(QCloseEvent* event)
     return;
   }
 
-#ifdef FIX_MACOS_UNDOCKED_WIDGETS_DURING_CLOSE_BUG
-  if(isFloating())
-  {
-    mainWindow->setUpdatesEnabled(false);
-    setFloating(false);
-    QDockWidget::closeEvent(event);
-    mainWindow->setUpdatesEnabled(true);
-  }
-  else
-#endif
-    QDockWidget::closeEvent(event);
-
+  QDockWidget::closeEvent(event);
   emit closedObject(fullName);
 }
 
