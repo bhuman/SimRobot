@@ -11,7 +11,7 @@ set_property(TARGET SimRobotCore2 PROPERTY PDB_OUTPUT_DIRECTORY "${SIMROBOT_LIBR
 set_property(TARGET SimRobotCore2 PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobotCore2 PROPERTY AUTORCC ON)
 target_include_directories(SimRobotCore2 PRIVATE "${SIMROBOTCORE2_ROOT_DIR}")
-target_link_libraries(SimRobotCore2 PRIVATE Qt5::Core Qt5::Gui Qt5::OpenGL Qt5::Widgets)
+target_link_libraries(SimRobotCore2 PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
 target_link_libraries(SimRobotCore2 PRIVATE Eigen::Eigen)
 target_link_libraries(SimRobotCore2 PRIVATE ODE::ODE)
 target_link_libraries(SimRobotCore2 PRIVATE OpenGL::GL)

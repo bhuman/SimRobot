@@ -1,5 +1,5 @@
 if(${PLATFORM} STREQUAL Linux)
-  find_package(Qt5 COMPONENTS Concurrent Core Gui OpenGL Svg Widgets REQUIRED)
+  find_package(Qt5 COMPONENTS Concurrent Core Gui Svg Widgets REQUIRED)
 elseif(${PLATFORM} STREQUAL Windows)
   add_library(Qt5::WinMain STATIC IMPORTED)
   set_target_properties(Qt5::WinMain PROPERTIES
@@ -51,17 +51,6 @@ elseif(${PLATFORM} STREQUAL Windows)
       INTERFACE_LINK_LIBRARIES "Qt5::Core;Qt5::Gui"
       INTERFACE_COMPILE_DEFINITIONS "QT_WIDGETS_LIB"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include/QtWidgets")
-
-  add_library(Qt5::OpenGL SHARED IMPORTED)
-  set_target_properties(Qt5::OpenGL PROPERTIES
-      IMPORTED_CONFIGURATIONS "Debug"
-      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt5OpenGLd.lib"
-      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt5OpenGLd.dll"
-      IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt5OpenGL.lib"
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt5OpenGL.dll"
-      INTERFACE_LINK_LIBRARIES "Qt5::Core;Qt5::Gui;Qt5::Widgets"
-      INTERFACE_COMPILE_DEFINITIONS "QT_OPENGL_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include/QtOpenGL")
 
   add_library(Qt5::Svg SHARED IMPORTED)
   set_target_properties(Qt5::Svg PROPERTIES
@@ -121,13 +110,6 @@ elseif(APPLE)
       INTERFACE_LINK_LIBRARIES "Qt5::Core;Qt5::Gui"
       INTERFACE_COMPILE_DEFINITIONS "QT_WIDGETS_LIB"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework/Headers")
-
-  add_library(Qt5::OpenGL SHARED IMPORTED)
-  set_target_properties(Qt5::OpenGL PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework/QtOpenGL"
-      INTERFACE_LINK_LIBRARIES "Qt5::Core;Qt5::Gui;Qt5::Widgets"
-      INTERFACE_COMPILE_DEFINITIONS "QT_OPENGL_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework/Headers")
 
   add_library(Qt5::Svg SHARED IMPORTED)
   set_target_properties(Qt5::Svg PROPERTIES

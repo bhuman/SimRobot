@@ -19,7 +19,6 @@ if(APPLE)
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtDBus.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtPrintSupport.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework"
@@ -56,9 +55,6 @@ set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobot PRIVATE Qt5::Core Qt5::Gui Qt5::Svg Qt5::Widgets)
-if(APPLE)
-  target_link_libraries(SimRobot PRIVATE Qt5::OpenGL)
-endif()
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
 target_link_libraries(SimRobot PRIVATE Flags::Default)
@@ -73,7 +69,7 @@ if(${PLATFORM} STREQUAL Windows)
   add_custom_command(TARGET SimRobot POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "$<TARGET_FILE:Qt5::Core>" "$<TARGET_FILE:Qt5::Gui>" "$<TARGET_FILE:Qt5::OpenGL>" "$<TARGET_FILE:Qt5::Svg>"
+      "$<TARGET_FILE:Qt5::Core>" "$<TARGET_FILE:Qt5::Gui>" "$<TARGET_FILE:Qt5::Svg>"
       "$<TARGET_FILE:Qt5::Widgets>" "$<TARGET_FILE:GLEW::GLEW>" "$<TARGET_FILE_DIR:SimRobot>"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
