@@ -70,11 +70,8 @@ int main(int argc, char* argv[])
   _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
   //_CrtSetBreakAlloc(18969); // Use to track down memory leaks
 #endif
-#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-#endif
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QSurfaceFormat format;
   format.setVersion(2, 1);
@@ -82,7 +79,6 @@ int main(int argc, char* argv[])
   format.setSamples(1);
   format.setStencilBufferSize(0);
   QSurfaceFormat::setDefaultFormat(format);
-#endif
   QApplication app(argc, argv);
 #ifndef WINDOWS
   setlocale(LC_NUMERIC, "C");
