@@ -18,6 +18,12 @@
 #include <ode/collision.h>
 #include <ode/objects.h>
 
+#ifdef WINDOWS
+typedef int (*GLBlendColorProc)(GLfloat, GLfloat, GLfloat, GLfloat);
+static GLBlendColorProc glBlendColor = nullptr;
+static int noBlendColor(GLfloat, GLfloat, GLfloat, GLfloat) {return 0;}
+#endif
+
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
   simObject(simObject),
   cameraMode(targetCam), defaultCameraPos(3.f, 6.f, 4.f), cameraPos(defaultCameraPos), cameraTarget(Vector3f::Zero())
@@ -41,6 +47,11 @@ void SimObjectRenderer::init(bool hasSharedDisplayLists)
 {
   Simulation::simulation->scene->createGraphics(hasSharedDisplayLists);
   calcDragPlaneVector();
+#ifdef WINDOWS
+  glBlendColor = reinterpret_cast<GLBlendColorProc>(wglGetProcAddress("glBlendColor"));
+  if(!glBlendColor)
+    glBlendColor = &noBlendColor;
+#endif
 }
 
 void SimObjectRenderer::draw()
