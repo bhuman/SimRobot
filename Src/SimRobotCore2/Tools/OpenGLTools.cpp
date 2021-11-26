@@ -7,6 +7,9 @@
 #include "OpenGLTools.h"
 #include <cmath>
 
+#undef near
+#undef far
+
 void OpenGLTools::computePerspective(float fovY, float aspect, float near, float far, float matrix[])
 {
   matrix[5] = 1.f / std::tan(fovY * 0.5f);
