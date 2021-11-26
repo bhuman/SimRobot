@@ -70,7 +70,7 @@ if(${PLATFORM} STREQUAL Windows)
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:Qt5::Core>" "$<TARGET_FILE:Qt5::Gui>" "$<TARGET_FILE:Qt5::Svg>"
-      "$<TARGET_FILE:Qt5::Widgets>" "$<TARGET_FILE:GLEW::GLEW>" "$<TARGET_FILE_DIR:SimRobot>"
+      "$<TARGET_FILE:Qt5::Widgets>" "$<TARGET_FILE_DIR:SimRobot>"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
 endif()

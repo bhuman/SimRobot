@@ -22,7 +22,7 @@ Run `Make/Windows/generate.cmd` as administrator (on the first run, the script c
 - A 64-bit Linux, e.g. Ubuntu 20.04.2 LTS
 - The following packages (here for Ubuntu 20.04.2 LTS):
 ```
-sudo apt-get install clang cmake libglew-dev libqt5opengl5-dev libqt5svg5-dev lld llvm ninja-build qtbase5-dev
+sudo apt-get install clang cmake libqt5svg5-dev lld llvm ninja-build qtbase5-dev
 ```
 - (optionally) CLion 2019.3 or newer
 

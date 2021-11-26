@@ -4,5 +4,6 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
 #else
-#include <GL/glew.h>
+#include <qopengl.h>
+#include <GL/glu.h>
 #endif

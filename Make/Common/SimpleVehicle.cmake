@@ -11,7 +11,7 @@ target_link_libraries(SimpleVehicle PRIVATE SimRobotCore2Interface)
 target_link_libraries(SimpleVehicle PRIVATE OpenGL::GL)
 
 if(NOT APPLE)
-  target_link_libraries(SimpleVehicle PRIVATE GLEW::GLEW OpenGL::GL OpenGL::GLU)
+  target_link_libraries(SimpleVehicle PRIVATE OpenGL::GLU)
 endif()
 
 target_compile_options(SimpleVehicle PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/GL>>)
