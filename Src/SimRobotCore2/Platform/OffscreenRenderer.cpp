@@ -18,15 +18,14 @@ OffscreenRenderer::~OffscreenRenderer()
   if(glContext && glSurface)
     glContext->makeCurrent(glSurface);
   renderBuffers.clear();
-  if(glContext)
-    delete glContext;
-  if(glSurface)
-    delete glSurface;}
+  delete glContext;
+  delete glSurface;
+}
 
 OffscreenRenderer::Buffer::~Buffer()
 {
-  if(framebuffer)
-    delete framebuffer;}
+  delete framebuffer;
+}
 
 bool OffscreenRenderer::makeCurrent(int width, int height, bool sampleBuffers)
 {
