@@ -93,12 +93,6 @@ SimObjectWidget::~SimObjectWidget()
 void SimObjectWidget::initializeGL()
 {
   objectRenderer.init(QOpenGLContext::areSharing(context(), Simulation::simulation->renderer.getContext()));
-  #ifdef FIX_MACOS_BROKEN_TEXTURES_ON_NVIDIA_BUG
-    Simulation::simulation->renderer.makeCurrent(8, 8);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glFlush();
-    makeCurrent();
-  #endif
 }
 
 void SimObjectWidget::paintGL()
