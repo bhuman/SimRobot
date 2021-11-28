@@ -72,7 +72,7 @@ public:
 
   std::list<Body*> bodies; /**< List of bodies without a parent body */
   std::list<Actuator::Port*> actuators; /**< List of actuators that need to do something in every simulation step */
-  std::list<Light*> lights; /** List of scene lights */
+  std::list<Light*> lights; /**< List of scene lights */
 
   /** Default constructor */
   Scene()

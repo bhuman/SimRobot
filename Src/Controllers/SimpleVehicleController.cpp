@@ -42,21 +42,21 @@ class TestDrawing : public SimRobotCore2::Controller3DDrawing
 class SimpleVehicleController : public SimRobot::Module
 {
 private:
-  SimRobot::Application&   simRobot;            /** Reference to the SimRobot application */
-  SimRobotCore2::ActuatorPort* frontLeftWheel;  /** Access to front left wheel */
-  SimRobotCore2::ActuatorPort* frontRightWheel; /** Access to front right wheel */
-  SimRobotCore2::ActuatorPort* backLeftWheel;   /** Access to back left wheel */
-  SimRobotCore2::ActuatorPort* backRightWheel;  /** Access to back right wheel */
-  SimRobotCore2::SensorPort*   distanceSensor;  /** Access to distance sensor */
-  bool ballFound;                               /** Flag for behavior */
-  float angleToBall;                            /** Angle for behavior */
-  float distanceToBall;                         /** Distance for behavior */
+  SimRobot::Application&   simRobot;            /**< Reference to the SimRobot application */
+  SimRobotCore2::ActuatorPort* frontLeftWheel;  /**< Access to front left wheel */
+  SimRobotCore2::ActuatorPort* frontRightWheel; /**< Access to front right wheel */
+  SimRobotCore2::ActuatorPort* backLeftWheel;   /**< Access to back left wheel */
+  SimRobotCore2::ActuatorPort* backRightWheel;  /**< Access to back right wheel */
+  SimRobotCore2::SensorPort*   distanceSensor;  /**< Access to distance sensor */
+  bool ballFound;                               /**< Flag for behavior */
+  float angleToBall;                            /**< Angle for behavior */
+  float distanceToBall;                         /**< Distance for behavior */
 
   enum VehicleState
   {
     SEARCH_FOR_BALL = 0,
     GO_TO_BALL
-  } vehicleState;         /** Different states for the robot behavior */
+  } vehicleState;         /**< Different states for the robot behavior */
 
 public:
   /** Constructor */

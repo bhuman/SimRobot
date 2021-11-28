@@ -44,16 +44,16 @@ private:
   class DistanceSensor : public Sensor::Port
   {
   public:
-    ::PhysicalObject* physicalObject; /** The physical object were the distance sensor is mounted on */
+    ::PhysicalObject* physicalObject; /**< The physical object were the distance sensor is mounted on */
     DepthImageSensor* depthImageSensor;
     float* imageBuffer; /**< A buffer for rendered image data */
     Pose3f offset; /**< Offset of the camera relative to the body it mounted on */
     float projection[16]; /**< The perspective projection matrix */
     float min; /**< Smallest measurable value in m. */
     float max; /**< Largest measurable value in m. */
-    float* renderBuffer; /** The buffer used for rendering. Only differs from imageBuffer for spherical projection. */
-    unsigned int renderWidth; /** The horizontal number of pixels to render. Only differs from depthImageSensor->imageWidth for spherical projection. */
-    unsigned int renderHeight; /** The vertical number of pixels to render. Equals depthImageSensor->imageHeight. */
+    float* renderBuffer; /**< The buffer used for rendering. Only differs from imageBuffer for spherical projection. */
+    unsigned int renderWidth; /**< The horizontal number of pixels to render. Only differs from depthImageSensor->imageWidth for spherical projection. */
+    unsigned int renderHeight; /**< The vertical number of pixels to render. Equals depthImageSensor->imageHeight. */
     float renderAngleX; /**< The horizontal opening angle of the render context. */
     float** lut; /**< Lookup table for transforming perspective projection to spherical projection. */
     unsigned int numOfBuffers; /**< Number of rending buffers. Actually, the same buffer is reused numOfBuffers times. */

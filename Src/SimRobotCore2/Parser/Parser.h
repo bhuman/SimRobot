@@ -108,7 +108,7 @@ private:
       MacroElement(nullptr, elementInfo, attributes, location), fileName(fileName), replaying(false) {}
   };
 
-  std::unordered_map<std::string, const ElementInfo*> elementInfos; /** Mapping element name strings to handler member function pointers */
+  std::unordered_map<std::string, const ElementInfo*> elementInfos; /**< Mapping element name strings to handler member function pointers */
 
   std::list<std::string>* errors; /**< List of errors occurred while parsing */
   std::string parseRootDir; /**< The directory in which the main .ros2 file is stored. */
@@ -119,9 +119,9 @@ private:
   Macro* sceneMacro; /**< A macro created for the <Scene> element */
 
   MacroElement* recordingMacroElement; /**< A macro element set to record subordinate nodes of a macro */
-  MacroElement* replayingMacroElement; /** A macro element set to insert subordinate nodes of a macro */
+  MacroElement* replayingMacroElement; /**< A macro element set to insert subordinate nodes of a macro */
   Element* element; /**< The last inserted xml element */
-  ElementData* elementData; /** Element context data required for parsing a xml element */
+  ElementData* elementData; /**< Element context data required for parsing a xml element */
   const Attributes* attributes; /**< The current set of attributes */
 
   bool passedSimulationTag; /**< Whether the <Simulation>-tag was passed or not */

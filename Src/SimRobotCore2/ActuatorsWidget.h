@@ -77,7 +77,7 @@ private slots:
 };
 
 /**
- * @class ActuatorsObject
+ * @class ActuatorWidget
  * A widget for controlling an actuator
  */
 class ActuatorWidget : public QWidget
@@ -87,7 +87,8 @@ class ActuatorWidget : public QWidget
 public:
   QString actuatorName; /**< The scene graph path name of the actuator */
 
-  /** Constructor
+  /**
+   * Constructor
    * @param actuator The actuator controlled by the widget
    * @param parent The parent (centralized actuators) widget
    */

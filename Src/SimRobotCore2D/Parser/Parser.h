@@ -235,7 +235,7 @@ private:
   MacroElement* recordingMacroElement = nullptr; /**< A macro element set to record subordinate nodes of a macro. */
   MacroElement* replayingMacroElement = nullptr; /**< A macro element set to insert subordinate nodes of a macro. */
   Element* element = nullptr; /**< The last inserted XML element. */
-  ElementData* elementData = nullptr; /** Element context data required for parsing an XML element. */
+  ElementData* elementData = nullptr; /**< Element context data required for parsing an XML element. */
   const Attributes* attributes = nullptr; /**< The current set of attributes. */
 
   std::string placeholderBuffer; /**< A buffer which contains the most recently resolved placeholder. */

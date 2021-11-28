@@ -32,7 +32,7 @@
 class FactoryController : public SimRobot::Module
 {
 private:
-  SimRobot::Application&       simRobot;        /** Reference to the SimRobot application */
+  SimRobot::Application&       simRobot;        /**< Reference to the SimRobot application */
   SimRobotCore2::SensorPort*   distanceSensor1; /**< Access to the first distance sensor **/
   SimRobotCore2::SensorPort*   distanceSensor2; /**< Access to the second distance sensor **/
   SimRobotCore2::SensorPort*   distanceSensor3; /**< Access to the third distance sensor **/

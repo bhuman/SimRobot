@@ -30,7 +30,7 @@ private:
   class DistanceSensor : public Sensor::Port
   {
   public:
-    ::PhysicalObject* physicalObject; /** The physical object were the distance sensor is mounted on */
+    ::PhysicalObject* physicalObject; /**< The physical object were the distance sensor is mounted on */
     dGeomID geom;
     float min;
     float max;

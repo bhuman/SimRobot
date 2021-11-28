@@ -31,7 +31,7 @@ private:
   class CameraSensor : public Sensor::Port
   {
   public:
-    ::PhysicalObject* physicalObject; /** The physical object were the camera is mounted on */
+    ::PhysicalObject* physicalObject; /**< The physical object were the camera is mounted on */
     Camera* camera;
     unsigned char* imageBuffer; /**< A buffer for rendered image data */
     unsigned int imageBufferSize;
