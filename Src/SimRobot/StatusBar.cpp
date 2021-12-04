@@ -6,7 +6,7 @@ StatusBar::StatusBar(QWidget* parent) : QStatusBar(parent), toggleViewAct(0)
 {
   userMessage = latestMessage = tr("Ready");
   showMessage(userMessage);
-  connect(this, SIGNAL(messageChanged(const QString&)), this, SLOT(messageChanged(const QString&)));
+  connect(this, &QStatusBar::messageChanged, this, &StatusBar::messageChanged);
 }
 
 void StatusBar::addLabel(const SimRobot::Module* module, SimRobot::StatusLabel* statusLabel)
@@ -64,7 +64,7 @@ QAction* StatusBar::toggleViewAction()
   toggleViewAct = new QAction(tr("&Status Bar"), this);
   toggleViewAct->setCheckable(true);
   toggleViewAct->setChecked(isVisible());
-  connect(toggleViewAct, SIGNAL(triggered(bool)), this, SLOT(setVisible(bool)));
+  connect(toggleViewAct, &QAction::triggered, this, &StatusBar::setVisible);
   return toggleViewAct;
 }
 

@@ -26,9 +26,9 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   treeWidget->setExpandsOnDoubleClick(false);
   treeWidget->header()->hide();
 
-  connect(treeWidget, SIGNAL(activated(const QModelIndex&)), this, SLOT(itemActivated(const QModelIndex&)));
-  connect(treeWidget, SIGNAL(collapsed(const QModelIndex&)), this, SLOT(itemCollapsed(const QModelIndex&)));
-  connect(treeWidget, SIGNAL(expanded(const QModelIndex&)), this, SLOT(itemExpanded(const QModelIndex&)));
+  connect(treeWidget, &QTreeWidget::activated, this, &SceneGraphDockWidget::itemActivated);
+  connect(treeWidget, &QTreeWidget::collapsed, this, &SceneGraphDockWidget::itemCollapsed);
+  connect(treeWidget, &QTreeWidget::expanded, this, &SceneGraphDockWidget::itemExpanded);
 
   // load layout settings
   QSettings& settings = MainWindow::application->getLayoutSettings();
@@ -297,13 +297,13 @@ void SceneGraphDockWidget::contextMenuEvent(QContextMenuEvent* event)
     if(!(clickedItem->flags & SimRobot::Flag::windowless))
     {
       QAction* action = menu.addAction(tr(clickedItem->opened ? "&Close" : "&Open"));
-      connect(action, SIGNAL(triggered()), this, SLOT(openOrCloseObject()));
+      connect(action, &QAction::triggered, this, &SceneGraphDockWidget::openOrCloseObject);
       menu.addSeparator();
     }
     if(clickedItem->childCount() > 0)
     {
       QAction* action = menu.addAction(tr(clickedItem->isExpanded() ? "Collaps&e" : "&Expand"));
-      connect(action, SIGNAL(triggered()), this, SLOT(expandOrCollapseObject()));
+      connect(action, &QAction::triggered, this, &SceneGraphDockWidget::expandOrCollapseObject);
       menu.addSeparator();
     }
   }

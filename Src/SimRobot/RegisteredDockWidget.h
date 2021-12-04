@@ -45,8 +45,10 @@ private:
   void keyPressEvent(QKeyEvent* event) override;
   void keyReleaseEvent(QKeyEvent* event) override;
 
-private slots:
+public slots:
   void visibilityChanged(bool visible);
+  
+private slots:
   void topLevelChanged(bool topLevel);
   void copy();
   void exportAsSvg();

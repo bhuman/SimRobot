@@ -16,7 +16,7 @@ RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* par
   setObjectName(fullName);
   setAllowedAreas(Qt::TopDockWidgetArea);
   setFocusPolicy(Qt::ClickFocus);
-  connect(this, SIGNAL(visibilityChanged(bool)), this, SLOT(visibilityChanged(bool)));
+  connect(this, &QDockWidget::visibilityChanged, this, &RegisteredDockWidget::visibilityChanged);
 }
 
 void RegisteredDockWidget::setWidget(SimRobot::Widget* widget, const SimRobot::Module* module, SimRobot::Object* object, int flags)
@@ -61,7 +61,7 @@ QMenu* RegisteredDockWidget::createEditMenu()
     QAction* copyAction = menu->addAction(QIcon(":/Icons/page_copy.png"), tr("&Copy"));
     copyAction->setShortcut(QKeySequence(QKeySequence::Copy));
     copyAction->setStatusTip(tr("Copy the window drawing to the clipboard"));
-    connect(copyAction, SIGNAL(triggered()), this, SLOT(copy()));
+    connect(copyAction, &QAction::triggered, this, &RegisteredDockWidget::copy);
   }
 
   return menu;
@@ -82,8 +82,8 @@ QMenu* RegisteredDockWidget::createUserMenu() const
     QMenu* exportImgMenu = menu->addMenu(tr("&Export Image"));
     QAction* svgAction = exportImgMenu->addAction(tr("Export Image as &SVG"));
     QAction* pngAction = exportImgMenu->addAction(tr("Export Image as &PNG"));
-    connect(svgAction, SIGNAL(triggered()), this, SLOT(exportAsSvg()));
-    connect(pngAction, SIGNAL(triggered()), this, SLOT(exportAsPng()));
+    connect(svgAction, &QAction::triggered, this, &RegisteredDockWidget::exportAsSvg);
+    connect(pngAction, &QAction::triggered, this, &RegisteredDockWidget::exportAsPng);
   }
 
   return menu;

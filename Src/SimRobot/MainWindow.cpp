@@ -60,18 +60,18 @@ MainWindow::MainWindow(int, char* argv[]) :
   setAttribute(Qt::WA_AlwaysShowToolTips);
   setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
   resize(600, 400);
-  connect(qApp, SIGNAL(focusChanged(QWidget*, QWidget*)), this, SLOT(focusChanged(QWidget*, QWidget*)));
+  connect(qApp, &QApplication::focusChanged, this, &MainWindow::focusChanged);
 
   // create actions
   fileOpenAct = new QAction(QIcon(":/Icons/folder_page.png"), tr("&Open..."), this);
   fileOpenAct->setShortcut(QKeySequence(QKeySequence::Open));
   fileOpenAct->setStatusTip(tr("Open an existing scene file"));
-  connect(fileOpenAct, SIGNAL(triggered()), this, SLOT(open()));
+  connect(fileOpenAct, &QAction::triggered, this, &MainWindow::open);
 
   fileCloseAct = new QAction(tr("&Close"), this);
   fileCloseAct->setStatusTip(tr("Close the scene"));
   fileCloseAct->setEnabled(false);
-  connect(fileCloseAct, SIGNAL(triggered()), this, SLOT(closeFile()));
+  connect(fileCloseAct, &QAction::triggered, this, &MainWindow::closeFile);
 
   fileExitAct = new QAction(/*QIcon(":/Icons/Exit.png"), */tr("E&xit"), this);
 #ifdef WINDOWS
@@ -82,30 +82,30 @@ MainWindow::MainWindow(int, char* argv[]) :
   fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_Q), static_cast<int>(Qt::ALT) + static_cast<int>(Qt::Key_F4)));
 #endif
   fileExitAct->setStatusTip(tr("Exit the application"));
-  connect(fileExitAct, SIGNAL(triggered()), this, SLOT(close()));
+  connect(fileExitAct, &QAction::triggered, this, &MainWindow::close);
 
   toolbarOpenAct = new QAction(QIcon(":/Icons/folder_page.png"), tr("&Open..."), this);
   toolbarOpenAct->setStatusTip(tr("Open an existing file"));
-  connect(toolbarOpenAct, SIGNAL(triggered()), this, SLOT(open()));
+  connect(toolbarOpenAct, &QAction::triggered, this, &MainWindow::open);
 
   simResetAct = new QAction(QIcon(":/Icons/control_start_blue.png"), tr("&Reset"), this);
   simResetAct->setStatusTip(tr("Reset the simulation to the beginning"));
   simResetAct->setShortcut(QKeySequence(static_cast<int>(Qt::SHIFT) + static_cast<int>(Qt::Key_F5)));
   simResetAct->setEnabled(false);
-  connect(simResetAct, SIGNAL(triggered()), this, SLOT(simReset()));
+  connect(simResetAct, &QAction::triggered, this, &MainWindow::simReset);
 
   simStartAct = new QAction(QIcon(":/Icons/control_play_blue.png"), tr("&Start"), this);
   simStartAct->setStatusTip(tr("Start or stop the simulation"));
   simStartAct->setShortcut(QKeySequence(Qt::Key_F5));
   simStartAct->setCheckable(true);
   simStartAct->setEnabled(false);
-  connect(simStartAct, SIGNAL(triggered()), this, SLOT(simStart()));
+  connect(simStartAct, &QAction::triggered, this, &MainWindow::simStart);
 
   simStepAct = new QAction(QIcon(":/Icons/control_step_blue.png"), tr("&Step"), this);
   simStepAct->setStatusTip(tr("Execute a single simulation step"));
   simStepAct->setShortcut(QKeySequence(Qt::Key_F8));
   simStepAct->setEnabled(false);
-  connect(simStepAct, SIGNAL(triggered()), this, SLOT(simStep()));
+  connect(simStepAct, &QAction::triggered, this, &MainWindow::simStep);
 
   // add props
   toolBar = addToolBar(tr("&Toolbar"));
@@ -126,30 +126,30 @@ MainWindow::MainWindow(int, char* argv[]) :
 
   // create menus
   fileMenu = new QMenu(tr("&File"), this);
-  connect(&recentFileMapper, SIGNAL(mapped(const QString&)), this, SLOT(openFile(const QString&)));
-  connect(fileMenu, SIGNAL(aboutToShow()), this, SLOT(updateFileMenu()));
+  connect(&recentFileMapper, &QSignalMapper::mappedString, this, &MainWindow::openFile);
+  connect(fileMenu, &QMenu::aboutToShow, this, &MainWindow::updateFileMenu);
   updateFileMenu();
 
   recentFileMenu = new QMenu(tr("&File"), this);
-  connect(recentFileMenu, SIGNAL(aboutToShow()), this, SLOT(updateRecentFileMenu()));
+  connect(recentFileMenu, &QMenu::aboutToShow, this, &MainWindow::updateRecentFileMenu);
   toolbarOpenAct->setMenu(recentFileMenu);
 
-  connect(&viewUpdateRateMapper, SIGNAL(mapped(int)), this, SLOT(setGuiUpdateRate(int)));
+  connect(&viewUpdateRateMapper, &QSignalMapper::mappedInt, this, &MainWindow::setGuiUpdateRate);
   viewMenu = new QMenu(tr("&View"), this);
-  connect(viewMenu, SIGNAL(aboutToShow()), this, SLOT(updateViewMenu()));
+  connect(viewMenu, &QMenu::aboutToShow, this, static_cast<void (MainWindow::*)()>(&MainWindow::updateViewMenu));
   updateViewMenu();
 
   addonMenu = new QMenu(tr("&Add-ons"), this);
-  connect(&addonMapper, SIGNAL(mapped(const QString&)), this, SLOT(loadAddon(const QString&)));
-  connect(addonMenu, SIGNAL(aboutToShow()), this, SLOT(updateAddonMenu()));
+  connect(&addonMapper, &QSignalMapper::mappedString, this, &MainWindow::loadAddon);
+  connect(addonMenu, &QMenu::aboutToShow, this, &MainWindow::updateAddonMenu);
   updateAddonMenu();
 
   helpMenu = new QMenu(tr("&Help"), this);
   QAction* action;
-  connect(action = helpMenu->addAction(tr("&About...")), SIGNAL(triggered()), this, SLOT(about()));
+  connect(action = helpMenu->addAction(tr("&About...")), &QAction::triggered, this, &MainWindow::about);
   action->setMenuRole(QAction::AboutRole);
   action->setStatusTip(tr("Show the application's About box"));
-  connect(action = helpMenu->addAction(tr("About &Qt...")), SIGNAL(triggered()), qApp, SLOT(aboutQt()));
+  connect(action = helpMenu->addAction(tr("About &Qt...")), &QAction::triggered, qApp, &QApplication::aboutQt);
   action->setMenuRole(QAction::AboutQtRole);
   action->setStatusTip(tr("Show the Qt library's About box"));
 
@@ -570,35 +570,35 @@ void MainWindow::updateViewMenu(QMenu* menu)
   action->setChecked(guiUpdateRate == 100);
   viewUpdateRateActionGroup->addAction(action);
   viewUpdateRateMapper.setMapping(action, 100);
-  connect(action, SIGNAL(triggered()), &viewUpdateRateMapper, SLOT(map()));
+  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
 
   action = viewUpdateRateMenu->addAction(tr("20 fps"));
   action->setCheckable(true);
   action->setChecked(guiUpdateRate == 50);
   viewUpdateRateActionGroup->addAction(action);
   viewUpdateRateMapper.setMapping(action, 50);
-  connect(action, SIGNAL(triggered()), &viewUpdateRateMapper, SLOT(map()));
+  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
 
   action = viewUpdateRateMenu->addAction(tr("30 fps"));
   action->setCheckable(true);
   action->setChecked(guiUpdateRate == 33);
   viewUpdateRateActionGroup->addAction(action);
   viewUpdateRateMapper.setMapping(action, 33);
-  connect(action, SIGNAL(triggered()), &viewUpdateRateMapper, SLOT(map()));
+  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
 
   action = viewUpdateRateMenu->addAction(tr("50 fps"));
   action->setCheckable(true);
   action->setChecked(guiUpdateRate == 20);
   viewUpdateRateActionGroup->addAction(action);
   viewUpdateRateMapper.setMapping(action, 20);
-  connect(action, SIGNAL(triggered()), &viewUpdateRateMapper, SLOT(map()));
+  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
 
   action = viewUpdateRateMenu->addAction(tr("Every Frame"));
   action->setCheckable(true);
   action->setChecked(guiUpdateRate == 0);
   viewUpdateRateActionGroup->addAction(action);
   viewUpdateRateMapper.setMapping(action, 0);
-  connect(action, SIGNAL(triggered()), &viewUpdateRateMapper, SLOT(map()));
+  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
 
   menu->addMenu(viewUpdateRateMenu);
   menu->addSeparator();
@@ -703,7 +703,7 @@ void MainWindow::updateMenuAndToolBar()
   menuBar->addMenu(helpMenu);
 
 #ifndef LINUX
-  QTimer::singleShot(0, toolBar, SLOT(update()));
+  QTimer::singleShot(0, toolBar, static_cast<void (QToolBar::*)()>(&QToolBar::update));
 #endif
 }
 
@@ -752,7 +752,7 @@ void MainWindow::updateFileMenu()
     {
       const QString& file(*i);
       QAction* action = fileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
-      connect(action, SIGNAL(triggered()), &recentFileMapper, SLOT(map()));
+      connect(action, &QAction::triggered, &recentFileMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
       recentFileMapper.setMapping(action, file);
     }
   }
@@ -770,7 +770,7 @@ void MainWindow::updateRecentFileMenu()
   {
     const QString& file(*i);
     QAction* action = recentFileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
-    connect(action, SIGNAL(triggered()), &recentFileMapper, SLOT(map()));
+    connect(action, &QAction::triggered, &recentFileMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
     recentFileMapper.setMapping(action, file);
   }
 }
@@ -789,7 +789,7 @@ void MainWindow::updateAddonMenu()
     action->setCheckable(true);
     if(loadedModulesByName.contains(info.name))
       action->setChecked(true);
-    connect(action, SIGNAL(triggered()), &addonMapper, SLOT(map()));
+    connect(action, &QAction::triggered, &addonMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
     addonMapper.setMapping(action, info.name);
   }
 }
@@ -845,10 +845,10 @@ void MainWindow::openFile(const QString& fileName)
   // create scene graph window
   sceneGraphDockWidget = new SceneGraphDockWidget(createSimMenu(), this);
   sceneGraphDockWidget->setStyleSheet(QDOCKWIDGET_STYLE);
-  connect(sceneGraphDockWidget, SIGNAL(visibilityChanged(bool)), this, SLOT(visibilityChanged(bool)));
+  connect(sceneGraphDockWidget, &SceneGraphDockWidget::visibilityChanged, this, &MainWindow::visibilityChanged);
   addDockWidget(Qt::TopDockWidgetArea, sceneGraphDockWidget);
-  connect(sceneGraphDockWidget, SIGNAL(activatedObject(const QString&, const SimRobot::Module*, SimRobot::Object*, int)), this, SLOT(openObject(const QString&, const SimRobot::Module*, SimRobot::Object*, int)));
-  connect(sceneGraphDockWidget, SIGNAL(deactivatedObject(const QString&)), this, SLOT(closeObject(const QString&)));
+  connect(sceneGraphDockWidget, &SceneGraphDockWidget::activatedObject, this, static_cast<void (MainWindow::*)(const QString& fullName, const SimRobot::Module* module, SimRobot::Object* object, int flags)>(&MainWindow::openObject));
+  connect(sceneGraphDockWidget, &SceneGraphDockWidget::deactivatedObject, this, static_cast<void (MainWindow::*)(const QString&)>(&MainWindow::closeObject));
 
   // load all other windows
   const QVariant& openedObjectsVar = layoutSettings.value("OpenedObjects");
@@ -1166,11 +1166,11 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
   }
 
   dockWidget = new RegisteredDockWidget(fullName, this);
-  connect(dockWidget, SIGNAL(closedContextMenu()), this, SLOT(updateMenuAndToolBar()));
+  connect(dockWidget, &RegisteredDockWidget::closedContextMenu, this, &MainWindow::updateMenuAndToolBar);
   if(flags & SimRobot::Flag::verticalTitleBar)
     dockWidget->setFeatures(dockWidget->features() | QDockWidget::DockWidgetVerticalTitleBar);
   dockWidget->setStyleSheet(dockWidget == activeDockWidget ? QDOCKWIDGET_STYLE_FOCUS : QDOCKWIDGET_STYLE);
-  connect(dockWidget, SIGNAL(visibilityChanged(bool)), this, SLOT(visibilityChanged(bool)));
+  connect(dockWidget, &QDockWidget::visibilityChanged, this, &MainWindow::visibilityChanged);
   dockWidget->setAttribute(Qt::WA_DeleteOnClose);
   dockWidget->setWindowTitle(fullName);
   dockWidget->setObjectName(fullName);
@@ -1187,7 +1187,7 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
   Q_ASSERT(openedObjectsByName.value(fullName) == 0);
   openedObjectsByName.insert(fullName, dockWidget);
   openedObjects.append(fullName);
-  connect(dockWidget, SIGNAL(closedObject(const QString&)), this, SLOT(closedObject(const QString&)));
+  connect(dockWidget, &RegisteredDockWidget::closedObject, this, &MainWindow::closedObject);
   if(sceneGraphDockWidget && object)
     sceneGraphDockWidget->setOpened(object, true);
 

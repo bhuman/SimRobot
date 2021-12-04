@@ -172,9 +172,9 @@ ActuatorWidget::ActuatorWidget(SimRobotCore2::ActuatorPort* actuator, QWidget* p
   layout->addWidget(txbValue);
   layout->addWidget(cbxSet);
 
-  connect(slider, SIGNAL(valueChanged(int)), this, SLOT(valueChanged(int)));
-  connect(txbValue, SIGNAL(valueChanged(double)), this, SLOT(valueChanged(double)));
-  connect(btnExit, SIGNAL(released()), this, SIGNAL(releasedClose()));
+  connect(slider, &QSlider::valueChanged, this, static_cast<void (ActuatorWidget::*)(int)>(&ActuatorWidget::valueChanged));
+  connect(txbValue, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this, static_cast<void (ActuatorWidget::*)(double)>(&ActuatorWidget::valueChanged));
+  connect(btnExit, &QPushButton::released, this, &ActuatorWidget::releasedClose);
 
   float minVal, maxVal;
   int factor;
@@ -311,7 +311,7 @@ void ActuatorsWidget::openActuator(const QString& actuatorName)
   if(!actuator)
     return;
   ActuatorWidget* widget = new ActuatorWidget(actuator, this);
-  connect(widget, SIGNAL(releasedClose()), this, SLOT(closeActuator()));
+  connect(widget, &ActuatorWidget::releasedClose, this, &ActuatorsWidget::closeActuator);
   layout->addWidget(widget);
   actuators.insert(actuatorName, widget);
   actuatorNames.append(actuatorName);
