@@ -192,7 +192,6 @@ EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileCo
   connect(this, &EditorWidget::copyAvailable, this, &EditorWidget::copyAvailable);
   connect(this, &EditorWidget::undoAvailable, this, &EditorWidget::undoAvailable);
   connect(this, &EditorWidget::redoAvailable, this, &EditorWidget::redoAvailable);
-  connect(&openFileMapper, &QSignalMapper::mappedString, this, &EditorWidget::openFile);
 }
 
 EditorWidget::~EditorWidget()
@@ -285,8 +284,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
       for(const QString& str : includeFiles)
       {
         QAction* action = menu->addAction(tr("Open \"%1\"").arg(str));
-        openFileMapper.setMapping(action, str);
-        connect(action, &QAction::triggered, &openFileMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+        connect(action, &QAction::triggered, this, [this, str]{ const_cast<EditorWidget*>(this)->openFile(str); });
       }
       menu->addSeparator();
     }
@@ -550,15 +548,10 @@ void EditorWidget::openFindAndReplace()
   if(!findAndReplaceDialog)
   {
     findAndReplaceDialog = new FindAndReplaceDialog(this);
-    findAndReplaceMapper.setMapping(findAndReplaceDialog->nextPushButton, find);
-    findAndReplaceMapper.setMapping(findAndReplaceDialog->previousPushButton, findBackwards);
-    findAndReplaceMapper.setMapping(findAndReplaceDialog->replacePushButton, replace);
-    findAndReplaceMapper.setMapping(findAndReplaceDialog->replaceAllPushButton, replaceAll);
-    connect(findAndReplaceDialog->nextPushButton, &QPushButton::clicked, &findAndReplaceMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    connect(findAndReplaceDialog->previousPushButton, &QPushButton::clicked, &findAndReplaceMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    connect(findAndReplaceDialog->replacePushButton, &QPushButton::clicked, &findAndReplaceMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    connect(findAndReplaceDialog->replaceAllPushButton, &QPushButton::clicked, &findAndReplaceMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    connect(&findAndReplaceMapper, &QSignalMapper::mappedInt, this, &EditorWidget::findAndReplace);
+    connect(findAndReplaceDialog->nextPushButton, &QPushButton::clicked, this, [this]{ findAndReplace(find); });
+    connect(findAndReplaceDialog->previousPushButton, &QPushButton::clicked, this, [this]{ findAndReplace(findBackwards); });
+    connect(findAndReplaceDialog->replacePushButton, &QPushButton::clicked, this, [this]{ findAndReplace(replace); });
+    connect(findAndReplaceDialog->replaceAllPushButton, &QPushButton::clicked, this, [this]{ findAndReplace(replaceAll); });
   }
 
   findAndReplaceDialog->show();

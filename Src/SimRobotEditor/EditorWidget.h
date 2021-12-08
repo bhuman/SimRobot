@@ -11,7 +11,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QSignalMapper>
 #include <QSpinBox>
 #include <QTextEdit>
 
@@ -117,7 +116,6 @@ private:
   bool useTabStop;
   int tabStopWidth;
 
-  mutable QSignalMapper openFileMapper, findAndReplaceMapper;
   SyntaxHighlighter* highlighter;
   EditorSettingsDialog* editorSettingsDialog;
   FindAndReplaceDialog* findAndReplaceDialog;

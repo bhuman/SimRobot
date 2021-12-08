@@ -12,7 +12,6 @@
 #include "SimRobotCore2.h"
 #include "SimObjectRenderer.h"
 
-class QSignalMapper;
 class SimObject;
 class Simulation;
 
@@ -73,5 +72,5 @@ private slots:
   void toggleCameraMode();
   void fitCamera();
   void toggleRenderFlag(int flag);
-  void exportAsImage(int resolution);
+  void exportAsImage(int width, int height);
 };

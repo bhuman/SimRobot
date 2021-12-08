@@ -10,7 +10,6 @@
 #include <QSettings>
 #include <QMenu>
 #include <QPinchGesture>
-#include <QSignalMapper>
 #include <QClipboard>
 #include <QFileDialog>
 
@@ -321,65 +320,39 @@ QMenu* SimObjectWidget::createUserMenu() const
 {
   QMenu* menu = new QMenu(tr(&object == Simulation::simulation->scene ? "S&cene" : "&Object"));
 
-  QSignalMapper* flagsSignalMapper = new QSignalMapper(menu);
-  connect(flagsSignalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::toggleRenderFlag);
-
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* action = subMenu->menuAction();
     action->setIcon(QIcon(":/Icons/DragPlane.png"));
     action->setStatusTip(tr("Select the drag and drop dynamics mode and plane along which operations are performed"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setDragPlane);
-    action = subMenu->addAction(tr("X/Y Plane"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::xyPlane);
-    action->setShortcut(QKeySequence(Qt::Key_Z));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("X/Z Plane"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::xzPlane);
-    action->setShortcut(QKeySequence(Qt::Key_Y));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("Y/Z Plane"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::yzPlane);
-    action->setShortcut(QKeySequence(Qt::Key_X));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getDragPlane()))->setChecked(true);
+    auto addPlaneAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::DragAndDropPlane plane)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setShortcut(QKeySequence(key));
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getDragPlane() == plane);
+      connect(action, &QAction::triggered, this, [this, plane]{ const_cast<SimObjectWidget*>(this)->setDragPlane(plane); });
+    };
+    addPlaneAction("X/Y Plane", Qt::Key_Z, SimRobotCore2::Renderer::xyPlane);
+    addPlaneAction("X/Z Plane", Qt::Key_Y, SimRobotCore2::Renderer::xzPlane);
+    addPlaneAction("Y/Z Plane", Qt::Key_X, SimRobotCore2::Renderer::yzPlane);
     subMenu->addSeparator();
     actionGroup = new QActionGroup(subMenu);
-    signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setDragMode);
-    action = subMenu->addAction(tr("&Keep Dynamics"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::keepDynamics);
-    action->setShortcut(QKeySequence(Qt::Key_7));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Reset Dynamics"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::resetDynamics);
-    action->setShortcut(QKeySequence(Qt::Key_8));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("A&dopt Dynamics"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::adoptDynamics);
-    action->setShortcut(QKeySequence(Qt::Key_9));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Apply Dynamics"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::applyDynamics);
-    action->setShortcut(QKeySequence(Qt::Key_0));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getDragMode()))->setChecked(true);
+    auto addModeAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::DragAndDropMode mode)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setShortcut(QKeySequence(key));
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getDragMode() == mode);
+      connect(action, &QAction::triggered, this, [this, mode]{ const_cast<SimObjectWidget*>(this)->setDragMode(mode); });
+    };
+    addModeAction("&Keep Dynamics", Qt::Key_7, SimRobotCore2::Renderer::keepDynamics);
+    addModeAction("&Reset Dynamics", Qt::Key_8, SimRobotCore2::Renderer::resetDynamics);
+    addModeAction("A&dopt Dynamics", Qt::Key_9, SimRobotCore2::Renderer::adoptDynamics);
+    addModeAction("&Apply Dynamics", Qt::Key_0, SimRobotCore2::Renderer::applyDynamics);
   }
 
   menu->addSeparator();
@@ -396,45 +369,21 @@ QMenu* SimObjectWidget::createUserMenu() const
     QAction* action = subMenu->menuAction();
     action->setIcon(QIcon(":/Icons/opening_angle.png"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setFovY);
-    action = subMenu->addAction(tr("&20°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 20);
-    action->setShortcut(QKeySequence(Qt::Key_1));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&40°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 40);
-    action->setShortcut(QKeySequence(Qt::Key_2));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&60°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 60);
-    action->setShortcut(QKeySequence(Qt::Key_3));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&80°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 80);
-    action->setShortcut(QKeySequence(Qt::Key_4));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("100°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 100);
-    action->setShortcut(QKeySequence(Qt::Key_5));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("120°"));
-    actionGroup->addAction(action);
-    signalMapper->setMapping(action, 120);
-    action->setShortcut(QKeySequence(Qt::Key_6));
-    action->setCheckable(true);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getFovY()))->setChecked(true);
+    auto addFovYAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, int fovY)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setShortcut(QKeySequence(key));
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getFovY() == fovY);
+      connect(action, &QAction::triggered, this, [this, fovY]{ const_cast<SimObjectWidget*>(this)->setFovY(fovY); });
+    };
+    addFovYAction("&20°", Qt::Key_1, 20);
+    addFovYAction("&40°", Qt::Key_2, 40);
+    addFovYAction("&60°", Qt::Key_3, 60);
+    addFovYAction("&80°", Qt::Key_4, 80);
+    addFovYAction("100°", Qt::Key_5, 100);
+    addFovYAction("120°", Qt::Key_6, 120);
   }
 
   menu->addSeparator();
@@ -442,184 +391,116 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Appearances Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setSurfaceShadeMode);
     QAction* action = subMenu->menuAction();
     action->setIcon(QIcon(":/Icons/layers.png"));
     action->setStatusTip(tr("Select different shading techniques for displaying the scene"));
-    action = subMenu->addAction(tr("&Off"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::noShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Wire Frame"));
-    actionGroup->addAction(action);
-    action->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_W)));
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::wireframeShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Flat Shading"));
-    actionGroup->addAction(action);
-    action->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_F)));
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::flatShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Smooth Shading"));
-    actionGroup->addAction(action);
-    action->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_M)));
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::smoothShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getSurfaceShadeMode()))->setChecked(true);
+    auto addShadingAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::ShadeMode shading)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      if(key)
+        action->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(key)));
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getSurfaceShadeMode() == shading);
+      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setSurfaceShadeMode(shading); });
+    };
+    addShadingAction("&Off", Qt::Key(0), SimRobotCore2::Renderer::noShading);
+    addShadingAction("&Wire Frame", Qt::Key_W, SimRobotCore2::Renderer::wireframeShading);
+    addShadingAction("&Flat Shading", Qt::Key_F, SimRobotCore2::Renderer::flatShading);
+    addShadingAction("&Smooth Shading", Qt::Key_M, SimRobotCore2::Renderer::smoothShading);
   }
 
   {
     QMenu* subMenu = menu->addMenu(tr("&Physics Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setPhysicsShadeMode);
     QAction* action = subMenu->menuAction();
     action->setStatusTip(tr("Select different shading techniques for displaying the physical representation of objects"));
-    action = subMenu->addAction(tr("&Off"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::noShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Wire Frame"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::wireframeShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Flat Shading"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::flatShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Smooth Shading"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::smoothShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getPhysicsShadeMode()))->setChecked(true);
+    auto addShadingAction = [this, subMenu, actionGroup](const char* label, SimRobotCore2::Renderer::ShadeMode shading)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getPhysicsShadeMode() == shading);
+      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setPhysicsShadeMode(shading); });
+    };
+    addShadingAction("&Off", SimRobotCore2::Renderer::noShading);
+    addShadingAction("&Wire Frame", SimRobotCore2::Renderer::wireframeShading);
+    addShadingAction("&Flat Shading", SimRobotCore2::Renderer::flatShading);
+    addShadingAction("&Smooth Shading", SimRobotCore2::Renderer::smoothShading);
   }
 
   {
     QMenu* subMenu = menu->addMenu(tr("&Drawings Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setDrawingsShadeMode);
     QAction* action = subMenu->menuAction();
     action->setIcon(QIcon(":/Icons/chart_line.png"));
     action->setStatusTip(tr("Select different shading techniques for displaying controller drawings"));
-    action = subMenu->addAction(tr("&Off"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::noShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Wire Frame"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::wireframeShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Flat Shading"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::flatShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    action = subMenu->addAction(tr("&Smooth Shading"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::smoothShading);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getDrawingsShadeMode()))->setChecked(true);
+    auto addShadingAction = [this, subMenu, actionGroup](const char* label, SimRobotCore2::Renderer::ShadeMode shading)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setCheckable(true);
+      action->setChecked(objectRenderer.getDrawingsShadeMode() == shading);
+      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setDrawingsShadeMode(shading); });
+    };
+    addShadingAction("&Off", SimRobotCore2::Renderer::noShading);
+    addShadingAction("&Wire Frame", SimRobotCore2::Renderer::wireframeShading);
+    addShadingAction("&Flat Shading", SimRobotCore2::Renderer::flatShading);
+    addShadingAction("&Smooth Shading", SimRobotCore2::Renderer::smoothShading);
 
     subMenu->addSeparator();
 
     subMenu = subMenu->addMenu(tr("&Occlusion"));
     actionGroup = new QActionGroup(subMenu);
-    signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::setDrawingsOcclusion);
     action = subMenu->menuAction();
     action->setStatusTip(tr("Select different drawings occlusion modes"));
 
-    action = subMenu->addAction(tr("&On"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::enableDrawingsOcclusion);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+    auto addOcclusionAction = [this, subMenu, actionGroup](const char* label, SimRobotCore2::Renderer::RenderFlags flag)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setCheckable(true);
+      action->setChecked((objectRenderer.getRenderFlags() & (SimRobotCore2::Renderer::enableDrawingsOcclusion | SimRobotCore2::Renderer::enableDrawingsTransparentOcclusion)) == flag);
+      connect(action, &QAction::triggered, this, [this, flag]{ const_cast<SimObjectWidget*>(this)->setDrawingsOcclusion(flag); });
+    };
 
-    action = subMenu->addAction(tr("O&ff"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, 0);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-    action = subMenu->addAction(tr("&Transparent"));
-    actionGroup->addAction(action);
-    action->setCheckable(true);
-    signalMapper->setMapping(action, SimRobotCore2::Renderer::enableDrawingsTransparentOcclusion);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-    qobject_cast<QAction*>(signalMapper->mapping(objectRenderer.getRenderFlags() & (SimRobotCore2::Renderer::enableDrawingsOcclusion | SimRobotCore2::Renderer::enableDrawingsTransparentOcclusion)))->setChecked(true);
+    addOcclusionAction("&On", SimRobotCore2::Renderer::enableDrawingsOcclusion);
+    addOcclusionAction("&Off", SimRobotCore2::Renderer::RenderFlags(0));
+    addOcclusionAction("&Transparent", SimRobotCore2::Renderer::enableDrawingsTransparentOcclusion);
   }
 
   menu->addSeparator();
 
-  QAction* action = menu->addAction(tr("Enable &Lights"));
-  action->setStatusTip(tr("Enable lightning"));
-  action->setCheckable(true);
-  action->setChecked(objectRenderer.getRenderFlags() & SimRobotCore2::Renderer::enableLights);
-  flagsSignalMapper->setMapping(action, SimRobotCore2::Renderer::enableLights);
-  connect(action, &QAction::triggered, flagsSignalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+  auto addRenderFlagAction = [this, menu](const char* label, const char* tip, SimRobotCore2::Renderer::RenderFlags flag, const char* icon = nullptr)
+  {
+    auto* action = icon ? menu->addAction(QIcon(icon), tr(label)) : menu->addAction(tr(label));
+    action->setStatusTip(tr(tip));
+    action->setCheckable(true);
+    action->setChecked(objectRenderer.getRenderFlags() & flag);
+    connect(action, &QAction::triggered, this, [this, flag]{ const_cast<SimObjectWidget*>(this)->toggleRenderFlag(flag); });
+  };
 
-  action = menu->addAction(tr("Enable &Textures"));
-  action->setStatusTip(tr("Enable textures"));
-  action->setCheckable(true);
-  action->setChecked(objectRenderer.getRenderFlags() & SimRobotCore2::Renderer::enableTextures);
-  flagsSignalMapper->setMapping(action, SimRobotCore2::Renderer::enableTextures);
-  connect(action, &QAction::triggered, flagsSignalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = menu->addAction(tr("Enable &Multisample"));
-  action->setStatusTip(tr("Enable multisampling"));
-  action->setCheckable(true);
-  action->setChecked(objectRenderer.getRenderFlags() & SimRobotCore2::Renderer::enableMultisample);
-  flagsSignalMapper->setMapping(action, SimRobotCore2::Renderer::enableMultisample);
-  connect(action, &QAction::triggered, flagsSignalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+  addRenderFlagAction("Enable &Lights", "Enable lighting", SimRobotCore2::Renderer::enableLights);
+  addRenderFlagAction("Enable &Textures", "Enable textures", SimRobotCore2::Renderer::enableTextures);
+  addRenderFlagAction("Enable &Multisample", "Enable multisampling", SimRobotCore2::Renderer::enableMultisample);
 
   menu->addSeparator();
 
-  action = menu->addAction(tr("Show &Coordinate System"));
-  action->setStatusTip(tr("Show the coordinate system of the displayed object"));
-  action->setCheckable(true);
-  action->setChecked(objectRenderer.getRenderFlags() & SimRobotCore2::Renderer::showCoordinateSystem);
-  flagsSignalMapper->setMapping(action, SimRobotCore2::Renderer::showCoordinateSystem);
-  connect(action, &QAction::triggered, flagsSignalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = menu->addAction(QIcon(":/Icons/transmit_go.png"), tr("Show &Sensors"));
-  action->setStatusTip(tr("Show the values of the sensors in the scene view"));
-  action->setCheckable(true);
-  action->setChecked(objectRenderer.getRenderFlags() & SimRobotCore2::Renderer::showSensors);
-  flagsSignalMapper->setMapping(action, SimRobotCore2::Renderer::showSensors);
-  connect(action, &QAction::triggered, flagsSignalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+  addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore2::Renderer::showCoordinateSystem);
+  addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore2::Renderer::showSensors, ":/Icons/transmit_go.png");
 
   menu->addSeparator();
 
   {
     QMenu* subMenu = menu->addMenu(tr("Export as Image..."));
-    QSignalMapper* signalMapper = new QSignalMapper(subMenu);
-    connect(signalMapper, &QSignalMapper::mappedInt, this, &SimObjectWidget::exportAsImage);
-    action = subMenu->addAction(tr("3840x2160"));
-    signalMapper->setMapping(action, (3840 << 16) | 2160);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+    auto* action = subMenu->addAction(tr("3840x2160"));
+    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(3840, 2160); });
     action = subMenu->addAction(tr("2880x1620"));
-    signalMapper->setMapping(action, (2880 << 16) | 1620);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(2880, 1620); });
     action = subMenu->addAction(tr("1920x1080"));
-    signalMapper->setMapping(action, (1920 << 16) | 1080);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(1920, 1080); });
     action = subMenu->addAction(tr("1280x1024"));
-    signalMapper->setMapping(action, (1280 << 16) | 1024);
-    connect(action, &QAction::triggered, signalMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(1280, 1024); });
   }
 
   return menu;
@@ -630,11 +511,8 @@ void SimObjectWidget::copy()
   QApplication::clipboard()->setPixmap(QPixmap::fromImage(grabFramebuffer()));
 }
 
-void SimObjectWidget::exportAsImage(int resolution)
+void SimObjectWidget::exportAsImage(int width, int height)
 {
-  int width = resolution >> 16;
-  int height = resolution & 0xffff;
-
   QSettings& settings = CoreModule::application->getSettings();
   QString fileName = QFileDialog::getSaveFileName(this,
                                                   tr("Export as Image"), settings.value("ExportDirectory", "").toString(), tr("Portable Network Graphic (*.png)"));

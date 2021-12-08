@@ -126,7 +126,6 @@ MainWindow::MainWindow(int, char* argv[]) :
 
   // create menus
   fileMenu = new QMenu(tr("&File"), this);
-  connect(&recentFileMapper, &QSignalMapper::mappedString, this, &MainWindow::openFile);
   connect(fileMenu, &QMenu::aboutToShow, this, &MainWindow::updateFileMenu);
   updateFileMenu();
 
@@ -134,13 +133,11 @@ MainWindow::MainWindow(int, char* argv[]) :
   connect(recentFileMenu, &QMenu::aboutToShow, this, &MainWindow::updateRecentFileMenu);
   toolbarOpenAct->setMenu(recentFileMenu);
 
-  connect(&viewUpdateRateMapper, &QSignalMapper::mappedInt, this, &MainWindow::setGuiUpdateRate);
   viewMenu = new QMenu(tr("&View"), this);
   connect(viewMenu, &QMenu::aboutToShow, this, static_cast<void (MainWindow::*)()>(&MainWindow::updateViewMenu));
   updateViewMenu();
 
   addonMenu = new QMenu(tr("&Add-ons"), this);
-  connect(&addonMapper, &QSignalMapper::mappedString, this, &MainWindow::loadAddon);
   connect(addonMenu, &QMenu::aboutToShow, this, &MainWindow::updateAddonMenu);
   updateAddonMenu();
 
@@ -565,40 +562,19 @@ void MainWindow::updateViewMenu(QMenu* menu)
   viewUpdateRateActionGroup = new QActionGroup(this);
   viewUpdateRateMenu = new QMenu(tr("Update Rate"), this);
 
-  QAction* action = viewUpdateRateMenu->addAction(tr("10 fps"));
-  action->setCheckable(true);
-  action->setChecked(guiUpdateRate == 100);
-  viewUpdateRateActionGroup->addAction(action);
-  viewUpdateRateMapper.setMapping(action, 100);
-  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = viewUpdateRateMenu->addAction(tr("20 fps"));
-  action->setCheckable(true);
-  action->setChecked(guiUpdateRate == 50);
-  viewUpdateRateActionGroup->addAction(action);
-  viewUpdateRateMapper.setMapping(action, 50);
-  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = viewUpdateRateMenu->addAction(tr("30 fps"));
-  action->setCheckable(true);
-  action->setChecked(guiUpdateRate == 33);
-  viewUpdateRateActionGroup->addAction(action);
-  viewUpdateRateMapper.setMapping(action, 33);
-  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = viewUpdateRateMenu->addAction(tr("50 fps"));
-  action->setCheckable(true);
-  action->setChecked(guiUpdateRate == 20);
-  viewUpdateRateActionGroup->addAction(action);
-  viewUpdateRateMapper.setMapping(action, 20);
-  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-
-  action = viewUpdateRateMenu->addAction(tr("Every Frame"));
-  action->setCheckable(true);
-  action->setChecked(guiUpdateRate == 0);
-  viewUpdateRateActionGroup->addAction(action);
-  viewUpdateRateMapper.setMapping(action, 0);
-  connect(action, &QAction::triggered, &viewUpdateRateMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
+  auto addUpdateRateAction = [this](const char* label, int updateRate)
+  {
+    auto* action = viewUpdateRateMenu->addAction(tr(label));
+    action->setCheckable(true);
+    action->setChecked(guiUpdateRate == updateRate);
+    viewUpdateRateActionGroup->addAction(action);
+    connect(action, &QAction::triggered, this, [this, updateRate]{ setGuiUpdateRate(updateRate); });
+  };
+  addUpdateRateAction("10 fps", 100);
+  addUpdateRateAction("20 fps", 50);
+  addUpdateRateAction("30 fps", 33);
+  addUpdateRateAction("50 fps", 20);
+  addUpdateRateAction("Every Frame", 0);
 
   menu->addMenu(viewUpdateRateMenu);
   menu->addSeparator();
@@ -752,8 +728,7 @@ void MainWindow::updateFileMenu()
     {
       const QString& file(*i);
       QAction* action = fileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
-      connect(action, &QAction::triggered, &recentFileMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-      recentFileMapper.setMapping(action, file);
+      connect(action, &QAction::triggered, this, [this, file]{ openFile(file); });
     }
   }
 #ifndef MACOS
@@ -770,8 +745,7 @@ void MainWindow::updateRecentFileMenu()
   {
     const QString& file(*i);
     QAction* action = recentFileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
-    connect(action, &QAction::triggered, &recentFileMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    recentFileMapper.setMapping(action, file);
+    connect(action, &QAction::triggered, this, [this, file]{ openFile(file); });
   }
 }
 
@@ -789,8 +763,7 @@ void MainWindow::updateAddonMenu()
     action->setCheckable(true);
     if(loadedModulesByName.contains(info.name))
       action->setChecked(true);
-    connect(action, &QAction::triggered, &addonMapper, static_cast<void (QSignalMapper::*)()>(&QSignalMapper::map));
-    addonMapper.setMapping(action, info.name);
+    connect(action, &QAction::triggered, this, [this, info]{ loadAddon(info.name); });
   }
 }
 
@@ -864,9 +837,6 @@ void MainWindow::openFile(const QString& fileName)
   guiUpdateRate = layoutSettings.value("GuiUpdateRate", -1).toInt();
   if(guiUpdateRate < 0)
     guiUpdateRate = 100;
-  QAction* action = qobject_cast<QAction*>(viewUpdateRateMapper.mapping(guiUpdateRate));
-  if(action)
-    action->setChecked(true);
 
   // load core module
   Q_ASSERT(!compiled);

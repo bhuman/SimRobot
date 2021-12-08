@@ -7,7 +7,6 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QSignalMapper>
 #include <QActionGroup>
 #include <QSettings>
 #include <QSet>
@@ -60,14 +59,11 @@ private:
   QAction* simStepAct;
 
   QMenu* fileMenu;
-  QSignalMapper recentFileMapper;
   QMenu* recentFileMenu;
   QMenu* viewMenu;
   QMenu* viewUpdateRateMenu = nullptr;
-  QSignalMapper viewUpdateRateMapper;
   QActionGroup* viewUpdateRateActionGroup = nullptr;
   QMenu* addonMenu;
-  QSignalMapper addonMapper;
   QMenu* helpMenu;
 
   QMenuBar* menuBar;
