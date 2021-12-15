@@ -156,6 +156,7 @@ MainWindow::MainWindow(int, char* argv[]) :
 QString MainWindow::getAppPath(const char* argv0)
 {
 #ifdef WINDOWS
+  static_cast<void>(argv0);
   char fileName[_MAX_PATH];
   char longFileName[_MAX_PATH];
   GetModuleFileNameA(GetModuleHandleA(0), fileName, _MAX_PATH);

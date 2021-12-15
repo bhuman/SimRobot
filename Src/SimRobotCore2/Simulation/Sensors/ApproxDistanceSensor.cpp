@@ -58,6 +58,7 @@ void ApproxDistanceSensor::addParent(Element& element)
 
 void ApproxDistanceSensor::DistanceSensor::staticCollisionCallback(ApproxDistanceSensor::DistanceSensor* sensor, dGeomID geom1, dGeomID geom2)
 {
+  static_cast<void>(geom1);
   ASSERT(geom1 == sensor->geom);
   ASSERT(!dGeomIsSpace(geom2));
 
