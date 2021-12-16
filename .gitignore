@@ -1,7 +1,9 @@
 /Build
 !/Make/Linux/.idea
 /Make/Linux/.idea/*
+!/Make/Linux/.idea/cmake.xml
 !/Make/Linux/.idea/misc.xml
+!/Make/Linux/.idea/runConfigurations
 /Make/macOS/cmake
 /Make/macOS/SimRobot.xcodeproj
 /Make/Windows/SimRobot.lnk
