@@ -66,7 +66,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "")
 set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "")
 
 if(MSVC)
-  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /Zc:preprocessor /wd5105)
+  add_compile_options(/W3 /GF /GS- /MP /Zc:wchar_t- /EHsc /permissive- /Zc:preprocessor /wd5105 /w34100 /w34189)
   add_definitions(-DNOMINMAX -D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
 else()
   add_compile_options(-pipe
