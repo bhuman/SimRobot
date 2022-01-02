@@ -10,30 +10,6 @@
 #include "Simulation/GraphicalObject.h"
 #include "Simulation/SimObject.h"
 
-class Texture;
-
-enum SurfaceColor : unsigned char
-{
-  ownColor,
-  red,
-  blue,
-  green,
-  yellow,
-  brown,
-  pink,
-  purple,
-  navy,
-  blueviolet,
-  deepskyblue,
-  olive,
-  lime,
-  lightseagreen,
-  chocolate,
-  orange,
-  darkorange,
-  numOfSurfaceColors //<-- this has to be last
-};
-
 /**
  * @class Appearance
  * Abstract class for the graphical representation of physical objects
@@ -50,26 +26,19 @@ public:
     float ambientColor[4];
     float specularColor[4];
     float emissionColor[4];
-    float shininess = 0.f;
+    float shininess = 1.f;
     std::string diffuseTexture;
-    Texture* texture = nullptr;
+    GraphicsContext::Texture* texture = nullptr;
+    GraphicsContext::Surface* surface = nullptr;
 
     /** Constructor */
     Surface();
 
     /**
-     * Selects this material surface in the currently selected OpenGL context.
-     * @param defaultTextureSize Initialize a default texture size if the surface has a texture.
+     * Creates resources for this surface in the given graphics context
+     * @param graphicsContext The graphics context to create resources in
      */
-    void set(SurfaceColor color = ownColor, bool defaultTextureSize = true) const;
-
-    /**
-     * Unbinds a texture that might be bound on a \c set call before. Call function this every time
-     * after using the material in order to allow combining textured and not textured surfaces within
-     * a scene without enabling an disabling GL_TEXTURE_2D
-     * @param defaultTextureSize Clean up the default texture size if the surface has a texture.
-     */
-    void unset(bool defaultTextureSize = true) const;
+    void createGraphics(GraphicsContext& graphicsContext);
 
   private:
     /**
@@ -83,14 +52,20 @@ public:
 
 protected:
   /**
-   * Prepares the object and the currently selected OpenGL context for drawing the object.
-   * Loads textures and creates display lists. Hence, this function is called for each OpenGL
-   * context the object should be drawn in.
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createGraphics() override;
+  void createGraphics(GraphicsContext& graphicsContext) override;
 
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (as fast as possible) */
-  void drawAppearances(SurfaceColor color, bool drawControllerDrawings) const override;
+  /**
+   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
+   */
+  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+
+  std::vector<GraphicsContext::ModelMatrix*> modelMatrices; /**< The model matrices that this appearance uses in order of the scene graph */
+  mutable int modelMatrixIndex = 0; /**< The current index in \c modelMatrices */
 
 private:
   /**
@@ -99,8 +74,7 @@ private:
    */
   void addParent(Element& element) override;
 
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (in order to create a display list) */
-  void assembleAppearances(SurfaceColor color) const override;
+  bool created = false; /**< Whether the appearance has already been created */
 
   //API
   const QString& getFullName() const override {return SimObject::getFullName();}

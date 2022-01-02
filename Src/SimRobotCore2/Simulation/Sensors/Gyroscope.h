@@ -40,7 +40,7 @@ private:
   } sensor;
 
   /** Initializes the gyroscope after all attributes have been set */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Registers an element as parent

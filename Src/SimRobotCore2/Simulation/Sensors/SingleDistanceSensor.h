@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/Sensors/Sensor.h"
 #include <ode/common.h>
 
@@ -56,8 +57,9 @@ private:
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI. */
   void registerObjects() override;
@@ -69,8 +71,13 @@ private:
   void addParent(Element& element) override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+
+  GraphicsContext::Mesh* ray = nullptr; /**< The ray mesh for the sensor drawing. */
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix for the sensor drawing. */
+  GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
 };

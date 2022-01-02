@@ -12,8 +12,8 @@
 
 /**
  * @class ObjectSegmentedImageSensor
- * A simulated camera, that takes pictures where each pixel, that belongs to a diffrent object, gets a
- *   diffrent color value. In fact, each pixel that belongs to the same object gets the same color value
+ * A simulated camera that takes pictures where each pixel that belongs to a different object gets a
+ *   different color value. In fact, each pixel that belongs to the same object gets the same color value
  */
 class ObjectSegmentedImageSensor : public Sensor
 {
@@ -53,7 +53,7 @@ private:
   ~ObjectSegmentedImageSensor();
 
   /** Initializes the camera after all attributes have been set */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Registers an element as parent
@@ -65,8 +65,15 @@ private:
   void registerObjects() override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+
+  GraphicsContext::Mesh* pyramid = nullptr; /**< The pyramid mesh for the sensor drawing. */
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix for the sensor drawing. */
+  GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
+
+  std::vector<GraphicsContext::Surface*> surfaces; /**< The special surfaces for each body. */
 };

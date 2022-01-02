@@ -6,7 +6,6 @@
 
 #include "Geometry.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Tools/OpenGLTools.h"
 
 Geometry::Geometry()
@@ -35,12 +34,16 @@ dGeomID Geometry::createGeometry(dSpaceID)
   return nullptr;
 }
 
-void Geometry::drawPhysics(unsigned int flags) const
+void Geometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  ::PhysicalObject::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
+
+  ASSERT(!surface);
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 bool Geometry::registerCollisionCallback(SimRobotCore2::CollisionCallback& collisionCallback)

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "SimRobotCore2.h"
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/PhysicalObject.h"
 #include "Simulation/GraphicalObject.h"
 #include <ode/common.h>
@@ -31,20 +32,24 @@ public:
   Body();
 
   /**
-   * Prepares the object and the currently selected OpenGL context for drawing the object.
-   * Loads textures and creates display lists. Hence, this function is called for each OpenGL
-   * context the object should be drawn in.
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createGraphics() override;
+  void createGraphics(GraphicsContext& graphicsContext) override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
 
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (as fast as possible) */
-  void drawAppearances(SurfaceColor color, bool drawControllerDrawings) const override;
+  /**
+   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
+   */
+  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
 
   /** Updates the transformation from the parent to this body (since the pose of the body may have changed) */
   void updateTransformation();
@@ -77,8 +82,9 @@ private:
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Creates a ODE geometry and attaches it to the body
@@ -101,6 +107,10 @@ private:
 
   friend class Accelerometer;
   friend class CollisionSensor;
+
+  GraphicsContext::Mesh* comSphere = nullptr; /**< The mesh of the CoM sphere drawing */
+  GraphicsContext::Surface* surface = nullptr; /**< The surface of the CoM sphere drawing */
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of the CoM sphere drawing */
 
 private:
   // API

@@ -15,7 +15,7 @@
 #define _USE_MATH_DEFINES // for C++
 
 #include <SimRobotCore2.h>
-#include <Platform/OpenGL.h>
+#include <Graphics/OpenGL.h>
 #include <QString>
 #include <QVector>
 #include <QList>

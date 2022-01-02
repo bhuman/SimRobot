@@ -12,12 +12,12 @@
 #include "Simulation/GraphicalObject.h"
 #include "Simulation/PhysicalObject.h"
 #include "Tools/Math/Constants.h"
-#include "Tools/Texture.h"
 #include <list>
 #include <string>
 #include <unordered_map>
 
 class Body;
+class Light;
 
 /**
  * @class Scene
@@ -26,33 +26,6 @@ class Body;
 class Scene : public PhysicalObject, public GraphicalObject, public SimRobotCore2::Scene
 {
 public:
-  /**
-   * @class Light
-   * A scene light definition
-   */
-  class Light : public Element
-  {
-  public:
-    float diffuseColor[4];
-    float ambientColor[4];
-    float specularColor[4];
-    float position[4];
-    float constantAttenuation = 1.f;
-    float linearAttenuation = 0.f;
-    float quadraticAttenuation = 0.f;
-    float spotCutoff = pi; /**< in radian */
-    Vector3f spotDirection = Vector3f(0.f, 0.f, -1.f);
-    float spotExponent = 0.f;
-
-    /** Default constructor */
-    Light();
-
-    /**
-     * Registers an element as parent
-     * @param element The element to register
-     */
-    void addParent(Element& element) override;
-  };
 
   std::string controller; /**< The name of the controller library. */
   float color[4]; /**< The background (clear color) */
@@ -68,8 +41,6 @@ public:
   int quickSolverSkip; /**< Controls how often the normal solver will be used instead of the quick solver */
   bool detectBodyCollisions; /**< Whether to detect collision between different bodies */
 
-  Appearance::Surface* defaultSurface; /**< A surface that will be used for drawing physical objects */
-
   std::list<Body*> bodies; /**< List of bodies without a parent body */
   std::list<Actuator::Port*> actuators; /**< List of actuators that need to do something in every simulation step */
   std::list<Light*> lights; /**< List of scene lights */
@@ -78,7 +49,6 @@ public:
   Scene()
   {
     color[0] = color[1] = color[2] = color[3] = 0.f;
-    defaultSurface = new Appearance::Surface();
   }
 
   /** Updates the transformation of movable objects */
@@ -89,32 +59,24 @@ public:
   void updateActuators();
 
   /**
-   * Prepares the object and the currently selected OpenGL context for drawing the object.
-   * Loads textures and creates display lists. Hence, this function is called for each OpenGL
-   * context the object should be drawn in.
-   * @param isShared Whether the OpenGL context has shared display lists and textures
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createGraphics(bool isShared);
-  using GraphicalObject::createGraphics; // avoid warning
-
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (as fast as possible) */
-  void drawAppearances(SurfaceColor color, bool drawControllerDrawings) const override;
+  void createGraphics(GraphicsContext& graphicsContext) override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
+   */
+  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+
+  /**
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
-
-  /**
-   * Loads the texture if it is not already loaded
-   * @param The file to load the texture from
-   * @return The texture or 0 if the texture cannot be loaded
-   */
-  Texture* loadTexture(const std::string& file);
-
-private:
-  std::unordered_map<std::string, Texture> textures; /**< A storage for loaded textures */
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
 
 private:
   // API

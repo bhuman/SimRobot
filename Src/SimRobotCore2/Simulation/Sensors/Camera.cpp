@@ -6,9 +6,9 @@
 
 #include "Camera.h"
 #include "CoreModule.h"
+#include "Graphics/OpenGL.h"
+#include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include "Platform/OffscreenRenderer.h"
-#include "Platform/OpenGL.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
 #include "Tools/OpenGLTools.h"
@@ -28,9 +28,15 @@ Camera::~Camera()
     delete[] sensor.imageBuffer;
 }
 
-void Camera::createPhysics()
+void Camera::createPhysics(GraphicsContext& graphicsContext)
 {
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
   sensor.dimensions.append(imageWidth);
   sensor.dimensions.append(imageHeight);
@@ -43,6 +49,13 @@ void Camera::createPhysics()
 
   float aspect = std::tan(angleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, 0.01f, 500.f, sensor.projection);
+
+  ASSERT(!pyramid);
+  pyramid = Primitives::createPyramid(graphicsContext, std::tan(angleX * 0.5f) * 2.f, std::tan(angleY * 0.5f) * 2.f, 1.f);
+
+  ASSERT(!surface);
+  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void Camera::addParent(Element& element)
@@ -77,21 +90,12 @@ void Camera::CameraSensor::updateValue()
   // make sure the poses of all movable objects are up to date
   Simulation::simulation->scene->updateTransformations();
 
-  // prepare offscreen renderer
-  OffscreenRenderer& renderer = Simulation::simulation->renderer;
-  renderer.makeCurrent(imageWidth, imageHeight);
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.makeCurrent(imageWidth, imageHeight);
+  graphicsContext.updateModelMatrices(false);
 
   // setup image size and angle of view
   glViewport(0, 0, imageWidth, imageHeight);
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(projection);
-  glMatrixMode(GL_MODELVIEW);
-
-  // enable lighting, textures, and smooth shading
-  glEnable(GL_LIGHTING);
-  glEnable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glShadeModel(GL_SMOOTH);
 
   // setup camera position
   Pose3f pose = physicalObject->pose;
@@ -100,14 +104,17 @@ void Camera::CameraSensor::updateValue()
   pose.rotate(cameraRotation);
   float transformation[16];
   OpenGLTools::convertTransformation(pose.invert(), transformation);
-  glLoadMatrixf(transformation);
+
+  graphicsContext.startRendering(projection, transformation);
 
   // draw all objects
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  Simulation::simulation->scene->drawAppearances(SurfaceColor::ownColor, false);
+  Simulation::simulation->scene->drawAppearances(graphicsContext, false);
+
+  graphicsContext.finishRendering();
 
   // read frame buffer
-  renderer.finishImageRendering(imageBuffer, imageWidth, imageHeight);
+  graphicsContext.finishImageRendering(imageBuffer, imageWidth, imageHeight);
   data.byteArray = imageBuffer;
 }
 
@@ -141,20 +148,9 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
   // make sure the poses of all movable objects are up to date
   Simulation::simulation->scene->updateTransformations();
 
-  // prepare offscreen renderer
-  OffscreenRenderer& renderer = Simulation::simulation->renderer;
-  renderer.makeCurrent(imageWidth, imageHeight * count);
-
-  // setup angle of view
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(projection);
-  glMatrixMode(GL_MODELVIEW);
-
-  // enable lighting, textures, and smooth shading
-  glEnable(GL_LIGHTING);
-  glEnable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glShadeModel(GL_SMOOTH);
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.makeCurrent(imageWidth, imageHeight * count);
+  graphicsContext.updateModelMatrices(false);
 
   // clear buffers
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -177,10 +173,13 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
       pose.rotate(cameraRotation);
       float transformation[16];
       OpenGLTools::convertTransformation(pose.invert(), transformation);
-      glLoadMatrixf(transformation);
+
+      graphicsContext.startRendering(sensor->projection, transformation);
 
       // draw all objects
-      Simulation::simulation->scene->drawAppearances(SurfaceColor::ownColor, false);
+      Simulation::simulation->scene->drawAppearances(graphicsContext, false);
+
+      graphicsContext.finishRendering();
 
       sensor->data.byteArray = currentBufferPos;
       sensor->lastSimulationStep = Simulation::simulation->simulationStep;
@@ -191,45 +190,14 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
   }
 
   // read frame buffer
-  renderer.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
+  graphicsContext.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
   return true;
 }
 
-void Camera::drawPhysics(unsigned int flags) const
+void Camera::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
   if(flags & SimRobotCore2::Renderer::showSensors)
-  {
-    const Vector3f ml(1.f, -std::tan(angleX * 0.5f), 0);
-    const Vector3f mt(1.f, 0, std::tan(angleY * 0.5f));
-    const Vector3f tl(1.f, ml.y(), mt.z());
-    const Vector3f tr(1.f, -ml.y(), mt.z());
-    const Vector3f bl(1.f, ml.y(), -mt.z());
-    const Vector3f br(1.f, -ml.y(), -mt.z());
+    graphicsContext.draw(pyramid, modelMatrix, surface);
 
-    glBegin(GL_LINE_LOOP);
-      glColor3f(0, 0, 0.5f);
-      glNormal3f (0, 0, 1.f);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(tr.x(), tr.y(), tr.z());
-      glVertex3f(br.x(), br.y(), br.z());
-      glVertex3f(bl.x(), bl.y(), bl.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(tr.x(), tr.y(), tr.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(bl.x(), bl.y(), bl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(br.x(), br.y(), br.z());
-    glEnd();
-  }
-
-  Sensor::drawPhysics(flags);
-
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

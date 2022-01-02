@@ -5,28 +5,20 @@
  */
 
 #include "CylinderAppearance.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
 
-void CylinderAppearance::assembleAppearances(SurfaceColor color) const
+void CylinderAppearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Appearance::createGraphics(graphicsContext);
 
-  surface->set(color);
+  if(!cylinder)
+    cylinder = Primitives::createCylinder(graphicsContext, radius, height, 16);
+}
 
-  GLUquadricObj* q = gluNewQuadric();
-  glTranslatef(0.f, 0.f, height * -0.5f);
-  gluCylinder(q, radius, radius, height, 16, 1);
-  glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-  gluDisk(q, 0, radius, 16, 1);
-  glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-  glTranslatef(0,0,height);
-  gluDisk(q, 0, radius, 16, 1);
-  glTranslatef(0.f, 0.f, height * -0.5f);
-  gluDeleteQuadric(q);
+void CylinderAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+{
+  if(!drawControllerDrawings)
+    graphicsContext.draw(cylinder, modelMatrices[modelMatrixIndex], surface->surface);
 
-  surface->unset();
-
-  GraphicalObject::assembleAppearances(color);
-  glPopMatrix();
+  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
 }

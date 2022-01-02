@@ -6,9 +6,11 @@
 
 #include "Gyroscope.h"
 #include "CoreModule.h"
+#include "Graphics/GraphicsContext.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Tools/ODETools.h"
+#include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
 Gyroscope::Gyroscope()
@@ -22,8 +24,14 @@ Gyroscope::Gyroscope()
   sensor.data.floatArray = sensor.angularVel;
 }
 
-void Gyroscope::createPhysics()
+void Gyroscope::createPhysics(GraphicsContext& graphicsContext)
 {
+  OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
+
   if(translation)
     sensor.offset.translation = *translation;
   if(rotation)

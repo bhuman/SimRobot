@@ -5,26 +5,20 @@
  */
 
 #include "CapsuleAppearance.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
 
-void CapsuleAppearance::assembleAppearances(SurfaceColor color) const
+void CapsuleAppearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Appearance::createGraphics(graphicsContext);
 
-  surface->set(color);
+  if(!capsule)
+    capsule = Primitives::createCapsule(graphicsContext, radius, height, 16, 17);
+}
 
-  GLUquadricObj* q = gluNewQuadric();
-  float cylinderHeight = height - radius - radius;
-  glTranslatef(0.f, 0.f, cylinderHeight * -0.5f);
-  gluCylinder(q, radius, radius, cylinderHeight, 16, 1);
-  gluSphere(q, radius, 16, 16);
-  glTranslatef(0, 0, cylinderHeight);
-  gluSphere(q, radius, 16, 16);
-  gluDeleteQuadric(q);
+void CapsuleAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+{
+  if(!drawControllerDrawings)
+    graphicsContext.draw(capsule, modelMatrices[modelMatrixIndex], surface->surface);
 
-  surface->unset();
-
-  GraphicalObject::assembleAppearances(color);
-  glPopMatrix();
+  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
 }

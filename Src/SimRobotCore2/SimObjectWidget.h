@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Platform/OpenGL.h"
 #include <QOpenGLWidget>
 
 #include "SimRobotCore2.h"

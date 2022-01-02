@@ -26,7 +26,7 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) : QOpenGLWidget(),
   object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
   wKey(false), aKey(false), sKey(false), dKey(false)
 {
-  QSurfaceFormat format = Simulation::simulation->renderer.getContext()->format();
+  QSurfaceFormat format = Simulation::simulation->graphicsContext.getOffscreenContext()->format();
   format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
   setFormat(format);
 
@@ -88,11 +88,14 @@ SimObjectWidget::~SimObjectWidget()
   settings->setValue("cameraTargetZ", target[2]);
 
   settings->endGroup();
+
+  makeCurrent();
+  objectRenderer.destroy();
 }
 
 void SimObjectWidget::initializeGL()
 {
-  objectRenderer.init(QOpenGLContext::areSharing(context(), Simulation::simulation->renderer.getContext()));
+  objectRenderer.init();
 }
 
 void SimObjectWidget::paintGL()

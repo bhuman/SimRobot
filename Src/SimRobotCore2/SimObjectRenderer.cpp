@@ -5,8 +5,8 @@
  */
 
 #include "SimObjectRenderer.h"
+#include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Platform/System.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
@@ -30,6 +30,11 @@ SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
 {
 }
 
+SimObjectRenderer::~SimObjectRenderer()
+{
+  ASSERT(!initialized);
+}
+
 void SimObjectRenderer::resetCamera()
 {
   cameraPos = defaultCameraPos;
@@ -43,9 +48,11 @@ void SimObjectRenderer::updateCameraTransformation()
   OpenGLTools::computeCameraTransformation(cameraPos, cameraTarget, cameraUpVector, cameraTransformation);
 }
 
-void SimObjectRenderer::init(bool hasSharedDisplayLists)
+void SimObjectRenderer::init()
 {
-  Simulation::simulation->scene->createGraphics(hasSharedDisplayLists);
+  ASSERT(!initialized);
+  Simulation::simulation->graphicsContext.createGraphics();
+  initialized = true;
   calcDragPlaneVector();
 #ifdef WINDOWS
   glBlendColor = reinterpret_cast<GLBlendColorProc>(wglGetProcAddress("glBlendColor"));
@@ -54,36 +61,67 @@ void SimObjectRenderer::init(bool hasSharedDisplayLists)
 #endif
 }
 
+void SimObjectRenderer::destroy()
+{
+  ASSERT(initialized);
+  Simulation::simulation->graphicsContext.destroyGraphics();
+  initialized = false;
+}
+
 void SimObjectRenderer::draw()
 {
-  // set flags
-  if(renderFlags & enableLights)
-    glEnable(GL_LIGHTING);
-  else
-    glDisable(GL_LIGHTING);
+  // make sure transformations of movable bodies are up-to-date
+  Simulation::simulation->scene->updateTransformations();
+
+  if(dragging && dragSelection)
+  {
+    Eigen::Map<Matrix4f> dragPlaneTransformation(Simulation::simulation->dragPlaneTransformation);
+    if(dragType == dragRotate || dragType == dragNormalObject)
+      dragPlaneTransformation = Eigen::Map<const Matrix4f>(dragSelection->transformation);
+    else
+    {
+      dragPlaneTransformation = Matrix4f::Identity();
+      dragPlaneTransformation.col(3).head<3>() = dragSelection->pose.translation;
+    }
+
+    switch(dragPlane)
+    {
+      case xyPlane:
+        break; // do nothing
+      case xzPlane:
+      {
+        const Matrix4f dragPlaneRotation = (Matrix4f() << 1.f, 0.f, 0.f, 0.f,
+                                                          0.f, 0.f, -1.f, 0.f,
+                                                          0.f, 1.f, 0.f, 0.f,
+                                                          0.f, 0.f, 0.f, 1.f).finished();
+        dragPlaneTransformation *= dragPlaneRotation;
+        break;
+      }
+      case yzPlane:
+      {
+        const Matrix4f dragPlaneRotation = (Matrix4f() << 0.f, 0.f, 1.f, 0.f,
+                                                          0.f, 1.f, 0.f, 0.f,
+                                                          -1.f, 0.f, 0.f, 0.f,
+                                                          0.f, 0.f, 0.f, 1.f).finished();
+        dragPlaneTransformation *= dragPlaneRotation;
+        break;
+      }
+    }
+  }
+
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.updateModelMatrices(dragging && dragSelection);
+
   if(renderFlags & enableMultisample)
     glEnable(GL_MULTISAMPLE);
   else
     glDisable(GL_MULTISAMPLE);
-  if(renderFlags & enableTextures)
-    glEnable(GL_TEXTURE_2D);
-  else
-    glDisable(GL_TEXTURE_2D);
 
   // clear
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // load camera position
-  glLoadMatrixf(cameraTransformation);
-
-  // make sure transformations of movable bodies are up-to-date
-  // note: a not-physical-object has a constant offset pose relative its parent. hence there is no transformation update required to draw not-physical-objects
-  PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
-  GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
-  if(physicalObject)
-    Simulation::simulation->scene->updateTransformations();
-
   // since each object will be drawn relative to its parent we need to shift the coordinate system when we want the object to be in the center
+  Matrix4f viewMatrix = Eigen::Map<const Matrix4f>(cameraTransformation);
   if(&simObject != Simulation::simulation->scene && !(renderFlags & showAsGlobalView))
   {
     const float* transformation = simObject.transformation;
@@ -93,203 +131,46 @@ void SimObjectRenderer::draw()
                 Vector3f(transformation[12], transformation[13], transformation[14]));
     float invTrans[16];
     OpenGLTools::convertTransformation(pose.invert(), invTrans);
-    glMultMatrixf(invTrans);
+    viewMatrix *= Eigen::Map<const Matrix4f>(invTrans);
   }
 
   // draw origin
   if(renderFlags & showCoordinateSystem)
   {
-    Simulation::simulation->scene->defaultSurface->set();
-    glBegin(GL_LINES);
-    glNormal3f(0, 0, 1);
-    glColor3f(1, 0, 0);
-    glVertex3f(0, 0, 0);
-    glVertex3f(1, 0, 0);
-    glColor3f(0, 1, 0);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, 1, 0);
-    glColor3f(0, 0, 1);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, 1);
-    glEnd();
-
-    Simulation::simulation->scene->defaultSurface->unset();
+    graphicsContext.startRendering(projection, viewMatrix.data(), false, false, false, false);
+    graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
+    graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
+    graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
+    graphicsContext.finishRendering();
   }
 
   // draw object / scene appearance
+  GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
   if(graphicalObject && surfaceShadeMode != noShading)
   {
-    switch(surfaceShadeMode)
-    {
-      case flatShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_FLAT);
-        break;
-      case wireframeShading:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glShadeModel(GL_FLAT);
-        break;
-      case smoothShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_SMOOTH);
-        break;
-      default:
-        ASSERT(false);
-        break;
-    }
-    graphicalObject->drawAppearances(SurfaceColor(0), false);
-
-    // check matrix stack size
-#ifdef _DEBUG
-    int stackDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &stackDepth);
-    ASSERT(stackDepth == 1);
-#endif
+    graphicsContext.startRendering(projection, viewMatrix.data(), renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicalObject->drawAppearances(graphicsContext, false);
+    graphicsContext.finishRendering();
   }
 
   // draw object / scene physics
+  PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
   {
-    Simulation::simulation->scene->defaultSurface->set();
-
-    unsigned int renderFlags = (this->renderFlags | showPhysics) & ~showControllerDrawings;
-    switch(physicsShadeMode)
-    {
-      case noShading:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glShadeModel(GL_FLAT);
-        renderFlags &= ~showPhysics;
-        break;
-      case flatShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_FLAT);
-        break;
-      case wireframeShading:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glShadeModel(GL_FLAT);
-        break;
-      case smoothShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_SMOOTH);
-        break;
-      default:
-        ASSERT(false);
-        break;
-    }
-    physicalObject->drawPhysics(renderFlags);
-
-    Simulation::simulation->scene->defaultSurface->unset();
-
-    // check matrix stack size
-#ifdef _DEBUG
-    int stackDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &stackDepth);
-    ASSERT(stackDepth == 1);
-#endif
+    graphicsContext.startRendering(projection, viewMatrix.data(), renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
+    physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
+    graphicsContext.finishRendering();
   }
 
   // draw drag plane
   if(dragging && dragSelection)
   {
-    Simulation::simulation->scene->defaultSurface->set();
-
-    glPolygonMode(GL_FRONT, GL_FILL);
-    glShadeModel(GL_FLAT);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
-
-    glPushMatrix();
-    if(dragType == dragRotate || dragType == dragNormalObject)
-      glMultMatrixf(dragSelection->transformation);
-    else
-      glTranslatef(dragSelection->pose.translation.x(), dragSelection->pose.translation.y(), dragSelection->pose.translation.z());
-
-    switch(dragPlane)
-    {
-      case xyPlane:
-        break; // do nothing
-      case xzPlane:
-        glRotatef(90.f, 1.f, 0.f, 0.f);
-        break;
-      case yzPlane:
-        glRotatef(90.f, 0.f, 1.f, 0.f);
-        break;
-    }
-
-    GLUquadricObj* q = gluNewQuadric();
-    glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-    glNormal3f(0, 0, 1);
-    gluDisk(q, 0.003f, 0.5f, 30, 1);
-    glRotatef(180.f, 1.f, 0.f, 0.f);
-    gluDisk(q, 0.003f, 0.5f, 30, 1);
-    gluDeleteQuadric(q);
-    glPopMatrix();
-
-    glDisable(GL_BLEND);
-
-    Simulation::simulation->scene->defaultSurface->unset();
+    graphicsContext.startRendering(projection, viewMatrix.data(), false, false, false, true);
+    graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
+    graphicsContext.finishRendering();
   }
 
-  // draw controller drawings
-  if(drawingsShadeMode != noShading)
-  {
-    Simulation::simulation->scene->defaultSurface->set();
-
-    switch(drawingsShadeMode)
-    {
-      case flatShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_FLAT);
-        break;
-      case wireframeShading:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glShadeModel(GL_FLAT);
-        break;
-      case smoothShading:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glShadeModel(GL_SMOOTH);
-        break;
-      default:
-        ASSERT(false);
-        break;
-    }
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-    glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-    if(renderFlags & enableDrawingsTransparentOcclusion)
-    {
-      if(physicalObject)
-        physicalObject->drawPhysics(showControllerDrawings);
-      if(graphicalObject)
-        graphicalObject->drawAppearances(SurfaceColor(0), true);
-    }
-
-    if((renderFlags & enableDrawingsTransparentOcclusion)
-       || !(renderFlags & enableDrawingsOcclusion))
-      glClear(GL_DEPTH_BUFFER_BIT);
-
-    if(renderFlags & enableDrawingsTransparentOcclusion)
-      glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
-
-    if(physicalObject)
-      physicalObject->drawPhysics(showControllerDrawings);
-    if(graphicalObject)
-      graphicalObject->drawAppearances(SurfaceColor(0), true);
-
-    glDisable(GL_BLEND);
-
-    Simulation::simulation->scene->defaultSurface->unset();
-
-    // check matrix stack size
-#ifdef _DEBUG
-    int stackDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &stackDepth);
-    ASSERT(stackDepth == 1);
-#endif
-  }
+  // TODO: draw controller drawings
 }
 
 void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int height)
@@ -303,11 +184,7 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   viewport[2] = width;
   viewport[3] = height; // store viewport for gluUnProject
 
-  glMatrixMode(GL_PROJECTION);
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
-  glLoadMatrixf(projection);
-
-  glMatrixMode(GL_MODELVIEW);
 }
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const

@@ -5,7 +5,8 @@
  */
 
 #include "BoxGeometry.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include <ode/collision.h>
 #include <algorithm>
 #include <cmath>
@@ -19,73 +20,18 @@ dGeomID BoxGeometry::createGeometry(dSpaceID space)
   return dCreateBox(space, depth, width, height);
 }
 
-void BoxGeometry::drawPhysics(unsigned int flags) const
+void BoxGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Geometry::createPhysics(graphicsContext);
 
+  ASSERT(!box);
+  box = Primitives::createBox(graphicsContext, width, height, depth);
+}
+
+void BoxGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
   if(flags & SimRobotCore2::Renderer::showPhysics)
-  {
-    const float lx = depth * 0.5f;
-    const float ly = width * 0.5f;
-    const float lz = height * 0.5f;
+    graphicsContext.draw(box, modelMatrix, surface);
 
-    // -y-side
-    glBegin(GL_TRIANGLE_FAN);
-      glColor4fv(color);
-      glNormal3f(0, -1, 0);
-      glVertex3f(lx, -ly, -lz);
-      glVertex3f(lx, -ly, lz);
-      glVertex3f(-lx, -ly, lz);
-      glVertex3f(-lx, -ly, -lz);
-    glEnd();
-
-    // y-side
-    glBegin(GL_TRIANGLE_FAN);
-      glNormal3f(0, 1, 0);
-      glVertex3f(-lx, ly, lz);
-      glVertex3f(lx, ly, lz);
-      glVertex3f(lx, ly, -lz);
-      glVertex3f(-lx, ly, -lz);
-    glEnd();
-
-    // -x-side
-    glBegin(GL_TRIANGLE_FAN);
-      glNormal3f(-1, 0, 0);
-      glVertex3f(-lx, -ly, -lz);
-      glVertex3f(-lx, -ly, lz);
-      glVertex3f(-lx, ly, lz);
-      glVertex3f(-lx, ly, -lz);
-    glEnd();
-
-    // x-side
-    glBegin(GL_TRIANGLE_FAN);
-      glNormal3f(1, 0, 0);
-      glVertex3f(lx, -ly, -lz);
-      glVertex3f(lx, ly, -lz);
-      glVertex3f(lx, ly, lz);
-      glVertex3f(lx, -ly, lz);
-    glEnd();
-
-    // bottom
-    glBegin(GL_TRIANGLE_FAN);
-      glNormal3f(0, 0, -1);
-      glVertex3f(-lx, -ly, -lz);
-      glVertex3f(-lx, ly, -lz);
-      glVertex3f(lx, ly, -lz);
-      glVertex3f(lx, -ly, -lz);
-    glEnd();
-
-    // top
-    glBegin(GL_TRIANGLE_FAN);
-      glNormal3f(0, 0, 1);
-      glVertex3f(-lx, -ly, lz);
-      glVertex3f(lx, -ly, lz);
-      glVertex3f(lx, ly, lz);
-      glVertex3f(-lx, ly, lz);
-    glEnd();
-  }
-
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  Geometry::drawPhysics(graphicsContext, flags);
 }

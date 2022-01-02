@@ -85,8 +85,8 @@ int main(int argc, char* argv[])
   QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QSurfaceFormat format;
-  format.setVersion(2, 1);
-  format.setProfile(QSurfaceFormat::NoProfile);
+  format.setVersion(3, 3);
+  format.setProfile(QSurfaceFormat::CoreProfile);
   format.setSamples(1);
   format.setStencilBufferSize(0);
   QSurfaceFormat::setDefaultFormat(format);

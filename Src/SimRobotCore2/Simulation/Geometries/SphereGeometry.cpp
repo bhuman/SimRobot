@@ -5,7 +5,8 @@
  */
 
 #include "SphereGeometry.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include <ode/collision.h>
 
 dGeomID SphereGeometry::createGeometry(dSpaceID space)
@@ -17,19 +18,18 @@ dGeomID SphereGeometry::createGeometry(dSpaceID space)
   return dCreateSphere(space, radius);
 }
 
-void SphereGeometry::drawPhysics(unsigned int flags) const
+void SphereGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Geometry::createPhysics(graphicsContext);
 
+  ASSERT(!sphere);
+  sphere = Primitives::createSphere(graphicsContext, radius, 16, 16, false);
+}
+
+void SphereGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
   if(flags & SimRobotCore2::Renderer::showPhysics)
-  {
-    glColor4fv(color);
-    GLUquadricObj* q = gluNewQuadric();
-    gluSphere(q, radius, 16, 16);
-    gluDeleteQuadric(q);
-  }
+    graphicsContext.draw(sphere, modelMatrix, surface);
 
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  Geometry::drawPhysics(graphicsContext, flags);
 }

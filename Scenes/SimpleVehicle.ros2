@@ -5,7 +5,7 @@
   <Surface name="orange" diffuseColor="rgb(100%, 60%, 0%)"/>
 
   <Scene name="SimpleVehicle" controller="SimpleVehicle" stepLength="0.01" color="rgb(80%, 80%, 80%)" ERP="0.2" CFM="0.0001">
-    <Light z="8m" ambientColor="rgb(50%, 50%, 50%)" diffuseColor="rgb(90%, 90%, 90%)" specularColor="rgb(100%, 100%, 100%)"/>
+    <PointLight z="8m" ambientColor="rgb(50%, 50%, 50%)" diffuseColor="rgb(90%, 90%, 90%)" specularColor="rgb(100%, 100%, 100%)"/>
 
     <Compound name="Ground">
       <Translation z="-0.1"/>

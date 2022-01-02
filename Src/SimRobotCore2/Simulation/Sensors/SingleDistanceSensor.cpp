@@ -7,9 +7,9 @@
 
 #include "SingleDistanceSensor.h"
 #include "CoreModule.h"
+#include "Graphics/Primitives.h"
 #include "Simulation/Body.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Tools/OpenGLTools.h"
 #include <ode/collision.h>
 
@@ -19,9 +19,15 @@ SingleDistanceSensor::SingleDistanceSensor()
   sensor.unit = "m";
 }
 
-void SingleDistanceSensor::createPhysics()
+void SingleDistanceSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
   sensor.geom = dCreateRay(Simulation::simulation->rootSpace, max);
   sensor.min = min;
@@ -31,6 +37,13 @@ void SingleDistanceSensor::createPhysics()
     sensor.offset.translation = *translation;
   if(rotation)
     sensor.offset.rotation = *rotation;
+
+  ASSERT(!ray);
+  ray = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(max, 0.f, 0.f));
+
+  ASSERT(!surface);
+  static const float color[] = {0.5f, 0.f, 0.f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void SingleDistanceSensor::registerObjects()
@@ -104,21 +117,10 @@ bool SingleDistanceSensor::DistanceSensor::getMinAndMax(float& min, float& max) 
   return true;
 }
 
-void SingleDistanceSensor::drawPhysics(unsigned int flags) const
+void SingleDistanceSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
   if(flags & SimRobotCore2::Renderer::showSensors)
-  {
-    glBegin(GL_LINES);
-      glColor3f(0.5f, 0, 0);
-      glNormal3f (0, 0, 1.f);
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(max, 0.f, 0.f);
-    glEnd();
-  }
+    graphicsContext.draw(ray, modelMatrix, surface);
 
-  Sensor::drawPhysics(flags);
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

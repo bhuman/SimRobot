@@ -5,7 +5,8 @@
  */
 
 #include "CylinderGeometry.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include <ode/collision.h>
 #include <cmath>
 
@@ -18,25 +19,18 @@ dGeomID CylinderGeometry::createGeometry(dSpaceID space)
   return dCreateCylinder(space, radius, height);
 }
 
-void CylinderGeometry::drawPhysics(unsigned int flags) const
+void CylinderGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Geometry::createPhysics(graphicsContext);
 
+  ASSERT(!cylinder);
+  cylinder = Primitives::createCylinder(graphicsContext, radius, height, 16);
+}
+
+void CylinderGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
   if(flags & SimRobotCore2::Renderer::showPhysics)
-  {
-    glColor4fv(color);
-    GLUquadricObj* q = gluNewQuadric();
-    glTranslatef(0.f, 0.f, height * -0.5f);
-    gluCylinder(q, radius, radius, height, 16, 1);
-    glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-    gluDisk(q, 0, radius, 16, 1);
-    glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-    glTranslatef(0,0,height);
-    gluDisk(q, 0, radius, 16, 1);
-    gluDeleteQuadric(q);
-  }
+    graphicsContext.draw(cylinder, modelMatrix, surface);
 
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  Geometry::drawPhysics(graphicsContext, flags);
 }

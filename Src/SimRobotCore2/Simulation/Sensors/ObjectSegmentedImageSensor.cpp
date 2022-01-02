@@ -1,26 +1,47 @@
 /**
-  * @file Simulation/Sensors/ObjectSegmentedImageSensor.cpp
-  * Implementation of class ObjectSegmentedImageSensor
-  *
-  * @author Jesse Richter-Klug
-  *  includes a lot of duplicated code origin in Simulation/Sensors/Camera.cpp authored by Colin Graf
-  */
+ * @file Simulation/Sensors/ObjectSegmentedImageSensor.cpp
+ * Implementation of class ObjectSegmentedImageSensor
+ *
+ * @author Jesse Richter-Klug
+ *  includes a lot of duplicated code origin in Simulation/Sensors/Camera.cpp authored by Colin Graf
+ */
 
-#include "Platform/OpenGL.h"
-
-#include "Simulation/Sensors/ObjectSegmentedImageSensor.h"
+#include "ObjectSegmentedImageSensor.h"
+#include "CoreModule.h"
+#include "Graphics/OpenGL.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
-#include "Platform/Assert.h"
-#include "Platform/OffscreenRenderer.h"
 #include "Tools/OpenGLTools.h"
-#include "CoreModule.h"
+#include <cmath>
+
+static constexpr std::size_t numOfBodySurfaces = 16;
+static float surfaceColors[numOfBodySurfaces][4] =
+{
+  {1.0f, 0.0f, 0.0f, 1.0f}, // red,
+  {0.0f, 0.0f, 1.0f, 1.0f}, // blue,
+  {0.0f, 0.5f, 0.0f, 1.0f}, // green,
+  {1.0f, 1.0f, 0.0f, 1.0f}, // yellow,
+  {0.5f, .12f, .12f, 1.0f}, // brown,
+  {1.0f, .37f, .73f, 1.0f}, // pink,
+  {0.5f, 0.0f, 0.5f, 1.0f}, // purple,
+  {0.0f, 0.0f, 0.5f, 1.0f}, // navy,
+  {.54f, .17f, .89f, 1.0f}, // blueviolet
+  {0.0f, .75f, 1.0f, 1.0f}, // deepskyblue,
+  {0.5f, 0.5f, 0.0f, 1.0f}, // olive,
+  {0.0f, 1.0f, 0.0f, 1.0f}, // lime,
+  {.13f, .70f, .67f, 1.0f}, // lightseagreen,
+  {.82f, .41f, .12f, 1.0f}, // chocolate,
+  {1.0f, .65f, 0.0f, 1.0f}, // orange,
+  {1.0f, .55f, 0.0f, 1.0f}  // darkorange,
+};
 
 ObjectSegmentedImageSensor::ObjectSegmentedImageSensor()
 {
   sensor.camera = this;
   sensor.sensorType = SimRobotCore2::SensorPort::cameraSensor;
-  sensor.imageBuffer = 0;
+  sensor.imageBuffer = nullptr;
   sensor.imageBufferSize = 0;
 }
 
@@ -30,9 +51,15 @@ ObjectSegmentedImageSensor::~ObjectSegmentedImageSensor()
     delete[] sensor.imageBuffer;
 }
 
-void ObjectSegmentedImageSensor::createPhysics()
+void ObjectSegmentedImageSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
   sensor.dimensions.append(imageWidth);
   sensor.dimensions.append(imageHeight);
@@ -45,6 +72,18 @@ void ObjectSegmentedImageSensor::createPhysics()
 
   float aspect = std::tan(angleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, 0.01f, 500.f, sensor.projection);
+
+  // TODO: These should exist only once per simulator instance, not for every sensor.
+  surfaces.reserve(numOfBodySurfaces);
+  for(std::size_t i = 0; i < numOfBodySurfaces; ++i)
+    surfaces.push_back(graphicsContext.requestSurface(surfaceColors[i], surfaceColors[i]));
+
+  ASSERT(!pyramid);
+  pyramid = Primitives::createPyramid(graphicsContext, std::tan(angleX * 0.5f) * 2.f, std::tan(angleY * 0.5f) * 2.f, 1.f);
+
+  ASSERT(!surface);
+  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void ObjectSegmentedImageSensor::addParent(Element& element)
@@ -79,21 +118,12 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   // make sure the poses of all movable objects are up to date
   Simulation::simulation->scene->updateTransformations();
 
-  // prepare offscreen renderer
-  OffscreenRenderer& renderer = Simulation::simulation->renderer;
-  renderer.makeCurrent(imageWidth, imageHeight);
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.makeCurrent(imageWidth, imageHeight);
+  graphicsContext.updateModelMatrices(false);
 
   // setup image size and angle of view
   glViewport(0, 0, imageWidth, imageHeight);
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(projection);
-  glMatrixMode(GL_MODELVIEW);
-
-  // disable lighting, textures, and do flat shading
-  glDisable(GL_LIGHTING);
-  glDisable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glShadeModel(GL_FLAT);
 
   // setup camera position
   Pose3f pose = physicalObject->pose;
@@ -102,19 +132,25 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   pose.rotate(cameraRotation);
   float transformation[16];
   OpenGLTools::convertTransformation(pose.invert(), transformation);
-  glLoadMatrixf(transformation);
+
+  graphicsContext.startRendering(projection, transformation, false, false, false);
 
   // draw all objects
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // draw all objects
-  Simulation::simulation->scene->GraphicalObject::drawAppearances(SurfaceColor(0), false);
+  Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
   int j = 0;
   for(auto iter = Simulation::simulation->scene->bodies.begin(),
       end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
-    (*iter)->drawAppearances(SurfaceColor((j % (SurfaceColor::numOfSurfaceColors - 1)) + 1), false);
+  {
+    graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
+    (*iter)->drawAppearances(graphicsContext, false);
+  }
+  graphicsContext.setForcedSurface(nullptr);
+
+  graphicsContext.finishRendering();
 
   // read frame buffer
-  renderer.finishImageRendering(imageBuffer, imageWidth, imageHeight);
+  graphicsContext.finishImageRendering(imageBuffer, imageWidth, imageHeight);
   data.byteArray = imageBuffer;
 }
 
@@ -148,20 +184,9 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
   // make sure the poses of all movable objects are up to date
   Simulation::simulation->scene->updateTransformations();
 
-  // prepare offscreen renderer
-  OffscreenRenderer& renderer = Simulation::simulation->renderer;
-  renderer.makeCurrent(imageWidth, imageHeight * count);
-
-  // setup angle of view
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(projection);
-  glMatrixMode(GL_MODELVIEW);
-
-  // disable lighting, textures, and do flat shading
-  glDisable(GL_LIGHTING);
-  glDisable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glShadeModel(GL_FLAT);
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.makeCurrent(imageWidth, imageHeight * count);
+  graphicsContext.updateModelMatrices(false);
 
   // clear buffers
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -184,14 +209,21 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       pose.rotate(cameraRotation);
       float transformation[16];
       OpenGLTools::convertTransformation(pose.invert(), transformation);
-      glLoadMatrixf(transformation);
+
+      graphicsContext.startRendering(sensor->projection, transformation, false, false, false);
 
       // draw all objects
-      Simulation::simulation->scene->GraphicalObject::drawAppearances(SurfaceColor(0), false);
+      Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
       int j = 0;
       for(auto iter = Simulation::simulation->scene->bodies.begin(),
           end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
-        (*iter)->drawAppearances(SurfaceColor((j % (SurfaceColor::numOfSurfaceColors - 1)) + 1), false);
+      {
+        graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
+        (*iter)->drawAppearances(graphicsContext, false);
+      }
+      graphicsContext.setForcedSurface(nullptr);
+
+      graphicsContext.finishRendering();
 
       sensor->data.byteArray = currentBufferPos;
       sensor->lastSimulationStep = Simulation::simulation->simulationStep;
@@ -202,45 +234,14 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
   }
 
   // read frame buffer
-  renderer.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
+  graphicsContext.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
   return true;
 }
 
-void ObjectSegmentedImageSensor::drawPhysics(unsigned int flags) const
+void ObjectSegmentedImageSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
   if(flags & SimRobotCore2::Renderer::showSensors)
-  {
-    const Vector3f ml(1.f, -std::tan(angleX * 0.5f), 0);
-    const Vector3f mt(1.f, 0, std::tan(angleY * 0.5f));
-    const Vector3f tl(1.f, ml.y(), mt.z());
-    const Vector3f tr(1.f, -ml.y(), mt.z());
-    const Vector3f bl(1.f, ml.y(), -mt.z());
-    const Vector3f br(1.f, -ml.y(), -mt.z());
+    graphicsContext.draw(pyramid, modelMatrix, surface);
 
-    glBegin(GL_LINE_LOOP);
-      glColor3f(0, 0, 0.5f);
-      glNormal3f (0, 0, 1.f);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(tr.x(), tr.y(), tr.z());
-      glVertex3f(br.x(), br.y(), br.z());
-      glVertex3f(bl.x(), bl.y(), bl.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(tr.x(), tr.y(), tr.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(bl.x(), bl.y(), bl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(br.x(), br.y(), br.z());
-    glEnd();
-  }
-
-  Sensor::drawPhysics(flags);
-
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

@@ -105,29 +105,9 @@ bool CoreModule::compile()
     }
   };
 
-  class RendererLabel : public QLabel, public SimRobot::StatusLabel
-  {
-    int lastRenderingMethod = -1;
-    QWidget* getWidget() override {return this;}
-    void update() override
-    {
-      int renderingMethod = Simulation::simulation->renderer.getRenderingMethod();
-      if(renderingMethod != lastRenderingMethod)
-      {
-        lastRenderingMethod = renderingMethod;
-        static const char* renderingMethods[] =
-        {
-          "unkn renderer", "fbuf renderer"
-        };
-        setText(renderingMethods[(renderingMethod < 0 || renderingMethod >= static_cast<int>(sizeof(renderingMethods) / sizeof(*renderingMethods))) ? 0 : renderingMethod]);
-      }
-    }
-  };
-
   application->addStatusLabel(*this, new StepsLabel());
   application->addStatusLabel(*this, new StepsPerSecondLabel());
   application->addStatusLabel(*this, new CollisionsLabel());
-  application->addStatusLabel(*this, new RendererLabel());
 
   // suggest further modules
   application->registerModule(*this, "File Editor", "SimRobotEditor", SimRobot::Flag::ignoreReset);

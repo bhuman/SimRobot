@@ -70,7 +70,7 @@ private:
   ~DepthImageSensor();
 
   /** Initializes the camera after all attributes have been set */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Registers an element as parent
@@ -82,8 +82,13 @@ private:
   void registerObjects() override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+
+  GraphicsContext::Mesh* pyramidChain = nullptr; /**< The pyramid chain mesh for the sensor drawing. */
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix for the sensor drawing. */
+  GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
 };

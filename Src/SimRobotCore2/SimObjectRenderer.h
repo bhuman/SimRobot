@@ -25,6 +25,8 @@ public:
    */
   SimObjectRenderer(SimObject& simObject);
 
+  ~SimObjectRenderer();
+
 private:
   SimObject& simObject;
   unsigned int width = 0;
@@ -44,6 +46,7 @@ private:
   ShadeMode drawingsShadeMode = smoothShading;
   unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
 
+  bool initialized = false;
   bool dragging = false;
   DragType dragType;
   Body* dragSelection;
@@ -53,7 +56,7 @@ private:
   Vector3f dragPlaneVector;
   DragAndDropMode dragMode = keepDynamics;
   unsigned int dragStartTime;
-  int degreeSteps = 15;
+  static constexpr int degreeSteps = 15;
 
   void updateCameraTransformation();
 
@@ -68,7 +71,8 @@ private:
 
 public:
   // API
-  void init(bool hasSharedDisplayLists) override;
+  void init() override;
+  void destroy() override;
   void draw() override;
   void resize(float fovY, unsigned int width, unsigned int height) override;
   void getSize(unsigned int& width, unsigned int& height) const override;

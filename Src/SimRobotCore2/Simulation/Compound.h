@@ -23,8 +23,9 @@ private:
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Creates a stationary ODE geometry
@@ -35,13 +36,10 @@ private:
   void addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobotCore2::CollisionCallback* callback);
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
-   * @param flags Flags to enable or disable certain features
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
    */
-  void drawPhysics(unsigned int flags) const override;
-
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (in order to create a display list) */
-  void assembleAppearances(SurfaceColor color) const override;
+  void createGraphics(GraphicsContext& graphicsContext) override;
 
   /**
    * Registers an element as parent

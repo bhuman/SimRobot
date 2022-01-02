@@ -5,8 +5,8 @@
  */
 
 #include "Body.h"
+#include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Masses/Mass.h"
 #include "Simulation/Scene.h"
@@ -35,7 +35,7 @@ Body::~Body()
     dBodyDestroy(body);
 }
 
-void Body::createPhysics()
+void Body::createPhysics(GraphicsContext& graphicsContext)
 {
   ASSERT(!body);
 
@@ -88,10 +88,30 @@ void Body::createPhysics()
       addGeometry(geomOffset, *geometry);
   }
 
-  //
-  ::PhysicalObject::createPhysics();
-
   OpenGLTools::convertTransformation(pose, transformation);
+
+  graphicsContext.pushModelMatrixStack();
+
+  graphicsContext.pushModelMatrixByReference(transformation);
+
+  graphicsContext.pushModelMatrix(centerOfMassTransformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  graphicsContext.popModelMatrix();
+
+  //
+  ::PhysicalObject::createPhysics(graphicsContext);
+
+  graphicsContext.popModelMatrix();
+  ASSERT(graphicsContext.emptyModelMatrixStack());
+  graphicsContext.popModelMatrixStack();
+
+  ASSERT(!comSphere);
+  comSphere = Primitives::createSphere(graphicsContext, 0.003f, 10, 10, false);
+
+  ASSERT(!surface);
+  static const float color[] = {0.8f, 0.f, 0.f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
@@ -171,11 +191,14 @@ void Body::addMass(Mass& mass)
   }
 }
 
-void Body::createGraphics()
+void Body::createGraphics(GraphicsContext& graphicsContext)
 {
-  GraphicalObject::createGraphics();
+  ASSERT(graphicsContext.emptyModelMatrixStack());
+  graphicsContext.pushModelMatrixByReference(transformation);
+  GraphicalObject::createGraphics(graphicsContext);
+  graphicsContext.popModelMatrix();
   for(Body* child : bodyChildren)
-    child->createGraphics();
+    child->createGraphics(graphicsContext);
 }
 
 void Body::updateTransformation()
@@ -193,41 +216,24 @@ void Body::updateTransformation()
     child->updateTransformation();
 }
 
-void Body::drawAppearances(SurfaceColor color, bool drawControllerDrawings) const
+void Body::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-  GraphicalObject::drawAppearances(color, drawControllerDrawings);
-  glPopMatrix();
+  GraphicalObject::drawAppearances(graphicsContext, drawControllerDrawings);
   for(const Body* child : bodyChildren)
-    child->drawAppearances(color, drawControllerDrawings);
+    child->drawAppearances(graphicsContext, drawControllerDrawings);
 }
 
-void Body::drawPhysics(unsigned int flags) const
+void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
+  // draw center of mass
   if(flags & SimRobotCore2::Renderer::showPhysics)
-  {
-    // draw center of mass
-    glPushMatrix();
-    glMultMatrixf(centerOfMassTransformation);
-    GLUquadricObj* q = gluNewQuadric();
-    glNormal3f(0, 0, 1.f);
-    glColor3f(0.8f, 0.f, 0.f);
-    gluSphere(q, 0.003, 10, 10);
-    gluDeleteQuadric(q);
-    glPopMatrix();
-  }
+    graphicsContext.draw(comSphere, modelMatrix, surface);
 
   // draw children
-  ::PhysicalObject::drawPhysics(flags);
-
-  glPopMatrix();
+  ::PhysicalObject::drawPhysics(graphicsContext, flags);
 
   for(const Body* child : bodyChildren)
-    child->drawPhysics(flags);
+    child->drawPhysics(graphicsContext, flags);
 }
 
 void Body::move(const Vector3f& offset)

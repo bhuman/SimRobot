@@ -14,11 +14,10 @@
 #include "Simulation/Motors/ServoMotor.h"
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
-void Slider::createPhysics()
+void Slider::createPhysics(GraphicsContext& graphicsContext)
 {
   ASSERT(axis);
 
@@ -26,7 +25,7 @@ void Slider::createPhysics()
   axis->create();
 
   //
-  ::PhysicalObject::createPhysics();
+  Joint::createPhysics(graphicsContext);
 
   // find bodies to connect
   Body* parentBody = dynamic_cast<Body*>(parent);

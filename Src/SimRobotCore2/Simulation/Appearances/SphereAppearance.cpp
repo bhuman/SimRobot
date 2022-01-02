@@ -5,23 +5,20 @@
  */
 
 #include "SphereAppearance.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
 
-void SphereAppearance::assembleAppearances(SurfaceColor color) const
+void SphereAppearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Appearance::createGraphics(graphicsContext);
 
-  surface->set(color, false);
+  if(!sphere)
+    sphere = Primitives::createSphere(graphicsContext, radius, 16, 16, surface->texture);
+}
 
-  GLUquadricObj* q = gluNewQuadric();
-  gluQuadricNormals(q, GLU_SMOOTH);
-  gluQuadricTexture(q, GL_TRUE);
-  gluSphere(q, radius, 16, 16);
-  gluDeleteQuadric(q);
+void SphereAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+{
+  if(!drawControllerDrawings)
+    graphicsContext.draw(sphere, modelMatrices[modelMatrixIndex], surface->surface);
 
-  surface->unset(false);
-
-  GraphicalObject::assembleAppearances(color);
-  glPopMatrix();
+  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
 }

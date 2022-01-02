@@ -267,7 +267,9 @@ private:
   Element* servoMotorElement();
   Element* velocityMotorElement();
   Element* quickSolverElement();
-  Element* lightElement();
+  Element* dirLightElement();
+  Element* pointLightElement();
+  Element* spotLightElement();
   Element* surfaceElement();
   Element* gyroscopeElement();
   Element* accelerometerElement();

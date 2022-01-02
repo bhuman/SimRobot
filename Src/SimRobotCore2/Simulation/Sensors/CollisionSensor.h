@@ -50,8 +50,9 @@ private:
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createPhysics() override;
+  void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
    * Registers the sensor collision callback function to a list of geometries and subordinate geometries
@@ -64,8 +65,9 @@ private:
   void registerObjects() override;
 
   /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(unsigned int flags) const override;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
 };

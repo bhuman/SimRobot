@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/Appearances/Appearance.h"
 
 /**
@@ -18,6 +19,18 @@ public:
   float radius; /**< The radius of the sphere */
 
 private:
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (in order to create a display list) */
-  void assembleAppearances(SurfaceColor color) const override;
+  /**
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
+   */
+  void createGraphics(GraphicsContext& graphicsContext) override;
+
+  /**
+   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
+   */
+  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+
+  GraphicsContext::Mesh* sphere = nullptr; /**< The sphere mesh */
 };

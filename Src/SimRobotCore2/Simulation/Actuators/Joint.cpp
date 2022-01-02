@@ -8,10 +8,11 @@
  */
 
 #include "Joint.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include "SimRobotCore2.h"
 #include "Simulation/Axis.h"
 #include "Simulation/Motors/Motor.h"
-#include "Platform/OpenGL.h"
 #include <ode/objects.h>
 #include <cmath>
 
@@ -21,28 +22,34 @@ Joint::~Joint()
     dJointDestroy(joint);
 }
 
-void Joint::drawPhysics(unsigned int flags) const
+void Joint::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Actuator::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
+  ASSERT(!axisLine);
+  axisLine = Primitives::createLine(graphicsContext, -0.05f * Vector3f(axis->x, axis->y, axis->z), 0.05f * Vector3f(axis->x, axis->y, axis->z));
+
+  ASSERT(!sphere);
+  sphere = Primitives::createSphere(graphicsContext, 0.002f, 10, 10, false);
+
+  ASSERT(!surface);
+  const float color[] = {std::abs(axis->x), std::abs(axis->y), std::abs(axis->z), 1.f};
+  surface = graphicsContext.requestSurface(color, color);
+}
+
+void Joint::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
   if(flags & SimRobotCore2::Renderer::showPhysics)
   {
-    glBegin(GL_LINES);
-      glNormal3f(0, 0, 1.f);
-      glColor3f(std::abs(axis->x), std::abs(axis->y), std::abs(axis->z));
-      glVertex3f(axis->x * -0.05f, axis->y * -0.05f, axis->z * -0.05f);
-      glVertex3f(axis->x * 0.05f, axis->y * 0.05f, axis->z * 0.05f);
-    glEnd();
-
-    GLUquadricObj* q = gluNewQuadric();
-    gluSphere(q, 0.002, 10, 10);
-    gluDeleteQuadric(q);
+    graphicsContext.draw(axisLine, modelMatrix, surface);
+    graphicsContext.draw(sphere, modelMatrix, surface);
   }
 
-  ::PhysicalObject::drawPhysics(flags);
-
-  glPopMatrix();
+  Actuator::drawPhysics(graphicsContext, flags);
 }
 
 void Joint::registerObjects()

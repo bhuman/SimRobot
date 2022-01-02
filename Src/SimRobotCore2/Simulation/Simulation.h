@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Platform/OffscreenRenderer.h"
+#include "Graphics/GraphicsContext.h"
 #include <string>
 #include <list>
 #include <ode/common.h>
@@ -38,7 +38,18 @@ public:
   dThreadingThreadPoolID pool; /**< The thread pool for physics. */
 #endif
 
-  OffscreenRenderer renderer; /**< For rendering OpenGL scenes without a regular window */
+  GraphicsContext graphicsContext; /**< The object that does graphics. */
+  GraphicsContext::Mesh* xAxisMesh = nullptr; /**< The mesh for the x axis in object renderers. */
+  GraphicsContext::Mesh* yAxisMesh = nullptr; /**< The mesh for the y axis in object renderers. */
+  GraphicsContext::Mesh* zAxisMesh = nullptr; /**< The mesh for the z axis in object renderers. */
+  GraphicsContext::Mesh* dragPlaneMesh = nullptr; /**< The mesh for the drag plane in object renderers. */
+  GraphicsContext::Surface* xAxisSurface = nullptr; /**< The surface for the x axis in object renderers. */
+  GraphicsContext::Surface* yAxisSurface = nullptr; /**< The surface for the y axis in object renderers. */
+  GraphicsContext::Surface* zAxisSurface = nullptr; /**< The surface for the z axis in object renderers. */
+  GraphicsContext::Surface* dragPlaneSurface = nullptr; /**< The surface for the drag plane in object renderers. */
+  GraphicsContext::ModelMatrix* originModelMatrix = nullptr; /**< The model matrix for the origin in object renderers. */
+  GraphicsContext::ModelMatrix* dragPlaneModelMatrix = nullptr; /**< The model matrix for the drag plane in object renderers. */
+  float dragPlaneTransformation[16]; /**< Transformation matrix of the drag plane (assuming it is not possible to drag simultaneously in multiple renderers). */
 
   unsigned int currentFrameRate = 0; /**< The current frame rate of the simulation */
 

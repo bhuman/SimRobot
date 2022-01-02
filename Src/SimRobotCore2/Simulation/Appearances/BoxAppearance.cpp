@@ -5,75 +5,20 @@
  */
 
 #include "BoxAppearance.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
 
-void BoxAppearance::assembleAppearances(SurfaceColor color) const
+void BoxAppearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Appearance::createGraphics(graphicsContext);
 
-  surface->set(color);
+  if(!box)
+    box = Primitives::createBox(graphicsContext, width, height, depth);
+}
 
-  float lx = depth * 0.5f;
-  float ly = width * 0.5f;
-  float lz = height * 0.5f;
+void BoxAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+{
+  if(!drawControllerDrawings)
+    graphicsContext.draw(box, modelMatrices[modelMatrixIndex], surface->surface);
 
-  // -y-side
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(0, -1, 0);
-    glVertex3f(lx, -ly, -lz);
-    glVertex3f(lx, -ly, lz);
-    glVertex3f(-lx, -ly, lz);
-    glVertex3f(-lx, -ly, -lz);
-  glEnd();
-
-  // y-side
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(0, 1, 0);
-    glVertex3f(-lx, ly, lz);
-    glVertex3f(lx, ly, lz);
-    glVertex3f(lx, ly, -lz);
-    glVertex3f(-lx, ly, -lz);
-  glEnd();
-
-  // -x-side
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(-1, 0, 0);
-    glVertex3f(-lx, -ly, -lz);
-    glVertex3f(-lx, -ly, lz);
-    glVertex3f(-lx, ly, lz);
-    glVertex3f(-lx, ly, -lz);
-  glEnd();
-
-  // x-side
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(1, 0, 0);
-    glVertex3f(lx, -ly, -lz);
-    glVertex3f(lx, ly, -lz);
-    glVertex3f(lx, ly, lz);
-    glVertex3f(lx, -ly, lz);
-  glEnd();
-
-  // bottom
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(0, 0, -1);
-    glVertex3f(-lx, -ly, -lz);
-    glVertex3f(-lx, ly, -lz);
-    glVertex3f(lx, ly, -lz);
-    glVertex3f(lx, -ly, -lz);
-  glEnd();
-
-  // top
-  glBegin(GL_TRIANGLE_FAN);
-    glNormal3f(0, 0, 1);
-    glVertex3f(-lx, -ly, lz);
-    glVertex3f(lx, -ly, lz);
-    glVertex3f(lx, ly, lz);
-    glVertex3f(-lx, ly, lz);
-  glEnd();
-
-  surface->unset();
-
-  GraphicalObject::assembleAppearances(color);
-  glPopMatrix();
+  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
 }

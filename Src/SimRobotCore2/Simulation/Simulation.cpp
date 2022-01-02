@@ -6,6 +6,7 @@
 
 #include "Simulation.h"
 #include "CoreModule.h"
+#include "Graphics/Primitives.h"
 #include "Parser/Element.h"
 #include "Parser/Parser.h"
 #include "Platform/Assert.h"
@@ -92,9 +93,38 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   dWorldSetStepThreadingImplementation(physicalWorld, dThreadingImplementationGetFunctions(threading), threading);
 #endif
 
-  scene->createPhysics();
+  graphicsContext.pushModelMatrixStack();
+  scene->createPhysics(graphicsContext);
+  graphicsContext.popModelMatrixStack();
 
-  renderer.init();
+  graphicsContext.pushModelMatrixStack();
+  scene->createGraphics(graphicsContext);
+  graphicsContext.popModelMatrixStack();
+
+  xAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(1.f, 0.f, 0.f));
+  yAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(0.f, 1.f, 0.f));
+  zAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(0.f, 0.f, 1.f));
+  dragPlaneMesh = Primitives::createDisk(graphicsContext, 0.003f, 0.5f, 30);
+  static const float redColor[] = {1.f, 0.f, 0.f, 1.f};
+  static const float greenColor[] = {0.f, 1.f, 0.f, 1.f};
+  static const float blueColor[] = {0.f, 0.f, 1.f, 1.f};
+  static const float dragPlaneColor[] = {0.5f, 0.5f, 0.5f, 0.5f};
+  xAxisSurface = graphicsContext.requestSurface(redColor, redColor);
+  yAxisSurface = graphicsContext.requestSurface(greenColor, greenColor);
+  zAxisSurface = graphicsContext.requestSurface(blueColor, blueColor);
+  dragPlaneSurface = graphicsContext.requestSurface(dragPlaneColor, dragPlaneColor);
+
+  graphicsContext.pushModelMatrixStack();
+  originModelMatrix = graphicsContext.requestModelMatrix();
+  graphicsContext.pushModelMatrixByReference(dragPlaneTransformation);
+  dragPlaneModelMatrix = graphicsContext.requestModelMatrix();
+  graphicsContext.popModelMatrix();
+  graphicsContext.popModelMatrixStack();
+
+  if(!graphicsContext.compile())
+    return false;
+
+  graphicsContext.initOffscreenRenderer();
 
   return true;
 }

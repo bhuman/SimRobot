@@ -4,16 +4,14 @@
  * @author Colin Graf
  */
 
-#include "Platform/OpenGL.h"
-#include <algorithm>
-
-#include "Simulation/Sensors/DepthImageSensor.h"
+#include "DepthImageSensor.h"
+#include "CoreModule.h"
+#include "Graphics/OpenGL.h"
+#include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
-#include "Platform/Assert.h"
-#include "Platform/OffscreenRenderer.h"
 #include "Tools/OpenGLTools.h"
-#include "CoreModule.h"
+#include <algorithm>
 
 DepthImageSensor::DepthImageSensor()
 {
@@ -35,8 +33,16 @@ DepthImageSensor::~DepthImageSensor()
     delete[] sensor.lut;
 }
 
-void DepthImageSensor::createPhysics()
+void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
 {
+  OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
+
   sensor.imageBuffer = new float[imageWidth * imageHeight];
   sensor.renderHeight = imageHeight;
 
@@ -79,7 +85,6 @@ void DepthImageSensor::createPhysics()
     sensor.renderAngleX = angleX;
     sensor.renderBuffer = sensor.imageBuffer;
   }
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
 
   sensor.dimensions.append(imageWidth);
   if(imageHeight > 1)
@@ -97,6 +102,96 @@ void DepthImageSensor::createPhysics()
   const float zNear = std::max(min, 0.001f); // at least 1mm since zNear must not be zero
   float aspect = std::tan(sensor.renderAngleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, zNear, max, sensor.projection);
+
+  ASSERT(!pyramidChain);
+  GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
+  auto& vertices = vertexBuffer->vertices;
+  Vector3f ml;
+  if(projection == perspectiveProjection)
+    ml = Vector3f(max, -std::tan(angleX * 0.5f) * max, 0);
+  else
+    ml = Vector3f(std::cos(angleX * 0.5f) * max, -std::sin(angleX * 0.5f) * max, 0);
+  Vector3f mt(ml.x(), 0, std::tan(angleY * 0.5f) * max);
+  Vector3f tl(ml.x(), ml.y(), mt.z());
+  Vector3f tr(ml.x(), -ml.y(), mt.z());
+  Vector3f bl(ml.x(), ml.y(), -mt.z());
+  Vector3f br(ml.x(), -ml.y(), -mt.z());
+  const unsigned segments = static_cast<int>(18.f * angleX / pi);
+  vertices.reserve(5 + (projection == sphericalProjection ? 2 * segments : 0));
+  vertices.emplace_back(Vector3f::Zero(), Vector3f(0.f, 0.f, 1.f));
+  vertices.emplace_back(tl, Vector3f(0.f, 0.f, 1.f));
+  vertices.emplace_back(tr, Vector3f(0.f, 0.f, 1.f));
+  vertices.emplace_back(bl, Vector3f(0.f, 0.f, 1.f));
+  vertices.emplace_back(br, Vector3f(0.f, 0.f, 1.f));
+  if(projection == sphericalProjection && segments > 0)
+  {
+    const float rotX = std::cos(angleX / static_cast<float>(segments));
+    const float rotY = std::sin(angleX / static_cast<float>(segments));
+    float x = tl.x();
+    float y = tl.y();
+    for(unsigned int i = 0; i < segments; ++i)
+    {
+      vertices.emplace_back(Vector3f(x, y, tl.z()), Vector3f(0.f, 0.f, 1.f));
+      const float x2 = x * rotX - y * rotY;
+      y = y * rotX + x * rotY;
+      x = x2;
+    }
+    for(unsigned int i = 0; i < segments; ++i)
+    {
+      vertices.emplace_back(Vector3f(x, y, br.z()), Vector3f(0.f, 0.f, 1.f));
+      const float x2 = x * rotX + y * rotY;
+      y = y * rotX - x * rotY;
+      x = x2;
+    }
+  }
+  vertexBuffer->finish();
+
+  GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
+  auto& indices = indexBuffer->indices;
+  if(projection == sphericalProjection && segments > 0)
+  {
+    indices.reserve(10 + 4 * segments);
+    indices.push_back(5);
+    for(unsigned int i = 1; i < segments; ++i)
+    {
+      indices.push_back(5 + i);
+      indices.push_back(5 + i);
+    }
+    indices.push_back(2);
+    indices.push_back(2);
+    for(unsigned int i = 0; i < segments; ++i)
+    {
+      indices.push_back(5 + segments + i);
+      indices.push_back(5 + segments + i);
+    }
+    indices.push_back(3);
+  }
+  else
+  {
+    indices.reserve(16);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(2);
+    indices.push_back(4);
+    indices.push_back(4);
+    indices.push_back(3);
+    indices.push_back(3);
+    indices.push_back(1);
+  }
+  indices.push_back(1);
+  indices.push_back(0);
+  indices.push_back(0);
+  indices.push_back(2);
+  indices.push_back(3);
+  indices.push_back(0);
+  indices.push_back(0);
+  indices.push_back(4);
+
+  pyramidChain = graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::lineList);
+
+  ASSERT(!surface);
+  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void DepthImageSensor::addParent(Element& element)
@@ -119,21 +214,12 @@ void DepthImageSensor::DistanceSensor::updateValue()
   // make sure the poses of all movable objects are up to date
   Simulation::simulation->scene->updateTransformations();
 
-  OffscreenRenderer& renderer = Simulation::simulation->renderer;
-
-  renderer.makeCurrent(renderWidth, renderHeight, false);
-  glViewport(0, 0, renderWidth, renderHeight);
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  graphicsContext.makeCurrent(renderWidth, renderHeight, false);
+  graphicsContext.updateModelMatrices(false);
 
   // setup image size and angle of view
-  glMatrixMode(GL_PROJECTION);
-  glLoadMatrixf(projection);
-  glMatrixMode(GL_MODELVIEW);
-
-  // disable lighting and textures, and use flat shading
-  glDisable(GL_LIGHTING);
-  glDisable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glShadeModel(GL_FLAT);
+  glViewport(0, 0, renderWidth, renderHeight);
 
   // setup camera position
   Pose3f pose = physicalObject->pose;
@@ -148,20 +234,17 @@ void DepthImageSensor::DistanceSensor::updateValue()
   {
     float transformation[16];
     OpenGLTools::convertTransformation(pose.inverse(), transformation);
-    glLoadMatrixf(transformation);
 
-    // disable color rendering
-    glColorMask(0, 0, 0, 0);
+    graphicsContext.startDepthOnlyRendering(projection, transformation);
 
     // draw all objects
     glClear(GL_DEPTH_BUFFER_BIT);
-    Simulation::simulation->scene->drawAppearances(SurfaceColor(0), false);
+    Simulation::simulation->scene->drawAppearances(graphicsContext, false);
 
-    // enable color rendering again
-    glColorMask(1, 1, 1, 1);
+    graphicsContext.finishRendering();
 
     // read frame buffer
-    renderer.finishDepthRendering(renderBuffer, renderWidth, renderHeight);
+    graphicsContext.finishDepthRendering(renderBuffer, renderWidth, renderHeight);
 
     if(depthImageSensor->projection == perspectiveProjection)
     {
@@ -198,73 +281,10 @@ bool DepthImageSensor::DistanceSensor::getMinAndMax(float& min, float& max) cons
   return true;
 }
 
-void DepthImageSensor::drawPhysics(unsigned int flags) const
+void DepthImageSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
   if(flags & SimRobotCore2::Renderer::showSensors)
-  {
-    Vector3f ml;
-    if(projection == perspectiveProjection)
-      ml = Vector3f(max, -std::tan(angleX * 0.5f) * max, 0);
-    else
-      ml = Vector3f(std::cos(angleX * 0.5f) * max, -std::sin(angleX * 0.5f) * max, 0);
-    Vector3f mt(ml.x(), 0, std::tan(angleY * 0.5f) * max);
-    Vector3f tl(ml.x(), ml.y(), mt.z());
-    Vector3f tr(ml.x(), -ml.y(), mt.z());
-    Vector3f bl(ml.x(), ml.y(), -mt.z());
-    Vector3f br(ml.x(), -ml.y(), -mt.z());
+    graphicsContext.draw(pyramidChain, modelMatrix, surface);
 
-    glBegin(GL_LINE_LOOP);
-      glColor3f(0, 0, 0.5f);
-      glNormal3f (0, 0, 1.f);
-
-      unsigned segments = int(18 * angleX / M_PI);
-      if(projection == perspectiveProjection || segments == 0)
-      {
-        glVertex3f(tl.x(), tl.y(), tl.z());
-        glVertex3f(tr.x(), tr.y(), tr.z());
-        glVertex3f(br.x(), br.y(), br.z());
-      }
-      else
-      {
-        float rotX = std::cos(angleX / float(segments));
-        float rotY = std::sin(angleX / float(segments));
-        float x = tl.x();
-        float y = tl.y();
-        for(unsigned int i = 0; i < segments; ++i)
-        {
-          glVertex3f(x, y, tl.z());
-          float x2 = x * rotX - y * rotY;
-          y = y * rotX + x * rotY;
-          x = x2;
-        }
-        glVertex3f(tr.x(), tr.y(), tr.z());
-        for(unsigned int i = 0; i < segments; ++i)
-        {
-          glVertex3f(x, y, br.z());
-          float x2 = x * rotX + y * rotY;
-          y = y * rotX - x * rotY;
-          x = x2;
-        }
-      }
-
-      glVertex3f(bl.x(), bl.y(), bl.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(tr.x(), tr.y(), tr.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(bl.x(), bl.y(), bl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(br.x(), br.y(), br.z());
-    glEnd();
-  }
-
-  Sensor::drawPhysics(flags);
-
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

@@ -147,20 +147,30 @@ public:
   };
 
   /**
+   * @enum Mode
+   * Possibile primitive group types (\c triangles, \c quads, ...)
+   */
+  enum Mode
+  {
+    triangles,
+    quads
+  };
+
+  /**
    * @class PrimitiveGroup
    * A primitive (aka. face, like triangle or quad...) or a group of primitives
    */
   class PrimitiveGroup : public Element
   {
   public:
-    int mode; /**< The OpenGL primitive group type (\c GL_TRIANGLES, \c GL_QUADS, ...) */
+    Mode mode; /**< The primitive group type (\c triangles, \c quads, ...) */
     std::list<unsigned int> vertices; /**< The indices of the vertices used to draw the primitive */
 
     /**
      * Constructor
-     * @param mode The OpenGL primitive group type (\c GL_TRIANGLES, \c GL_QUADS, ...)
+     * @param mode The primitive group type (\c triangles, \c quads, ...)
      */
-    PrimitiveGroup(int mode) : mode(mode) {}
+    PrimitiveGroup(Mode mode) : mode(mode) {}
 
   private:
     /**
@@ -178,12 +188,17 @@ public:
 
 private:
   /**
-   * Prepares the object and the currently selected OpenGL context for drawing the object.
-   * Loads textures and creates display lists. Hence, this function is called for each OpenGL
-   * context the object should be drawn in.
+   * Creates resources to later draw the object in the given graphics context
+   * @param graphicsContext The graphics context to create resources in
    */
-  void createGraphics() override;
+  void createGraphics(GraphicsContext& graphicsContext) override;
 
-  /** Draws appearance primitives of the object (including children) on the currently selected OpenGL context (in order to create a display list) */
-  void assembleAppearances(SurfaceColor color) const override;
+  /**
+   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
+   */
+  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+
+  GraphicsContext::Mesh* mesh = nullptr; /**< The mesh that is drawn */
 };

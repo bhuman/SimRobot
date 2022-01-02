@@ -4,59 +4,22 @@
  * @author Colin Graf
  */
 
-
 #include "GraphicalObject.h"
-#include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Simulation.h"
 
-GraphicalObject::~GraphicalObject()
+void GraphicalObject::createGraphics(GraphicsContext& graphicsContext)
 {
-  if(listId)
-    glDeleteLists(listId, 1);
-}
-
-void GraphicalObject::createGraphics()
-{
-  ++initializedContexts;
   for(GraphicalObject* graphicalObject : graphicalDrawings)
-  {
-    if(graphicalObject->initializedContexts != initializedContexts)
-    {
-      graphicalObject->createGraphics();
-      graphicalObject->initializedContexts = initializedContexts;
-    }
-  }
-
-  // create display list
-  unsigned int listId = glGenLists(1);
-  ASSERT(listId > 0);
-  ASSERT(this->listId == 0 || this->listId == listId);
-  this->listId = listId;
-  glNewList(listId, GL_COMPILE);
-    assembleAppearances(SurfaceColor::ownColor);
-  glEndList();
+    graphicalObject->createGraphics(graphicsContext);
 }
 
-void GraphicalObject::drawAppearances(SurfaceColor color, bool drawControllerDrawings) const
+void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
 {
   if(drawControllerDrawings)
     for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
       drawing->draw();
-  else if(color == ownColor)
-  {
-    ASSERT(listId);
-    glCallList(listId);
-  }
   else
-    assembleAppearances(color);
-}
-
-void GraphicalObject::assembleAppearances(SurfaceColor color) const
-{
-  for(const GraphicalObject* graphicalObject : graphicalDrawings)
-    graphicalObject->drawAppearances(color, false);
+    for(const GraphicalObject* graphicalObject : graphicalDrawings)
+      graphicalObject->drawAppearances(graphicsContext, false);
 }
 
 void GraphicalObject::addParent(Element& element)

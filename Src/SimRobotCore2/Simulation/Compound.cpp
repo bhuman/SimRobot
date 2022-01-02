@@ -6,7 +6,6 @@
 
 #include "Compound.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Simulation.h"
 #include "Tools/ODETools.h"
@@ -19,7 +18,7 @@ void Compound::addParent(Element& element)
   GraphicalObject::addParent(element);
 }
 
-void Compound::createPhysics()
+void Compound::createPhysics(GraphicsContext& graphicsContext)
 {
   // create geometry
   for(::PhysicalObject* iter : physicalDrawings)
@@ -29,10 +28,11 @@ void Compound::createPhysics()
       addGeometry(pose, *geometry, nullptr);
   }
 
-  //
-  ::PhysicalObject::createPhysics();
-
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ::PhysicalObject::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 }
 
 void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobotCore2::CollisionCallback* callback)
@@ -66,18 +66,9 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobo
   }
 }
 
-void Compound::assembleAppearances(SurfaceColor color) const
+void Compound::createGraphics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-  GraphicalObject::assembleAppearances(color);
-  glPopMatrix();
-}
-
-void Compound::drawPhysics(unsigned int flags) const
-{
-  glPushMatrix();
-  glMultMatrixf(transformation);
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  graphicsContext.pushModelMatrix(transformation);
+  GraphicalObject::createGraphics(graphicsContext);
+  graphicsContext.popModelMatrix();
 }

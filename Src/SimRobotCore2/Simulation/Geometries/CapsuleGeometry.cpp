@@ -5,7 +5,8 @@
  */
 
 #include "CapsuleGeometry.h"
-#include "Platform/OpenGL.h"
+#include "Graphics/Primitives.h"
+#include "Platform/Assert.h"
 #include <ode/collision.h>
 #include <algorithm>
 
@@ -18,24 +19,18 @@ dGeomID CapsuleGeometry::createGeometry(dSpaceID space)
   return dCreateCapsule(space, radius, height - radius - radius);
 }
 
-void CapsuleGeometry::drawPhysics(unsigned int flags) const
+void CapsuleGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
+  Geometry::createPhysics(graphicsContext);
 
+  ASSERT(!capsule);
+  capsule = Primitives::createCapsule(graphicsContext, radius, height, 16, 17);
+}
+
+void CapsuleGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
   if(flags & SimRobotCore2::Renderer::showPhysics)
-  {
-    glColor4fv(color);
-    GLUquadricObj* q = gluNewQuadric();
-    const float cylinderHeight = height - radius - radius;
-    glTranslatef(0.f, 0.f, cylinderHeight * -0.5f);
-    gluCylinder(q, radius, radius, cylinderHeight, 16, 1);
-    gluSphere(q, radius, 16, 16);
-    glTranslatef(0, 0, cylinderHeight);
-    gluSphere(q, radius, 16, 16);
-    gluDeleteQuadric(q);
-  }
+    graphicsContext.draw(capsule, modelMatrix, surface);
 
-  ::PhysicalObject::drawPhysics(flags);
-  glPopMatrix();
+  Geometry::drawPhysics(graphicsContext, flags);
 }

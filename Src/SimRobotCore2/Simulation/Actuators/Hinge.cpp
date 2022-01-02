@@ -14,12 +14,11 @@
 #include "Simulation/Motors/VelocityMotor.h"
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
-#include "Platform/OpenGL.h"
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
-void Hinge::createPhysics()
+void Hinge::createPhysics(GraphicsContext& graphicsContext)
 {
   ASSERT(axis);
 
@@ -30,7 +29,7 @@ void Hinge::createPhysics()
     pose.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset));
 
   //
-  ::PhysicalObject::createPhysics();
+  Joint::createPhysics(graphicsContext);
 
   // find bodies to connect
   Body* parentBody = dynamic_cast<Body*>(parent);

@@ -110,11 +110,11 @@ namespace SimRobotCore2
     /** Virtual destructor */
     virtual ~Renderer() = default;
 
-    /**
-     * Initializes the currently selected OpenGL context.
-     * @param hasSharedDisplayLists Whether the OpenGL has shared display lists and textures with another context that is already initialized.
-     */
-    virtual void init(bool hasSharedDisplayLists) = 0;
+    /** Initializes the currently selected OpenGL context. */
+    virtual void init() = 0;
+
+    /** Removes the renderer from the currently selected OpenGL context. */
+    virtual void destroy() = 0;
 
     /** Draws the scene object on the currently selected OpenGL context. */
     virtual void draw() = 0;

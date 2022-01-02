@@ -6,7 +6,6 @@
 
 #include "CollisionSensor.h"
 #include "CoreModule.h"
-#include "Platform/OpenGL.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Tools/OpenGLTools.h"
@@ -16,9 +15,13 @@ CollisionSensor::CollisionSensor()
   sensor.sensorType = SimRobotCore2::SensorPort::boolSensor;
 }
 
-void CollisionSensor::createPhysics()
+void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
   // add geometries
   for(auto iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
@@ -83,19 +86,11 @@ void CollisionSensor::CollisionSensorPort::collided(SimRobotCore2::Geometry&, Si
   lastCollisionStep = Simulation::simulation->simulationStep;
 }
 
-void CollisionSensor::drawPhysics(unsigned int flags) const
+void CollisionSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  if(flags & SimRobotCore2::Renderer::showSensors && !hasGeometries)
-    for(const ::PhysicalObject* drawing : parentBody->physicalDrawings)
-      drawing->drawPhysics(SimRobotCore2::Renderer::showPhysics);
+  if(flags & SimRobotCore2::Renderer::showSensors)
+    for(const ::PhysicalObject* drawing : (hasGeometries ? physicalDrawings : parentBody->physicalDrawings))
+      drawing->drawPhysics(graphicsContext, SimRobotCore2::Renderer::showPhysics);
 
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
-  if(flags & SimRobotCore2::Renderer::showSensors && hasGeometries)
-    for(const ::PhysicalObject* drawing : physicalDrawings)
-      drawing->drawPhysics(SimRobotCore2::Renderer::showPhysics);
-
-  Sensor::drawPhysics(flags);
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

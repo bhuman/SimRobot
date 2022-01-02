@@ -7,6 +7,7 @@
 #pragma once
 
 #include "SimRobotCore2.h"
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/PhysicalObject.h"
 #include <ode/common.h>
 #include <list>
@@ -80,14 +81,19 @@ public:
    */
   virtual dGeomID createGeometry(dSpaceID space);
 
+  /**
+   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * These are a geometry object for collision detection and/or a body,
+   * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
+   */
+  void createPhysics(GraphicsContext& graphicsContext) override;
+
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this geometry drawing */
+  GraphicsContext::Surface* surface = nullptr; /**< The surface of this geometry drawing */
+
 private:
   bool created = false;
-
-  /**
-   * Draws physical primitives of the object (including children) on the currently selected OpenGL context
-   * @param flags Flags to enable or disable certain features
-   */
-  void drawPhysics(unsigned int flags) const override;
 
   /**
    * Registers an element as parent

@@ -18,9 +18,9 @@ class Mass : public SimObject, public SimRobotCore2::Mass
 {
 public:
   /**
-  * Creates the mass of a physical object (including children and not including \c translation and \c rotation)
-  * @return The mass
-  */
+   * Creates the mass of a physical object (including children and not including \c translation and \c rotation)
+   * @return The mass
+   */
   const dMass& createMass();
 
 protected:

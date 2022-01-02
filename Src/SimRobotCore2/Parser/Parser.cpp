@@ -4,9 +4,8 @@
  * @author Colin Graf
  */
 
-#include "Platform/OpenGL.h"
-
-#include "Parser/Parser.h"
+#include "Parser.h"
+#include "Graphics/Light.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/Body.h"
@@ -62,7 +61,11 @@ Parser::Parser() : errors(0), sceneMacro(0), recordingMacroElement(0), replaying
       0, solverClass, setClass | bodyClass | compoundClass | lightClass | userInputClass},
     {"QuickSolver", solverClass, &Parser::quickSolverElement, 0, 0,
       0, 0, 0},
-    {"Light", lightClass, &Parser::lightElement, 0, 0,
+    {"DirLight", lightClass, &Parser::dirLightElement, 0, 0,
+      0, 0, 0},
+    {"PointLight", lightClass, &Parser::pointLightElement, 0, 0,
+      0, 0, 0},
+    {"SpotLight", lightClass, &Parser::spotLightElement, 0, 0,
       0, 0, 0},
 
     {"Compound", compoundClass, &Parser::compoundElement, 0, 0,
@@ -235,9 +238,21 @@ Element* Parser::quickSolverElement()
   return nullptr;
 }
 
-Element* Parser::lightElement()
+Element* Parser::dirLightElement()
 {
-  Scene::Light* light = new Scene::Light();
+  DirLight* light = new DirLight();
+  getColor("diffuseColor", false, light->diffuseColor);
+  getColor("ambientColor", false, light->ambientColor);
+  getColor("specularColor", false, light->specularColor);
+  light->direction[0] = getLength("x", false, light->direction[0]);
+  light->direction[1] = getLength("y", false, light->direction[1]);
+  light->direction[2] = getLength("z", false, light->direction[2]);
+  return light;
+}
+
+Element* Parser::pointLightElement()
+{
+  PointLight* light = new PointLight();
   getColor("diffuseColor", false, light->diffuseColor);
   getColor("ambientColor", false, light->ambientColor);
   getColor("specularColor", false, light->specularColor);
@@ -247,11 +262,25 @@ Element* Parser::lightElement()
   light->constantAttenuation = getFloatPositive("constantAttenuation", false, light->constantAttenuation);
   light->linearAttenuation = getFloatPositive("linearAttenuation", false, light->linearAttenuation);
   light->quadraticAttenuation = getFloatPositive("quadraticAttenuation", false, light->quadraticAttenuation);
-  light->spotCutoff = getAngle("spotCutoff", false, light->spotCutoff);
-  light->spotDirection.x() = getLength("spotDirectionX", false, light->spotDirection.x());
-  light->spotDirection.y() = getLength("spotDirectionY", false, light->spotDirection.y());
-  light->spotDirection.z() = getLength("spotDirectionZ", false, light->spotDirection.z());
-  light->spotExponent = getFloatMinMax("spotExponent", false, light->spotExponent, 0.f, 128.f);
+  return light;
+}
+
+Element* Parser::spotLightElement()
+{
+  SpotLight* light = new SpotLight();
+  getColor("diffuseColor", false, light->diffuseColor);
+  getColor("ambientColor", false, light->ambientColor);
+  getColor("specularColor", false, light->specularColor);
+  light->position[0] = getLength("x", false, light->position[0]);
+  light->position[1] = getLength("y", false, light->position[1]);
+  light->position[2] = getLength("z", false, light->position[2]);
+  light->constantAttenuation = getFloatPositive("constantAttenuation", false, light->constantAttenuation);
+  light->linearAttenuation = getFloatPositive("linearAttenuation", false, light->linearAttenuation);
+  light->quadraticAttenuation = getFloatPositive("quadraticAttenuation", false, light->quadraticAttenuation);
+  light->direction[0] = getLength("dirX", false, light->direction[0]);
+  light->direction[1] = getLength("dirY", false, light->direction[1]);
+  light->direction[2] = getLength("dirZ", false, light->direction[2]);
+  light->cutoff = getFloatMinMax("cutoff", false, light->cutoff, 0.f, 1.f);
   return light;
 }
 
@@ -483,7 +512,7 @@ Element* Parser::complexAppearanceElement()
 
 Element* Parser::trianglesElement()
 {
-  return new ComplexAppearance::PrimitiveGroup(GL_TRIANGLES);
+  return new ComplexAppearance::PrimitiveGroup(ComplexAppearance::triangles);
 }
 
 void Parser::trianglesAndQuadsText(std::string& text, Location location)
@@ -515,7 +544,7 @@ breakTwice:
 
 Element* Parser::quadsElement()
 {
-  return new ComplexAppearance::PrimitiveGroup(GL_QUADS);
+  return new ComplexAppearance::PrimitiveGroup(ComplexAppearance::quads);
 }
 
 Element* Parser::verticesElement()

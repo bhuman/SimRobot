@@ -4,9 +4,7 @@
  * @author Colin Graf
  */
 
-#include "Platform/OpenGL.h"
-#include <cmath>
-
+#include "Graphics/Primitives.h"
 #include "Simulation/Sensors/ApproxDistanceSensor.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Platform/Assert.h"
@@ -14,6 +12,7 @@
 #include "Tools/ODETools.h"
 #include "CoreModule.h"
 #include <algorithm>
+#include <cmath>
 
 ApproxDistanceSensor::ApproxDistanceSensor()
 {
@@ -21,9 +20,15 @@ ApproxDistanceSensor::ApproxDistanceSensor()
   sensor.unit = "m";
 }
 
-void ApproxDistanceSensor::createPhysics()
+void ApproxDistanceSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   OpenGLTools::convertTransformation(rotation, translation, transformation);
+
+  graphicsContext.pushModelMatrix(transformation);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  Sensor::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
 
   sensor.tanHalfAngleX = std::tan(angleX * 0.5f);
   sensor.tanHalfAngleY = std::tan(angleY * 0.5f);
@@ -39,6 +44,13 @@ void ApproxDistanceSensor::createPhysics()
     sensor.offset.translation = *translation;
   if(rotation)
     sensor.offset.rotation = *rotation;
+
+  ASSERT(!pyramid);
+  pyramid = Primitives::createPyramid(graphicsContext, 2.f * std::tan(angleX * 0.5f) * max, 2.f * std::tan(angleY * 0.5f) * max, max);
+
+  ASSERT(!surface);
+  static const float color[] = {0.5f, 0.f, 0.f, 1.f};
+  surface = graphicsContext.requestSurface(color, color);
 }
 
 void ApproxDistanceSensor::registerObjects()
@@ -140,40 +152,10 @@ bool ApproxDistanceSensor::DistanceSensor::getMinAndMax(float& min, float& max) 
   return true;
 }
 
-void ApproxDistanceSensor::drawPhysics(unsigned int flags) const
+void ApproxDistanceSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  glPushMatrix();
-  glMultMatrixf(transformation);
-
   if(flags & SimRobotCore2::Renderer::showSensors)
-  {
-    const Vector3f ml(max, -std::tan(angleX * 0.5f) * max, 0);
-    const Vector3f mt(max, 0, std::tan(angleY * 0.5f) * max);
-    const Vector3f tl(max, ml.y(), mt.z());
-    const Vector3f tr(max, -ml.y(), mt.z());
-    const Vector3f bl(max, ml.y(), -mt.z());
-    const Vector3f br(max, -ml.y(), -mt.z());
+    graphicsContext.draw(pyramid, modelMatrix, surface);
 
-    glBegin(GL_LINE_LOOP);
-      glColor3f(0.5f, 0, 0);
-      glNormal3f (0, 0, 1.f);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(tr.x(), tr.y(), tr.z());
-      glVertex3f(br.x(), br.y(), br.z());
-      glVertex3f(bl.x(), bl.y(), bl.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(tl.x(), tl.y(), tl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(tr.x(), tr.y(), tr.z());
-    glEnd();
-    glBegin(GL_LINE_STRIP);
-      glVertex3f(bl.x(), bl.y(), bl.z());
-      glVertex3f(0.f, 0.f, 0.f);
-      glVertex3f(br.x(), br.y(), br.z());
-    glEnd();
-  }
-
-  Sensor::drawPhysics(flags);
-  glPopMatrix();
+  Sensor::drawPhysics(graphicsContext, flags);
 }

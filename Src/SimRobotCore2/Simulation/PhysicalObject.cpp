@@ -18,7 +18,7 @@ void PhysicalObject::addParent(Element& element)
   SimObject::addParent(element);
 }
 
-void PhysicalObject::createPhysics()
+void PhysicalObject::createPhysics(GraphicsContext& graphicsContext)
 {
   // find parent body for child objects
   Body* body = dynamic_cast<Body*>(this);
@@ -37,17 +37,17 @@ void PhysicalObject::createPhysics()
 
     //
     object->parentBody = body;
-    object->createPhysics();
+    object->createPhysics(graphicsContext);
   }
 }
 
-void PhysicalObject::drawPhysics(unsigned int flags) const
+void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   if(flags & SimRobotCore2::Renderer::showControllerDrawings)
     for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
       drawing->draw();
   for(const PhysicalObject* drawing : physicalDrawings)
-    drawing->drawPhysics(flags);
+    drawing->drawPhysics(graphicsContext, flags);
 }
 
 bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing)
