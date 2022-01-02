@@ -26,7 +26,7 @@ public:
   std::list<SimObject*> children; /**< List of subordinate scene graph objects */
   Vector3f* translation = nullptr; /**< The initial translational offset relative to the origin of the parent object */
   RotationMatrix* rotation = nullptr; /**< The initial rotational offset relative to the origin of the parent object */
-  float transformation[16]; /**< The (updated) offset relative to the origin of the parent object as OpenGL transformation */
+  Matrix4f transformation; /**< The (updated) offset relative to the origin of the parent object as OpenGL transformation */
 
   /** Destructor */
   ~SimObject();

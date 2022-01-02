@@ -69,7 +69,7 @@ public:
 
 private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
-  float centerOfMassTransformation[16];
+  Matrix4f centerOfMassTransformation;
 
   dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
 

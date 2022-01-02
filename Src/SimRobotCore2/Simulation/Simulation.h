@@ -49,7 +49,7 @@ public:
   GraphicsContext::Surface* dragPlaneSurface = nullptr; /**< The surface for the drag plane in object renderers. */
   GraphicsContext::ModelMatrix* originModelMatrix = nullptr; /**< The model matrix for the origin in object renderers. */
   GraphicsContext::ModelMatrix* dragPlaneModelMatrix = nullptr; /**< The model matrix for the drag plane in object renderers. */
-  float dragPlaneTransformation[16]; /**< Transformation matrix of the drag plane (assuming it is not possible to drag simultaneously in multiple renderers). */
+  Matrix4f dragPlaneTransformation; /**< Transformation matrix of the drag plane (assuming it is not possible to drag simultaneously in multiple renderers). */
 
   unsigned int currentFrameRate = 0; /**< The current frame rate of the simulation */
 

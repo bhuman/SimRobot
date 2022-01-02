@@ -75,13 +75,13 @@ void SimObjectRenderer::draw()
 
   if(dragging && dragSelection)
   {
-    Eigen::Map<Matrix4f> dragPlaneTransformation(Simulation::simulation->dragPlaneTransformation);
+    Matrix4f& dragPlaneTransformation = Simulation::simulation->dragPlaneTransformation;
     if(dragType == dragRotate || dragType == dragNormalObject)
-      dragPlaneTransformation = Eigen::Map<const Matrix4f>(dragSelection->transformation);
+      dragPlaneTransformation = dragSelection->transformation;
     else
     {
       dragPlaneTransformation = Matrix4f::Identity();
-      dragPlaneTransformation.col(3).head<3>() = dragSelection->pose.translation;
+      dragPlaneTransformation.topRightCorner<3, 1>() = dragSelection->pose.translation;
     }
 
     switch(dragPlane)
@@ -121,23 +121,19 @@ void SimObjectRenderer::draw()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // since each object will be drawn relative to its parent we need to shift the coordinate system when we want the object to be in the center
-  Matrix4f viewMatrix = Eigen::Map<const Matrix4f>(cameraTransformation);
+  Matrix4f viewMatrix = cameraTransformation;
   if(&simObject != Simulation::simulation->scene && !(renderFlags & showAsGlobalView))
   {
-    const float* transformation = simObject.transformation;
-    Pose3f pose((Matrix3f() << transformation[0], transformation[4], transformation[8],
-                               transformation[1], transformation[5], transformation[9],
-                               transformation[2], transformation[6], transformation[10]).finished(),
-                Vector3f(transformation[12], transformation[13], transformation[14]));
-    float invTrans[16];
+    Pose3f pose(Matrix3f(simObject.transformation.topLeftCorner<3, 3>()), simObject.transformation.topRightCorner<3, 1>());
+    Matrix4f invTrans;
     OpenGLTools::convertTransformation(pose.invert(), invTrans);
-    viewMatrix *= Eigen::Map<const Matrix4f>(invTrans);
+    viewMatrix *= invTrans;
   }
 
   // draw origin
   if(renderFlags & showCoordinateSystem)
   {
-    graphicsContext.startRendering(projection, viewMatrix.data(), false, false, false, false);
+    graphicsContext.startRendering(projection, viewMatrix, false, false, false, false);
     graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
     graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
     graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
@@ -148,7 +144,7 @@ void SimObjectRenderer::draw()
   GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
   if(graphicalObject && surfaceShadeMode != noShading)
   {
-    graphicsContext.startRendering(projection, viewMatrix.data(), renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
     graphicalObject->drawAppearances(graphicsContext, false);
     graphicsContext.finishRendering();
   }
@@ -157,7 +153,7 @@ void SimObjectRenderer::draw()
   PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
   {
-    graphicsContext.startRendering(projection, viewMatrix.data(), renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
     physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
     graphicsContext.finishRendering();
   }
@@ -165,7 +161,7 @@ void SimObjectRenderer::draw()
   // draw drag plane
   if(dragging && dragSelection)
   {
-    graphicsContext.startRendering(projection, viewMatrix.data(), false, false, false, true);
+    graphicsContext.startRendering(projection, viewMatrix, false, false, false, true);
     graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
     graphicsContext.finishRendering();
   }
@@ -180,26 +176,15 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   this->height = height;
 
   glViewport(0, 0, width, height);
-  viewport[0] = viewport[1] = 0;
-  viewport[2] = width;
-  viewport[3] = height; // store viewport for gluUnProject
 
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
 }
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const
 {
-  GLdouble mvMatrix[16];
-  GLdouble projMatrix[16];
-  for(int i = 0; i < 16; ++i)
-  {
-    mvMatrix[i] = static_cast<GLdouble>(cameraTransformation[i]);
-    projMatrix[i] = static_cast<GLdouble>(projection[i]);
-  }
-
-  GLdouble tx, ty, tz;
-  gluUnProject(static_cast<GLdouble>(x), static_cast<GLdouble>(height - y), 1.0, mvMatrix, projMatrix, viewport, &tx, &ty, &tz);
-  return Vector3f(static_cast<float>(tx), static_cast<float>(ty), static_cast<float>(tz));
+  const Vector4f normalizedPoint(2.f * static_cast<float>(x) / width - 1.f, 2.f * static_cast<float>(y) / height - 1.f, 1.f, 1.f);
+  const Vector4f unprojectedPoint = (projection * cameraTransformation).inverse() * normalizedPoint;
+  return unprojectedPoint.head<3>() / unprojectedPoint.w();
 }
 
 void SimObjectRenderer::getSize(unsigned int& width, unsigned int& height) const

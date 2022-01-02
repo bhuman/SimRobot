@@ -48,7 +48,7 @@ private:
     DepthImageSensor* depthImageSensor;
     float* imageBuffer; /**< A buffer for rendered image data */
     Pose3f offset; /**< Offset of the camera relative to the body it mounted on */
-    float projection[16]; /**< The perspective projection matrix */
+    Matrix4f projection; /**< The perspective projection matrix */
     float min; /**< Smallest measurable value in m. */
     float max; /**< Largest measurable value in m. */
     float* renderBuffer; /**< The buffer used for rendering. Only differs from imageBuffer for spherical projection. */

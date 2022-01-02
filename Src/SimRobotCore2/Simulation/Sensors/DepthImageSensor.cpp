@@ -232,7 +232,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
   unsigned int widthLeft = depthImageSensor->imageWidth;
   for(unsigned int i = 0; i < numOfBuffers; ++i)
   {
-    float transformation[16];
+    Matrix4f transformation;
     OpenGLTools::convertTransformation(pose.inverse(), transformation);
 
     graphicsContext.startDepthOnlyRendering(projection, transformation);
@@ -249,17 +249,17 @@ void DepthImageSensor::DistanceSensor::updateValue()
     if(depthImageSensor->projection == perspectiveProjection)
     {
       // convert pixels to points in world and compute the depth (renderBuffer == imageBuffer)
-      const float halfP34 = projection[14] * 0.5f;
-      const float halfP33m1 = projection[10] * 0.5f - 0.5f;
+      const float halfP34 = projection(2, 3) * 0.5f;
+      const float halfP33m1 = projection(2, 2) * 0.5f - 0.5f;
       for(float* end = val + renderWidth * renderHeight; val < end; ++val)
         *val = halfP34 / (*val + halfP33m1);
     }
     else
     {
       // convert pixels to points in world and compute the distances (renderBuffer != imageBuffer)
-      const float fInvSqr = 1.f / (projection[0] * projection[0]);
-      const float halfP34 = projection[14] * 0.5f;
-      const float halfP33m1 = projection[10] * 0.5f - 0.5f;
+      const float fInvSqr = 1.f / (projection(0, 0) * projection(0, 0));
+      const float halfP34 = projection(2, 3) * 0.5f;
+      const float halfP33m1 = projection(2, 2) * 0.5f - 0.5f;
       float* const mid = lut[bufferWidth / 2];
       const float factor = 2.0f / float(renderWidth);
       const unsigned int end = std::min(bufferWidth, widthLeft);

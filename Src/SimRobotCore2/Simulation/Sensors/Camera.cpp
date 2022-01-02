@@ -102,7 +102,7 @@ void Camera::CameraSensor::updateValue()
   pose.conc(offset);
   static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
   pose.rotate(cameraRotation);
-  float transformation[16];
+  Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
   graphicsContext.startRendering(projection, transformation);
@@ -171,7 +171,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
       pose.conc(sensor->offset);
       static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
       pose.rotate(cameraRotation);
-      float transformation[16];
+      Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
       graphicsContext.startRendering(sensor->projection, transformation);

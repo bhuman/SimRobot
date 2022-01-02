@@ -246,9 +246,9 @@ public:
 
   void popModelMatrixStack();
 
-  void pushModelMatrix(const float* transformation);
+  void pushModelMatrix(const Matrix4f& transformation);
 
-  void pushModelMatrixByReference(const float* transformation);
+  void pushModelMatrixByReference(const Matrix4f& transformation);
 
   void popModelMatrix();
 
@@ -262,9 +262,9 @@ public:
 
   // Commands to be used in draw functions:
 
-  void startRendering(const float* projection, const float* view, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
+  void startRendering(const Matrix4f& projection, const Matrix4f& view, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
 
-  void startDepthOnlyRendering(const float* cameraProjection, const float* view);
+  void startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view);
 
   void setForcedSurface(const Surface* surface);
 

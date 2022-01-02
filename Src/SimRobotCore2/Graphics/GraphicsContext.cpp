@@ -598,14 +598,14 @@ void GraphicsContext::popModelMatrixStack()
   modelMatrixStackStack.pop();
 }
 
-void GraphicsContext::pushModelMatrix(const float* transformation)
+void GraphicsContext::pushModelMatrix(const Matrix4f& transformation)
 {
-  modelMatrixStackStack.top().push(transformation); // TODO: set constant flag
+  modelMatrixStackStack.top().push(transformation.data()); // TODO: set constant flag
 }
 
-void GraphicsContext::pushModelMatrixByReference(const float* transformation)
+void GraphicsContext::pushModelMatrixByReference(const Matrix4f& transformation)
 {
-  modelMatrixStackStack.top().push(transformation);
+  modelMatrixStackStack.top().push(transformation.data());
 }
 
 void GraphicsContext::popModelMatrix()
@@ -637,7 +637,7 @@ void GraphicsContext::updateModelMatrices(bool forceUpdate)
   }
 }
 
-void GraphicsContext::startRendering(const float* cameraProjection, const float* view, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
+void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
@@ -646,20 +646,16 @@ void GraphicsContext::startRendering(const float* cameraProjection, const float*
   shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
   glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE); // TODO: only GL_FRONT?
   glUseProgram(shader->program);
-  float pv[16];
-  Eigen::Map<Matrix4f> pvEigen(pv);
-  pvEigen = Eigen::Map<const Matrix4f>(cameraProjection) * Eigen::Map<const Matrix4f>(view);
-  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv);
+  const Matrix4f pv = projection * view;
+  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
-    float pos[3];
-    Eigen::Map<Vector3f> posEigen(pos);
-    posEigen = Eigen::Map<const Matrix4f>(view).inverse().col(3).head<3>(); // TODO: this can be done faster, given that view is homogeneous
-    glUniform3fv(shader->cameraPosLocation, 1, pos);
+    const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
+    glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
 }
 
-void GraphicsContext::startDepthOnlyRendering(const float* cameraProjection, const float* view)
+void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
@@ -668,10 +664,8 @@ void GraphicsContext::startDepthOnlyRendering(const float* cameraProjection, con
   shader = &data->shaders[8];
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   glUseProgram(shader->program);
-  float pv[16];
-  Eigen::Map<Matrix4f> pvEigen(pv);
-  pvEigen = Eigen::Map<const Matrix4f>(cameraProjection) * Eigen::Map<const Matrix4f>(view);
-  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv);
+  const Matrix4f pv = projection * view;
+  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
 }
 
 void GraphicsContext::setForcedSurface(const Surface* surface)

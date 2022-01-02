@@ -36,10 +36,9 @@ private:
   Vector3f defaultCameraPos;
   Vector3f cameraPos;
   Vector3f cameraTarget;
-  float cameraTransformation[16];
+  Matrix4f cameraTransformation;
   float fovY = 40.f;
-  float projection[16];
-  int viewport[4];
+  Matrix4f projection;
 
   ShadeMode surfaceShadeMode = smoothShading;
   ShadeMode physicsShadeMode = noShading;
