@@ -118,7 +118,7 @@ void SimObjectRenderer::draw()
     glDisable(GL_MULTISAMPLE);
 
   // clear
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  bool clear = true;
 
   // since each object will be drawn relative to its parent we need to shift the coordinate system when we want the object to be in the center
   Matrix4f viewMatrix = cameraTransformation;
@@ -133,37 +133,41 @@ void SimObjectRenderer::draw()
   // draw origin
   if(renderFlags & showCoordinateSystem)
   {
-    graphicsContext.startRendering(projection, viewMatrix, false, false, false, false);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, false);
     graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
     graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
     graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
     graphicsContext.finishRendering();
+    clear = false;
   }
 
   // draw object / scene appearance
   GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
   if(graphicalObject && surfaceShadeMode != noShading)
   {
-    graphicsContext.startRendering(projection, viewMatrix, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
     graphicalObject->drawAppearances(graphicsContext, false);
     graphicsContext.finishRendering();
+    clear = false;
   }
 
   // draw object / scene physics
   PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
   {
-    graphicsContext.startRendering(projection, viewMatrix, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
     physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
     graphicsContext.finishRendering();
+    clear = false;
   }
 
   // draw drag plane
   if(dragging && dragSelection)
   {
-    graphicsContext.startRendering(projection, viewMatrix, false, false, false, true);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, true);
     graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
     graphicsContext.finishRendering();
+    clear = false;
   }
 
   // TODO: draw controller drawings
@@ -174,8 +178,6 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   this->fovY = fovY;
   this->width = width;
   this->height = height;
-
-  glViewport(0, 0, width, height);
 
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
 }

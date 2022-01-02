@@ -94,9 +94,6 @@ void Camera::CameraSensor::updateValue()
   graphicsContext.makeCurrent(imageWidth, imageHeight);
   graphicsContext.updateModelMatrices(false);
 
-  // setup image size and angle of view
-  glViewport(0, 0, imageWidth, imageHeight);
-
   // setup camera position
   Pose3f pose = physicalObject->pose;
   pose.conc(offset);
@@ -105,10 +102,9 @@ void Camera::CameraSensor::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startRendering(projection, transformation);
+  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true);
 
   // draw all objects
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   Simulation::simulation->scene->drawAppearances(graphicsContext, false);
 
   graphicsContext.finishRendering();
@@ -152,9 +148,6 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
   graphicsContext.makeCurrent(imageWidth, imageHeight * count);
   graphicsContext.updateModelMatrices(false);
 
-  // clear buffers
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   // render images
   int currentHorizontalPos = 0;
   unsigned char* currentBufferPos = imageBuffer;
@@ -164,8 +157,6 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
     if(sensor && sensor->lastSimulationStep != Simulation::simulation->simulationStep &&
        sensor->camera->imageWidth == imageWidth && sensor->camera->imageHeight == imageHeight)
     {
-      glViewport(0, currentHorizontalPos, imageWidth, imageHeight);
-
       // setup camera position
       Pose3f pose = sensor->physicalObject->pose;
       pose.conc(sensor->offset);
@@ -174,7 +165,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startRendering(sensor->projection, transformation);
+      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos);
 
       // draw all objects
       Simulation::simulation->scene->drawAppearances(graphicsContext, false);

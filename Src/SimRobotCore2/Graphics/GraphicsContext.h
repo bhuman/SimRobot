@@ -262,9 +262,9 @@ public:
 
   // Commands to be used in draw functions:
 
-  void startRendering(const Matrix4f& projection, const Matrix4f& view, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
+  void startRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wh, bool clear, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
 
-  void startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view);
+  void startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wy, int wh, bool clear);
 
   void setForcedSurface(const Surface* surface);
 

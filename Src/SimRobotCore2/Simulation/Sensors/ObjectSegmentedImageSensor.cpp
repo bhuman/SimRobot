@@ -122,9 +122,6 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   graphicsContext.makeCurrent(imageWidth, imageHeight);
   graphicsContext.updateModelMatrices(false);
 
-  // setup image size and angle of view
-  glViewport(0, 0, imageWidth, imageHeight);
-
   // setup camera position
   Pose3f pose = physicalObject->pose;
   pose.conc(offset);
@@ -133,10 +130,9 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startRendering(projection, transformation, false, false, false);
+  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true, false, false, false);
 
   // draw all objects
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
   int j = 0;
   for(auto iter = Simulation::simulation->scene->bodies.begin(),
@@ -188,9 +184,6 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
   graphicsContext.makeCurrent(imageWidth, imageHeight * count);
   graphicsContext.updateModelMatrices(false);
 
-  // clear buffers
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   // render images
   int currentHorizontalPos = 0;
   unsigned char* currentBufferPos = imageBuffer;
@@ -200,8 +193,6 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
     if(sensor && sensor->lastSimulationStep != Simulation::simulation->simulationStep &&
        sensor->camera->imageWidth == imageWidth && sensor->camera->imageHeight == imageHeight)
     {
-      glViewport(0, currentHorizontalPos, imageWidth, imageHeight);
-
       // setup camera position
       Pose3f pose = sensor->physicalObject->pose;
       pose.conc(sensor->offset);
@@ -210,7 +201,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startRendering(sensor->projection, transformation, false, false, false);
+      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos, false, false, false);
 
       // draw all objects
       Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);

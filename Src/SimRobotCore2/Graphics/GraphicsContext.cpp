@@ -637,13 +637,17 @@ void GraphicsContext::updateModelMatrices(bool forceUpdate)
   }
 }
 
-void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
+void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
   ASSERT(!shader);
   data = &perContextData[context];
   shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
+  if(clear)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  if(sx >= 0)
+    glViewport(sx, sy, wx, wy);
   glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE); // TODO: only GL_FRONT?
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
@@ -655,13 +659,17 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   }
 }
 
-void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view)
+void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
   ASSERT(!shader);
   data = &perContextData[context];
   shader = &data->shaders[8];
+  if(clear)
+    glClear(GL_DEPTH_BUFFER_BIT);
+  if(sx >= 0)
+    glViewport(sx, sy, wx, wy);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;

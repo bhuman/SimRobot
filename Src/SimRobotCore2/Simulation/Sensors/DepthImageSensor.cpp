@@ -218,9 +218,6 @@ void DepthImageSensor::DistanceSensor::updateValue()
   graphicsContext.makeCurrent(renderWidth, renderHeight, false);
   graphicsContext.updateModelMatrices(false);
 
-  // setup image size and angle of view
-  glViewport(0, 0, renderWidth, renderHeight);
-
   // setup camera position
   Pose3f pose = physicalObject->pose;
   pose.conc(offset);
@@ -235,10 +232,9 @@ void DepthImageSensor::DistanceSensor::updateValue()
     Matrix4f transformation;
     OpenGLTools::convertTransformation(pose.inverse(), transformation);
 
-    graphicsContext.startDepthOnlyRendering(projection, transformation);
+    graphicsContext.startDepthOnlyRendering(projection, transformation, 0, 0, renderWidth, renderHeight, true);
 
     // draw all objects
-    glClear(GL_DEPTH_BUFFER_BIT);
     Simulation::simulation->scene->drawAppearances(graphicsContext, false);
 
     graphicsContext.finishRendering();
