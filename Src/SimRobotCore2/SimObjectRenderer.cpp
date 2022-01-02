@@ -182,7 +182,7 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const
 {
-  const Vector4f normalizedPoint(2.f * static_cast<float>(x) / width - 1.f, 2.f * static_cast<float>(y) / height - 1.f, 1.f, 1.f);
+  const Vector4f normalizedPoint(2.f * static_cast<float>(x) / width - 1.f, 2.f * static_cast<float>(height - y) / height - 1.f, 1.f, 1.f);
   const Vector4f unprojectedPoint = (projection * cameraTransformation).inverse() * normalizedPoint;
   return unprojectedPoint.head<3>() / unprojectedPoint.w();
 }
