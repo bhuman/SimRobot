@@ -66,6 +66,9 @@ void Appearance::createGraphics(GraphicsContext& graphicsContext)
     modelMatrices.push_back(graphicsContext.requestModelMatrix());
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
+
+  if(!mesh)
+    mesh = createMesh(graphicsContext);
 }
 
 const QIcon* Appearance::getIcon() const
@@ -89,6 +92,9 @@ void Appearance::Surface::addParent(Element& element)
 
 void Appearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
 {
+  if(!drawControllerDrawings && mesh)
+    graphicsContext.draw(mesh, modelMatrices[modelMatrixIndex], surface->surface);
+
   // TODO: This breaks completely when creating SimObjectRenderers for sub-parts of the scene.
   if(!modelMatrices.empty())
   {

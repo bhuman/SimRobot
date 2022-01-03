@@ -7,18 +7,7 @@
 #include "BoxAppearance.h"
 #include "Graphics/Primitives.h"
 
-void BoxAppearance::createGraphics(GraphicsContext& graphicsContext)
+GraphicsContext::Mesh* BoxAppearance::createMesh(GraphicsContext& graphicsContext)
 {
-  Appearance::createGraphics(graphicsContext);
-
-  if(!box)
-    box = Primitives::createBox(graphicsContext, width, height, depth);
-}
-
-void BoxAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
-{
-  if(!drawControllerDrawings)
-    graphicsContext.draw(box, modelMatrices[modelMatrixIndex], surface->surface);
-
-  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
+  return Primitives::createBox(graphicsContext, width, height, depth);
 }

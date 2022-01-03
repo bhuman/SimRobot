@@ -48,8 +48,6 @@ public:
     void addParent(Element& element) override;
   };
 
-  Surface* surface = nullptr; /**< The visual material of the object */
-
 protected:
   /**
    * Creates resources to later draw the object in the given graphics context
@@ -64,8 +62,18 @@ protected:
    */
   void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
 
-  std::vector<GraphicsContext::ModelMatrix*> modelMatrices; /**< The model matrices that this appearance uses in order of the scene graph */
-  mutable int modelMatrixIndex = 0; /**< The current index in \c modelMatrices */
+  /**
+   * Creates a mesh for this appearance in the given graphics context
+   * @param graphicsContext the graphics context to create the mesh in
+   * @return The resulting mesh
+   */
+  virtual GraphicsContext::Mesh* createMesh(GraphicsContext& graphicsContext)
+  {
+    static_cast<void>(graphicsContext);
+    return nullptr;
+  }
+
+  Surface* surface = nullptr; /**< The visual material of the object */
 
 private:
   /**
@@ -75,6 +83,9 @@ private:
   void addParent(Element& element) override;
 
   bool created = false; /**< Whether the appearance has already been created */
+  GraphicsContext::Mesh* mesh = nullptr; /**< The mesh to draw */
+  std::vector<GraphicsContext::ModelMatrix*> modelMatrices; /**< The model matrices that this appearance uses in order of the scene graph */
+  mutable int modelMatrixIndex = 0; /**< The current index in \c modelMatrices */
 
   //API
   const QString& getFullName() const override {return SimObject::getFullName();}

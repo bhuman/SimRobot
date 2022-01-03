@@ -22,17 +22,9 @@ public:
 
 private:
   /**
-   * Creates resources to later draw the object in the given graphics context
-   * @param graphicsContext The graphics context to create resources in
+   * Creates a mesh for this appearance in the given graphics context
+   * @param graphicsContext the graphics context to create the mesh in
+   * @return The resulting mesh
    */
-  void createGraphics(GraphicsContext& graphicsContext) override;
-
-  /**
-   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
-   * @param graphicsContext The graphics context to draw the object to
-   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
-   */
-  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
-
-  GraphicsContext::Mesh* box = nullptr; /**< The box mesh */
+  GraphicsContext::Mesh* createMesh(GraphicsContext& graphicsContext) override;
 };

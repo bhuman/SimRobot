@@ -36,13 +36,8 @@ void ComplexAppearance::TexCoords::addParent(Element& element)
   complexAppearance->texCoords = this;
 }
 
-void ComplexAppearance::createGraphics(GraphicsContext& graphicsContext)
+GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsContext)
 {
-  Appearance::createGraphics(graphicsContext);
-
-  if(mesh)
-    return;
-
   ASSERT(vertices);
   ASSERT(!primitiveGroups.empty());
 
@@ -218,13 +213,5 @@ void ComplexAppearance::createGraphics(GraphicsContext& graphicsContext)
       ASSERT(false);
   }
 
-  mesh = graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
-}
-
-void ComplexAppearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
-{
-  if(!drawControllerDrawings)
-    graphicsContext.draw(mesh, modelMatrices[modelMatrixIndex], surface->surface);
-
-  Appearance::drawAppearances(graphicsContext, drawControllerDrawings);
+  return graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
