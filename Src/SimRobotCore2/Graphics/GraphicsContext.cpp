@@ -184,7 +184,7 @@ GraphicsContext::~GraphicsContext()
   if(offscreenContext && offscreenSurface)
   {
     ASSERT(perContextData.size() == 1);
-    // ASSERT(perContextData.begin() == offscreenContext); // TODO
+    ASSERT(perContextData.begin()->first == offscreenContext);
     offscreenContext->makeCurrent(offscreenSurface);
     destroyGraphics();
   }
@@ -583,8 +583,22 @@ void GraphicsContext::addLight(const ::Light* light)
 
 GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix()
 {
-  modelMatrices.push_back(new ModelMatrix(modelMatrixStackStack.top().getC()));
-  return modelMatrices.back();
+  ModelMatrix* modelMatrix = new ModelMatrix;
+  const ModelMatrixStack& modelMatrixStack = modelMatrixStackStack.top();
+  const auto& product = modelMatrixStack.getC();
+  std::size_t startIndex = 0;
+  if(modelMatrixStack.bottomIsVariable)
+  {
+    ASSERT(!product.empty());
+    modelMatrix->variablePart = product[0];
+    startIndex = 1;
+  }
+  modelMatrix->constantPart = product.size() > startIndex ? Matrix4f(Eigen::Map<const Matrix4f>(product[startIndex])) : Matrix4f(Matrix4f::Identity());
+  for(std::size_t i = startIndex + 1; i < product.size(); ++i)
+    modelMatrix->constantPart *= Eigen::Map<const Matrix4f>(product[i]);
+  Eigen::Map<Matrix4f>(modelMatrix->memory) = modelMatrix->constantPart;
+  modelMatrices.push_back(modelMatrix);
+  return modelMatrix;
 }
 
 void GraphicsContext::pushModelMatrixStack()
@@ -600,17 +614,22 @@ void GraphicsContext::popModelMatrixStack()
 
 void GraphicsContext::pushModelMatrix(const Matrix4f& transformation)
 {
-  modelMatrixStackStack.top().push(transformation.data()); // TODO: set constant flag
+  modelMatrixStackStack.top().push(transformation.data());
 }
 
 void GraphicsContext::pushModelMatrixByReference(const Matrix4f& transformation)
 {
+  // A variable transformation must be the first on the stack.
+  ASSERT(modelMatrixStackStack.top().empty());
   modelMatrixStackStack.top().push(transformation.data());
+  modelMatrixStackStack.top().bottomIsVariable = true;
 }
 
 void GraphicsContext::popModelMatrix()
 {
   modelMatrixStackStack.top().pop();
+  if(modelMatrixStackStack.top().empty())
+    modelMatrixStackStack.top().bottomIsVariable = false;
 }
 
 bool GraphicsContext::emptyModelMatrixStack() const
@@ -625,16 +644,8 @@ void GraphicsContext::updateModelMatrices(bool forceUpdate)
   lastModelMatrixTimestamp = Simulation::simulation->simulationStep;
 
   for(ModelMatrix* modelMatrix : modelMatrices)
-  {
-    // TODO: proper constant handling
-    Eigen::Map<Matrix4f> product(modelMatrix->memory);
-    product = Matrix4f::Identity();
-    for(const float* factor : modelMatrix->product)
-    {
-      const Eigen::Map<const Matrix4f> factorAsEigen(factor);
-      product *= factorAsEigen;
-    }
-  }
+    if(modelMatrix->variablePart)
+      Eigen::Map<Matrix4f>(modelMatrix->memory) = Eigen::Map<const Matrix4f>(modelMatrix->variablePart) * modelMatrix->constantPart;
 }
 
 void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)

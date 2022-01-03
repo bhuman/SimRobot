@@ -192,12 +192,9 @@ public:
   struct ModelMatrix final
   {
   private:
-    ModelMatrix(const std::vector<const float*>& product) :
-      product(product)
-    {}
-
-    const std::vector<const float*> product;
-    float memory[16];
+    Matrix4f constantPart; /**< The constant part of the model matrix. */
+    const float* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
+    float memory[16]; /**< The memory for the final product. */
 
     friend class GraphicsContext;
   };
@@ -361,7 +358,8 @@ private:
     using FloatPointerStack::push;
     using FloatPointerStack::pop;
     using FloatPointerStack::empty;
-    auto& getC() { return c; }
+    const auto& getC() const { return c; }
+    bool bottomIsVariable = false;
   };
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack;
 
