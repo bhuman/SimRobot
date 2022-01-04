@@ -268,6 +268,15 @@ void GraphicsContext::createGraphics()
   });
   const PerContextData* shareData = shareDataIt != perContextData.end() ? &shareDataIt->second : nullptr;
   PerContextData& data = perContextData[context];
+  data.referenceCounterIndex = shareData ? shareData->referenceCounterIndex : [this]
+  {
+    for(std::size_t i = 0; i < referenceCounters.size(); ++i)
+      if(!referenceCounters[i])
+        return i;
+    referenceCounters.push_back(0);
+    return referenceCounters.size() - 1;
+  }();
+  ++referenceCounters[data.referenceCounterIndex];
 
   // Enable depth test.
   glClearDepth(1.0f);
@@ -292,15 +301,17 @@ void GraphicsContext::createGraphics()
   {
     glGenBuffers(1, &data.vbo);
     glGenBuffers(1, &data.ebo);
-    // Data can't be uploaded here because to bind the buffers, a VAO must be bound.
+    // Data can't be uploaded here because to bind the EBO, a VAO must be bound.
   }
+
+  // All vertex attributes use the same VBO.
+  glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
 
   // VAOs are never shared between contexts, so they must be created here.
   glGenVertexArrays(2, data.vao);
   for(unsigned int pixelType = 0; pixelType < 2; ++pixelType)
   {
     glBindVertexArray(data.vao[pixelType]);
-    glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
 
     const bool hasTextureCoordinates = pixelType == 1;
@@ -312,7 +323,7 @@ void GraphicsContext::createGraphics()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, (hasTextureCoordinates ? 8 : 6) * sizeof(GLfloat), reinterpret_cast<void*>(hasTextureCoordinates ? 6 * sizeof(GLfloat) : 0));
   }
 
-  // Upload buffer data, now that a VAO is bound (doesn't matter which one).
+  // Upload buffer data, now that also the EBO is bound.
   if(!shareData)
   {
     glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
@@ -323,6 +334,9 @@ void GraphicsContext::createGraphics()
     for(const auto* buffer : indexBuffers)
       glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
   }
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 
   // Shaders and textures are shared as well.
   if(shareData)
@@ -495,15 +509,14 @@ void GraphicsContext::destroyGraphics()
 
   auto& data = perContextData[context];
   glDeleteVertexArrays(2, data.vao);
-
-  // TODO: if --data.referenceCount == 0)
-  // {
-  //   glDeleteBuffers(1, &data.vbo);
-  //   glDeleteBuffers(1, &data.ebo);
-  //   glDeleteTextures(data.textureIDs.size(), data.textureIDs.data());
-  //   for(const auto& shader : data.shaders)
-  //     glDeleteProgram(shader.program);
-  // }
+  if(--referenceCounters[data.referenceCounterIndex] == 0)
+  {
+    glDeleteBuffers(1, &data.vbo);
+    glDeleteBuffers(1, &data.ebo);
+    glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
+    for(const auto& shader : data.shaders)
+      glDeleteProgram(shader.program);
+  }
 
   perContextData.erase(context);
 }
@@ -659,7 +672,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   if(sx >= 0)
     glViewport(sx, sy, wx, wy);
-  glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE); // TODO: only GL_FRONT?
+  glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
   glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());

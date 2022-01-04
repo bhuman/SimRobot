@@ -337,9 +337,10 @@ private:
 
     std::array<Shader, 9> shaders; /**< The shaders. */
 
-    // TODO: reference counter
+    std::size_t referenceCounterIndex;
   };
 
+  std::vector<unsigned> referenceCounters;
   std::unordered_map<const QOpenGLContext*, PerContextData> perContextData;
   std::unordered_map<std::string, Texture*> textures;
   std::vector<ModelMatrix*> modelMatrices;
