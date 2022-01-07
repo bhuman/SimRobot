@@ -175,6 +175,15 @@ void main()
 }
 )glsl";
 
+GraphicsContext::GraphicsContext()
+{
+  vertexBuffers.resize(2);
+  vertexBuffers[VertexPN::index].setupVertexAttributes = VertexPN::setupVertexAttributes;
+  vertexBuffers[VertexPN::index].stride = VertexPN::size;
+  vertexBuffers[VertexPNT::index].setupVertexAttributes = VertexPNT::setupVertexAttributes;
+  vertexBuffers[VertexPNT::index].stride = VertexPNT::size;
+}
+
 GraphicsContext::~GraphicsContext()
 {
   ASSERT(!data);
@@ -199,8 +208,9 @@ GraphicsContext::~GraphicsContext()
     delete modelMatrix;
   for(const auto* surface : surfaces)
     delete surface;
-  for(const auto* vertexBuffer : vertexBuffers)
-    delete vertexBuffer;
+  for(const auto& pair : vertexBuffers)
+    for(const auto* vertexBuffer : pair.buffers)
+      delete vertexBuffer;
   for(const auto* indexBuffer : indexBuffers)
     delete indexBuffer;
   for(const auto* mesh : meshes)
@@ -212,17 +222,14 @@ bool GraphicsContext::compile()
   // Determine buffer memory layout of vertex buffer.
   GLint base = 0;
   GLintptr offset = 0;
-  for(std::uint32_t vaoIndex = 0; vaoIndex < 2; ++vaoIndex) // TODO: for each VAO type
+  for(const auto& category : vertexBuffers)
   {
-    const std::size_t stride = (vaoIndex == 1 ? 8 : 6) * sizeof(float); // TODO: VAOType::stride
     // Align on multiples of the current stride to adjust the base index.
-    offset += stride - 1;
-    base = static_cast<GLint>(offset / stride);
-    offset = base * stride;
-    for(auto* buffer : vertexBuffers)
+    offset += category.stride - 1;
+    base = static_cast<GLint>(offset / category.stride);
+    offset = base * category.stride;
+    for(auto* buffer : category.buffers)
     {
-      if(buffer->vaoIndex != vaoIndex)
-        continue;
       buffer->base = base;
       buffer->offset = offset;
       base += buffer->count;
@@ -308,27 +315,22 @@ void GraphicsContext::createGraphics()
   glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
 
   // VAOs are never shared between contexts, so they must be created here.
-  glGenVertexArrays(2, data.vao);
-  for(unsigned int pixelType = 0; pixelType < 2; ++pixelType)
+  data.vao.resize(vertexBuffers.size());
+  glGenVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  for(std::size_t vaoIndex = 0; vaoIndex < data.vao.size(); ++vaoIndex)
   {
-    glBindVertexArray(data.vao[pixelType]);
+    glBindVertexArray(data.vao[vaoIndex]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
-
-    const bool hasTextureCoordinates = pixelType == 1;
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (hasTextureCoordinates ? 8 : 6) * sizeof(GLfloat), reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, (hasTextureCoordinates ? 8 : 6) * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, (hasTextureCoordinates ? 8 : 6) * sizeof(GLfloat), reinterpret_cast<void*>(hasTextureCoordinates ? 6 * sizeof(GLfloat) : 0));
+    vertexBuffers[vaoIndex].setupVertexAttributes(*this);
   }
 
   // Upload buffer data, now that also the EBO is bound.
   if(!shareData)
   {
     glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
-    for(const auto* buffer : vertexBuffers)
-      glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
+    for(const auto& pair : vertexBuffers)
+      for(const auto* buffer : pair.buffers)
+        glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
     for(const auto* buffer : indexBuffers)
@@ -508,7 +510,7 @@ void GraphicsContext::destroyGraphics()
     return;
 
   auto& data = perContextData[context];
-  glDeleteVertexArrays(2, data.vao);
+  glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
     glDeleteBuffers(1, &data.vbo);
@@ -814,6 +816,26 @@ void GraphicsContext::finishDepthRendering(void* image, int w, int h)
 {
   glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
   glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+}
+
+void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
+{
+  functions.glEnableVertexAttribArray(0);
+  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
+  functions.glEnableVertexAttribArray(1);
+  functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
+  functions.glEnableVertexAttribArray(2);
+  functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
+}
+
+void GraphicsContext::VertexPNT::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
+{
+  functions.glEnableVertexAttribArray(0);
+  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(0));
+  functions.glEnableVertexAttribArray(1);
+  functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
+  functions.glEnableVertexAttribArray(2);
+  functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
 }
 
 GraphicsContext::Texture::Texture(const std::string& file)

@@ -40,12 +40,15 @@ public:
       position(position), normal(normal)
     {}
 
-    static constexpr std::uint32_t size = 6 * sizeof(float);
-    static constexpr std::size_t vaoIndex = 0;
-
   private:
     Vector3f position;
     Vector3f normal;
+
+    static void setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions);
+    static constexpr std::uint32_t size = 6 * sizeof(float);
+    static constexpr std::size_t index = 0;
+
+    friend class GraphicsContext;
   };
 
   /**
@@ -57,13 +60,16 @@ public:
       position(position), normal(normal), textureCoordinates(textureCoordinates)
     {}
 
-    static constexpr std::uint32_t size = 8 * sizeof(float);
-    static constexpr std::size_t vaoIndex = 1;
-
   private:
     Vector3f position;
     Vector3f normal;
     Vector2f textureCoordinates;
+
+    static void setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions);
+    static constexpr std::uint32_t size = 8 * sizeof(float);
+    static constexpr std::size_t index = 1;
+
+    friend class GraphicsContext;
   };
 
   struct VertexBufferBase
@@ -83,11 +89,11 @@ public:
 
     void* data = nullptr; /**< Pointer to the vertex data. */
     std::uint32_t count = 0; /**< The number of vertices in this buffer. */
-    std::size_t vaoIndex = 0; /**< The index of the VAO this buffer belongs to. */
 
   private:
     int base = 0; /**< The index of the first vertex within the global VBO. */
     std::uint64_t offset = 0; /**< The offset of this buffer's memory within the VBO. */
+    std::size_t vaoIndex = 0; /**< The index of the VAO this buffer belongs to. */
 
     friend class GraphicsContext;
   };
@@ -102,7 +108,6 @@ public:
     {
       data = vertices.data();
       count = static_cast<std::uint32_t>(vertices.size());
-      vaoIndex = VertexType::vaoIndex;
       ASSERT(count);
     }
 
@@ -199,6 +204,9 @@ public:
     friend class GraphicsContext;
   };
 
+  /** Constructor. */
+  GraphicsContext();
+
   /** Destructor. */
   ~GraphicsContext();
 
@@ -221,7 +229,8 @@ public:
   VertexBuffer<VertexType>* requestVertexBuffer()
   {
     VertexBuffer<VertexType>* vertexBuffer = new VertexBuffer<VertexType>();
-    vertexBuffers.push_back(vertexBuffer);
+    vertexBuffer->vaoIndex = VertexType::index;
+    vertexBuffers[VertexType::index].buffers.push_back(vertexBuffer);
     return vertexBuffer;
   }
 
@@ -329,7 +338,7 @@ private:
 
   struct PerContextData
   {
-    GLuint vao[2]; /**< The VAOs per vertex type. These exist per context. */
+    std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
 
@@ -337,7 +346,14 @@ private:
 
     std::array<Shader, 9> shaders; /**< The shaders. */
 
-    std::size_t referenceCounterIndex;
+    std::size_t referenceCounterIndex; /**< Index in the vector of reference counters for the share group this context belongs to. */
+  };
+
+  struct VertexCategory
+  {
+    void (*setupVertexAttributes)(QOpenGLFunctions_3_3_Core& functions) = nullptr;
+    std::size_t stride = 0;
+    std::vector<VertexBufferBase*> buffers;
   };
 
   std::vector<unsigned> referenceCounters;
@@ -345,7 +361,7 @@ private:
   std::unordered_map<std::string, Texture*> textures;
   std::vector<ModelMatrix*> modelMatrices;
   std::vector<Surface*> surfaces;
-  std::vector<VertexBufferBase*> vertexBuffers;
+  std::vector<VertexCategory> vertexBuffers;
   std::size_t vertexBufferTotalSize;
   std::vector<IndexBuffer*> indexBuffers;
   std::size_t indexBufferTotalSize;
