@@ -366,7 +366,8 @@ private:
   std::vector<IndexBuffer*> indexBuffers;
   std::size_t indexBufferTotalSize;
   std::vector<Mesh*> meshes;
-  std::vector<std::string> lights;
+  std::vector<std::string> lightDeclarations;
+  std::vector<std::string> lightCalculations;
 
   // Used during initialization:
   using FloatPointerStack = std::stack<const float*, std::vector<const float*>>;
