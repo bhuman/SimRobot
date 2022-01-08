@@ -191,6 +191,10 @@ public:
     float shininess = 1.f;
     const Texture* texture = nullptr;
 
+    std::size_t index = 0; /**< The index of this texture in the surface UBO. */
+
+    static constexpr std::size_t memorySize = 80; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
+
     friend class GraphicsContext;
   };
 
@@ -328,12 +332,7 @@ private:
     GLint cameraPVLocation = -1;
     GLint cameraPosLocation = -1;
     GLint modelMatrixLocation = -1;
-    GLint surfaceHasTextureLocation = -1;
-    GLint surfaceDiffuseColorLocation = -1;
-    GLint surfaceAmbientColorLocation = -1;
-    GLint surfaceSpecularColorLocation = -1;
-    GLint surfaceEmissionColorLocation = -1;
-    GLint surfaceShininessLocation = -1;
+    GLint surfaceIndexLocation = -1;
   };
 
   struct PerContextData
@@ -341,6 +340,7 @@ private:
     std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
+    GLuint ubo; /**< The UBO (shared between contexts within a share group). */
 
     std::vector<GLuint> textureIDs; /**< IDs for all textures. */
 

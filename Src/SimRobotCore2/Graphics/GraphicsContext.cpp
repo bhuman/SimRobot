@@ -12,6 +12,7 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <cstddef>
 
 // The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights.
 
@@ -96,8 +97,12 @@ NORMAL_QUALIFIER in vec3 Normal;
 in vec2 TexCoords;
 
 uniform vec3 cameraPos;
-uniform Surface surface;
+uniform uint surfaceIndex;
 uniform sampler2D diffuseTexture;
+layout (std140) uniform Surfaces
+{
+  Surface surfaces[NUM_OF_SURFACES];
+};
 
 out vec4 FragColor;
 
@@ -106,7 +111,7 @@ void calcDirLight(in DirLight light, in vec3 normal, in vec3 viewDir, inout vec4
   vec3 lightDir = normalize(-light.direction);
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surface.shininess);
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
   diffuse += light.diffuseColor * diff;
   ambient += light.ambientColor;
   specular += light.specularColor * spec;
@@ -117,7 +122,7 @@ void calcPointLight(in PointLight light, in vec3 pos, in vec3 normal, in vec3 vi
   vec3 lightDir = normalize(light.position - pos);
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surface.shininess);
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   diffuse += light.diffuseColor * diff * attenuation;
@@ -130,7 +135,7 @@ void calcSpotLight(in SpotLight light, in vec3 pos, in vec3 normal, in vec3 view
   vec3 lightDir = normalize(light.position - pos);
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surface.shininess);
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   float theta = dot(lightDir, normalize(-light.direction));
@@ -149,13 +154,13 @@ void main()
   vec4 ambient = GLOBAL_AMBIENT_LIGHT;
   vec4 specular = vec4(0.0);
   LIGHTING
-  color = surface.emissionColor + ambient * surface.ambientColor + diffuse * surface.diffuseColor + specular * surface.specularColor;
+  color = surfaces[surfaceIndex].emissionColor + ambient * surfaces[surfaceIndex].ambientColor + diffuse * surfaces[surfaceIndex].diffuseColor + specular * surfaces[surfaceIndex].specularColor;
   color = clamp(color, 0.0, 1.0);
 #else
-  color = surface.diffuseColor;
+  color = surfaces[surfaceIndex].diffuseColor;
 #endif
 #ifdef WITH_TEXTURES
-  if (surface.hasTexture)
+  if (surfaces[surfaceIndex].hasTexture)
   {
     color = color * texture(diffuseTexture, TexCoords);
   }
@@ -254,6 +259,11 @@ bool GraphicsContext::compile()
   for(auto& texture : textures)
     texture.second->index = index++;
 
+  // Determine surface indices.
+  index = 0;
+  for(auto* surface : surfaces)
+    surface->index = index++;
+
   return true;
 }
 
@@ -298,16 +308,18 @@ void GraphicsContext::createGraphics()
   // Set clear color.
   glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 
-  // VBOs and EBOs are shared between contexts.
+  // Buffer objects are shared between contexts.
   if(shareData)
   {
     data.vbo = shareData->vbo;
     data.ebo = shareData->ebo;
+    data.ubo = shareData->ubo;
   }
   else
   {
     glGenBuffers(1, &data.vbo);
     glGenBuffers(1, &data.ebo);
+    glGenBuffers(1, &data.ubo);
     // Data can't be uploaded here because to bind the EBO, a VAO must be bound.
   }
 
@@ -335,6 +347,18 @@ void GraphicsContext::createGraphics()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
     for(const auto* buffer : indexBuffers)
       glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
+
+    glBindBuffer(GL_UNIFORM_BUFFER, data.ubo);
+    glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
+    for(std::size_t i = 0; i < surfaces.size(); ++i)
+    {
+      static constexpr std::size_t verbatimPart = offsetof(Surface, shininess) - offsetof(Surface, diffuseColor) + sizeof(Surface::shininess);
+      unsigned char buf[Surface::memorySize];
+      std::memcpy(buf, &surfaces[i]->diffuseColor, verbatimPart);
+      *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
+      glBufferSubData(GL_UNIFORM_BUFFER, i * Surface::memorySize, Surface::memorySize, buf);
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -368,6 +392,7 @@ void GraphicsContext::createGraphics()
       const char* versionSourceCode = "#version 330 core\n";
 
       std::string defines;
+      defines += "#define NUM_OF_SURFACES " + std::to_string(surfaces.size()) + "\n";
       if(lighting)
         defines += "#define WITH_LIGHTING\n";
       if(textures)
@@ -428,15 +453,11 @@ void GraphicsContext::createGraphics()
       glDeleteShader(vShader);
       glDeleteShader(fShader);
 
+      glUniformBlockBinding(shader.program, glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
       shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
       shader.cameraPosLocation = glGetUniformLocation(shader.program, "cameraPos");
       shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
-      shader.surfaceHasTextureLocation = glGetUniformLocation(shader.program, "surface.hasTexture");
-      shader.surfaceDiffuseColorLocation = glGetUniformLocation(shader.program, "surface.diffuseColor");
-      shader.surfaceAmbientColorLocation = glGetUniformLocation(shader.program, "surface.ambientColor");
-      shader.surfaceSpecularColorLocation = glGetUniformLocation(shader.program, "surface.specularColor");
-      shader.surfaceEmissionColorLocation = glGetUniformLocation(shader.program, "surface.emissionColor");
-      shader.surfaceShininessLocation = glGetUniformLocation(shader.program, "surface.shininess");
+      shader.surfaceIndexLocation = glGetUniformLocation(shader.program, "surfaceIndex");
       return shader;
     };
 
@@ -515,6 +536,7 @@ void GraphicsContext::destroyGraphics()
   {
     glDeleteBuffers(1, &data.vbo);
     glDeleteBuffers(1, &data.ebo);
+    glDeleteBuffers(1, &data.ubo);
     glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
     for(const auto& shader : data.shaders)
       glDeleteProgram(shader.program);
@@ -683,6 +705,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
     glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
 }
 
 void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear)
@@ -700,6 +723,7 @@ void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const 
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
   glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
 }
 
 void GraphicsContext::setForcedSurface(const Surface* surface)
@@ -739,18 +763,8 @@ void GraphicsContext::setSurface(const Surface* surface)
     glBindTexture(GL_TEXTURE_2D, data->textureIDs[surface->texture->index]);
   else
     glBindTexture(GL_TEXTURE_2D, 0);
-  if(shader->surfaceHasTextureLocation >= 0)
-    glUniform1i(shader->surfaceHasTextureLocation, surface->texture ? 1 : 0);
-  if(shader->surfaceDiffuseColorLocation >= 0)
-    glUniform4fv(shader->surfaceDiffuseColorLocation, 1, surface->diffuseColor);
-  if(shader->surfaceAmbientColorLocation >= 0)
-    glUniform4fv(shader->surfaceAmbientColorLocation, 1, surface->ambientColor);
-  if(shader->surfaceSpecularColorLocation >= 0)
-    glUniform4fv(shader->surfaceSpecularColorLocation, 1, surface->specularColor);
-  if(shader->surfaceEmissionColorLocation >= 0)
-    glUniform4fv(shader->surfaceEmissionColorLocation, 1, surface->emissionColor);
-  if(shader->surfaceShininessLocation >= 0)
-    glUniform1f(shader->surfaceShininessLocation, surface->shininess);
+  if(shader->surfaceIndexLocation >= 0)
+    glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
   if(surface->texture ? surface->texture->hasAlpha : (surface->diffuseColor[3] < 1.f))
   {
     glEnable(GL_BLEND);
