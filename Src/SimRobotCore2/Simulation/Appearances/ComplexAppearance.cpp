@@ -6,7 +6,47 @@
 
 #include "ComplexAppearance.h"
 #include "Platform/Assert.h"
+#include <algorithm>
 #include <cmath>
+#include <functional>
+#include <unordered_map>
+
+struct ComplexAppearanceDescriptor
+{
+  ComplexAppearanceDescriptor(const ComplexAppearance& appearance) :
+    vertices(appearance.vertices),
+    normals(appearance.normals),
+    texCoords(appearance.texCoords),
+    primitiveGroups(&appearance.primitiveGroups),
+    normalsDefined(appearance.normalsDefined)
+  {}
+
+  ComplexAppearance::Vertices* vertices;
+  ComplexAppearance::Normals* normals;
+  ComplexAppearance::TexCoords* texCoords;
+  const std::list<ComplexAppearance::PrimitiveGroup*>* primitiveGroups;
+  bool normalsDefined;
+
+  bool operator==(const ComplexAppearanceDescriptor& other) const
+  {
+    return vertices == other.vertices &&
+           normalsDefined == other.normalsDefined &&
+           (!normalsDefined || (normals == other.normals)) &&
+           texCoords == other.texCoords &&
+           std::equal(primitiveGroups->begin(), primitiveGroups->end(), other.primitiveGroups->begin(), other.primitiveGroups->end());
+  }
+};
+
+struct ComplexAppearanceHasher
+{
+  std::size_t operator()(const ComplexAppearanceDescriptor& descriptor) const
+  {
+    // Don't hash primitive groups. The few collisions don't really hurt initialization performance.
+    return ((std::hash<ComplexAppearance::Vertices*>()(descriptor.vertices) ^ (std::hash<ComplexAppearance::Normals*>()(descriptor.normalsDefined ? descriptor.normals : nullptr) << 1)) >> 1) ^ (std::hash<ComplexAppearance::TexCoords*>()(descriptor.texCoords) << 1);
+  }
+};
+
+static std::unordered_map<ComplexAppearanceDescriptor, GraphicsContext::Mesh*, ComplexAppearanceHasher> meshCache;
 
 void ComplexAppearance::PrimitiveGroup::addParent(Element& element)
 {
@@ -40,6 +80,10 @@ GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsCo
 {
   ASSERT(vertices);
   ASSERT(!primitiveGroups.empty());
+
+  const ComplexAppearanceDescriptor descriptor(*this);
+  if(const auto cachedMesh = meshCache.find(descriptor); cachedMesh != meshCache.end())
+    return cachedMesh->second;
 
   const bool withTextureCoordinates = texCoords && surface->texture;
   const std::size_t verticesSize = vertices->vertices.size();
@@ -213,5 +257,9 @@ GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsCo
       ASSERT(false);
   }
 
-  return graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
+  GraphicsContext::Mesh* mesh = graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
+
+  meshCache[descriptor] = mesh;
+
+  return mesh;
 }
