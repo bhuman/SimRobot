@@ -82,10 +82,8 @@ private:
    */
   void addParent(Element& element) override;
 
-  bool created = false; /**< Whether the appearance has already been created */
   GraphicsContext::Mesh* mesh = nullptr; /**< The mesh to draw */
-  std::vector<GraphicsContext::ModelMatrix*> modelMatrices; /**< The model matrices that this appearance uses in order of the scene graph */
-  mutable int modelMatrixIndex = 0; /**< The current index in \c modelMatrices */
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this appearance */
 
   //API
   const QString& getFullName() const override {return SimObject::getFullName();}

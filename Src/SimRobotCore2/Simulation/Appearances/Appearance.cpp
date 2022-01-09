@@ -53,22 +53,20 @@ void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
 
 void Appearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  if(!created)
-  {
-    OpenGLTools::convertTransformation(rotation, translation, transformation);
-    if(surface)
-      surface->createGraphics(graphicsContext);
-    created = true;
-  }
-
-  graphicsContext.pushModelMatrix(transformation);
+  OpenGLTools::convertTransformation(rotation, translation, transformation);
   if(surface)
-    modelMatrices.push_back(graphicsContext.requestModelMatrix());
+    surface->createGraphics(graphicsContext);
+
+  ASSERT(!mesh);
+  mesh = createMesh(graphicsContext);
+  ASSERT(!mesh == !surface);
+
+  ASSERT(!modelMatrix);
+  graphicsContext.pushModelMatrix(transformation);
+  if(mesh)
+    modelMatrix = graphicsContext.requestModelMatrix();
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
-
-  if(!mesh)
-    mesh = createMesh(graphicsContext);
 }
 
 const QIcon* Appearance::getIcon() const
@@ -93,14 +91,7 @@ void Appearance::Surface::addParent(Element& element)
 void Appearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
 {
   if(!drawControllerDrawings && mesh)
-    graphicsContext.draw(mesh, modelMatrices[modelMatrixIndex], surface->surface);
-
-  // TODO: This breaks completely when creating SimObjectRenderers for sub-parts of the scene.
-  if(!modelMatrices.empty())
-  {
-    ++modelMatrixIndex;
-    modelMatrixIndex %= modelMatrices.size();
-  }
+    graphicsContext.draw(mesh, modelMatrix, surface->surface);
 
   GraphicalObject::drawAppearances(graphicsContext, drawControllerDrawings);
 }
