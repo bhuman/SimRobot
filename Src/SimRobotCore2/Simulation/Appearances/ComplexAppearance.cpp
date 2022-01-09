@@ -158,103 +158,73 @@ GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsCo
   else
     vertexBuffer->vertices.reserve(verticesSize);
   ASSERT(!withTextureCoordinates || texCoords->coords.size() == verticesSize);
-  for(std::size_t i = 0; i < verticesSize; ++i)
+
+  std::vector<unsigned int> indexMap(verticesSize);
+
+  auto getVertex = [this, vertexBuffer, vertexBufferT, withTextureCoordinates, &indexMap](std::list<unsigned int>::const_iterator& iter) -> unsigned int
   {
-    const Vertex& vertex = vertices->vertices[i];
-    const Normal& normal = normals->normals[i];
+    const unsigned int index = *iter;
+    ++iter;
+    if(normalsDefined)
+    {
+      ASSERT(*iter == index); // TODO: In this case, indexMap must theoretically map from (vertex, normal) index pairs to indices.
+      ++iter;
+    }
+    if(index >= indexMap.size())
+      return 0; // Same as above: This does not make sense, but is better than crashing.
+    if(indexMap[index])
+      return indexMap[index] - 1;
+    const Vertex& vertex = vertices->vertices[index];
+    const Normal& normal = normals->normals[index];
     if(withTextureCoordinates)
     {
-      const TexCoord& texCoord = texCoords->coords[i];
+      const TexCoord& texCoord = texCoords->coords[index];
       vertexBufferT->vertices.emplace_back(Vector3f(vertex.x, vertex.y, vertex.z), Vector3f(normal.x, normal.y, normal.z), Vector2f(texCoord.x, texCoord.y));
+      indexMap[index] = static_cast<unsigned int>(vertexBufferT->vertices.size());
     }
     else
+    {
       vertexBuffer->vertices.emplace_back(Vector3f(vertex.x, vertex.y, vertex.z), Vector3f(normal.x, normal.y, normal.z));
-  }
-  if(withTextureCoordinates)
-    vertexBufferT->finish();
-  else
-    vertexBuffer->finish();
+      indexMap[index] = static_cast<unsigned int>(vertexBuffer->vertices.size());
+    }
+    return indexMap[index] - 1;
+  };
 
   GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
   auto& indices = indexBuffer->indices;
   for(const PrimitiveGroup* primitiveGroup : primitiveGroups)
   {
-    if(primitiveGroup->mode == triangles)
+    ASSERT(primitiveGroup->mode == triangles || primitiveGroup->mode == quads);
+    ASSERT(primitiveGroup->vertices.size() % (normalsDefined ? (primitiveGroup->mode == triangles ? 6 : 8) : (primitiveGroup->mode == triangles ? 3 : 4)) == 0);
+    for(auto iter = primitiveGroup->vertices.begin(), end = primitiveGroup->vertices.end(); iter != end;)
     {
-      ASSERT(primitiveGroup->vertices.size() % (normalsDefined ? 6 : 3) == 0);
-      for(auto iter = primitiveGroup->vertices.begin(), end = primitiveGroup->vertices.end(); iter != end;)
-      {
-        const auto i1 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i1); // TODO
-          ++iter;
-        }
-        const auto i2 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i2); // TODO
-          ++iter;
-        }
-        const auto i3 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i3); // TODO
-          ++iter;
-        }
+      const auto i1 = getVertex(iter);
+      const auto i2 = getVertex(iter);
+      const auto i3 = getVertex(iter);
 
-        indices.push_back(i1);
-        indices.push_back(i2);
-        indices.push_back(i3);
-      }
-    }
-    else if(primitiveGroup->mode == quads)
-    {
-      ASSERT(primitiveGroup->vertices.size() % (normalsDefined ? 8 : 4) == 0);
-      for(auto iter = primitiveGroup->vertices.begin(), end = primitiveGroup->vertices.end(); iter != end;)
-      {
-        const auto i1 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i1); // TODO
-          ++iter;
-        }
-        const auto i2 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i2); // TODO
-          ++iter;
-        }
-        const auto i3 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i3); // TODO
-          ++iter;
-        }
-        const auto i4 = *iter;
-        ++iter;
-        if(normalsDefined)
-        {
-          ASSERT(*iter == i4); // TODO
-          ++iter;
-        }
+      indices.push_back(i1);
+      indices.push_back(i2);
+      indices.push_back(i3);
 
-        indices.push_back(i1);
-        indices.push_back(i2);
-        indices.push_back(i3);
+      if(primitiveGroup->mode == quads)
+      {
+        const auto i4 = getVertex(iter);
         indices.push_back(i3);
         indices.push_back(i4);
         indices.push_back(i1);
       }
     }
-    else
-      ASSERT(false);
+  }
+
+  if(withTextureCoordinates)
+  {
+    vertexBufferT->vertices.shrink_to_fit();
+    vertexBufferT->finish();
+  }
+  else
+  {
+    vertexBuffer->vertices.shrink_to_fit();
+    vertexBuffer->finish();
   }
 
   GraphicsContext::Mesh* mesh = graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
