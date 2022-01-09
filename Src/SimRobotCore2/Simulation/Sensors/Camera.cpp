@@ -102,7 +102,7 @@ void Camera::CameraSensor::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true);
+  graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true);
 
   // draw all objects
   Simulation::simulation->scene->drawAppearances(graphicsContext, false);
@@ -165,7 +165,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos);
+      graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos);
 
       // draw all objects
       Simulation::simulation->scene->drawAppearances(graphicsContext, false);

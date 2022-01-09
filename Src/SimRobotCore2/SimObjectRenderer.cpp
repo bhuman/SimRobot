@@ -133,7 +133,7 @@ void SimObjectRenderer::draw()
   // draw origin
   if(renderFlags & showCoordinateSystem)
   {
-    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, false);
+    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, false);
     graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
     graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
     graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
@@ -145,7 +145,7 @@ void SimObjectRenderer::draw()
   GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
   if(graphicalObject && surfaceShadeMode != noShading)
   {
-    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
     graphicalObject->drawAppearances(graphicsContext, false);
     graphicsContext.finishRendering();
     clear = false;
@@ -155,7 +155,7 @@ void SimObjectRenderer::draw()
   PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
   {
-    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
+    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
     physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
     graphicsContext.finishRendering();
     clear = false;
@@ -164,7 +164,7 @@ void SimObjectRenderer::draw()
   // draw drag plane
   if(dragging && dragSelection)
   {
-    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, true);
+    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, true);
     graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
     graphicsContext.finishRendering();
     clear = false;

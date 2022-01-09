@@ -121,8 +121,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   graphicsContext.popModelMatrix();
   graphicsContext.popModelMatrixStack();
 
-  if(!graphicsContext.compile())
-    return false;
+  graphicsContext.compile();
 
   graphicsContext.initOffscreenRenderer();
 

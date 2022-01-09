@@ -8,6 +8,7 @@
 
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
+#include "Platform/Assert.h"
 #include <QImage>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
@@ -207,6 +208,8 @@ GraphicsContext::~GraphicsContext()
     destroyGraphics();
   }
   ASSERT(perContextData.empty());
+  for(const auto& pair : offscreenBuffers)
+    delete pair.second;
   offscreenBuffers.clear();
   delete offscreenContext;
   delete offscreenSurface;
@@ -226,7 +229,7 @@ GraphicsContext::~GraphicsContext()
     delete mesh;
 }
 
-bool GraphicsContext::compile()
+void GraphicsContext::compile()
 {
   // Determine buffer memory layout of vertex buffer.
   GLint base = 0;
@@ -267,8 +270,6 @@ bool GraphicsContext::compile()
   index = 0;
   for(auto* surface : surfaces)
     surface->index = index++;
-
-  return true;
 }
 
 void GraphicsContext::createGraphics()
@@ -389,145 +390,10 @@ void GraphicsContext::createGraphics()
       glGenerateMipmap(GL_TEXTURE_2D);
     }
 
-    // Create and compile shaders.
-    auto doShader = [this](bool lighting, bool textures, bool smooth)
-    {
-      GLint success = 0;
-      const char* versionSourceCode = "#version 330 core\n";
-
-      std::string defines;
-      defines += "#define NUM_OF_SURFACES " + std::to_string(surfaces.size()) + "\n";
-      if(lighting)
-        defines += "#define WITH_LIGHTING\n";
-      if(textures)
-        defines += "#define WITH_TEXTURES\n";
-      if(smooth)
-        defines += "#define NORMAL_QUALIFIER smooth\n";
-      else
-        defines += "#define NORMAL_QUALIFIER flat\n";
-
-      const GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-      if(vShader <= 0) ASSERT(false);
-      {} // TODO: error
-      const char* totalVertexShaderSourceCode[] = {versionSourceCode, defines.c_str(), vertexShaderSourceCode};
-      glShaderSource(vShader, 3, totalVertexShaderSourceCode, nullptr);
-      glCompileShader(vShader);
-      glGetShaderiv(vShader, GL_COMPILE_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetShaderInfoLog(vShader, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      const GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-      if(fShader <= 0) ASSERT(false);
-      {} // TODO: error
-      const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT " + globalAmbientLight + "\n";
-      std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
-      for(const auto& light : lightDeclarations)
-        lightDeclarationsCode += " " + light;
-      lightDeclarationsCode += "\n";
-      std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
-      for(const auto& light : lightCalculations)
-        lightCalculationsCode += " " + light;
-      lightCalculationsCode += "\n";
-      const char* totalFragmentShaderSourceCode[] = {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode};
-      glShaderSource(fShader, 6, totalFragmentShaderSourceCode, nullptr);
-      glCompileShader(fShader);
-      glGetShaderiv(fShader, GL_COMPILE_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetShaderInfoLog(fShader, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      Shader shader;
-      shader.program = glCreateProgram();
-      if(shader.program <= 0) ASSERT(false);
-      {} // TODO: error
-      glAttachShader(shader.program, vShader);
-      glAttachShader(shader.program, fShader);
-      glLinkProgram(shader.program);
-      glGetProgramiv(shader.program, GL_LINK_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetProgramInfoLog(shader.program, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      glDeleteShader(vShader);
-      glDeleteShader(fShader);
-
-      glUniformBlockBinding(shader.program, glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
-      shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
-      shader.cameraPosLocation = glGetUniformLocation(shader.program, "cameraPos");
-      shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
-      shader.surfaceIndexLocation = glGetUniformLocation(shader.program, "surfaceIndex");
-      return shader;
-    };
-
-    auto doDepthOnlyShader = [this]()
-    {
-      GLint success = 0;
-      const char* versionSourceCode = "#version 330 core\n";
-
-      const GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-      if(vShader <= 0) ASSERT(false);
-      {} // TODO: error
-      const char* totalVertexShaderSourceCode[] = {versionSourceCode, depthOnlyVertexShaderSourceCode};
-      glShaderSource(vShader, 2, totalVertexShaderSourceCode, nullptr);
-      glCompileShader(vShader);
-      glGetShaderiv(vShader, GL_COMPILE_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetShaderInfoLog(vShader, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      const GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-      if(fShader <= 0) ASSERT(false);
-      {} // TODO: error
-      const char* totalFragmentShaderSourceCode[] = {versionSourceCode, depthOnlyFragmentShaderSourceCode};
-      glShaderSource(fShader, 2, totalFragmentShaderSourceCode, nullptr);
-      glCompileShader(fShader);
-      glGetShaderiv(fShader, GL_COMPILE_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetShaderInfoLog(fShader, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      Shader shader;
-      shader.program = glCreateProgram();
-      if(shader.program <= 0) ASSERT(false);
-      {} // TODO: error
-      glAttachShader(shader.program, vShader);
-      glAttachShader(shader.program, fShader);
-      glLinkProgram(shader.program);
-      glGetProgramiv(shader.program, GL_LINK_STATUS, &success);
-      if(!success)
-      {
-        char log[512];
-        glGetProgramInfoLog(shader.program, 512, nullptr, log);
-        fprintf(stderr, "%s\n", log);
-      }
-
-      glDeleteShader(vShader);
-      glDeleteShader(fShader);
-
-      shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
-      shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
-      return shader;
-    };
-
+    // Compile shaders.
     for(unsigned int i = 0; i < 8; ++i)
-      data.shaders[i] = doShader(i & 4, i & 2, i & 1);
-    data.shaders[8] = doDepthOnlyShader();
+      data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
+    data.shaders[8] = compileDepthOnlyShader();
   }
 }
 
@@ -616,20 +482,20 @@ void GraphicsContext::setGlobalAmbientLight(const float* color)
   globalAmbientLight = "vec4(" + std::to_string(color[0]) + ", " + std::to_string(color[1]) + ", " + std::to_string(color[2]) + ", " + std::to_string(color[3]) + ")";
 }
 
-void GraphicsContext::addLight(const ::Light* light)
+void GraphicsContext::addLight(const Light* light)
 {
   ASSERT(lightDeclarations.size() == lightCalculations.size());
-  if(const ::DirLight* dirLight = dynamic_cast<const ::DirLight*>(light); dirLight)
+  if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
     lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec4(" + std::to_string(dirLight->diffuseColor[0]) + ", " + std::to_string(dirLight->diffuseColor[1]) + ", " + std::to_string(dirLight->diffuseColor[2]) + ", " + std::to_string(dirLight->diffuseColor[3]) + "), vec4(" + std::to_string(dirLight->ambientColor[0]) + ", " + std::to_string(dirLight->ambientColor[1]) + ", " + std::to_string(dirLight->ambientColor[2]) + ", " + std::to_string(dirLight->ambientColor[3]) + "), vec4(" + std::to_string(dirLight->specularColor[0]) + ", " + std::to_string(dirLight->specularColor[1]) + ", " + std::to_string(dirLight->specularColor[2]) + ", " + std::to_string(dirLight->specularColor[3]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
     lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", Normal, viewDir, diffuse, ambient, specular);");
   }
-  else if(const ::SpotLight* spotLight = dynamic_cast<const ::SpotLight*>(light); spotLight)
+  else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
   {
     lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec4(" + std::to_string(spotLight->diffuseColor[0]) + ", " + std::to_string(spotLight->diffuseColor[1]) + ", " + std::to_string(spotLight->diffuseColor[2]) + ", " + std::to_string(spotLight->diffuseColor[3]) + "), vec4(" + std::to_string(spotLight->ambientColor[0]) + ", " + std::to_string(spotLight->ambientColor[1]) + ", " + std::to_string(spotLight->ambientColor[2]) + ", " + std::to_string(spotLight->ambientColor[3]) + "), vec4(" + std::to_string(spotLight->specularColor[0]) + ", " + std::to_string(spotLight->specularColor[1]) + ", " + std::to_string(spotLight->specularColor[2]) + ", " + std::to_string(spotLight->specularColor[3]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
     lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, Normal, viewDir, diffuse, ambient, specular);");
   }
-  else if(const ::PointLight* pointLight = dynamic_cast<const ::PointLight*>(light); pointLight)
+  else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
   {
     lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec4(" + std::to_string(pointLight->diffuseColor[0]) + ", " + std::to_string(pointLight->diffuseColor[1]) + ", " + std::to_string(pointLight->diffuseColor[2]) + ", " + std::to_string(pointLight->diffuseColor[3]) + "), vec4(" + std::to_string(pointLight->ambientColor[0]) + ", " + std::to_string(pointLight->ambientColor[1]) + ", " + std::to_string(pointLight->ambientColor[2]) + ", " + std::to_string(pointLight->ambientColor[3]) + "), vec4(" + std::to_string(pointLight->specularColor[0]) + ", " + std::to_string(pointLight->specularColor[1]) + ", " + std::to_string(pointLight->specularColor[2]) + ", " + std::to_string(pointLight->specularColor[3]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
     lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, Normal, viewDir, diffuse, ambient, specular);");
@@ -703,7 +569,7 @@ void GraphicsContext::updateModelMatrices(bool forceUpdate)
       Eigen::Map<Matrix4f>(modelMatrix->memory) = Eigen::Map<const Matrix4f>(modelMatrix->variablePart) * modelMatrix->constantPart;
 }
 
-void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
+void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
@@ -712,8 +578,8 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
   if(clear)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  if(sx >= 0)
-    glViewport(sx, sy, wx, wy);
+  if(viewportX >= 0)
+    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
   glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
@@ -726,7 +592,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
 }
 
-void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int sx, int sy, int wx, int wy, bool clear)
+void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear)
 {
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
@@ -735,8 +601,8 @@ void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const 
   shader = &data->shaders[8];
   if(clear)
     glClear(GL_DEPTH_BUFFER_BIT);
-  if(sx >= 0)
-    glViewport(sx, sy, wx, wy);
+  if(viewportX >= 0)
+    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
@@ -769,8 +635,64 @@ void GraphicsContext::finishRendering()
 {
   ASSERT(data);
   ASSERT(shader);
+  ASSERT(!forcedSurface);
   data = nullptr;
   shader = nullptr;
+}
+
+void GraphicsContext::initOffscreenRenderer()
+{
+  ASSERT(!offscreenSurface && !offscreenContext);
+
+  offscreenSurface = new QOffscreenSurface;
+  offscreenSurface->create();
+
+  offscreenContext = new QOpenGLContext;
+  offscreenContext->setShareContext(QOpenGLContext::globalShareContext());
+  VERIFY(offscreenContext->create());
+  offscreenContext->makeCurrent(offscreenSurface);
+
+  createGraphics();
+}
+
+bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
+{
+  ASSERT(offscreenContext && offscreenSurface);
+  offscreenContext->makeCurrent(offscreenSurface);
+
+  // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
+  // So we create an individual buffer for each size in demand.
+
+  auto it = offscreenBuffers.find(width << 16 | height << 1 | (sampleBuffers ? 1 : 0));
+  if(it == offscreenBuffers.end())
+  {
+    QOpenGLFramebufferObject*& buffer = offscreenBuffers[width << 16 | height << 1 | (sampleBuffers ? 1 : 0)];
+
+    buffer = new QOpenGLFramebufferObject(width, height, QOpenGLFramebufferObject::Depth);
+    if(!buffer->isValid())
+    {
+      delete buffer;
+      buffer = nullptr;
+      return false;
+    }
+
+    return true;
+  }
+  else
+    return it->second && it->second->bind();
+}
+
+void GraphicsContext::finishImageRendering(void* image, int w, int h)
+{
+  const int lineSize = w * 3;
+  glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
+  glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+}
+
+void GraphicsContext::finishDepthRendering(void* image, int w, int h)
+{
+  glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
+  glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
 }
 
 void GraphicsContext::setSurface(const Surface* surface)
@@ -792,62 +714,110 @@ void GraphicsContext::setSurface(const Surface* surface)
     glDisable(GL_BLEND);
 }
 
-bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
+GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShaderSources, const std::vector<const char*>& fragmentShaderSources)
 {
-  ASSERT(offscreenContext && offscreenSurface);
-  offscreenContext->makeCurrent(offscreenSurface);
+#ifndef NDEBUG
+  GLint success = 0;
+#endif
 
-  // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
-  // So we create an individual buffer for each size in demand.
-
-  auto it = offscreenBuffers.find(width << 16 | height << 1 | (sampleBuffers ? 1 : 0));
-  if(it == offscreenBuffers.end())
+  const GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  ASSERT(vertexShader > 0);
+  glShaderSource(vertexShader, static_cast<GLsizei>(vertexShaderSources.size()), vertexShaderSources.data(), nullptr);
+  glCompileShader(vertexShader);
+#ifndef NDEBUG
+  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+  if(!success)
   {
-    OffscreenBuffer& buffer = offscreenBuffers[width << 16 | height << 1 | (sampleBuffers ? 1 : 0)];
-
-    buffer.framebuffer = new QOpenGLFramebufferObject(width, height, QOpenGLFramebufferObject::Depth);
-    if(!buffer.framebuffer->isValid())
-    {
-      delete buffer.framebuffer;
-      buffer.framebuffer = nullptr;
-      return false;
-    }
-
-    return true;
+    char log[512];
+    glGetShaderInfoLog(vertexShader, sizeof(log), nullptr, log);
+    TRACE("%s", log);
+    ASSERT(false);
   }
+#endif
+
+  const GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  ASSERT(fragmentShader > 0);
+  glShaderSource(fragmentShader, static_cast<GLsizei>(fragmentShaderSources.size()), fragmentShaderSources.data(), nullptr);
+  glCompileShader(fragmentShader);
+#ifndef NDEBUG
+  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+  if(!success)
+  {
+    char log[512];
+    glGetShaderInfoLog(fragmentShader, sizeof(log), nullptr, log);
+    TRACE("%s", log);
+    ASSERT(false);
+  }
+#endif
+
+  const GLuint program = glCreateProgram();
+  ASSERT(program > 0);
+  glAttachShader(program, vertexShader);
+  glAttachShader(program, fragmentShader);
+  glLinkProgram(program);
+#ifndef NDEBUG
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if(!success)
+  {
+    char log[512];
+    glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+    TRACE("%s", log);
+    ASSERT(false);
+  }
+#endif
+
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+  return program;
+}
+
+GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool textures, bool smooth)
+{
+  const char* versionSourceCode = "#version 330 core\n";
+
+  std::string defines;
+  defines += "#define NUM_OF_SURFACES " + std::to_string(surfaces.size()) + "\n";
+  if(lighting)
+    defines += "#define WITH_LIGHTING\n";
+  if(textures)
+    defines += "#define WITH_TEXTURES\n";
+  if(smooth)
+    defines += "#define NORMAL_QUALIFIER smooth\n";
   else
-  {
-    OffscreenBuffer& buffer = it->second;
-    return buffer.framebuffer && buffer.framebuffer->bind();
-  }
+    defines += "#define NORMAL_QUALIFIER flat\n";
+
+  const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT " + globalAmbientLight + "\n";
+  std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
+  for(const auto& light : lightDeclarations)
+    lightDeclarationsCode += " " + light;
+  lightDeclarationsCode += "\n";
+  std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
+  for(const auto& light : lightCalculations)
+    lightCalculationsCode += " " + light;
+  lightCalculationsCode += "\n";
+
+  Shader shader;
+  shader.program = compileShader({versionSourceCode, defines.c_str(), vertexShaderSourceCode}, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode});
+
+  glUniformBlockBinding(shader.program, glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
+  shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
+  shader.cameraPosLocation = glGetUniformLocation(shader.program, "cameraPos");
+  shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
+  shader.surfaceIndexLocation = glGetUniformLocation(shader.program, "surfaceIndex");
+  return shader;
 }
 
-void GraphicsContext::initOffscreenRenderer()
+GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
 {
-  ASSERT(!offscreenSurface && !offscreenContext);
+  const char* versionSourceCode = "#version 330 core\n";
 
-  offscreenSurface = new QOffscreenSurface;
-  offscreenSurface->create();
+  Shader shader;
+  shader.program = compileShader({versionSourceCode, depthOnlyVertexShaderSourceCode}, {versionSourceCode, depthOnlyFragmentShaderSourceCode});
 
-  offscreenContext = new QOpenGLContext;
-  offscreenContext->setShareContext(QOpenGLContext::globalShareContext());
-  VERIFY(offscreenContext->create());
-  offscreenContext->makeCurrent(offscreenSurface);
-
-  createGraphics();
-}
-
-void GraphicsContext::finishImageRendering(void* image, int w, int h)
-{
-  const int lineSize = w * 3;
-  glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-  glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
-}
-
-void GraphicsContext::finishDepthRendering(void* image, int w, int h)
-{
-  glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-  glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+  shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
+  shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
+  return shader;
 }
 
 void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
@@ -977,8 +947,3 @@ bool GraphicsContext::Texture::loadTGA(const std::string& name)
   return true;
 }
 */
-
-GraphicsContext::OffscreenBuffer::~OffscreenBuffer()
-{
-  delete framebuffer;
-}

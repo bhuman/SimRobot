@@ -130,7 +130,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true, false, false, false);
+  graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true, false, false, false);
 
   // draw all objects
   Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
@@ -201,7 +201,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos, false, false, false);
+      graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos, false, false, false);
 
       // draw all objects
       Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
