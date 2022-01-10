@@ -75,5 +75,5 @@ private:
   GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix for the sensor drawing. */
   GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
 
-  std::vector<GraphicsContext::Surface*> surfaces; /**< The special surfaces for each body. */
+  static std::vector<GraphicsContext::Surface*> surfaces; /**< The special surfaces for each body. */
 };

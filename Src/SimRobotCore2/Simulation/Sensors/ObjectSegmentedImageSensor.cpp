@@ -37,6 +37,8 @@ static float surfaceColors[numOfBodySurfaces][4] =
   {1.0f, .55f, 0.0f, 1.0f}  // darkorange,
 };
 
+std::vector<GraphicsContext::Surface*> ObjectSegmentedImageSensor::surfaces;
+
 ObjectSegmentedImageSensor::ObjectSegmentedImageSensor()
 {
   sensor.camera = this;
@@ -73,10 +75,12 @@ void ObjectSegmentedImageSensor::createPhysics(GraphicsContext& graphicsContext)
   float aspect = std::tan(angleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, 0.01f, 500.f, sensor.projection);
 
-  // TODO: These should exist only once per simulator instance, not for every sensor.
-  surfaces.reserve(numOfBodySurfaces);
-  for(std::size_t i = 0; i < numOfBodySurfaces; ++i)
-    surfaces.push_back(graphicsContext.requestSurface(surfaceColors[i], surfaceColors[i]));
+  if(surfaces.empty())
+  {
+    surfaces.reserve(numOfBodySurfaces);
+    for(std::size_t i = 0; i < numOfBodySurfaces; ++i)
+      surfaces.push_back(graphicsContext.requestSurface(surfaceColors[i], surfaceColors[i]));
+  }
 
   ASSERT(!pyramid);
   pyramid = Primitives::createPyramid(graphicsContext, std::tan(angleX * 0.5f) * 2.f, std::tan(angleY * 0.5f) * 2.f, 1.f);
