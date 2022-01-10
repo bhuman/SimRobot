@@ -159,35 +159,33 @@ GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsCo
     vertexBuffer->vertices.reserve(verticesSize);
   ASSERT(!withTextureCoordinates || texCoords->coords.size() == verticesSize);
 
-  std::vector<unsigned int> indexMap(verticesSize);
+  std::unordered_map<std::uint64_t, unsigned int> indexMap;
 
   auto getVertex = [this, vertexBuffer, vertexBufferT, withTextureCoordinates, &indexMap](std::list<unsigned int>::const_iterator& iter) -> unsigned int
   {
-    const unsigned int index = *iter;
-    ++iter;
-    if(normalsDefined)
-    {
-      ASSERT(*iter == index); // TODO: In this case, indexMap must theoretically map from (vertex, normal) index pairs to indices.
-      ++iter;
-    }
-    if(index >= indexMap.size())
+    const unsigned int vertexIndex = *(iter++);
+    const unsigned int normalIndex = normalsDefined ? *(iter++) : vertexIndex;
+    if(vertexIndex >= vertices->vertices.size() || normalIndex >= normals->normals.size())
       return 0; // Same as above: This does not make sense, but is better than crashing.
-    if(indexMap[index])
-      return indexMap[index] - 1;
-    const Vertex& vertex = vertices->vertices[index];
-    const Normal& normal = normals->normals[index];
+    const std::uint64_t combinedIndex = normalsDefined ? (vertexIndex | (static_cast<std::uint64_t>(normalIndex) << 32)) : static_cast<std::uint64_t>(vertexIndex);
+    // Has this vertex already been added to the buffer?
+    unsigned int& index = indexMap[combinedIndex];
+    if(index)
+      return index - 1;
+    const Vertex& vertex = vertices->vertices[vertexIndex];
+    const Normal& normal = normals->normals[normalIndex];
     if(withTextureCoordinates)
     {
-      const TexCoord& texCoord = texCoords->coords[index];
+      const TexCoord& texCoord = texCoords->coords[vertexIndex];
       vertexBufferT->vertices.emplace_back(Vector3f(vertex.x, vertex.y, vertex.z), Vector3f(normal.x, normal.y, normal.z), Vector2f(texCoord.x, texCoord.y));
-      indexMap[index] = static_cast<unsigned int>(vertexBufferT->vertices.size());
+      index = static_cast<unsigned int>(vertexBufferT->vertices.size());
     }
     else
     {
       vertexBuffer->vertices.emplace_back(Vector3f(vertex.x, vertex.y, vertex.z), Vector3f(normal.x, normal.y, normal.z));
-      indexMap[index] = static_cast<unsigned int>(vertexBuffer->vertices.size());
+      index = static_cast<unsigned int>(vertexBuffer->vertices.size());
     }
-    return indexMap[index] - 1;
+    return index - 1;
   };
 
   GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
