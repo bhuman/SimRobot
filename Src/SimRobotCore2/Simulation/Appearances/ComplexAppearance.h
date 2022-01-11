@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Simulation/Appearances/Appearance.h"
+#include "Tools/Math/Eigen.h"
 #include <list>
 #include <vector>
 
@@ -18,92 +19,13 @@ class ComplexAppearance : public Appearance
 {
 public:
   /**
-   * @class Vertex
-   * A class encapsulating the three components of a vertex
-   */
-  class Vertex
-  {
-  public:
-    float x = 0.f; /**< The x-component of the vertex */
-    float y = 0.f; /**< The y-component of the vertex */
-    float z = 0.f; /**< The z-component of the vertex */
-
-    /**
-     * Default constructor; Sets all components to zero
-     */
-    Vertex() = default;
-
-    /**
-     * Constructs a vertex
-     * @param x The x-component of the vertex
-     * @param y The y-component of the vertex
-     * @param z The z-component of the vertex
-     */
-    Vertex(float x, float y, float z) : x(x), y(y), z(z) {}
-  };
-
-  /**
-   * The normal vector of a vertex
-   */
-  class Normal : public Vertex
-  {
-  public:
-    unsigned int length = 0; /**< The length of the normal (used to normalize accumulated normals) */
-
-    /**
-     * @class Normal
-     * Default constructor; Sets all components to zero
-     */
-    Normal() = default;
-
-    /**
-     * Constructs a vertex
-     * @param x The x-component of the vertex
-     * @param y The y-component of the vertex
-     * @param z The z-component of the vertex
-     * @param length The length of the normal
-     */
-    Normal(float x, float y, float z, unsigned int length) : Vertex(x, y, z), length(length) {}
-
-    /**
-     * Addition of another normal to this one.
-     * @param other The other normal that will be added to this one
-     */
-    void operator+=(const Normal& other)
-    {
-      x += other.x;
-      y += other.y;
-      z += other.z;
-      length += other.length;
-    }
-  };
-
-  /**
-   * @class TexCoord
-   * A point on a texture
-   */
-  class TexCoord
-  {
-  public:
-    float x; /**< The x-component of the point */
-    float y; /**< The y-component of the point */
-
-    /**
-     * Constructs a point of a texture
-     * @param x The x-component of the point
-     * @param y The y-component of the point
-     */
-    TexCoord(float x, float y) : x(x), y(y) {}
-  };
-
-  /**
    * A vertex library
    */
   class Vertices : public Element
   {
   public:
     float unit;
-    std::vector<Vertex> vertices; /**< Available vertices */
+    std::vector<Vector3f> vertices; /**< Available vertices */
 
   private:
     /**
@@ -119,7 +41,7 @@ public:
   class Normals : public Element
   {
   public:
-    std::vector<Normal> normals; /**< Available normals */
+    std::vector<Vector3f> normals; /**< Available normals */
 
   private:
     /**
@@ -136,7 +58,7 @@ public:
   class TexCoords : public Element
   {
   public:
-    std::vector<TexCoord> coords; /**< Available points */
+    std::vector<Vector2f> coords; /**< Available points */
 
   private:
     /**
@@ -184,13 +106,22 @@ public:
   Normals* normals = nullptr; /**< The normals library used for drawing the primitives */
   TexCoords* texCoords = nullptr; /**< Optional texture points for textured primitives */
   std::list<PrimitiveGroup*> primitiveGroups; /**< The primitives that define the complex shape */
-  bool normalsDefined = false; /**< Normals were manually defined */
 
 private:
   /**
    * Creates a mesh for this appearance in the given graphics context
-   * @param graphicsContext the graphics context to create the mesh in
+   * @param graphicsContext The graphics context to create the mesh in
    * @return The resulting mesh
    */
   GraphicsContext::Mesh* createMesh(GraphicsContext& graphicsContext) override;
+
+  /**
+   * Creates the mesh if it is not already cached
+   * @tparam VertexType The vertex type from the \c GraphicsContext that is used for this mesh
+   * @tparam withTextureCoordinates Whether the vertex type has texture coordinates
+   * @param graphicsContext The graphics context to create the mesh in
+   * @return The resulting mesh
+   */
+  template<typename VertexType, bool withTextureCoordinates>
+  GraphicsContext::Mesh* createMeshImpl(GraphicsContext& graphicsContext);
 };

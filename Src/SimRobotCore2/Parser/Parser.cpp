@@ -558,7 +558,7 @@ void Parser::verticesText(std::string& text, Location location)
 {
   ComplexAppearance::Vertices* vertices = dynamic_cast<ComplexAppearance::Vertices*>(element);
   ASSERT(vertices);
-  std::vector<ComplexAppearance::Vertex>& vs = vertices->vertices;
+  std::vector<Vector3f>& vs = vertices->vertices;
   const char* str = text.c_str();
   char* nextStr;
   float components[3];
@@ -596,7 +596,7 @@ void Parser::normalsText(std::string& text, Location location)
 {
   ComplexAppearance::Normals* normals = dynamic_cast<ComplexAppearance::Normals*>(element);
   ASSERT(normals);
-  std::vector<ComplexAppearance::Normal>& ns = normals->normals;
+  std::vector<Vector3f>& ns = normals->normals;
   const char* str = text.c_str();
   char* nextStr;
   float components[3];
@@ -616,7 +616,7 @@ void Parser::normalsText(std::string& text, Location location)
       str = nextStr;
       skipWhitespace(str, location);
     }
-    ns.emplace_back(components[0], components[1], components[2], 1);
+    ns.emplace_back(components[0], components[1], components[2]);
   }
 breakThrice:
   ;
@@ -631,7 +631,7 @@ void Parser::texCoordsText(std::string& text, Location location)
 {
   ComplexAppearance::TexCoords* texCoords = dynamic_cast<ComplexAppearance::TexCoords*>(element);
   ASSERT(texCoords);
-  std::vector<ComplexAppearance::TexCoord>& ts = texCoords->coords;
+  std::vector<Vector2f>& ts = texCoords->coords;
   const char* str = text.c_str();
   char* nextStr;
   float components[2];

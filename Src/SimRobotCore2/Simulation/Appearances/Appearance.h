@@ -64,7 +64,7 @@ protected:
 
   /**
    * Creates a mesh for this appearance in the given graphics context
-   * @param graphicsContext the graphics context to create the mesh in
+   * @param graphicsContext The graphics context to create the mesh in
    * @return The resulting mesh
    */
   virtual GraphicsContext::Mesh* createMesh(GraphicsContext& graphicsContext)

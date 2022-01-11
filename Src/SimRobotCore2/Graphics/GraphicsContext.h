@@ -43,10 +43,10 @@ public:
       position(position), normal(normal)
     {}
 
-  private:
     Vector3f position; /**< Vertex position in world space. */
     Vector3f normal; /**< Surface normal in world space. */
 
+  private:
     /**
      * Declares the vertex attributes in an OpenGL context (VAO and VBO are already bound).
      * @param functions The OpenGL functions to use.
@@ -67,11 +67,11 @@ public:
       position(position), normal(normal), textureCoordinates(textureCoordinates)
     {}
 
-  private:
     Vector3f position; /**< Vertex position in world space. */
     Vector3f normal; /**< Surface normal in world space. */
     Vector2f textureCoordinates; /**< Texture coordinates at this vertex. */
 
+  private:
     /**
      * Declares the vertex attributes in an OpenGL context (VAO and VBO are already bound).
      * @param functions The OpenGL functions to use.
