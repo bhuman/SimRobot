@@ -29,17 +29,18 @@ if(APPLE)
   set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/styles/libqmacstyle.dylib")
   set(SIMROBOT_PLUGINS "${SIMROBOT_PLUGIN_COCOA}" "${SIMROBOT_PLUGIN_JPEG}" "${SIMROBOT_PLUGIN_MACSTYLE}")
 
-  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}")
+  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}" "${CONTROLLER_DYLIBS}")
 
   set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set_source_files_properties(${SIMROBOT_FRAMEWORKS} PROPERTIES
       MACOSX_PACKAGE_LOCATION Frameworks
       XCODE_EXPLICIT_FILE_TYPE wrapper.framwork)
+  set_source_files_properties(${CONTROLLER_DYLIBS} PROPERTIES MACOSX_PACKAGE_LOCATION lib)
   set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/platforms)
   set_source_files_properties(${SIMROBOT_PLUGIN_JPEG} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/imageformats)
   set_source_files_properties(${SIMROBOT_PLUGIN_MACSTYLE} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/styles)
 
-  source_group("Libs" FILES ${SIMROBOT_FRAMEWORKS} ${SIMROBOT_PLUGINS})
+  source_group("Libs" FILES ${SIMROBOT_FRAMEWORKS} ${SIMROBOT_PLUGINS} ${CONTROLLER_DYLIBS})
 endif()
 
 add_executable(SimRobot WIN32 MACOSX_BUNDLE "${SIMROBOT_SOURCES}")
@@ -49,7 +50,7 @@ set_property(TARGET SimRobot PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobot PROPERTY AUTORCC ON)
 set_property(TARGET SimRobot PROPERTY MACOSX_BUNDLE_INFO_PLIST "${SIMROBOT_PREFIX}/Make/macOS/Info.plist")
 set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.B-Human.SimRobot")
-set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks")
+set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks @executable_path/../lib")
 set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO")
 set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
@@ -70,7 +71,7 @@ if(${PLATFORM} STREQUAL Windows)
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:Qt5::Core>" "$<TARGET_FILE:Qt5::Gui>" "$<TARGET_FILE:Qt5::Svg>"
-      "$<TARGET_FILE:Qt5::Widgets>" "$<TARGET_FILE_DIR:SimRobot>"
+      "$<TARGET_FILE:Qt5::Widgets>" ${CONTROLLER_DYLIBS} "$<TARGET_FILE_DIR:SimRobot>"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
 endif()
