@@ -621,7 +621,9 @@ void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, con
 {
   ASSERT(data);
   ASSERT(shader);
-  glBindVertexArray(data->vao[mesh->vertexBuffer->vaoIndex]);
+  const GLuint newVAO = data->vao[mesh->vertexBuffer->vaoIndex];
+  if(newVAO != data->boundVAO)
+    glBindVertexArray((data->boundVAO = newVAO));
   glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory);
   if(!forcedSurface)
     setSurface(surface);
@@ -699,19 +701,23 @@ void GraphicsContext::setSurface(const Surface* surface)
 {
   ASSERT(data);
   ASSERT(shader);
-  if(surface->texture)
-    glBindTexture(GL_TEXTURE_2D, data->textureIDs[surface->texture->index]);
-  else
-    glBindTexture(GL_TEXTURE_2D, 0);
+  const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
+  if(newTexture != data->boundTexture)
+    glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
   if(shader->surfaceIndexLocation >= 0)
     glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
-  if(surface->texture ? surface->texture->hasAlpha : (surface->diffuseColor[3] < 1.f))
+  const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->diffuseColor[3] < 1.f);
+  if(newBlendState && !data->blendEnabled)
   {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    data->blendEnabled = true;
   }
-  else
+  else if(!newBlendState && data->blendEnabled)
+  {
     glDisable(GL_BLEND);
+    data->blendEnabled = false;
+  }
 }
 
 GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShaderSources, const std::vector<const char*>& fragmentShaderSources)

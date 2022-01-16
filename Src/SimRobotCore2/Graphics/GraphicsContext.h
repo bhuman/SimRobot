@@ -470,6 +470,10 @@ private:
 
     std::array<Shader, 9> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
 
+    bool blendEnabled = false; /** The current blend state in this context. */
+    GLuint boundTexture = 0; /** The currently bound texture in this context. */
+    GLuint boundVAO = 0; /** The currently bound VAO in this context. */
+
     std::size_t referenceCounterIndex; /**< Index in the vector of reference counters for the share group this context belongs to. */
   };
 
