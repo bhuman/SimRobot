@@ -1,7 +1,7 @@
 /**
- * @file Graphics/GraphicsContext.cpp
+ * @file Graphics/OpenGL/GraphicsContext.cpp
  *
- * This file implements a class that handles graphics.
+ * This file implements a class that handles graphics using OpenGL 3.3 Core.
  *
  * @author Arne Hasselbring
  */
