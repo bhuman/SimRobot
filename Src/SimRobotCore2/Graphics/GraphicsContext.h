@@ -474,6 +474,7 @@ private:
     GLuint boundTexture = 0; /** The currently bound texture in this context. */
     GLuint boundVAO = 0; /** The currently bound VAO in this context. */
 
+    std::size_t referenceCounter = 1; /**< Reference counter for this context. */
     std::size_t referenceCounterIndex; /**< Index in the vector of reference counters for the share group this context belongs to. */
   };
 

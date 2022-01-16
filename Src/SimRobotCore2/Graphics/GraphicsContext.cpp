@@ -281,7 +281,10 @@ void GraphicsContext::createGraphics()
 
   // Check if the context is already initialized.
   if(perContextData.find(context) != perContextData.end())
+  {
+    ++perContextData[context].referenceCounter;
     return;
+  }
 
   // Find a context with which this one is sharing (in that case, we don't need to upload things to memory again, just create VAOs and maybe some other stuff).
   const auto shareDataIt = std::find_if(perContextData.begin(), perContextData.end(), [context](const auto& data)
@@ -405,6 +408,9 @@ void GraphicsContext::destroyGraphics()
     return;
 
   auto& data = perContextData[context];
+  if(--data.referenceCounter)
+    return;
+
   glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
