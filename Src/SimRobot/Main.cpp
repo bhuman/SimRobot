@@ -22,9 +22,16 @@
 static MainWindow* mainWindow = nullptr;
 
 /**
- * A helper for opening files when they were launched from the Finder.
+ * A helper for opening files when they were launched from the Finder and closing windows
+ * in the correct order.
  * macOS triggers an event for them rather than passing them as a command line
  * parameter. This class handles that event.
+ * Also, on a quit event, floating dock widgets could be closed first (without being deleted),
+ * which would unregister them in the main window. If the main window was closed after that,
+ * all loaded modules would be unloaded before the widgets are destroyed. Therefore, the
+ * quit event is intercepted here and the main window is closed. This means that when the
+ * quit event is triggered by the main window being closed, the main window is effectively
+ * closed twice, but this is no problem as the main window is not destroyed on being closed.
  */
 class SimRobotApp : public QApplication
 {
