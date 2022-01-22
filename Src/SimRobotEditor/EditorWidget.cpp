@@ -189,9 +189,9 @@ EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileCo
 
   setTabStopDistance(tabStopWidth * QFontMetrics(font).horizontalAdvance(' '));
 
-  connect(this, &EditorWidget::copyAvailable, this, &EditorWidget::copyAvailable);
-  connect(this, &EditorWidget::undoAvailable, this, &EditorWidget::undoAvailable);
-  connect(this, &EditorWidget::redoAvailable, this, &EditorWidget::redoAvailable);
+  connect(this, &QTextEdit::copyAvailable, this, &EditorWidget::copyAvailable);
+  connect(this, &QTextEdit::undoAvailable, this, &EditorWidget::undoAvailable);
+  connect(this, &QTextEdit::redoAvailable, this, &EditorWidget::redoAvailable);
 }
 
 EditorWidget::~EditorWidget()
@@ -295,14 +295,14 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   action->setStatusTip(tr("Undo the last action"));
   action->setEnabled(canUndo);
   connect(action, &QAction::triggered, this, &EditorWidget::undo);
-  connect(this, &EditorWidget::undoAvailable, action, &QAction::setEnabled);
+  connect(this, &QTextEdit::undoAvailable, action, &QAction::setEnabled);
 
   action = menu->addAction(QIcon(":/Icons/arrow_redo.png"), tr("&Redo"));
   action->setShortcut(QKeySequence(QKeySequence::Redo));
   action->setStatusTip(tr("Redo the previously undone action"));
   action->setEnabled(canRedo);
   connect(action, &QAction::triggered, this, &EditorWidget::redo);
-  connect(this, &EditorWidget::redoAvailable, action, &QAction::setEnabled);
+  connect(this, &QTextEdit::redoAvailable, action, &QAction::setEnabled);
 
   menu->addSeparator();
 
@@ -311,14 +311,14 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   action->setStatusTip(tr("Cut the current selection's contents to the clipboard"));
   action->setEnabled(canCopy);
   connect(action, &QAction::triggered, this, &EditorWidget::cut);
-  connect(this, &EditorWidget::copyAvailable, action, &QAction::setEnabled);
+  connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
   action = menu->addAction(QIcon(":/Icons/page_copy.png"), tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
   action->setStatusTip(tr("Copy the current selection's contents to the clipboard"));
   action->setEnabled(canCopy);
   connect(action, &QAction::triggered, this, &EditorWidget::copy);
-  connect(this, &EditorWidget::copyAvailable, action, &QAction::setEnabled);
+  connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
   action = menu->addAction(QIcon(":/Icons/page_paste.png"), tr("&Paste"));
   action->setShortcut(QKeySequence(QKeySequence::Paste));
@@ -332,7 +332,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   action->setStatusTip(tr("Delete the currently selected content"));
   action->setEnabled(canCopy);
   connect(action, &QAction::triggered, this, &EditorWidget::deleteText);
-  connect(this, &EditorWidget::copyAvailable, action, &QAction::setEnabled);
+  connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
   menu->addSeparator();
 
