@@ -19,7 +19,7 @@
 #include <QFileOpenEvent>
 
 /** The address of the main window object used by the following class. */
-MainWindow* mainWindow;
+static MainWindow* mainWindow = nullptr;
 
 /**
  * A helper for opening files when they were launched from the Finder.
@@ -40,8 +40,12 @@ protected:
       mainWindow->openFile(static_cast<QFileOpenEvent*>(ev)->file());
       return true;
     }
-    else
-      return QApplication::event(ev);
+    else if(ev->type() == QEvent::Quit && !mainWindow->close())
+    {
+      ev->ignore();
+      return false;
+    }
+    return QApplication::event(ev);
   }
 };
 
