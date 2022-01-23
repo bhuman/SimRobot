@@ -73,7 +73,6 @@ void SimObjectRenderer::init()
 void SimObjectRenderer::destroy()
 {
   ASSERT(initialized);
-  auto* context = QOpenGLContext::currentContext();
   if(auto* physicalObject = dynamic_cast<PhysicalObject*>(&simObject); physicalObject)
     physicalObject->unregisterDrawingContext(this);
   if(auto* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject); graphicalObject)
@@ -160,7 +159,7 @@ void SimObjectRenderer::draw()
   if(graphicalObject && surfaceShadeMode != noShading)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
-    graphicalObject->drawAppearances(graphicsContext, false);
+    graphicalObject->drawAppearances(graphicsContext);
     graphicsContext.finishRendering();
     clear = false;
   }
@@ -192,11 +191,34 @@ void SimObjectRenderer::draw()
   // draw controller drawings
   if(drawingsShadeMode != noShading)
   {
-    // TODO: use enableDrawingsOcclusion and enableDrawingsTransparentOcclusion
+    // TODO: flat and smooth shading aren't really different from this perspective.
+    glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    if(renderFlags & enableDrawingsTransparentOcclusion)
+    {
+      if(physicalObject)
+        physicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+      if(graphicalObject)
+        graphicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+    }
+
+    if((renderFlags & enableDrawingsTransparentOcclusion) ||
+       !(renderFlags & enableDrawingsOcclusion))
+      glClear(GL_DEPTH_BUFFER_BIT);
+
+    if(renderFlags & enableDrawingsTransparentOcclusion)
+      glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
+
     if(physicalObject)
-      physicalObject->drawPhysics(graphicsContext, showControllerDrawings);
+      physicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
     if(graphicalObject)
-      graphicalObject->drawAppearances(graphicsContext, true);
+      graphicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+
+    glDisable(GL_BLEND);
   }
 }
 

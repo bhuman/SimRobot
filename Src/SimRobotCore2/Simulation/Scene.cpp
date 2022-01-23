@@ -30,6 +30,11 @@ void Scene::updateActuators()
 
 void Scene::createGraphics(GraphicsContext& graphicsContext)
 {
+  // The model matrix is needed for controller drawings.
+  ASSERT(!::PhysicalObject::modelMatrix);
+  ASSERT(!GraphicalObject::modelMatrix);
+  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+
   graphicsContext.setClearColor(Simulation::simulation->scene->color);
 
   const float color[4] = {0.2f, 0.2f, 0.2f, 1.f};
@@ -42,11 +47,11 @@ void Scene::createGraphics(GraphicsContext& graphicsContext)
   GraphicalObject::createGraphics(graphicsContext);
 }
 
-void Scene::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+void Scene::drawAppearances(GraphicsContext& graphicsContext) const
 {
   for(const Body* body : bodies)
-    body->drawAppearances(graphicsContext, drawControllerDrawings);
-  GraphicalObject::drawAppearances(graphicsContext, drawControllerDrawings);
+    body->drawAppearances(graphicsContext);
+  GraphicalObject::drawAppearances(graphicsContext);
 }
 
 void Scene::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
@@ -54,6 +59,20 @@ void Scene::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) co
   for(const Body* body : bodies)
     body->drawPhysics(graphicsContext, flags);
   ::PhysicalObject::drawPhysics(graphicsContext, flags);
+}
+
+void Scene::visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept)
+{
+  for(Body* body : bodies)
+    accept(*body);
+  GraphicalObject::visitGraphicalControllerDrawings(accept);
+}
+
+void Scene::visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept)
+{
+  for(Body* body : bodies)
+    accept(*body);
+  ::PhysicalObject::visitPhysicalControllerDrawings(accept);
 }
 
 const QIcon* Scene::getIcon() const

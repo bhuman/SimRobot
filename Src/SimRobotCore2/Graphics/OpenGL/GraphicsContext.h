@@ -233,6 +233,12 @@ public:
    */
   struct ModelMatrix final
   {
+    /**
+     * Returns a pointer to the calculated column-major 4x4 model matrix.
+     * @return A pointer to the calculated column-major 4x4 mmodel matrix.
+     */
+    const float* getPointer() const {return memory;}
+
   private:
     Matrix4f constantPart; /**< The constant part of the model matrix. */
     const float* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */

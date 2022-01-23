@@ -88,10 +88,10 @@ void Appearance::Surface::addParent(Element& element)
   appearance->surface = this;
 }
 
-void Appearance::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+void Appearance::drawAppearances(GraphicsContext& graphicsContext) const
 {
-  if(!drawControllerDrawings && mesh)
+  if(mesh)
     graphicsContext.draw(mesh, modelMatrix, surface->surface);
 
-  GraphicalObject::drawAppearances(graphicsContext, drawControllerDrawings);
+  GraphicalObject::drawAppearances(graphicsContext);
 }

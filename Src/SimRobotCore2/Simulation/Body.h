@@ -47,9 +47,8 @@ public:
   /**
    * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
    * @param graphicsContext The graphics context to draw the object to
-   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
    */
-  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+  void drawAppearances(GraphicsContext& graphicsContext) const override;
 
   /** Updates the transformation from the parent to this body (since the pose of the body may have changed) */
   void updateTransformation();
@@ -104,6 +103,18 @@ private:
    * @param element The element to register
    */
   void addParent(Element& element) override;
+
+  /**
+   * Visits controller drawings of physical children
+   * @param accept The functor to apply to every child
+   */
+  void visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept) override;
+
+  /**
+   * Visits controller drawings of graphical children
+   * @param accept The functor to apply to every child
+   */
+  void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept) override;
 
   friend class Accelerometer;
   friend class CollisionSensor;

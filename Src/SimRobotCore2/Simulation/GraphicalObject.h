@@ -32,23 +32,35 @@ public:
   /**
    * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
    * @param graphicsContext The graphics context to draw the object to
-   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
    */
-  virtual void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const;
+  virtual void drawAppearances(GraphicsContext& graphicsContext) const;
 
   /**
-   * Registers a renderer's context for all drawings on this graphical object
+   * Draws controller drawings of this graphical object (and children)
+   * @param projection Pointer to a column-major 4x4 projection matrix
+   * @param view Pointer to a column-major 4x4 view matrix
+   */
+  void drawControllerDrawings(const float* projection, const float* view) const;
+
+  /**
+   * Registers a renderer's context for all drawings on this graphical object (and children)
    * @param renderer The renderer
    */
   void registerDrawingContext(SimObjectRenderer* renderer);
 
   /**
-   * Unregisters a renderer's context for all drawings on this graphical object
+   * Unregisters a renderer's context for all drawings on this graphical object (and children)
    * @param renderer The renderer
    */
   void unregisterDrawingContext(SimObjectRenderer* renderer);
 
 protected:
+  /**
+   * Visits controller drawings of graphical children
+   * @param accept The functor to apply to every child
+   */
+  virtual void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept);
+
   /**
    * Registers an element as parent
    * @param element The element to register

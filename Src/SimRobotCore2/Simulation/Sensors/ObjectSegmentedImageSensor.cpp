@@ -137,13 +137,13 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true, false, false, false);
 
   // draw all objects
-  Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
+  Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
   int j = 0;
   for(auto iter = Simulation::simulation->scene->bodies.begin(),
       end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
   {
     graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
-    (*iter)->drawAppearances(graphicsContext, false);
+    (*iter)->drawAppearances(graphicsContext);
   }
   graphicsContext.setForcedSurface(nullptr);
 
@@ -208,13 +208,13 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos, false, false, false);
 
       // draw all objects
-      Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext, false);
+      Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
       int j = 0;
       for(auto iter = Simulation::simulation->scene->bodies.begin(),
           end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
       {
         graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
-        (*iter)->drawAppearances(graphicsContext, false);
+        (*iter)->drawAppearances(graphicsContext);
       }
       graphicsContext.setForcedSurface(nullptr);
 

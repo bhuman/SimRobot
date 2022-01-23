@@ -105,7 +105,7 @@ void Camera::CameraSensor::updateValue()
   graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true);
 
   // draw all objects
-  Simulation::simulation->scene->drawAppearances(graphicsContext, false);
+  Simulation::simulation->scene->drawAppearances(graphicsContext);
 
   graphicsContext.finishRendering();
 
@@ -168,7 +168,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
       graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos);
 
       // draw all objects
-      Simulation::simulation->scene->drawAppearances(graphicsContext, false);
+      Simulation::simulation->scene->drawAppearances(graphicsContext);
 
       graphicsContext.finishRendering();
 

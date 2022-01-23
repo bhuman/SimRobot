@@ -217,11 +217,18 @@ void Body::updateTransformation()
     child->updateTransformation();
 }
 
-void Body::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+void Body::drawAppearances(GraphicsContext& graphicsContext) const
 {
-  GraphicalObject::drawAppearances(graphicsContext, drawControllerDrawings);
+  GraphicalObject::drawAppearances(graphicsContext);
   for(const Body* child : bodyChildren)
-    child->drawAppearances(graphicsContext, drawControllerDrawings);
+    child->drawAppearances(graphicsContext);
+}
+
+void Body::visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept)
+{
+  GraphicalObject::visitGraphicalControllerDrawings(accept);
+  for(Body* child : bodyChildren)
+    accept(*child);
 }
 
 void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
@@ -235,6 +242,13 @@ void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) con
 
   for(const Body* child : bodyChildren)
     child->drawPhysics(graphicsContext, flags);
+}
+
+void Body::visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept)
+{
+  ::PhysicalObject::visitPhysicalControllerDrawings(accept);
+  for(Body* child : bodyChildren)
+    accept(*child);
 }
 
 void Body::move(const Vector3f& offset)

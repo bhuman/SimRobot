@@ -44,11 +44,38 @@ void PhysicalObject::createPhysics(GraphicsContext& graphicsContext)
 
 void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
-  if(flags & SimRobotCore2::Renderer::showControllerDrawings)
-    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->draw(nullptr, nullptr, nullptr); // TODO
   for(const PhysicalObject* drawing : physicalDrawings)
     drawing->drawPhysics(graphicsContext, flags);
+}
+
+void PhysicalObject::drawControllerDrawings(const float* projection, const float* view) const
+{
+  if(modelMatrix)
+    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+      drawing->draw(projection, view, modelMatrix->getPointer());
+  const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([projection, view](PhysicalObject& child){child.drawControllerDrawings(projection, view);});
+}
+
+void PhysicalObject::registerDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.push_back(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->registerContext();
+  visitPhysicalControllerDrawings([renderer](PhysicalObject& child){child.registerDrawingContext(renderer);});
+}
+
+void PhysicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.remove(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->unregisterContext();
+  visitPhysicalControllerDrawings([renderer](PhysicalObject& child){child.unregisterDrawingContext(renderer);});
+}
+
+void PhysicalObject::visitPhysicalControllerDrawings(const std::function<void(PhysicalObject&)>& accept)
+{
+  for(PhysicalObject* drawing : physicalDrawings)
+    accept(*drawing);
 }
 
 bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing)
@@ -71,24 +98,6 @@ bool PhysicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawi
       return true;
     }
   return false;
-}
-
-void PhysicalObject::registerDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.push_back(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->registerContext();
-  for(PhysicalObject* drawing : physicalDrawings)
-    drawing->registerDrawingContext(renderer);
-}
-
-void PhysicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.remove(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->unregisterContext();
-  for(PhysicalObject* drawing : physicalDrawings)
-    drawing->unregisterDrawingContext(renderer);
 }
 
 SimRobotCore2::Body* PhysicalObject::getParentBody()

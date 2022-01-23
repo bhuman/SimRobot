@@ -58,9 +58,8 @@ protected:
   /**
    * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
    * @param graphicsContext The graphics context to draw the object to
-   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
    */
-  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+  void drawAppearances(GraphicsContext& graphicsContext) const override;
 
   /**
    * Creates a mesh for this appearance in the given graphics context

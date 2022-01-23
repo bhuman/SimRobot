@@ -67,9 +67,8 @@ public:
   /**
    * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
    * @param graphicsContext The graphics context to draw the object to
-   * @param drawControllerDrawings Whether controller drawings should be drawn instead of the real appearance
    */
-  void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const override;
+  void drawAppearances(GraphicsContext& graphicsContext) const override;
 
   /**
    * Submits draw calls for physical primitives of the object (including children) in the given graphics context
@@ -77,6 +76,19 @@ public:
    * @param flags Flags to enable or disable certain features
    */
   void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+
+private:
+  /**
+   * Visits controller drawings of graphical children
+   * @param accept The functor to apply to every child
+   */
+  void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept) override;
+
+  /**
+   * Visits controller drawings of physical children
+   * @param accept The functor to apply to every child
+   */
+  void visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept) override;
 
 private:
   // API

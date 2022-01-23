@@ -13,14 +13,38 @@ void GraphicalObject::createGraphics(GraphicsContext& graphicsContext)
     graphicalObject->createGraphics(graphicsContext);
 }
 
-void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const
+void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext) const
 {
-  if(drawControllerDrawings)
+  for(const GraphicalObject* graphicalObject : graphicalDrawings)
+    graphicalObject->drawAppearances(graphicsContext);
+}
+
+void GraphicalObject::drawControllerDrawings(const float* projection, const float* view) const
+{
+  if(modelMatrix)
     for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->draw(nullptr, nullptr, nullptr); // TODO
-  else
-    for(const GraphicalObject* graphicalObject : graphicalDrawings)
-      graphicalObject->drawAppearances(graphicsContext, false);
+      drawing->draw(projection, view, modelMatrix->getPointer());
+  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([projection, view](GraphicalObject& child){child.drawControllerDrawings(projection, view);});
+}
+
+void GraphicalObject::registerDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.push_back(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->registerContext();
+  visitGraphicalControllerDrawings([renderer](GraphicalObject& child){child.registerDrawingContext(renderer);});
+}
+
+void GraphicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.remove(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->unregisterContext();
+  visitGraphicalControllerDrawings([renderer](GraphicalObject& child){child.unregisterDrawingContext(renderer);});
+}
+
+void GraphicalObject::visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>&)
+{
 }
 
 void GraphicalObject::addParent(Element& element)
@@ -48,18 +72,4 @@ bool GraphicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& draw
       return true;
     }
   return false;
-}
-
-void GraphicalObject::registerDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.push_back(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->registerContext();
-}
-
-void GraphicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.remove(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->unregisterContext();
 }
