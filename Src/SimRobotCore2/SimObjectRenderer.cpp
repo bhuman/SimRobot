@@ -35,6 +35,11 @@ SimObjectRenderer::~SimObjectRenderer()
   ASSERT(!initialized);
 }
 
+void SimObjectRenderer::addToRegisterQueue(SimRobotCore2::Controller3DDrawing* drawing)
+{
+  drawingsToRegister.push_back(drawing);
+}
+
 void SimObjectRenderer::resetCamera()
 {
   cameraPos = defaultCameraPos;
@@ -52,6 +57,10 @@ void SimObjectRenderer::init()
 {
   ASSERT(!initialized);
   Simulation::simulation->graphicsContext.createGraphics();
+  if(auto* physicalObject = dynamic_cast<PhysicalObject*>(&simObject); physicalObject)
+    physicalObject->registerDrawingContext(this);
+  if(auto* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject); graphicalObject)
+    graphicalObject->registerDrawingContext(this);
   initialized = true;
   calcDragPlaneVector();
 #ifdef WINDOWS
@@ -64,6 +73,11 @@ void SimObjectRenderer::init()
 void SimObjectRenderer::destroy()
 {
   ASSERT(initialized);
+  auto* context = QOpenGLContext::currentContext();
+  if(auto* physicalObject = dynamic_cast<PhysicalObject*>(&simObject); physicalObject)
+    physicalObject->unregisterDrawingContext(this);
+  if(auto* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject); graphicalObject)
+    graphicalObject->unregisterDrawingContext(this);
   Simulation::simulation->graphicsContext.destroyGraphics();
   initialized = false;
 }
@@ -170,7 +184,20 @@ void SimObjectRenderer::draw()
     clear = false;
   }
 
-  // TODO: draw controller drawings
+  // Register the current context for drawings that have been added in the meantime.
+  for(auto* drawing : drawingsToRegister)
+    drawing->registerContext();
+  drawingsToRegister.clear();
+
+  // draw controller drawings
+  if(drawingsShadeMode != noShading)
+  {
+    // TODO: use enableDrawingsOcclusion and enableDrawingsTransparentOcclusion
+    if(physicalObject)
+      physicalObject->drawPhysics(graphicsContext, showControllerDrawings);
+    if(graphicalObject)
+      graphicalObject->drawAppearances(graphicsContext, true);
+  }
 }
 
 void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int height)

@@ -27,11 +27,21 @@
  */
 class TestDrawing : public SimRobotCore2::Controller3DDrawing
 {
-  void draw()
+  void registerContext() override
   {
+  }
+
+  void unregisterContext() override
+  {
+  }
+
+  void draw(const float*, const float*, const float*) override
+  {
+    /*
     GLUquadricObj* q = gluNewQuadric();
     gluSphere(q, 0.5, 15, 15);
     gluDeleteQuadric(q);
+    */
   }
 };
 

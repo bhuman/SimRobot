@@ -49,5 +49,4 @@ private:
   GraphicsContext::Mesh* axisLine = nullptr;
   GraphicsContext::Mesh* sphere = nullptr;
   GraphicsContext::Surface* surface = nullptr;
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr;
 };

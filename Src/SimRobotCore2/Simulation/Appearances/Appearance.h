@@ -83,7 +83,6 @@ private:
   void addParent(Element& element) override;
 
   GraphicsContext::Mesh* mesh = nullptr; /**< The mesh to draw */
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this appearance */
 
   //API
   const QString& getFullName() const override {return SimObject::getFullName();}

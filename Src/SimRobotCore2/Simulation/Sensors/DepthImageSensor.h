@@ -89,6 +89,5 @@ private:
   void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
 
   GraphicsContext::Mesh* pyramidChain = nullptr; /**< The pyramid chain mesh for the sensor drawing. */
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix for the sensor drawing. */
   GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
 };

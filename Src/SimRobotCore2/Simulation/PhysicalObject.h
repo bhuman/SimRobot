@@ -7,12 +7,14 @@
 #pragma once
 
 #include "SimRobotCore2.h"
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/SimObject.h"
 #include "Tools/Math/Pose3f.h"
 #include <list>
 
 class Body;
 class GraphicsContext;
+class SimObjectRenderer;
 
 /**
  * @class PhysicalObject
@@ -43,6 +45,18 @@ public:
    */
   virtual void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
 
+  /**
+   * Registers a renderer's context for all drawings on this physical object (and children)
+   * @param renderer The renderer
+   */
+  void registerDrawingContext(SimObjectRenderer* renderer);
+
+  /**
+   * Unregisters a renderer's context for all drawings on this physical object (and children)
+   * @param renderer The renderer
+   */
+  void unregisterDrawingContext(SimObjectRenderer* renderer);
+
 protected:
   /**
    * Registers an element as parent
@@ -50,8 +64,11 @@ protected:
    */
   void addParent(Element& element) override;
 
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this physical object (if it has something to draw) */
+
 private:
   std::list<SimRobotCore2::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */
+  std::list<SimObjectRenderer*> registeredRenderers; /**< Renderers that draw this physical object */
 
 protected:
   // API

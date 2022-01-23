@@ -89,7 +89,6 @@ public:
    */
   void createPhysics(GraphicsContext& graphicsContext) override;
 
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this geometry drawing */
   GraphicsContext::Surface* surface = nullptr; /**< The surface of this geometry drawing */
 
 private:

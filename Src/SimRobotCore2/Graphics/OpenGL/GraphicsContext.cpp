@@ -596,6 +596,13 @@ void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matr
     glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
+
+  // Controller drawings might have changed these states in the meantime:
+  data->boundVAO = 0;
+  data->boundTexture = 0;
+  data->blendEnabled = false;
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable(GL_BLEND);
 }
 
 void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear)
@@ -614,6 +621,13 @@ void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const 
   const Matrix4f pv = projection * view;
   glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
+
+  // Controller drawings might have changed these states in the meantime:
+  data->boundVAO = 0;
+  data->boundTexture = 0;
+  data->blendEnabled = false;
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable(GL_BLEND);
 }
 
 void GraphicsContext::setForcedSurface(const Surface* surface)

@@ -7,10 +7,12 @@
 #pragma once
 
 #include "SimRobotCore2.h"
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/SimObject.h"
 #include <list>
 
 class GraphicsContext;
+class SimObjectRenderer;
 
 /**
  * @class GraphicalObject
@@ -34,6 +36,18 @@ public:
    */
   virtual void drawAppearances(GraphicsContext& graphicsContext, bool drawControllerDrawings) const;
 
+  /**
+   * Registers a renderer's context for all drawings on this graphical object
+   * @param renderer The renderer
+   */
+  void registerDrawingContext(SimObjectRenderer* renderer);
+
+  /**
+   * Unregisters a renderer's context for all drawings on this graphical object
+   * @param renderer The renderer
+   */
+  void unregisterDrawingContext(SimObjectRenderer* renderer);
+
 protected:
   /**
    * Registers an element as parent
@@ -41,10 +55,14 @@ protected:
    */
   virtual void addParent(Element& element);
 
-  // API
-  virtual bool registerDrawing(SimRobotCore2::Controller3DDrawing& drawing);
-  virtual bool unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawing);
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this graphical object (if it has something to draw) */
 
 private:
   std::list<SimRobotCore2::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */
+  std::list<SimObjectRenderer*> registeredRenderers; /**< Renderers that draw this graphical object */
+
+protected:
+  // API
+  virtual bool registerDrawing(SimRobotCore2::Controller3DDrawing& drawing);
+  virtual bool unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawing);
 };

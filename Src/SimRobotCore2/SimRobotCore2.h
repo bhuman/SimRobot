@@ -207,7 +207,8 @@ namespace SimRobotCore2
     virtual bool moveDrag(int x, int y, DragType type) = 0;
     virtual bool releaseDrag(int x, int y) = 0;
 
-    /** Sets the camera moving state (useful for camera navigation with WASD keys)
+    /**
+     * Sets the camera moving state (useful for camera navigation with WASD keys)
      * @param left Whether the camera should move to the left
      * @param right Whether the camera should move to the right
      * @param up Whether the camera should move up
@@ -230,11 +231,20 @@ namespace SimRobotCore2
     /** Empty virtual destructor */
     virtual ~Controller3DDrawing() = default;
 
+    /** Is called when the drawing is about to be drawn in a context it hasn't been drawn in before */
+    virtual void registerContext() = 0;
+
+    /** Is called when a context that was previously registered is destroyed */
+    virtual void unregisterContext() = 0;
+
     /**
      * Virtual function for drawing commands. Derived classes have to
      * override this function.
+     * @param projection Pointer to a column-major 4x4 projection matrix
+     * @param view Pointer to a column-major 4x4 view matrix
+     * @param model Pointer to a column-major 4x4 model matrix
      */
-    virtual void draw() = 0;
+    virtual void draw(const float* projection, const float* view, const float* model) = 0;
   };
 
   /**

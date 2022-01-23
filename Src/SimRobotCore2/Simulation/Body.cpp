@@ -95,8 +95,9 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.pushModelMatrixByReference(transformation);
 
   graphicsContext.pushModelMatrix(centerOfMassTransformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
+  ASSERT(!::PhysicalObject::modelMatrix);
+  ASSERT(!GraphicalObject::modelMatrix);
+  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
   graphicsContext.popModelMatrix();
 
   //
@@ -227,7 +228,7 @@ void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) con
 {
   // draw center of mass
   if(flags & SimRobotCore2::Renderer::showPhysics)
-    graphicsContext.draw(comSphere, modelMatrix, surface);
+    graphicsContext.draw(comSphere, ::PhysicalObject::modelMatrix, surface);
 
   // draw children
   ::PhysicalObject::drawPhysics(graphicsContext, flags);

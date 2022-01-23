@@ -7,6 +7,7 @@
 #include "PhysicalObject.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
+#include "SimObjectRenderer.h"
 
 void PhysicalObject::addParent(Element& element)
 {
@@ -45,7 +46,7 @@ void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int 
 {
   if(flags & SimRobotCore2::Renderer::showControllerDrawings)
     for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->draw();
+      drawing->draw(nullptr, nullptr, nullptr); // TODO
   for(const PhysicalObject* drawing : physicalDrawings)
     drawing->drawPhysics(graphicsContext, flags);
 }
@@ -53,6 +54,8 @@ void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int 
 bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing)
 {
   controllerDrawings.push_back(&drawing);
+  for(SimObjectRenderer* renderer : registeredRenderers)
+    renderer->addToRegisterQueue(&drawing);
   return true;
 }
 
@@ -61,10 +64,31 @@ bool PhysicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawi
   for(auto iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
     if(*iter == &drawing)
     {
+      // It is impossible to unregister contexts here.
+      ASSERT(registeredRenderers.empty());
+      // The above assertion also guarantees that the drawing is not referenced in any register queue of a renderer.
       controllerDrawings.erase(iter);
       return true;
     }
   return false;
+}
+
+void PhysicalObject::registerDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.push_back(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->registerContext();
+  for(PhysicalObject* drawing : physicalDrawings)
+    drawing->registerDrawingContext(renderer);
+}
+
+void PhysicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
+{
+  registeredRenderers.remove(renderer);
+  for(auto* drawing : controllerDrawings)
+    drawing->unregisterContext();
+  for(PhysicalObject* drawing : physicalDrawings)
+    drawing->unregisterDrawingContext(renderer);
 }
 
 SimRobotCore2::Body* PhysicalObject::getParentBody()
