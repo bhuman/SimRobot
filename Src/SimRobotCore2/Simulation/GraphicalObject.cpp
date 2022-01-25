@@ -19,12 +19,28 @@ void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext) const
     graphicalObject->drawAppearances(graphicsContext);
 }
 
-void GraphicalObject::drawControllerDrawings(const float* projection, const float* view) const
+void GraphicalObject::drawControllerDrawings() const
 {
   if(modelMatrix)
     for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->draw(projection, view, modelMatrix->getPointer());
-  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([projection, view](GraphicalObject& child){child.drawControllerDrawings(projection, view);});
+      drawing->draw();
+  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([](GraphicalObject& child){child.drawControllerDrawings();});
+}
+
+void GraphicalObject::beforeControllerDrawings(const float* projection, const float* view) const
+{
+  if(modelMatrix)
+    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+      drawing->beforeFrame(projection, view, modelMatrix->getPointer());
+  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([projection, view](GraphicalObject& child){child.beforeControllerDrawings(projection, view);});
+}
+
+void GraphicalObject::afterControllerDrawings() const
+{
+  if(modelMatrix)
+    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+      drawing->afterFrame();
+  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([](GraphicalObject& child){child.afterControllerDrawings();});
 }
 
 void GraphicalObject::registerDrawingContext(SimObjectRenderer* renderer)

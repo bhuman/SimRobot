@@ -45,12 +45,18 @@ public:
    */
   virtual void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
 
+  /** Draws controller drawings of this physical object (and children) */
+  void drawControllerDrawings() const;
+
   /**
-   * Draws controller drawings of this physical object (and children)
+   * Prepare controller drawings of this physical object (and children) for a frame
    * @param projection Pointer to a column-major 4x4 projection matrix
    * @param view Pointer to a column-major 4x4 view matrix
    */
-  void drawControllerDrawings(const float* projection, const float* view) const;
+  void beforeControllerDrawings(const float* projection, const float* view) const;
+
+  /** Finish a frame of controller drawings for this physical object (and children) */
+  void afterControllerDrawings() const;
 
   /**
    * Registers a renderer's context for all drawings on this physical object (and children)

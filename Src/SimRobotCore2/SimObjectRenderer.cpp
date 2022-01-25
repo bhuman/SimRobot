@@ -198,12 +198,17 @@ void SimObjectRenderer::draw()
     glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
     glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+    if(physicalObject)
+      physicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
+    if(graphicalObject)
+      graphicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
+
     if(renderFlags & enableDrawingsTransparentOcclusion)
     {
       if(physicalObject)
-        physicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+        physicalObject->drawControllerDrawings();
       if(graphicalObject)
-        graphicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+        graphicalObject->drawControllerDrawings();
     }
 
     if((renderFlags & enableDrawingsTransparentOcclusion) ||
@@ -214,9 +219,14 @@ void SimObjectRenderer::draw()
       glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
 
     if(physicalObject)
-      physicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+      physicalObject->drawControllerDrawings();
     if(graphicalObject)
-      graphicalObject->drawControllerDrawings(projection.data(), viewMatrix.data());
+      graphicalObject->drawControllerDrawings();
+
+    if(physicalObject)
+      physicalObject->afterControllerDrawings();
+    if(graphicalObject)
+      graphicalObject->afterControllerDrawings();
 
     glDisable(GL_BLEND);
   }
