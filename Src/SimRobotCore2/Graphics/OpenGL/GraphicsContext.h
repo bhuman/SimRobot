@@ -11,7 +11,6 @@
 #include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
-#include <QOpenGLFunctions_3_3_Core>
 #include <stack>
 #include <unordered_map>
 #include <vector>
@@ -20,8 +19,9 @@ class Light;
 class QOffscreenSurface;
 class QOpenGLContext;
 class QOpenGLFramebufferObject;
+class QOpenGLFunctions_3_3_Core;
 
-class GraphicsContext : public QOpenGLFunctions_3_3_Core
+class GraphicsContext
 {
 public:
   /**
@@ -467,6 +467,8 @@ private:
    */
   struct PerContextData
   {
+    QOpenGLFunctions_3_3_Core* f = nullptr; /**< OpenGL functions for this context (shared between contexts within a share group). */
+
     std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
@@ -573,6 +575,7 @@ private:
   // Only valid between \c startColorRendering / \c startDepthOnlyRendering and \c finishRendering:
   PerContextData* data = nullptr; /**< The per context data for the current OpenGL context. */
   Shader* shader = nullptr; /**< The currently selected shader. */
+  QOpenGLFunctions_3_3_Core* f = nullptr; /**< The OpenGL functions for the current OpenGL context. */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides \c draw's argument. */
 
   // Offscreen rendering:

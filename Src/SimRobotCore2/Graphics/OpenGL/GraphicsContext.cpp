@@ -13,6 +13,7 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions_3_3_Core>
 #include <cstddef>
 
 // The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights.
@@ -274,9 +275,6 @@ void GraphicsContext::compile()
 
 void GraphicsContext::createGraphics()
 {
-  if(!initializeOpenGLFunctions())
-    return;
-
   const auto* context = QOpenGLContext::currentContext();
 
   // Check if the context is already initialized.
@@ -303,18 +301,28 @@ void GraphicsContext::createGraphics()
   }();
   ++referenceCounters[data.referenceCounterIndex];
 
+  ASSERT(!f);
+  if(shareData)
+    data.f = shareData->f;
+  else
+  {
+    data.f = new QOpenGLFunctions_3_3_Core;
+    data.f->initializeOpenGLFunctions();
+  }
+  f = data.f;
+
   // Enable depth test.
-  glClearDepth(1.0f);
-  glDepthFunc(GL_LEQUAL);
-  glEnable(GL_DEPTH_TEST);
+  f->glClearDepth(1.0f);
+  f->glDepthFunc(GL_LEQUAL);
+  f->glEnable(GL_DEPTH_TEST);
 
   // Avoid rendering the backside of surfaces.
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-  glFrontFace(GL_CCW);
+  f->glEnable(GL_CULL_FACE);
+  f->glCullFace(GL_BACK);
+  f->glFrontFace(GL_CCW);
 
   // Set clear color.
-  glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+  f->glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 
   // Buffer objects are shared between contexts.
   if(shareData)
@@ -325,52 +333,52 @@ void GraphicsContext::createGraphics()
   }
   else
   {
-    glGenBuffers(1, &data.vbo);
-    glGenBuffers(1, &data.ebo);
-    glGenBuffers(1, &data.ubo);
+    f->glGenBuffers(1, &data.vbo);
+    f->glGenBuffers(1, &data.ebo);
+    f->glGenBuffers(1, &data.ubo);
     // Data can't be uploaded here because to bind the EBO, a VAO must be bound.
   }
 
   // All vertex attributes use the same VBO.
-  glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
+  f->glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
 
   // VAOs are never shared between contexts, so they must be created here.
   data.vao.resize(vertexBuffers.size());
-  glGenVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  f->glGenVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   for(std::size_t vaoIndex = 0; vaoIndex < data.vao.size(); ++vaoIndex)
   {
-    glBindVertexArray(data.vao[vaoIndex]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
-    vertexBuffers[vaoIndex].setupVertexAttributes(*this);
+    f->glBindVertexArray(data.vao[vaoIndex]);
+    f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
+    vertexBuffers[vaoIndex].setupVertexAttributes(*f);
   }
 
   // Upload buffer data, now that also the EBO is bound.
   if(!shareData)
   {
-    glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
+    f->glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
     for(const auto& pair : vertexBuffers)
       for(const auto* buffer : pair.buffers)
-        glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
+        f->glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
 
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
+    f->glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
     for(const auto* buffer : indexBuffers)
-      glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
+      f->glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
 
-    glBindBuffer(GL_UNIFORM_BUFFER, data.ubo);
-    glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
+    f->glBindBuffer(GL_UNIFORM_BUFFER, data.ubo);
+    f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
       static constexpr std::size_t verbatimPart = offsetof(Surface, shininess) - offsetof(Surface, diffuseColor) + sizeof(Surface::shininess);
       unsigned char buf[Surface::memorySize];
       std::memcpy(buf, &surfaces[i]->diffuseColor, verbatimPart);
       *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
-      glBufferSubData(GL_UNIFORM_BUFFER, i * Surface::memorySize, Surface::memorySize, buf);
+      f->glBufferSubData(GL_UNIFORM_BUFFER, i * Surface::memorySize, Surface::memorySize, buf);
     }
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+  f->glBindVertexArray(0);
 
   // Shaders and textures are shared as well.
   if(shareData)
@@ -382,15 +390,15 @@ void GraphicsContext::createGraphics()
   {
     // Upload textures.
     data.textureIDs.resize(textures.size());
-    glGenTextures(static_cast<GLsizei>(textures.size()), data.textureIDs.data());
+    f->glGenTextures(static_cast<GLsizei>(textures.size()), data.textureIDs.data());
     for(const auto& pair : textures)
     {
       const Texture* texture = pair.second;
-      glBindTexture(GL_TEXTURE_2D, data.textureIDs[texture->index]);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, texture->byteOrder, GL_UNSIGNED_BYTE, texture->data);
-      glGenerateMipmap(GL_TEXTURE_2D);
+      f->glBindTexture(GL_TEXTURE_2D, data.textureIDs[texture->index]);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, texture->byteOrder, GL_UNSIGNED_BYTE, texture->data);
+      f->glGenerateMipmap(GL_TEXTURE_2D);
     }
 
     // Compile shaders.
@@ -398,6 +406,8 @@ void GraphicsContext::createGraphics()
       data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
     data.shaders[8] = compileDepthOnlyShader();
   }
+
+  f = nullptr;
 }
 
 void GraphicsContext::destroyGraphics()
@@ -411,15 +421,16 @@ void GraphicsContext::destroyGraphics()
   if(--data.referenceCounter)
     return;
 
-  glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
-    glDeleteBuffers(1, &data.vbo);
-    glDeleteBuffers(1, &data.ebo);
-    glDeleteBuffers(1, &data.ubo);
-    glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
+    data.f->glDeleteBuffers(1, &data.vbo);
+    data.f->glDeleteBuffers(1, &data.ebo);
+    data.f->glDeleteBuffers(1, &data.ubo);
+    data.f->glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
     for(const auto& shader : data.shaders)
-      glDeleteProgram(shader.program);
+      data.f->glDeleteProgram(shader.program);
+    delete data.f;
   }
 
   perContextData.erase(context);
@@ -580,29 +591,31 @@ void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matr
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
   ASSERT(!shader);
+  ASSERT(!f);
   data = &perContextData[context];
   shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
+  f = data->f;
   if(clear)
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   if(viewportX >= 0)
-    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-  glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
-  glUseProgram(shader->program);
+    f->glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+  f->glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
+  f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
-  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
+  f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
     const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
-    glUniform3fv(shader->cameraPosLocation, 1, pos.data());
+    f->glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
+  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
 
   // Controller drawings might have changed these states in the meantime:
   data->boundVAO = 0;
   data->boundTexture = 0;
   data->blendEnabled = false;
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_BLEND);
+  f->glBindTexture(GL_TEXTURE_2D, 0);
+  f->glDisable(GL_BLEND);
 }
 
 void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear)
@@ -610,24 +623,26 @@ void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const 
   const auto* context = QOpenGLContext::currentContext();
   ASSERT(!data);
   ASSERT(!shader);
+  ASSERT(!f);
   data = &perContextData[context];
   shader = &data->shaders[8];
+  f = data->f;
   if(clear)
-    glClear(GL_DEPTH_BUFFER_BIT);
+    f->glClear(GL_DEPTH_BUFFER_BIT);
   if(viewportX >= 0)
-    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  glUseProgram(shader->program);
+    f->glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+  f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
-  glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
+  f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
+  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
 
   // Controller drawings might have changed these states in the meantime:
   data->boundVAO = 0;
   data->boundTexture = 0;
   data->blendEnabled = false;
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_BLEND);
+  f->glBindTexture(GL_TEXTURE_2D, 0);
+  f->glDisable(GL_BLEND);
 }
 
 void GraphicsContext::setForcedSurface(const Surface* surface)
@@ -641,25 +656,28 @@ void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, con
 {
   ASSERT(data);
   ASSERT(shader);
+  ASSERT(f);
   const GLuint newVAO = data->vao[mesh->vertexBuffer->vaoIndex];
   if(newVAO != data->boundVAO)
-    glBindVertexArray((data->boundVAO = newVAO));
-  glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory);
+    f->glBindVertexArray((data->boundVAO = newVAO));
+  f->glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory);
   if(!forcedSurface)
     setSurface(surface);
   if(mesh->indexBuffer)
-    glDrawElementsBaseVertex(mesh->mode, mesh->indexBuffer->count, mesh->indexBuffer->type, reinterpret_cast<void*>(mesh->indexBuffer->offset), mesh->vertexBuffer->base);
+    f->glDrawElementsBaseVertex(mesh->mode, mesh->indexBuffer->count, mesh->indexBuffer->type, reinterpret_cast<void*>(mesh->indexBuffer->offset), mesh->vertexBuffer->base);
   else
-    glDrawArrays(mesh->mode, mesh->vertexBuffer->base, mesh->vertexBuffer->count);
+    f->glDrawArrays(mesh->mode, mesh->vertexBuffer->base, mesh->vertexBuffer->count);
 }
 
 void GraphicsContext::finishRendering()
 {
   ASSERT(data);
   ASSERT(shader);
+  ASSERT(f);
   ASSERT(!forcedSurface);
   data = nullptr;
   shader = nullptr;
+  f = nullptr;
 }
 
 void GraphicsContext::initOffscreenRenderer()
@@ -706,94 +724,98 @@ bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
 
 void GraphicsContext::finishImageRendering(void* image, int w, int h)
 {
+  ASSERT(f);
   const int lineSize = w * 3;
-  glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-  glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+  f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
+  f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
 }
 
 void GraphicsContext::finishDepthRendering(void* image, int w, int h)
 {
-  glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-  glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+  ASSERT(f);
+  f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
+  f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
 }
 
 void GraphicsContext::setSurface(const Surface* surface)
 {
   ASSERT(data);
   ASSERT(shader);
+  ASSERT(f);
   const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
   if(newTexture != data->boundTexture)
-    glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
+    f->glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
   if(shader->surfaceIndexLocation >= 0)
-    glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
+    f->glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
   const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->diffuseColor[3] < 1.f);
   if(newBlendState && !data->blendEnabled)
   {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    f->glEnable(GL_BLEND);
+    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     data->blendEnabled = true;
   }
   else if(!newBlendState && data->blendEnabled)
   {
-    glDisable(GL_BLEND);
+    f->glDisable(GL_BLEND);
     data->blendEnabled = false;
   }
 }
 
 GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShaderSources, const std::vector<const char*>& fragmentShaderSources)
 {
+  ASSERT(f);
 #ifndef NDEBUG
   GLint success = 0;
 #endif
 
-  const GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  const GLuint vertexShader = f->glCreateShader(GL_VERTEX_SHADER);
   ASSERT(vertexShader > 0);
-  glShaderSource(vertexShader, static_cast<GLsizei>(vertexShaderSources.size()), vertexShaderSources.data(), nullptr);
-  glCompileShader(vertexShader);
+  f->glShaderSource(vertexShader, static_cast<GLsizei>(vertexShaderSources.size()), vertexShaderSources.data(), nullptr);
+  f->glCompileShader(vertexShader);
 #ifndef NDEBUG
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+  f->glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
   if(!success)
   {
     char log[512];
-    glGetShaderInfoLog(vertexShader, sizeof(log), nullptr, log);
+    f->glGetShaderInfoLog(vertexShader, sizeof(log), nullptr, log);
     TRACE("%s", log);
     ASSERT(false);
   }
 #endif
 
-  const GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  const GLuint fragmentShader = f->glCreateShader(GL_FRAGMENT_SHADER);
   ASSERT(fragmentShader > 0);
-  glShaderSource(fragmentShader, static_cast<GLsizei>(fragmentShaderSources.size()), fragmentShaderSources.data(), nullptr);
-  glCompileShader(fragmentShader);
+  f->glShaderSource(fragmentShader, static_cast<GLsizei>(fragmentShaderSources.size()), fragmentShaderSources.data(), nullptr);
+  f->glCompileShader(fragmentShader);
 #ifndef NDEBUG
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+  f->glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
   if(!success)
   {
     char log[512];
-    glGetShaderInfoLog(fragmentShader, sizeof(log), nullptr, log);
+    f->glGetShaderInfoLog(fragmentShader, sizeof(log), nullptr, log);
     TRACE("%s", log);
     ASSERT(false);
   }
 #endif
 
-  const GLuint program = glCreateProgram();
+  const GLuint program = f->glCreateProgram();
   ASSERT(program > 0);
-  glAttachShader(program, vertexShader);
-  glAttachShader(program, fragmentShader);
-  glLinkProgram(program);
+  f->glAttachShader(program, vertexShader);
+  f->glAttachShader(program, fragmentShader);
+  f->glLinkProgram(program);
 #ifndef NDEBUG
-  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  f->glGetProgramiv(program, GL_LINK_STATUS, &success);
   if(!success)
   {
     char log[512];
-    glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+    f->glGetProgramInfoLog(program, sizeof(log), nullptr, log);
     TRACE("%s", log);
     ASSERT(false);
   }
 #endif
 
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  f->glDeleteShader(vertexShader);
+  f->glDeleteShader(fragmentShader);
 
   return program;
 }
@@ -826,11 +848,12 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   Shader shader;
   shader.program = compileShader({versionSourceCode, defines.c_str(), vertexShaderSourceCode}, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode});
 
-  glUniformBlockBinding(shader.program, glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
-  shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
-  shader.cameraPosLocation = glGetUniformLocation(shader.program, "cameraPos");
-  shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
-  shader.surfaceIndexLocation = glGetUniformLocation(shader.program, "surfaceIndex");
+  ASSERT(f);
+  f->glUniformBlockBinding(shader.program, f->glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
+  shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
+  shader.cameraPosLocation = f->glGetUniformLocation(shader.program, "cameraPos");
+  shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
+  shader.surfaceIndexLocation = f->glGetUniformLocation(shader.program, "surfaceIndex");
   return shader;
 }
 
@@ -841,8 +864,9 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   Shader shader;
   shader.program = compileShader({versionSourceCode, depthOnlyVertexShaderSourceCode}, {versionSourceCode, depthOnlyFragmentShaderSourceCode});
 
-  shader.cameraPVLocation = glGetUniformLocation(shader.program, "cameraPV");
-  shader.modelMatrixLocation = glGetUniformLocation(shader.program, "modelMatrix");
+  ASSERT(f);
+  shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
+  shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
   return shader;
 }
 
