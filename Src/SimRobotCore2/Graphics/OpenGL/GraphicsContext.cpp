@@ -724,17 +724,15 @@ bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
 
 void GraphicsContext::finishImageRendering(void* image, int w, int h)
 {
-  ASSERT(f);
   const int lineSize = w * 3;
-  f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-  f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+  glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
+  glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
 }
 
 void GraphicsContext::finishDepthRendering(void* image, int w, int h)
 {
-  ASSERT(f);
-  f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-  f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+  glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
+  glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
 }
 
 void GraphicsContext::setSurface(const Surface* surface)
