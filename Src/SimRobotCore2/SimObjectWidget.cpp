@@ -448,8 +448,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     };
     addShadingAction("&Off", SimRobotCore2::Renderer::noShading);
     addShadingAction("&Wire Frame", SimRobotCore2::Renderer::wireframeShading);
-    addShadingAction("&Flat Shading", SimRobotCore2::Renderer::flatShading);
-    addShadingAction("&Smooth Shading", SimRobotCore2::Renderer::smoothShading);
+    addShadingAction("&Filled", SimRobotCore2::Renderer::flatShading);
 
     subMenu->addSeparator();
 

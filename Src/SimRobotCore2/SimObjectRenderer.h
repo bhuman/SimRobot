@@ -43,7 +43,7 @@ private:
 
   ShadeMode surfaceShadeMode = smoothShading;
   ShadeMode physicsShadeMode = noShading;
-  ShadeMode drawingsShadeMode = smoothShading;
+  ShadeMode drawingsShadeMode = flatShading;
   unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
 
   bool initialized = false;
@@ -81,7 +81,7 @@ public:
   ShadeMode getSurfaceShadeMode() const override {return surfaceShadeMode;}
   void setPhysicsShadeMode(ShadeMode shadeMode) override {physicsShadeMode = shadeMode;}
   ShadeMode getPhysicsShadeMode() const override {return physicsShadeMode;}
-  void setDrawingsShadeMode(ShadeMode shadeMode) override {drawingsShadeMode = shadeMode;}
+  void setDrawingsShadeMode(ShadeMode shadeMode) override {drawingsShadeMode = shadeMode == smoothShading ? flatShading : shadeMode;}
   ShadeMode getDrawingsShadeMode() const override {return drawingsShadeMode;}
   void zoom(float change, float x, float y) override;
   void setRenderFlags(unsigned int renderFlags) override {this->renderFlags = renderFlags;}

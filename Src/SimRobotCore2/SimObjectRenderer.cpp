@@ -191,7 +191,6 @@ void SimObjectRenderer::draw()
       registeredAtManager = true;
     }
 
-    // TODO: flat and smooth shading aren't really different from this perspective.
     glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
 
     glEnable(GL_BLEND);
