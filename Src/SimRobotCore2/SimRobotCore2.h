@@ -266,7 +266,7 @@ namespace SimRobotCore2
      * @param view Pointer to a column-major 4x4 view matrix
      * @param model Pointer to a column-major 4x4 model matrix
      */
-    virtual void beforeFrame(const float* projection, const float* view, const float* model) {}
+    virtual void beforeFrame(const float* projection, const float* view, const float* model) = 0;
 
     /** Issues draw calls */
     virtual void draw() {}

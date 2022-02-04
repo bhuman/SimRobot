@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef MACOS
-#include <OpenGL/OpenGL.h>
+#include <OpenGL/gl.h>
 #else
 #include <qopengl.h>
 #undef near
