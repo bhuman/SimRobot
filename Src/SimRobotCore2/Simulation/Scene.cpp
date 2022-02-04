@@ -94,3 +94,11 @@ unsigned int Scene::getFrameRate() const
 {
   return Simulation::simulation->currentFrameRate;
 }
+
+bool Scene::registerDrawingManager(SimRobotCore2::Controller3DDrawingManager& manager)
+{
+  if(drawingManager)
+    return false;
+  drawingManager = &manager;
+  return true;
+}

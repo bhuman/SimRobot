@@ -48,18 +48,6 @@ public:
   /** Finish a frame of controller drawings for this graphical object (and children) */
   void afterControllerDrawings() const;
 
-  /**
-   * Registers a renderer's context for all drawings on this graphical object (and children)
-   * @param renderer The renderer
-   */
-  void registerDrawingContext(SimObjectRenderer* renderer);
-
-  /**
-   * Unregisters a renderer's context for all drawings on this graphical object (and children)
-   * @param renderer The renderer
-   */
-  void unregisterDrawingContext(SimObjectRenderer* renderer);
-
 protected:
   /**
    * Visits controller drawings of graphical children
@@ -77,7 +65,6 @@ protected:
 
 private:
   std::list<SimRobotCore2::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */
-  std::list<SimObjectRenderer*> registeredRenderers; /**< Renderers that draw this graphical object */
 
 protected:
   // API

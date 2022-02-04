@@ -8,50 +8,16 @@
  * This demo includes:
  * - DepthImageSensor
  * - Hinge joint
- * - Controller3DDrawing
  *
  * @author <A href="mailto:Tim.Laue@dfki.de">Tim Laue</A>
  */
 #define _USE_MATH_DEFINES // for C++
 
 #include <SimRobotCore2.h>
-#include <Graphics/OpenGL.h>
 #include <QString>
 #include <QVector>
 #include <QList>
 #include <cmath>
-
-/**
- * @class TestDrawing
- * An object (a simple sphere) to be drawn by this controller.
- */
-class TestDrawing : public SimRobotCore2::Controller3DDrawing
-{
-  void registerContext() override
-  {
-  }
-
-  void unregisterContext() override
-  {
-  }
-
-  void beforeFrame(const float*, const float*, const float*) override
-  {
-    /*
-    GLUquadricObj* q = gluNewQuadric();
-    gluSphere(q, 0.5, 15, 15);
-    gluDeleteQuadric(q);
-    */
-  }
-
-  void draw() override
-  {
-  }
-
-  void afterFrame() override
-  {
-  }
-};
 
 /**
  * @class SimpleVehicleController
@@ -81,14 +47,9 @@ public:
   SimpleVehicleController(SimRobot::Application& simRobot) : simRobot(simRobot)
   {}
 
-  /** Initializes drawing and objects for interfacing with actuators and sensor */
+  /** Initializes objects for interfacing with actuators and sensor */
   bool compile() override
   {
-    // Init 3D drawing, attach it to the ball
-    TestDrawing* testDrawing = new TestDrawing();
-    SimRobotCore2::Body* ballObj = static_cast<SimRobotCore2::Body*>(simRobot.resolveObject("SimpleVehicle.Ball", SimRobotCore2::body));
-    ballObj->registerDrawing(*testDrawing);
-
     // Get all necessary actuator and sensor objects
     SimRobotCore2::Object* vehicleObj = static_cast<SimRobotCore2::Object*>(simRobot.resolveObject("SimpleVehicle.car", SimRobotCore2::body));
     QVector<QString> parts;

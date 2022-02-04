@@ -72,22 +72,6 @@ void PhysicalObject::afterControllerDrawings() const
   const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([](PhysicalObject& child){child.afterControllerDrawings();});
 }
 
-void PhysicalObject::registerDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.push_back(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->registerContext();
-  visitPhysicalControllerDrawings([renderer](PhysicalObject& child){child.registerDrawingContext(renderer);});
-}
-
-void PhysicalObject::unregisterDrawingContext(SimObjectRenderer* renderer)
-{
-  registeredRenderers.remove(renderer);
-  for(auto* drawing : controllerDrawings)
-    drawing->unregisterContext();
-  visitPhysicalControllerDrawings([renderer](PhysicalObject& child){child.unregisterDrawingContext(renderer);});
-}
-
 void PhysicalObject::visitPhysicalControllerDrawings(const std::function<void(PhysicalObject&)>& accept)
 {
   for(PhysicalObject* drawing : physicalDrawings)
@@ -97,8 +81,6 @@ void PhysicalObject::visitPhysicalControllerDrawings(const std::function<void(Ph
 bool PhysicalObject::registerDrawing(SimRobotCore2::Controller3DDrawing& drawing)
 {
   controllerDrawings.push_back(&drawing);
-  for(SimObjectRenderer* renderer : registeredRenderers)
-    renderer->addToRegisterQueue(&drawing);
   return true;
 }
 
@@ -107,9 +89,6 @@ bool PhysicalObject::unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawi
   for(auto iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
     if(*iter == &drawing)
     {
-      // It is impossible to unregister contexts here.
-      ASSERT(registeredRenderers.empty());
-      // The above assertion also guarantees that the drawing is not referenced in any register queue of a renderer.
       controllerDrawings.erase(iter);
       return true;
     }

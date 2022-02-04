@@ -222,6 +222,35 @@ namespace SimRobotCore2
   };
 
   /**
+   * This is a base class for managing debug drawings from the controller.
+   * It must be implemented (and registered in the scene) in order to use controller drawings.
+   */
+  class Controller3DDrawingManager
+  {
+  public:
+    /** Empty virtual destructor */
+    virtual ~Controller3DDrawingManager() = default;
+
+    /** Is called when there is a new context in which drawings should be drawn */
+    virtual void registerContext() {}
+
+    /** Is called when a context that was previously registered is destroyed */
+    virtual void unregisterContext() {}
+
+    /** Is called before the first call to \c beforeFrame of any drawing */
+    virtual void beforeFrame() {}
+
+    /** Is called after the last call to \c beforeFrame of any drawing */
+    virtual void uploadData() {}
+
+    /** Is called after \c uploadData and before the first call to \c draw of any drawing */
+    virtual void beforeDraw() {}
+
+    /** Is called after the last call to \c afterFrame of any drawing */
+    virtual void afterFrame() {}
+  };
+
+  /**
    * This is an abstract base class for drawings, which can be implemented
    * inside the controller and executed while drawing the scene.
    */
@@ -231,25 +260,19 @@ namespace SimRobotCore2
     /** Empty virtual destructor */
     virtual ~Controller3DDrawing() = default;
 
-    /** Is called when the drawing is about to be drawn in a context it hasn't been drawn in before */
-    virtual void registerContext() = 0;
-
-    /** Is called when a context that was previously registered is destroyed */
-    virtual void unregisterContext() = 0;
-
     /**
      * Allocates resources before drawing
      * @param projection Pointer to a column-major 4x4 projection matrix
      * @param view Pointer to a column-major 4x4 view matrix
      * @param model Pointer to a column-major 4x4 model matrix
      */
-    virtual void beforeFrame(const float* projection, const float* view, const float* model) = 0;
+    virtual void beforeFrame(const float* projection, const float* view, const float* model) {}
 
     /** Issues draw calls */
-    virtual void draw() = 0;
+    virtual void draw() {}
 
     /** Deallocates resources after drawing */
-    virtual void afterFrame() = 0;
+    virtual void afterFrame() {}
   };
 
   /**
@@ -504,6 +527,13 @@ namespace SimRobotCore2
      * @return The frame rate in frames per second
      */
     virtual unsigned int getFrameRate() const = 0;
+
+    /**
+     * Registers a manager for controller drawings
+     * @param manager The drawing manage (must live as long as the entire simulation and cannot be unregistered)
+     * @return True if no manager was already registered
+     */
+    virtual bool registerDrawingManager(Controller3DDrawingManager& manager) = 0;
   };
 
   /**

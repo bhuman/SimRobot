@@ -41,6 +41,7 @@ public:
   int quickSolverSkip; /**< Controls how often the normal solver will be used instead of the quick solver */
   bool detectBodyCollisions; /**< Whether to detect collision between different bodies */
 
+  SimRobotCore2::Controller3DDrawingManager* drawingManager = nullptr; /**< The manager for 3D controller drawings */
   std::list<Body*> bodies; /**< List of bodies without a parent body */
   std::list<Actuator::Port*> actuators; /**< List of actuators that need to do something in every simulation step */
   std::list<Light*> lights; /**< List of scene lights */
@@ -103,4 +104,5 @@ private:
   unsigned int getStep() const override;
   double getTime() const override;
   unsigned int getFrameRate() const override;
+  bool registerDrawingManager(SimRobotCore2::Controller3DDrawingManager& manager) override;
 };

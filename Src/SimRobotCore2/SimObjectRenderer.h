@@ -8,7 +8,6 @@
 
 #include "SimRobotCore2.h"
 #include "Tools/Math/Eigen.h"
-#include <vector>
 
 class SimObject;
 class Body;
@@ -29,12 +28,6 @@ public:
   /** Destructor. Ensures that \c destroy has been called.  */
   ~SimObjectRenderer();
 
-  /**
-   * Registers a new controller drawing to be initialized in the next \c draw pass
-   * @param drawing The drawing to initialize
-   */
-  void addToRegisterQueue(SimRobotCore2::Controller3DDrawing* drawing);
-
 private:
   SimObject& simObject;
   unsigned int width = 0;
@@ -52,9 +45,9 @@ private:
   ShadeMode physicsShadeMode = noShading;
   ShadeMode drawingsShadeMode = smoothShading;
   unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
-  std::vector<SimRobotCore2::Controller3DDrawing*> drawingsToRegister;
 
   bool initialized = false;
+  bool registeredAtManager = false;
   bool dragging = false;
   DragType dragType;
   Body* dragSelection;

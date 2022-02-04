@@ -35,11 +35,6 @@ SimObjectRenderer::~SimObjectRenderer()
   ASSERT(!initialized);
 }
 
-void SimObjectRenderer::addToRegisterQueue(SimRobotCore2::Controller3DDrawing* drawing)
-{
-  drawingsToRegister.push_back(drawing);
-}
-
 void SimObjectRenderer::resetCamera()
 {
   cameraPos = defaultCameraPos;
@@ -57,10 +52,11 @@ void SimObjectRenderer::init()
 {
   ASSERT(!initialized);
   Simulation::simulation->graphicsContext.createGraphics();
-  if(auto* physicalObject = dynamic_cast<PhysicalObject*>(&simObject); physicalObject)
-    physicalObject->registerDrawingContext(this);
-  if(auto* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject); graphicalObject)
-    graphicalObject->registerDrawingContext(this);
+  if(Simulation::simulation->scene->drawingManager)
+  {
+    Simulation::simulation->scene->drawingManager->registerContext();
+    registeredAtManager = true;
+  }
   initialized = true;
   calcDragPlaneVector();
 #ifdef WINDOWS
@@ -73,10 +69,12 @@ void SimObjectRenderer::init()
 void SimObjectRenderer::destroy()
 {
   ASSERT(initialized);
-  if(auto* physicalObject = dynamic_cast<PhysicalObject*>(&simObject); physicalObject)
-    physicalObject->unregisterDrawingContext(this);
-  if(auto* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject); graphicalObject)
-    graphicalObject->unregisterDrawingContext(this);
+  if(registeredAtManager)
+  {
+    ASSERT(Simulation::simulation->scene->drawingManager);
+    Simulation::simulation->scene->drawingManager->unregisterContext();
+    registeredAtManager = false;
+  }
   Simulation::simulation->graphicsContext.destroyGraphics();
   initialized = false;
 }
@@ -183,14 +181,16 @@ void SimObjectRenderer::draw()
     clear = false;
   }
 
-  // Register the current context for drawings that have been added in the meantime.
-  for(auto* drawing : drawingsToRegister)
-    drawing->registerContext();
-  drawingsToRegister.clear();
-
   // draw controller drawings
-  if(drawingsShadeMode != noShading)
+  if(drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager)
   {
+    // If the manager registered later, it must be done now.
+    if(!registeredAtManager)
+    {
+      Simulation::simulation->scene->drawingManager->registerContext();
+      registeredAtManager = true;
+    }
+
     // TODO: flat and smooth shading aren't really different from this perspective.
     glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
 
@@ -198,13 +198,19 @@ void SimObjectRenderer::draw()
     glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
     glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+    Simulation::simulation->scene->drawingManager->beforeFrame();
+
     if(physicalObject)
       physicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
     if(graphicalObject)
       graphicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
 
+    Simulation::simulation->scene->drawingManager->uploadData();
+
     if(renderFlags & enableDrawingsTransparentOcclusion)
     {
+      Simulation::simulation->scene->drawingManager->beforeDraw();
+
       if(physicalObject)
         physicalObject->drawControllerDrawings();
       if(graphicalObject)
@@ -218,6 +224,8 @@ void SimObjectRenderer::draw()
     if(renderFlags & enableDrawingsTransparentOcclusion)
       glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
 
+    Simulation::simulation->scene->drawingManager->beforeDraw();
+
     if(physicalObject)
       physicalObject->drawControllerDrawings();
     if(graphicalObject)
@@ -227,6 +235,8 @@ void SimObjectRenderer::draw()
       physicalObject->afterControllerDrawings();
     if(graphicalObject)
       graphicalObject->afterControllerDrawings();
+
+    Simulation::simulation->scene->drawingManager->afterFrame();
 
     glDisable(GL_BLEND);
   }
