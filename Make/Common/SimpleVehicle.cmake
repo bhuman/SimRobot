@@ -9,11 +9,6 @@ set_property(TARGET SimpleVehicle PROPERTY PDB_OUTPUT_DIRECTORY "${SIMROBOT_LIBR
 target_include_directories(SimpleVehicle PRIVATE "${SIMPLEVEHICLE_ROOT_DIR}")
 target_link_libraries(SimpleVehicle PRIVATE SimRobotCore2Interface)
 target_link_libraries(SimpleVehicle PRIVATE OpenGL::GL Qt5::Widgets)
-
-if(NOT APPLE)
-  target_link_libraries(SimpleVehicle PRIVATE OpenGL::GLU)
-endif()
-
 target_compile_options(SimpleVehicle PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/GL>>)
 target_link_options(SimpleVehicle PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/LTCG>>)
 target_link_libraries(SimpleVehicle PRIVATE Flags::ForDevelop)
