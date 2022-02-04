@@ -68,15 +68,17 @@ void SimObjectRenderer::init()
 
 void SimObjectRenderer::destroy()
 {
-  ASSERT(initialized);
-  if(registeredAtManager)
+  if(initialized)
   {
-    ASSERT(Simulation::simulation->scene->drawingManager);
-    Simulation::simulation->scene->drawingManager->unregisterContext();
-    registeredAtManager = false;
+    if(registeredAtManager)
+    {
+      ASSERT(Simulation::simulation->scene->drawingManager);
+      Simulation::simulation->scene->drawingManager->unregisterContext();
+      registeredAtManager = false;
+    }
+    Simulation::simulation->graphicsContext.destroyGraphics();
+    initialized = false;
   }
-  Simulation::simulation->graphicsContext.destroyGraphics();
-  initialized = false;
 }
 
 void SimObjectRenderer::draw()
