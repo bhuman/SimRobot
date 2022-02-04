@@ -102,6 +102,51 @@ public:
     void addParent(Element& element) override;
   };
 
+  struct Hasher;
+
+  /**
+   * @class Descriptor
+   * A class that describes a complex appearance and can be used as a key in a map.
+   */
+  class Descriptor
+  {
+  public:
+    /**
+     * Constructor.
+     * @param appearance The appearance which this object should describe.
+     */
+    Descriptor(const ComplexAppearance& appearance);
+
+    /**
+     * Checks whether two descriptors describe the same appearance.
+     * @param other The descriptor to compare with.
+     * @return Whether both descriptors describe the same appearance.
+     */
+    bool operator==(const Descriptor& other) const;
+
+  private:
+    ComplexAppearance::Vertices* vertices;
+    ComplexAppearance::Normals* normals;
+    ComplexAppearance::TexCoords* texCoords;
+    const std::list<ComplexAppearance::PrimitiveGroup*>* primitiveGroups;
+
+    friend struct ComplexAppearance::Hasher;
+  };
+
+  /**
+   * @struct Hasher
+   * A struct that can hash complex appearance descriptors.
+   */
+  struct Hasher
+  {
+    /**
+     * Calculates a hash from a descriptor.
+     * @param descriptor The descriptor to hash.
+     * @return A hash value derived from the descriptor.
+     */
+    std::size_t operator()(const Descriptor& descriptor) const;
+  };
+
   Vertices* vertices = nullptr; /**< The vertex library used for drawing the primitives */
   Normals* normals = nullptr; /**< The normals library used for drawing the primitives */
   TexCoords* texCoords = nullptr; /**< Optional texture points for textured primitives */

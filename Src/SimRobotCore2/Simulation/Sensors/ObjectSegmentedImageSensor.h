@@ -74,5 +74,5 @@ private:
   GraphicsContext::Mesh* pyramid = nullptr; /**< The pyramid mesh for the sensor drawing. */
   GraphicsContext::Surface* surface = nullptr; /**< The surface for the sensor drawing. */
 
-  static std::vector<GraphicsContext::Surface*> surfaces; /**< The special surfaces for each body. */
+  std::vector<GraphicsContext::Surface*>& surfaces; /**< The special surfaces for each body. */
 };

@@ -6,46 +6,11 @@
 
 #include "ComplexAppearance.h"
 #include "Platform/Assert.h"
+#include "Simulation/Simulation.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <unordered_map>
-
-#include <time.h>
-
-struct ComplexAppearanceDescriptor
-{
-  ComplexAppearanceDescriptor(const ComplexAppearance& appearance) :
-    vertices(appearance.vertices),
-    normals(appearance.normals),
-    texCoords(appearance.texCoords),
-    primitiveGroups(&appearance.primitiveGroups)
-  {}
-
-  ComplexAppearance::Vertices* vertices;
-  ComplexAppearance::Normals* normals;
-  ComplexAppearance::TexCoords* texCoords;
-  const std::list<ComplexAppearance::PrimitiveGroup*>* primitiveGroups;
-
-  bool operator==(const ComplexAppearanceDescriptor& other) const
-  {
-    return vertices == other.vertices &&
-           normals == other.normals &&
-           texCoords == other.texCoords &&
-           std::equal(primitiveGroups->begin(), primitiveGroups->end(), other.primitiveGroups->begin(), other.primitiveGroups->end());
-  }
-};
-
-struct ComplexAppearanceHasher
-{
-  std::size_t operator()(const ComplexAppearanceDescriptor& descriptor) const
-  {
-    // Don't hash primitive groups. The few collisions don't really hurt initialization performance.
-    return ((std::hash<ComplexAppearance::Vertices*>()(descriptor.vertices) ^ (std::hash<ComplexAppearance::Normals*>()(descriptor.normals) << 1)) >> 1) ^ (std::hash<ComplexAppearance::TexCoords*>()(descriptor.texCoords) << 1);
-  }
-};
-
-static std::unordered_map<ComplexAppearanceDescriptor, GraphicsContext::Mesh*, ComplexAppearanceHasher> meshCache;
 
 void ComplexAppearance::PrimitiveGroup::addParent(Element& element)
 {
@@ -74,20 +39,41 @@ void ComplexAppearance::TexCoords::addParent(Element& element)
   complexAppearance->texCoords = this;
 }
 
+ComplexAppearance::Descriptor::Descriptor(const ComplexAppearance& appearance) :
+  vertices(appearance.vertices),
+  normals(appearance.normals),
+  texCoords(appearance.texCoords),
+  primitiveGroups(&appearance.primitiveGroups)
+{}
+
+bool ComplexAppearance::Descriptor::operator==(const Descriptor& other) const
+{
+  return vertices == other.vertices &&
+         normals == other.normals &&
+         texCoords == other.texCoords &&
+         std::equal(primitiveGroups->begin(), primitiveGroups->end(), other.primitiveGroups->begin(), other.primitiveGroups->end());
+}
+
+std::size_t ComplexAppearance::Hasher::operator()(const Descriptor& descriptor) const
+{
+  // Don't hash primitive groups. The few collisions don't really hurt initialization performance.
+  return ((std::hash<ComplexAppearance::Vertices*>()(descriptor.vertices) ^ (std::hash<ComplexAppearance::Normals*>()(descriptor.normals) << 1)) >> 1) ^ (std::hash<ComplexAppearance::TexCoords*>()(descriptor.texCoords) << 1);
+}
+
 GraphicsContext::Mesh* ComplexAppearance::createMesh(GraphicsContext& graphicsContext)
 {
   ASSERT(vertices);
   ASSERT(!primitiveGroups.empty());
 
-  const ComplexAppearanceDescriptor descriptor(*this);
-  if(const auto cachedMesh = meshCache.find(descriptor); cachedMesh != meshCache.end())
+  const Descriptor descriptor(*this);
+  if(const auto cachedMesh = Simulation::simulation->complexAppearanceMeshCache.find(descriptor); cachedMesh != Simulation::simulation->complexAppearanceMeshCache.end())
     return cachedMesh->second;
 
   GraphicsContext::Mesh* mesh = (texCoords && surface->texture) ?
                                 createMeshImpl<GraphicsContext::VertexPNT, true>(graphicsContext) :
                                 createMeshImpl<GraphicsContext::VertexPN, false>(graphicsContext);
 
-  meshCache[descriptor] = mesh;
+  Simulation::simulation->complexAppearanceMeshCache[descriptor] = mesh;
 
   return mesh;
 }

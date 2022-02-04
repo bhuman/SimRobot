@@ -37,9 +37,8 @@ static float surfaceColors[numOfBodySurfaces][4] =
   {1.0f, .55f, 0.0f, 1.0f}  // darkorange,
 };
 
-std::vector<GraphicsContext::Surface*> ObjectSegmentedImageSensor::surfaces;
-
-ObjectSegmentedImageSensor::ObjectSegmentedImageSensor()
+ObjectSegmentedImageSensor::ObjectSegmentedImageSensor() :
+  surfaces(Simulation::simulation->bodySurfaces)
 {
   sensor.camera = this;
   sensor.sensorType = SimRobotCore2::SensorPort::cameraSensor;
