@@ -108,7 +108,7 @@ layout (std140) uniform Surfaces
 
 out vec4 FragColor;
 
-void calcDirLight(in DirLight light, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+void calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
 {
   vec3 lightDir = normalize(-light.direction);
   float diff = max(dot(normal, lightDir), 0.0);
@@ -119,7 +119,7 @@ void calcDirLight(in DirLight light, in vec3 normal, in vec3 viewDir, inout vec4
   specular += light.specularColor * spec;
 }
 
-void calcPointLight(in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+void calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
 {
   vec3 lightDir = normalize(light.position - pos);
   float diff = max(dot(normal, lightDir), 0.0);
@@ -132,7 +132,7 @@ void calcPointLight(in PointLight light, in vec3 pos, in vec3 normal, in vec3 vi
   specular += light.specularColor * spec * attenuation;
 }
 
-void calcSpotLight(in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+void calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
 {
   vec3 lightDir = normalize(light.position - pos);
   float diff = max(dot(normal, lightDir), 0.0);
