@@ -114,7 +114,7 @@ void ApproxDistanceSensor::DistanceSensor::staticCollisionWithSpaceCallback(Appr
 
 void ApproxDistanceSensor::DistanceSensor::updateValue()
 {
-  pose = physicalObject->pose;
+  pose = physicalObject->poseInWorld;
   pose.conc(offset);
   invertedPose = pose.inverse();
   Vector3f boxPos = pose * Vector3f(max * 0.5f, 0.f, 0.f);

@@ -26,7 +26,7 @@ public:
   PhysicalObject* parent = nullptr; /**< The only parent of the primary object (or \c 0 in case that this is the root object) */
   Body* parentBody = nullptr; /**< The superior body object (might be 0) */
 
-  Pose3f pose; /**< The absolute pose of the object */
+  Pose3f poseInWorld; /**< The absolute pose of the object */
   std::list<PhysicalObject*> physicalChildren; /**< List of subordinate physical scene graph objects */
   std::list<PhysicalObject*> physicalDrawings; /**< List of subordinate physical objects that will be drawn relative to this one */
 

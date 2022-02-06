@@ -422,8 +422,8 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
     {
       calcDragPlaneVector();
       if(type == dragRotate || type == dragNormalObject)
-        dragPlaneVector = dragSelection->pose.rotation * dragPlaneVector;
-      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->pose.translation, dragPlaneVector, dragStartPos))
+        dragPlaneVector = dragSelection->poseInWorld.rotation * dragPlaneVector;
+      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, dragStartPos))
         dragSelection = 0;
       else
       {
@@ -523,16 +523,16 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
       return true;
     Vector3f projectedClick = projectClick(x, y);
     Vector3f currentPos;
-    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->pose.translation, dragPlaneVector, currentPos))
+    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
     {
       if(dragType == dragRotate || dragType == dragRotateWorld)
       {
-        Vector3f oldV = dragStartPos - dragSelection->pose.translation;
-        Vector3f newV = currentPos - dragSelection->pose.translation;
+        Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
+        Vector3f newV = currentPos - dragSelection->poseInWorld.translation;
 
         if(dragType != dragRotateWorld)
         {
-          const RotationMatrix invRotation = dragSelection->pose.rotation.inverse();
+          const RotationMatrix invRotation = dragSelection->poseInWorld.rotation.inverse();
           oldV = invRotation * oldV;
           newV = invRotation * newV;
         }
@@ -547,7 +547,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
 
         const Vector3f offset = dragPlaneVector * angle;
         const RotationMatrix rotation = Rotation::AngleAxis::unpack(offset);
-        Vector3f center = dragSelection->pose.translation;
+        Vector3f center = dragSelection->poseInWorld.translation;
         dragSelection->rotate(rotation, center);
         if(dragMode == adoptDynamics)
         {
@@ -600,16 +600,16 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
     {
       Vector3f projectedClick = projectClick(x, y);
       Vector3f currentPos;
-      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->pose.translation, dragPlaneVector, currentPos))
+      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
       {
         if(dragType == dragRotate || dragType == dragRotateWorld)
         {
-          Vector3f oldV = dragStartPos - dragSelection->pose.translation;
-          Vector3f newV = currentPos - dragSelection->pose.translation;
+          Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
+          Vector3f newV = currentPos - dragSelection->poseInWorld.translation;
 
           if(dragType != dragRotateWorld)
           {
-            const RotationMatrix invRotation = dragSelection->pose.rotation.inverse();
+            const RotationMatrix invRotation = dragSelection->poseInWorld.rotation.inverse();
             oldV = invRotation * oldV;
             newV = invRotation * newV;
           }

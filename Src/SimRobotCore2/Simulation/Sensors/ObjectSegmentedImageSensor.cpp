@@ -119,7 +119,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   graphicsContext.updateModelMatrices(false);
 
   // setup camera position
-  Pose3f pose = physicalObject->pose;
+  Pose3f pose = physicalObject->poseInWorld;
   pose.conc(offset);
   static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
   pose.rotate(cameraRotation);
@@ -190,7 +190,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
        sensor->camera->imageWidth == imageWidth && sensor->camera->imageHeight == imageHeight)
     {
       // setup camera position
-      Pose3f pose = sensor->physicalObject->pose;
+      Pose3f pose = sensor->physicalObject->poseInWorld;
       pose.conc(sensor->offset);
       static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
       pose.rotate(cameraRotation);

@@ -70,7 +70,7 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   dBodySetMass(body, &mass);
 
   // set position
-  Pose3f comPose = pose;
+  Pose3f comPose = poseInWorld;
   comPose.translate(centerOfMass);
   dBodySetPosition(body, comPose.translation.x(), comPose.translation.y(), comPose.translation.z());
   dMatrix3 matrix3;
@@ -86,7 +86,7 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
       addGeometry(geomOffset, *geometry);
   }
 
-  poseInParent = pose;
+  poseInParent = poseInWorld;
 
   graphicsContext.pushModelMatrixStack();
 
@@ -208,12 +208,12 @@ void Body::createGraphics(GraphicsContext& graphicsContext)
 void Body::updateTransformation()
 {
   // get pose from ode
-  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
-  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
-  pose.translate(-centerOfMass);
+  ODETools::convertVector(dBodyGetPosition(body), poseInWorld.translation);
+  ODETools::convertMatrix(dBodyGetRotation(body), poseInWorld.rotation);
+  poseInWorld.translate(-centerOfMass);
 
-  // convert to OpenGL transformation
-  poseInParent = pose;
+  // Bodies are always relative to the world.
+  poseInParent = poseInWorld;
 
   //
   for(Body* child : bodyChildren)
@@ -286,7 +286,7 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
 
 const float* Body::getPosition() const
 {
-  Pose3f& pose = const_cast<Body*>(this)->pose;
+  Pose3f& pose = const_cast<Body*>(this)->poseInWorld;
   ODETools::convertVector(dBodyGetPosition(body), pose.translation);
   ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
   pose.translate(-centerOfMass);
@@ -295,7 +295,7 @@ const float* Body::getPosition() const
 
 bool Body::getPose(float* pos, float (*rot)[3]) const
 {
-  Pose3f& pose = const_cast<Body*>(this)->pose;
+  Pose3f& pose = const_cast<Body*>(this)->poseInWorld;
   ODETools::convertVector(dBodyGetPosition(body), pose.translation);
   ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
   pose.translate(-centerOfMass);
@@ -311,12 +311,12 @@ bool Body::getPose(float* pos, float (*rot)[3]) const
 void Body::move(const float* pos)
 {
   // get pose from ode
-  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
-  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
-  pose.translate(-centerOfMass);
+  ODETools::convertVector(dBodyGetPosition(body), poseInWorld.translation);
+  ODETools::convertMatrix(dBodyGetRotation(body), poseInWorld.rotation);
+  poseInWorld.translate(-centerOfMass);
 
   // compute position offset
-  Vector3f offset = Vector3f(pos[0], pos[1], pos[2]) - pose.translation;
+  Vector3f offset = Vector3f(pos[0], pos[1], pos[2]) - poseInWorld.translation;
 
   // move object to new position
   move(offset);
@@ -325,9 +325,9 @@ void Body::move(const float* pos)
 void Body::move(const float* pos, const float (*rot)[3])
 {
   // get pose from ode
-  ODETools::convertVector(dBodyGetPosition(body), pose.translation);
-  ODETools::convertMatrix(dBodyGetRotation(body), pose.rotation);
-  pose.translate(-centerOfMass);
+  ODETools::convertVector(dBodyGetPosition(body), poseInWorld.translation);
+  ODETools::convertMatrix(dBodyGetRotation(body), poseInWorld.rotation);
+  poseInWorld.translate(-centerOfMass);
 
   // compute position offset
   Pose3f newPose((Matrix3f() << rot[0][0], rot[1][0], rot[2][0],
@@ -335,8 +335,8 @@ void Body::move(const float* pos, const float (*rot)[3])
                                 rot[0][2], rot[1][2], rot[2][2]).finished(),
                  Vector3f(pos[0], pos[1], pos[2]));
   Pose3f offset;
-  offset.translation = newPose.translation - pose.translation;
-  offset.rotation = newPose.rotation * pose.rotation.inverse();
+  offset.translation = newPose.translation - poseInWorld.translation;
+  offset.rotation = newPose.rotation * poseInWorld.rotation.inverse();
 
   // move object to new pose
   move(offset.translation);

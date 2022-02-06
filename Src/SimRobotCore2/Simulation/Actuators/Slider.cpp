@@ -38,7 +38,7 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
   joint = dJointCreateSlider(Simulation::simulation->physicalWorld, 0);
   dJointAttach(joint, childBody->body, parentBody ? parentBody->body : 0);
   //set Slider joint parameter
-  const Vector3f globalAxis = pose.rotation * Vector3f(axis->x, axis->y, axis->z);
+  const Vector3f globalAxis = poseInWorld.rotation * Vector3f(axis->x, axis->y, axis->z);
   dJointSetSliderAxis(joint, globalAxis.x(), globalAxis.y(), globalAxis.z());
   if(axis->cfm != -1.f)
     dJointSetSliderParam(joint, dParamCFM, axis->cfm);

@@ -83,7 +83,7 @@ void SingleDistanceSensor::DistanceSensor::staticCollisionWithSpaceCallback(Sing
 
 void SingleDistanceSensor::DistanceSensor::updateValue()
 {
-  pose = physicalObject->pose;
+  pose = physicalObject->poseInWorld;
   pose.conc(offset);
   const Vector3f& pos = pose.translation;
   const Vector3f dir = pose.rotation.col(0);

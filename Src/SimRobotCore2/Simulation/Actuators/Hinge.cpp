@@ -25,7 +25,7 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   axis->create();
 
   if(axis->deflection && axis->deflection->offset != 0.f)
-    pose.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset));
+    poseInWorld.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset));
 
   //
   Joint::createPhysics(graphicsContext);
@@ -42,8 +42,8 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   joint = dJointCreateHinge(Simulation::simulation->physicalWorld, 0);
   dJointAttach(joint, childBody->body, parentBody ? parentBody->body : 0);
   //set hinge joint parameter
-  dJointSetHingeAnchor(joint, pose.translation.x(), pose.translation.y(), pose.translation.z());
-  const Vector3f globalAxis = pose.rotation * Vector3f(axis->x, axis->y, axis->z);
+  dJointSetHingeAnchor(joint, poseInWorld.translation.x(), poseInWorld.translation.y(), poseInWorld.translation.z());
+  const Vector3f globalAxis = poseInWorld.rotation * Vector3f(axis->x, axis->y, axis->z);
   dJointSetHingeAxis(joint, globalAxis.x(), globalAxis.y(), globalAxis.z());
   if(axis->cfm != -1.f)
     dJointSetHingeParam(joint, dParamCFM, axis->cfm);

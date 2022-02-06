@@ -25,7 +25,7 @@ void Compound::createPhysics(GraphicsContext& graphicsContext)
   {
     Geometry* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
-      addGeometry(pose, *geometry, nullptr);
+      addGeometry(poseInWorld, *geometry, nullptr);
   }
 
   OpenGLTools::convertTransformation(rotation, translation, poseInParent);

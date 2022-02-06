@@ -30,11 +30,11 @@ void PhysicalObject::createPhysics(GraphicsContext& graphicsContext)
   for(PhysicalObject* object : physicalChildren)
   {
     // compute pose of child object
-    object->pose = pose;
+    object->poseInWorld = poseInWorld;
     if(object->translation)
-      object->pose.translate(*object->translation);
+      object->poseInWorld.translate(*object->translation);
     if(object->rotation)
-      object->pose.rotate(*object->rotation);
+      object->poseInWorld.rotate(*object->rotation);
 
     //
     object->parentBody = body;
