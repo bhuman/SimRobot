@@ -8,7 +8,6 @@
 
 #include "ObjectSegmentedImageSensor.h"
 #include "CoreModule.h"
-#include "Graphics/OpenGL.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"

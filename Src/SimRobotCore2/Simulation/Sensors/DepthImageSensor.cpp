@@ -6,7 +6,6 @@
 
 #include "DepthImageSensor.h"
 #include "CoreModule.h"
-#include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"

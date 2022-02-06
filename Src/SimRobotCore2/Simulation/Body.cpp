@@ -12,7 +12,6 @@
 #include "Simulation/Scene.h"
 #include "Simulation/Simulation.h"
 #include "Tools/ODETools.h"
-#include "Tools/OpenGLTools.h"
 #include <ode/collision.h>
 #include <ode/objects.h>
 
