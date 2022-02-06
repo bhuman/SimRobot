@@ -49,20 +49,16 @@ public:
   /**
    * Computes a camera transformation (basically like gluLookAt)
    */
-  static void computeCameraTransformation(const Vector3f& eyePosition3D, const Vector3f& center3D, const Vector3f& upVector3D, Matrix4f& transformation)
+  static void computeCameraTransformation(const Vector3f& eyePosition3D, const Vector3f& center3D, const Vector3f& upVector3D, Pose3f& transformation)
   {
     const Vector3f forward = (center3D - eyePosition3D).normalized();
     const Vector3f side = forward.cross(upVector3D).normalized();
     const Vector3f up = side.cross(forward);
 
-    transformation.row(0).head<3>() = side.transpose();
-    transformation.row(1).head<3>() = up.transpose();
-    transformation.row(2).head<3>() = -forward.transpose();
-    transformation.col(3).head<3>() = -transformation.topLeftCorner<3, 3>() * eyePosition3D;
-    transformation(3, 0) = 0.f;
-    transformation(3, 1) = 0.f;
-    transformation(3, 2) = 0.f;
-    transformation(3, 3) = 1.f;
+    transformation.rotation.row(0) = side.transpose();
+    transformation.rotation.row(1) = up.transpose();
+    transformation.rotation.row(2) = -forward.transpose();
+    transformation.translation = -transformation.rotation * eyePosition3D;
   }
 
   /**

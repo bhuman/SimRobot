@@ -37,7 +37,7 @@ private:
   Vector3f defaultCameraPos;
   Vector3f cameraPos;
   Vector3f cameraTarget;
-  Matrix4f cameraTransformation;
+  Pose3f cameraTransformation;
   float fovY = 40.f;
   Matrix4f projection;
 

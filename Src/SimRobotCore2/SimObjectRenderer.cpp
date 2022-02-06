@@ -120,19 +120,26 @@ void SimObjectRenderer::draw()
   PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
 
-  // since each object will be drawn globally we need to shift the coordinate system when we want the object to be in the center
-  // also, the origin should be at the parent object's pose
-  Matrix4f viewMatrix = cameraTransformation;
-  if(&simObject != Simulation::simulation->scene && (physicalObject || graphicalObject) && !(renderFlags & showAsGlobalView))
+  Pose3f invCameraPose = cameraTransformation;
+  // Since each object will be drawn globally we need to shift the coordinate system.
+  // Also, the origin should be at the parent object's pose.
+  // Since the scene is at the global origin, it doesn't need this shift.
+  // If the object is neither a physical nor a graphical object, nothing happens, but in that case, nothing (except for a coordinate system) will be drawn anyway.
+  if(&simObject != Simulation::simulation->scene && (physicalObject || graphicalObject))
   {
     const auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
     ASSERT(modelMatrix);
-    Eigen::Map<const Matrix4f> objectInWorld(modelMatrix->getPointer());
-    viewMatrix *= objectInWorld.inverse();
-    Simulation::simulation->originPose = Pose3f(RotationMatrix(objectInWorld.topLeftCorner<3, 3>()), objectInWorld.topRightCorner<3, 1>()) * simObject.poseInParent.inverse();
+    Eigen::Map<const Matrix4f> objectInWorldMatrix(modelMatrix->getPointer());
+    const Pose3f objectInWorld(RotationMatrix(objectInWorldMatrix.topLeftCorner<3, 3>()), objectInWorldMatrix.topRightCorner<3, 1>());
+    if(renderFlags & showAsGlobalView)
+      invCameraPose *= simObject.poseInParent * objectInWorld.inverse(); // center on the object's parent
+    else
+      invCameraPose *= objectInWorld.inverse(); // center on the object
+    Simulation::simulation->originPose = objectInWorld * simObject.poseInParent.inverse();
   }
   else
     Simulation::simulation->originPose = Pose3f();
+  const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   graphicsContext.updateModelMatrices((dragging && dragSelection) || (renderFlags & showCoordinateSystem));
@@ -255,7 +262,7 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
 Vector3f SimObjectRenderer::projectClick(int x, int y) const
 {
   const Vector4f normalizedPoint(2.f * static_cast<float>(x) / width - 1.f, 2.f * static_cast<float>(height - y) / height - 1.f, 1.f, 1.f);
-  const Vector4f unprojectedPoint = (projection * cameraTransformation).inverse() * normalizedPoint;
+  const Vector4f unprojectedPoint = (projection * (Matrix4f() << cameraTransformation.rotation, cameraTransformation.translation, Eigen::RowVector3f::Zero(), 1.f).finished()).inverse() * normalizedPoint;
   return unprojectedPoint.head<3>() / unprojectedPoint.w();
 }
 
