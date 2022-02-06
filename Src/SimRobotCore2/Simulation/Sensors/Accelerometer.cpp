@@ -6,12 +6,10 @@
 
 #include "Accelerometer.h"
 #include "CoreModule.h"
-#include "Graphics/GraphicsContext.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
 #include "Tools/ODETools.h"
-#include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
 Accelerometer::Accelerometer()
@@ -29,11 +27,7 @@ Accelerometer::Accelerometer()
 
 void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
   Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   sensor.offset.translation = -sensor.body->centerOfMass;
   if(translation)

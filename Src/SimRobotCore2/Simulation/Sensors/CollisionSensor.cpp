@@ -8,7 +8,6 @@
 #include "CoreModule.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
-#include "Tools/OpenGLTools.h"
 
 CollisionSensor::CollisionSensor()
 {
@@ -17,12 +16,6 @@ CollisionSensor::CollisionSensor()
 
 void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
-  Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
-
   // add geometries
   for(auto iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
   {
@@ -51,6 +44,8 @@ void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
     registerCollisionCallback(physicalDrawings, true);
   else // in case the sensor has no geometries use the geometries of the body to which the sensor is attached
     registerCollisionCallback(parentBody->physicalDrawings, false);
+
+  Sensor::createPhysics(graphicsContext);
 }
 
 void CollisionSensor::registerCollisionCallback(std::list< ::PhysicalObject*>& geometries, bool setNotCollidable)

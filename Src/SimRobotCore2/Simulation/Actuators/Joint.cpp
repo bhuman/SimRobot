@@ -24,11 +24,7 @@ Joint::~Joint()
 
 void Joint::createPhysics(GraphicsContext& graphicsContext)
 {
-  graphicsContext.pushModelMatrix(transformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
   Actuator::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   ASSERT(!axisLine);
   axisLine = Primitives::createLine(graphicsContext, -0.05f * Vector3f(axis->x, axis->y, axis->z), 0.05f * Vector3f(axis->x, axis->y, axis->z));

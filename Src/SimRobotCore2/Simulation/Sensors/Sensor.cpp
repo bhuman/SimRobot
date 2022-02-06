@@ -6,8 +6,21 @@
 
 #include "Sensor.h"
 #include "CoreModule.h"
+#include "Graphics/GraphicsContext.h"
 #include "SensorWidget.h"
 #include "Simulation/Simulation.h"
+#include "Tools/OpenGLTools.h"
+
+void Sensor::createPhysics(GraphicsContext& graphicsContext)
+{
+  OpenGLTools::convertTransformation(rotation, translation, poseInParent);
+
+  graphicsContext.pushModelMatrix(poseInParent);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  ::PhysicalObject::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
+}
 
 const QIcon* Sensor::Port::getIcon() const
 {

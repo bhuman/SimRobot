@@ -53,7 +53,7 @@ void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
 
 void Appearance::createGraphics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
+  OpenGLTools::convertTransformation(rotation, translation, poseInParent);
   if(surface)
     surface->createGraphics(graphicsContext);
 
@@ -61,10 +61,9 @@ void Appearance::createGraphics(GraphicsContext& graphicsContext)
   mesh = createMesh(graphicsContext);
   ASSERT(!mesh == !surface);
 
+  graphicsContext.pushModelMatrix(poseInParent);
   ASSERT(!modelMatrix);
-  graphicsContext.pushModelMatrix(transformation);
-  if(mesh)
-    modelMatrix = graphicsContext.requestModelMatrix();
+  modelMatrix = graphicsContext.requestModelMatrix();
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
 }

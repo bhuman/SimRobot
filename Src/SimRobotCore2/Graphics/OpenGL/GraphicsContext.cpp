@@ -531,10 +531,12 @@ GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix()
     modelMatrix->variablePart = product[0];
     startIndex = 1;
   }
-  modelMatrix->constantPart = product.size() > startIndex ? Matrix4f(Eigen::Map<const Matrix4f>(product[startIndex])) : Matrix4f(Matrix4f::Identity());
+  modelMatrix->constantPart = product.size() > startIndex ? *product[startIndex] : Pose3f();
   for(std::size_t i = startIndex + 1; i < product.size(); ++i)
-    modelMatrix->constantPart *= Eigen::Map<const Matrix4f>(product[i]);
-  Eigen::Map<Matrix4f>(modelMatrix->memory) = modelMatrix->constantPart;
+    modelMatrix->constantPart *= *product[i];
+  modelMatrix->memory.row(3) = Eigen::RowVector4f(0.f, 0.f, 0.f, 1.f);
+  modelMatrix->memory.topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
+  modelMatrix->memory.topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
   modelMatrices.push_back(modelMatrix);
   return modelMatrix;
 }
@@ -550,16 +552,16 @@ void GraphicsContext::popModelMatrixStack()
   modelMatrixStackStack.pop();
 }
 
-void GraphicsContext::pushModelMatrix(const Matrix4f& transformation)
+void GraphicsContext::pushModelMatrix(const Pose3f& pose)
 {
-  modelMatrixStackStack.top().push(transformation.data());
+  modelMatrixStackStack.top().push(&pose);
 }
 
-void GraphicsContext::pushModelMatrixByReference(const Matrix4f& transformation)
+void GraphicsContext::pushModelMatrixByReference(const Pose3f& pose)
 {
-  // A variable transformation must be the first on the stack.
+  // A variable pose must be the first on the stack.
   ASSERT(modelMatrixStackStack.top().empty());
-  modelMatrixStackStack.top().push(transformation.data());
+  modelMatrixStackStack.top().push(&pose);
   modelMatrixStackStack.top().bottomIsVariable = true;
 }
 
@@ -583,7 +585,11 @@ void GraphicsContext::updateModelMatrices(bool forceUpdate)
 
   for(ModelMatrix* modelMatrix : modelMatrices)
     if(modelMatrix->variablePart)
-      Eigen::Map<Matrix4f>(modelMatrix->memory) = Eigen::Map<const Matrix4f>(modelMatrix->variablePart) * modelMatrix->constantPart;
+    {
+      const Pose3f result = *modelMatrix->variablePart * modelMatrix->constantPart;
+      modelMatrix->memory.topLeftCorner<3, 3>() = result.rotation;
+      modelMatrix->memory.topRightCorner<3, 1>() = result.translation;
+    }
 }
 
 void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
@@ -660,7 +666,7 @@ void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, con
   const GLuint newVAO = data->vao[mesh->vertexBuffer->vaoIndex];
   if(newVAO != data->boundVAO)
     f->glBindVertexArray((data->boundVAO = newVAO));
-  f->glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory);
+  f->glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory.data());
   if(!forcedSurface)
     setSurface(surface);
   if(mesh->indexBuffer)

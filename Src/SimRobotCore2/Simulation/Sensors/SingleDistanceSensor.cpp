@@ -10,7 +10,6 @@
 #include "Graphics/Primitives.h"
 #include "Simulation/Body.h"
 #include "Platform/Assert.h"
-#include "Tools/OpenGLTools.h"
 #include <ode/collision.h>
 
 SingleDistanceSensor::SingleDistanceSensor()
@@ -21,13 +20,7 @@ SingleDistanceSensor::SingleDistanceSensor()
 
 void SingleDistanceSensor::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
   Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   sensor.geom = dCreateRay(Simulation::simulation->rootSpace, max);
   sensor.min = min;

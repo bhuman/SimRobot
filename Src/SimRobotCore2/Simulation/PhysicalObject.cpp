@@ -50,25 +50,23 @@ void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int 
 
 void PhysicalObject::drawControllerDrawings() const
 {
-  if(modelMatrix)
-    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->draw();
+  for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+    drawing->draw();
   const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([](PhysicalObject& child){child.drawControllerDrawings();});
 }
 
 void PhysicalObject::beforeControllerDrawings(const float* projection, const float* view) const
 {
-  if(modelMatrix)
-    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->beforeFrame(projection, view, modelMatrix->getPointer());
+  ASSERT(modelMatrix);
+  for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+    drawing->beforeFrame(projection, view, modelMatrix->getPointer());
   const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([projection, view](PhysicalObject& child){child.beforeControllerDrawings(projection, view);});
 }
 
 void PhysicalObject::afterControllerDrawings() const
 {
-  if(modelMatrix)
-    for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
-      drawing->afterFrame();
+  for(SimRobotCore2::Controller3DDrawing* drawing : controllerDrawings)
+    drawing->afterFrame();
   const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([](PhysicalObject& child){child.afterControllerDrawings();});
 }
 

@@ -34,6 +34,15 @@ public:
     const QString& getUnit() const override {return unit;}
   };
 
+protected:
+  /**
+   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * These are a geometry object for collision detection and/or a body,
+   * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
+   */
+  void createPhysics(GraphicsContext& graphicsContext) override;
+
 private:
   /**
    * Registers an element as parent

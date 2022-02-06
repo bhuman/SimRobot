@@ -15,7 +15,6 @@
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Rotation.h"
-#include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
 void Hinge::createPhysics(GraphicsContext& graphicsContext)
@@ -77,8 +76,6 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
     if(!dynamic_cast<VelocityMotor*>(axis->motor) && axis->deflection) // Move setpoint to a position inside the deflection range
       axis->motor->setpoint = axis->deflection->offset;
   }
-
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
 }
 
 const QIcon* Hinge::getIcon() const

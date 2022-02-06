@@ -88,14 +88,11 @@ void SimObjectRenderer::draw()
 
   if(dragging && dragSelection)
   {
-    Matrix4f& dragPlaneTransformation = Simulation::simulation->dragPlaneTransformation;
+    Pose3f& dragPlanePose = Simulation::simulation->dragPlanePose;
     if(dragType == dragRotate || dragType == dragNormalObject)
-      dragPlaneTransformation = dragSelection->transformation;
+      dragPlanePose = dragSelection->poseInParent;
     else
-    {
-      dragPlaneTransformation = Matrix4f::Identity();
-      dragPlaneTransformation.topRightCorner<3, 1>() = dragSelection->pose.translation;
-    }
+      dragPlanePose = Pose3f(dragSelection->poseInParent.translation);
 
     switch(dragPlane)
     {
@@ -103,27 +100,42 @@ void SimObjectRenderer::draw()
         break; // do nothing
       case xzPlane:
       {
-        const Matrix4f dragPlaneRotation = (Matrix4f() << 1.f, 0.f, 0.f, 0.f,
-                                                          0.f, 0.f, -1.f, 0.f,
-                                                          0.f, 1.f, 0.f, 0.f,
-                                                          0.f, 0.f, 0.f, 1.f).finished();
-        dragPlaneTransformation *= dragPlaneRotation;
+        const Matrix3f dragPlaneRotation = (Matrix3f() << 1.f, 0.f, 0.f,
+                                                          0.f, 0.f, -1.f,
+                                                          0.f, 1.f, 0.f).finished();
+        dragPlanePose.rotation *= dragPlaneRotation;
         break;
       }
       case yzPlane:
       {
-        const Matrix4f dragPlaneRotation = (Matrix4f() << 0.f, 0.f, 1.f, 0.f,
-                                                          0.f, 1.f, 0.f, 0.f,
-                                                          -1.f, 0.f, 0.f, 0.f,
-                                                          0.f, 0.f, 0.f, 1.f).finished();
-        dragPlaneTransformation *= dragPlaneRotation;
+        const Matrix3f dragPlaneRotation = (Matrix3f() << 0.f, 0.f, 1.f,
+                                                          0.f, 1.f, 0.f,
+                                                          -1.f, 0.f, 0.f).finished();
+        dragPlanePose.rotation *= dragPlaneRotation;
         break;
       }
     }
   }
 
+  PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
+  GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
+
+  // since each object will be drawn globally we need to shift the coordinate system when we want the object to be in the center
+  // also, the origin should be at the parent object's pose
+  Matrix4f viewMatrix = cameraTransformation;
+  if(&simObject != Simulation::simulation->scene && (physicalObject || graphicalObject) && !(renderFlags & showAsGlobalView))
+  {
+    const auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
+    ASSERT(modelMatrix);
+    Eigen::Map<const Matrix4f> objectInWorld(modelMatrix->getPointer());
+    viewMatrix *= objectInWorld.inverse();
+    Simulation::simulation->originPose = Pose3f(RotationMatrix(objectInWorld.topLeftCorner<3, 3>()), objectInWorld.topRightCorner<3, 1>()) * simObject.poseInParent.inverse();
+  }
+  else
+    Simulation::simulation->originPose = Pose3f();
+
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.updateModelMatrices(dragging && dragSelection);
+  graphicsContext.updateModelMatrices((dragging && dragSelection) || (renderFlags & showCoordinateSystem));
 
   if(renderFlags & enableMultisample)
     glEnable(GL_MULTISAMPLE);
@@ -132,16 +144,6 @@ void SimObjectRenderer::draw()
 
   // clear
   bool clear = true;
-
-  // since each object will be drawn relative to its parent we need to shift the coordinate system when we want the object to be in the center
-  Matrix4f viewMatrix = cameraTransformation;
-  if(&simObject != Simulation::simulation->scene && !(renderFlags & showAsGlobalView))
-  {
-    Pose3f pose(Matrix3f(simObject.transformation.topLeftCorner<3, 3>()), simObject.transformation.topRightCorner<3, 1>());
-    Matrix4f invTrans;
-    OpenGLTools::convertTransformation(pose.invert(), invTrans);
-    viewMatrix *= invTrans;
-  }
 
   // draw origin
   if(renderFlags & showCoordinateSystem)
@@ -155,7 +157,6 @@ void SimObjectRenderer::draw()
   }
 
   // draw object / scene appearance
-  GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
   if(graphicalObject && surfaceShadeMode != noShading)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
@@ -165,7 +166,6 @@ void SimObjectRenderer::draw()
   }
 
   // draw object / scene physics
-  PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
@@ -184,7 +184,7 @@ void SimObjectRenderer::draw()
   }
 
   // draw controller drawings
-  if(drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager)
+  if((physicalObject || graphicalObject) && drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager)
   {
     // If the manager registered later, it must be done now.
     if(!registeredAtManager)

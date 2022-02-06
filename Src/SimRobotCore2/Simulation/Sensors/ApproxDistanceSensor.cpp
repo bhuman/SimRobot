@@ -8,7 +8,6 @@
 #include "Simulation/Sensors/ApproxDistanceSensor.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Platform/Assert.h"
-#include "Tools/OpenGLTools.h"
 #include "Tools/ODETools.h"
 #include "CoreModule.h"
 #include <algorithm>
@@ -22,13 +21,7 @@ ApproxDistanceSensor::ApproxDistanceSensor()
 
 void ApproxDistanceSensor::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
   Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   sensor.tanHalfAngleX = std::tan(angleX * 0.5f);
   sensor.tanHalfAngleY = std::tan(angleY * 0.5f);

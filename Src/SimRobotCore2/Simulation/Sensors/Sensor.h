@@ -44,6 +44,15 @@ public:
     bool renderCameraImages(SimRobotCore2::SensorPort**, unsigned int) override {return false;}
   };
 
+protected:
+  /**
+   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * These are a geometry object for collision detection and/or a body,
+   * if the simulation object is movable.
+   * @param graphicsContext The graphics context to create resources in
+   */
+  void createPhysics(GraphicsContext& graphicsContext) override;
+
 private:
   // API
   const QString& getFullName() const override {return SimObject::getFullName();}

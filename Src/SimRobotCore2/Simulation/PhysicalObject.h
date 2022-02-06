@@ -58,6 +58,8 @@ public:
   /** Finish a frame of controller drawings for this physical object (and children) */
   void afterControllerDrawings() const;
 
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this physical object */
+
 protected:
   /**
    * Visits controller drawings of physical children
@@ -70,8 +72,6 @@ protected:
    * @param element The element to register
    */
   void addParent(Element& element) override;
-
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this physical object (if it has something to draw) */
 
 private:
   std::list<SimRobotCore2::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */

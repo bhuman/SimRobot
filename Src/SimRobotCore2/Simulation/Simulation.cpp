@@ -115,8 +115,10 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   dragPlaneSurface = graphicsContext.requestSurface(dragPlaneColor, dragPlaneColor);
 
   graphicsContext.pushModelMatrixStack();
+  graphicsContext.pushModelMatrixByReference(originPose);
   originModelMatrix = graphicsContext.requestModelMatrix();
-  graphicsContext.pushModelMatrixByReference(dragPlaneTransformation);
+  graphicsContext.popModelMatrix();
+  graphicsContext.pushModelMatrixByReference(dragPlanePose);
   dragPlaneModelMatrix = graphicsContext.requestModelMatrix();
   graphicsContext.popModelMatrix();
   graphicsContext.popModelMatrixStack();

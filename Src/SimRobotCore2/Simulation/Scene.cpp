@@ -31,6 +31,7 @@ void Scene::updateActuators()
 void Scene::createGraphics(GraphicsContext& graphicsContext)
 {
   // The model matrix is needed for controller drawings.
+  // Physical object and graphical object share it because it really is just at the origin.
   ASSERT(!::PhysicalObject::modelMatrix);
   ASSERT(!GraphicalObject::modelMatrix);
   GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();

@@ -48,6 +48,8 @@ public:
   /** Finish a frame of controller drawings for this graphical object (and children) */
   void afterControllerDrawings() const;
 
+  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this graphical object (if it has something to draw) */
+
 protected:
   /**
    * Visits controller drawings of graphical children
@@ -60,8 +62,6 @@ protected:
    * @param element The element to register
    */
   virtual void addParent(Element& element);
-
-  GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this graphical object (if it has something to draw) */
 
 private:
   std::list<SimRobotCore2::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */

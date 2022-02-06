@@ -9,6 +9,7 @@
 #include "SimRobotCore2.h"
 #include "Parser/Element.h"
 #include "Tools/Math/Eigen.h"
+#include "Tools/Math/Pose3f.h"
 #include "Tools/Math/RotationMatrix.h"
 #include <QString>
 #include <list>
@@ -26,7 +27,7 @@ public:
   std::list<SimObject*> children; /**< List of subordinate scene graph objects */
   Vector3f* translation = nullptr; /**< The initial translational offset relative to the origin of the parent object */
   RotationMatrix* rotation = nullptr; /**< The initial rotational offset relative to the origin of the parent object */
-  Matrix4f transformation; /**< The (updated) offset relative to the origin of the parent object as OpenGL transformation */
+  Pose3f poseInParent; /**< The (updated) offset relative to the origin of the parent object */
 
   /** Destructor */
   ~SimObject();

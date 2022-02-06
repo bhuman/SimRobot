@@ -7,6 +7,19 @@
 #include "Actuator.h"
 #include "ActuatorsWidget.h"
 #include "CoreModule.h"
+#include "Graphics/GraphicsContext.h"
+#include "Tools/OpenGLTools.h"
+
+void Actuator::createPhysics(GraphicsContext &graphicsContext)
+{
+  OpenGLTools::convertTransformation(rotation, translation, poseInParent);
+
+  graphicsContext.pushModelMatrix(poseInParent);
+  ASSERT(!modelMatrix);
+  modelMatrix = graphicsContext.requestModelMatrix();
+  ::PhysicalObject::createPhysics(graphicsContext);
+  graphicsContext.popModelMatrix();
+}
 
 void Actuator::addParent(Element& element)
 {

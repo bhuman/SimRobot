@@ -28,7 +28,7 @@ dGeomID Geometry::createGeometry(dSpaceID)
 {
   if(!created)
   {
-    OpenGLTools::convertTransformation(rotation, translation, transformation);
+    OpenGLTools::convertTransformation(rotation, translation, poseInParent);
     created = true;
   }
   return nullptr;
@@ -36,7 +36,8 @@ dGeomID Geometry::createGeometry(dSpaceID)
 
 void Geometry::createPhysics(GraphicsContext& graphicsContext)
 {
-  graphicsContext.pushModelMatrix(transformation);
+  // \c createGeometry must have been called before.
+  graphicsContext.pushModelMatrix(poseInParent);
   ASSERT(!modelMatrix);
   modelMatrix = graphicsContext.requestModelMatrix();
   ::PhysicalObject::createPhysics(graphicsContext);

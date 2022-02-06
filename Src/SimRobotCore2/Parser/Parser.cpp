@@ -57,7 +57,7 @@ Parser::Parser() : errors(0), sceneMacro(0), recordingMacroElement(0), replaying
     {"Set", setClass, &Parser::setElement, 0, 0,
       0, 0, 0},
 
-    {"Scene", sceneClass, &Parser::sceneElement,0, 0,
+    {"Scene", sceneClass, &Parser::sceneElement, 0, 0,
       0, solverClass, setClass | bodyClass | compoundClass | lightClass | userInputClass},
     {"QuickSolver", solverClass, &Parser::quickSolverElement, 0, 0,
       0, 0, 0},

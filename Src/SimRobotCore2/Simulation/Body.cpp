@@ -69,7 +69,6 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
 
   // set mass
   dBodySetMass(body, &mass);
-  OpenGLTools::convertTransformation(nullptr, &centerOfMass, centerOfMassTransformation);
 
   // set position
   Pose3f comPose = pose;
@@ -88,16 +87,19 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
       addGeometry(geomOffset, *geometry);
   }
 
-  OpenGLTools::convertTransformation(pose, transformation);
+  poseInParent = pose;
 
   graphicsContext.pushModelMatrixStack();
 
-  graphicsContext.pushModelMatrixByReference(transformation);
+  graphicsContext.pushModelMatrixByReference(poseInParent);
 
-  graphicsContext.pushModelMatrix(centerOfMassTransformation);
   ASSERT(!::PhysicalObject::modelMatrix);
-  ASSERT(!GraphicalObject::modelMatrix);
-  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+  ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+
+  const Pose3f centerOfMassPose(centerOfMass);
+  graphicsContext.pushModelMatrix(centerOfMassPose);
+  ASSERT(!comModelMatrix);
+  comModelMatrix = graphicsContext.requestModelMatrix();
   graphicsContext.popModelMatrix();
 
   //
@@ -195,7 +197,9 @@ void Body::addMass(Mass& mass)
 void Body::createGraphics(GraphicsContext& graphicsContext)
 {
   ASSERT(graphicsContext.emptyModelMatrixStack());
-  graphicsContext.pushModelMatrixByReference(transformation);
+  graphicsContext.pushModelMatrixByReference(poseInParent);
+  ASSERT(!GraphicalObject::modelMatrix);
+  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix();
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
   for(Body* child : bodyChildren)
@@ -210,7 +214,7 @@ void Body::updateTransformation()
   pose.translate(-centerOfMass);
 
   // convert to OpenGL transformation
-  OpenGLTools::convertTransformation(pose, transformation);
+  poseInParent = pose;
 
   //
   for(Body* child : bodyChildren)
@@ -235,7 +239,7 @@ void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) con
 {
   // draw center of mass
   if(flags & SimRobotCore2::Renderer::showPhysics)
-    graphicsContext.draw(comSphere, ::PhysicalObject::modelMatrix, surface);
+    graphicsContext.draw(comSphere, comModelMatrix, surface);
 
   // draw children
   ::PhysicalObject::drawPhysics(graphicsContext, flags);

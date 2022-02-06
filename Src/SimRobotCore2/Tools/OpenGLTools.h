@@ -34,20 +34,16 @@ public:
    * @param translation The translational part of the pose to convert
    * @param transformation The converted pose
    */
-  static void convertTransformation(const RotationMatrix* rotation, const Vector3f* translation, Matrix4f& transformation)
+  static void convertTransformation(const RotationMatrix* rotation, const Vector3f* translation, Pose3f& transformation)
   {
     if(rotation)
-      transformation.topLeftCorner<3, 3>() = *rotation;
+      transformation.rotation = *rotation;
     else
-      transformation.topLeftCorner<3, 3>() = Matrix3f::Identity();
+      transformation.rotation.setIdentity();
     if(translation)
-      transformation.topRightCorner<3, 1>() = *translation;
+      transformation.translation = *translation;
     else
-      transformation.topRightCorner<3, 1>() = Vector3f::Zero();
-    transformation(3, 0) = 0.f;
-    transformation(3, 1) = 0.f;
-    transformation(3, 2) = 0.f;
-    transformation(3, 3) = 1.f;
+      transformation.translation.setZero();
   }
 
   /**

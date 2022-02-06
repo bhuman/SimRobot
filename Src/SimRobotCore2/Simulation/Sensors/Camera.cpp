@@ -30,13 +30,7 @@ Camera::~Camera()
 
 void Camera::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
   Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   sensor.dimensions.append(imageWidth);
   sensor.dimensions.append(imageHeight);

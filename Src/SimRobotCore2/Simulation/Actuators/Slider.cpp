@@ -14,7 +14,6 @@
 #include "Simulation/Motors/ServoMotor.h"
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
-#include "Tools/OpenGLTools.h"
 #include <ode/objects.h>
 
 void Slider::createPhysics(GraphicsContext& graphicsContext)
@@ -70,8 +69,6 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
   // create motor
   if(axis->motor)
     axis->motor->create(this);
-
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
 }
 
 const QIcon* Slider::getIcon() const

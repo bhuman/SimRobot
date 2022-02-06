@@ -68,7 +68,6 @@ public:
 
 private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
-  Matrix4f centerOfMassTransformation;
 
   dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
 
@@ -121,6 +120,7 @@ private:
 
   GraphicsContext::Mesh* comSphere = nullptr; /**< The mesh of the CoM sphere drawing */
   GraphicsContext::Surface* surface = nullptr; /**< The surface of the CoM sphere drawing */
+  GraphicsContext::ModelMatrix* comModelMatrix = nullptr; /**< The model matrix of the CoM sphere drawing */
 
 private:
   // API

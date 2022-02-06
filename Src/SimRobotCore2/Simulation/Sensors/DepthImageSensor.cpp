@@ -35,13 +35,7 @@ DepthImageSensor::~DepthImageSensor()
 
 void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
 {
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
-
-  graphicsContext.pushModelMatrix(transformation);
-  ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
   Sensor::createPhysics(graphicsContext);
-  graphicsContext.popModelMatrix();
 
   sensor.imageBuffer = new float[imageWidth * imageHeight];
   sensor.renderHeight = imageHeight;

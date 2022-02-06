@@ -11,6 +11,7 @@
 #include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
+#include "Tools/Math/Pose3f.h"
 #include <stack>
 #include <unordered_map>
 #include <vector>
@@ -237,12 +238,12 @@ public:
      * Returns a pointer to the calculated column-major 4x4 model matrix.
      * @return A pointer to the calculated column-major 4x4 mmodel matrix.
      */
-    const float* getPointer() const {return memory;}
+    const float* getPointer() const {return memory.data();}
 
   private:
-    Matrix4f constantPart; /**< The constant part of the model matrix. */
-    const float* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
-    float memory[16]; /**< The memory for the final product. */
+    Pose3f constantPart; /**< The constant part of the model matrix. */
+    const Pose3f* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
+    Matrix4f memory; /**< The memory for the final product. */
 
     friend class GraphicsContext;
   };
@@ -341,16 +342,16 @@ public:
   void popModelMatrixStack();
 
   /**
-   * Pushes a transformation on the model matrix stack that is constant.
-   * @param transformation The transformation matrix. This reference must be valid at least until it has been popped of the stack.
+   * Pushes a pose on the model matrix stack that is constant.
+   * @param pose The pose relative to the parent. This reference must be valid at least until it has been popped of the stack.
    */
-  void pushModelMatrix(const Matrix4f& transformation);
+  void pushModelMatrix(const Pose3f& pose);
 
   /**
-   * Pushes a transformation on the model matrix stack which is reevaluated every frame.
-   * @param transformation The transformation matrix. This reference must be valid for the entire lifetime of the graphics context.
+   * Pushes a pose on the model matrix stack which is reevaluated every frame.
+   * @param pose The relative to the parent. This reference must be valid for the entire lifetime of the graphics context.
    */
-  void pushModelMatrixByReference(const Matrix4f& transformation);
+  void pushModelMatrixByReference(const Pose3f& pose);
 
   /** Pops a model matrix off the current stack. */
   void popModelMatrix();
@@ -497,18 +498,18 @@ private:
   };
 
   /**
-   * A stack of constant float pointers backed by a standard vector.
+   * A stack of constant \c Pose3f pointers backed by a standard vector.
    */
-  using FloatPointerStack = std::stack<const float*, std::vector<const float*>>;
+  using PosePointerStack = std::stack<const Pose3f*, std::vector<const Pose3f*>>;
 
   /**
    * A stack of transformations representing model matrices.
    */
-  struct ModelMatrixStack : FloatPointerStack
+  struct ModelMatrixStack : PosePointerStack
   {
-    using FloatPointerStack::push;
-    using FloatPointerStack::pop;
-    using FloatPointerStack::empty;
+    using PosePointerStack::push;
+    using PosePointerStack::pop;
+    using PosePointerStack::empty;
 
     /**
      * Returns the stack contents as standard vector.

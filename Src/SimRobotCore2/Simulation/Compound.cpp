@@ -28,9 +28,10 @@ void Compound::createPhysics(GraphicsContext& graphicsContext)
       addGeometry(pose, *geometry, nullptr);
   }
 
-  OpenGLTools::convertTransformation(rotation, translation, transformation);
+  OpenGLTools::convertTransformation(rotation, translation, poseInParent);
 
-  graphicsContext.pushModelMatrix(transformation);
+  graphicsContext.pushModelMatrix(poseInParent);
+  ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
   ::PhysicalObject::createPhysics(graphicsContext);
   graphicsContext.popModelMatrix();
 }
@@ -68,7 +69,9 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobo
 
 void Compound::createGraphics(GraphicsContext& graphicsContext)
 {
-  graphicsContext.pushModelMatrix(transformation);
+  // \c poseInParent is set by \c createPhysics which is guaranteed to be called before \c createGraphics.
+  graphicsContext.pushModelMatrix(poseInParent);
+  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix();
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
 }
