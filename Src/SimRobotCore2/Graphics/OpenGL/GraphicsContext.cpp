@@ -155,6 +155,7 @@ void main()
 {
   vec4 color;
 #ifdef WITH_LIGHTING
+  vec3 normalizedNormal = normalize(Normal);
   vec3 viewDir = normalize(cameraPos - FragPos);
   vec4 diffuse = vec4(0.0);
   vec4 ambient = GLOBAL_AMBIENT_LIGHT;
@@ -505,17 +506,17 @@ void GraphicsContext::addLight(const Light* light)
   if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
     lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec4(" + std::to_string(dirLight->diffuseColor[0]) + ", " + std::to_string(dirLight->diffuseColor[1]) + ", " + std::to_string(dirLight->diffuseColor[2]) + ", " + std::to_string(dirLight->diffuseColor[3]) + "), vec4(" + std::to_string(dirLight->ambientColor[0]) + ", " + std::to_string(dirLight->ambientColor[1]) + ", " + std::to_string(dirLight->ambientColor[2]) + ", " + std::to_string(dirLight->ambientColor[3]) + "), vec4(" + std::to_string(dirLight->specularColor[0]) + ", " + std::to_string(dirLight->specularColor[1]) + ", " + std::to_string(dirLight->specularColor[2]) + ", " + std::to_string(dirLight->specularColor[3]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
-    lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", Normal, viewDir, diffuse, ambient, specular);");
+    lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, diffuse, ambient, specular);");
   }
   else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
   {
     lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec4(" + std::to_string(spotLight->diffuseColor[0]) + ", " + std::to_string(spotLight->diffuseColor[1]) + ", " + std::to_string(spotLight->diffuseColor[2]) + ", " + std::to_string(spotLight->diffuseColor[3]) + "), vec4(" + std::to_string(spotLight->ambientColor[0]) + ", " + std::to_string(spotLight->ambientColor[1]) + ", " + std::to_string(spotLight->ambientColor[2]) + ", " + std::to_string(spotLight->ambientColor[3]) + "), vec4(" + std::to_string(spotLight->specularColor[0]) + ", " + std::to_string(spotLight->specularColor[1]) + ", " + std::to_string(spotLight->specularColor[2]) + ", " + std::to_string(spotLight->specularColor[3]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
-    lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, Normal, viewDir, diffuse, ambient, specular);");
+    lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, normalizedNormal, viewDir, diffuse, ambient, specular);");
   }
   else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
   {
     lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec4(" + std::to_string(pointLight->diffuseColor[0]) + ", " + std::to_string(pointLight->diffuseColor[1]) + ", " + std::to_string(pointLight->diffuseColor[2]) + ", " + std::to_string(pointLight->diffuseColor[3]) + "), vec4(" + std::to_string(pointLight->ambientColor[0]) + ", " + std::to_string(pointLight->ambientColor[1]) + ", " + std::to_string(pointLight->ambientColor[2]) + ", " + std::to_string(pointLight->ambientColor[3]) + "), vec4(" + std::to_string(pointLight->specularColor[0]) + ", " + std::to_string(pointLight->specularColor[1]) + ", " + std::to_string(pointLight->specularColor[2]) + ", " + std::to_string(pointLight->specularColor[3]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
-    lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, Normal, viewDir, diffuse, ambient, specular);");
+    lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, normalizedNormal, viewDir, diffuse, ambient, specular);");
   }
 }
 
