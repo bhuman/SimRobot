@@ -34,7 +34,7 @@ if(APPLE)
   set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set_source_files_properties(${SIMROBOT_FRAMEWORKS} PROPERTIES
       MACOSX_PACKAGE_LOCATION Frameworks
-      XCODE_EXPLICIT_FILE_TYPE wrapper.framwork)
+      XCODE_EXPLICIT_FILE_TYPE wrapper.framework)
   set_source_files_properties(${CONTROLLER_DYLIBS} PROPERTIES MACOSX_PACKAGE_LOCATION lib)
   set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/platforms)
   set_source_files_properties(${SIMROBOT_PLUGIN_JPEG} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/imageformats)
