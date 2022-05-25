@@ -107,13 +107,6 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.popModelMatrix();
   ASSERT(graphicsContext.emptyModelMatrixStack());
   graphicsContext.popModelMatrixStack();
-
-  ASSERT(!comSphere);
-  comSphere = Primitives::createSphere(graphicsContext, 0.003f, 10, 10, false);
-
-  ASSERT(!surface);
-  static const float color[] = {0.8f, 0.f, 0.f, 1.f};
-  surface = graphicsContext.requestSurface(color, color);
 }
 
 void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
@@ -238,7 +231,7 @@ void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) con
 {
   // draw center of mass
   if(flags & SimRobotCore2::Renderer::showPhysics)
-    graphicsContext.draw(comSphere, comModelMatrix, surface);
+    graphicsContext.draw(Simulation::simulation->bodyComSphereMesh, comModelMatrix, Simulation::simulation->bodyComSphereSurface);
 
   // draw children
   ::PhysicalObject::drawPhysics(graphicsContext, flags);

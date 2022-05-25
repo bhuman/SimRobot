@@ -118,8 +118,6 @@ private:
   friend class Accelerometer;
   friend class CollisionSensor;
 
-  GraphicsContext::Mesh* comSphere = nullptr; /**< The mesh of the CoM sphere drawing */
-  GraphicsContext::Surface* surface = nullptr; /**< The surface of the CoM sphere drawing */
   GraphicsContext::ModelMatrix* comModelMatrix = nullptr; /**< The model matrix of the CoM sphere drawing */
 
 private:

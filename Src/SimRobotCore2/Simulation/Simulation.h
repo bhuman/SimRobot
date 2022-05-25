@@ -45,10 +45,12 @@ public:
   GraphicsContext::Mesh* yAxisMesh = nullptr; /**< The mesh for the y axis in object renderers. */
   GraphicsContext::Mesh* zAxisMesh = nullptr; /**< The mesh for the z axis in object renderers. */
   GraphicsContext::Mesh* dragPlaneMesh = nullptr; /**< The mesh for the drag plane in object renderers. */
+  GraphicsContext::Mesh* bodyComSphereMesh = nullptr; /**< The mesh for the physical CoM drawing of bodies. */
   GraphicsContext::Surface* xAxisSurface = nullptr; /**< The surface for the x axis in object renderers. */
   GraphicsContext::Surface* yAxisSurface = nullptr; /**< The surface for the y axis in object renderers. */
   GraphicsContext::Surface* zAxisSurface = nullptr; /**< The surface for the z axis in object renderers. */
   GraphicsContext::Surface* dragPlaneSurface = nullptr; /**< The surface for the drag plane in object renderers. */
+  GraphicsContext::Surface* bodyComSphereSurface = nullptr; /**< The surface for the physical CoM drawing of bodies. */
   GraphicsContext::ModelMatrix* originModelMatrix = nullptr; /**< The model matrix for the origin in object renderers. */
   GraphicsContext::ModelMatrix* dragPlaneModelMatrix = nullptr; /**< The model matrix for the drag plane in object renderers. */
   Pose3f originPose; /**< Pose of the origin (assuming that renderers are sequential. */

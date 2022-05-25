@@ -105,14 +105,18 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   yAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(0.f, 1.f, 0.f));
   zAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(0.f, 0.f, 1.f));
   dragPlaneMesh = Primitives::createDisk(graphicsContext, 0.003f, 0.5f, 30);
+  bodyComSphereMesh = Primitives::createSphere(graphicsContext, 0.003f, 10, 10, false);
   static const float redColor[] = {1.f, 0.f, 0.f, 1.f};
   static const float greenColor[] = {0.f, 1.f, 0.f, 1.f};
   static const float blueColor[] = {0.f, 0.f, 1.f, 1.f};
   static const float dragPlaneColor[] = {0.5f, 0.5f, 0.5f, 0.5f};
+  static const float bodyComSphereColor[] = {0.8f, 0.f, 0.f, 1.f};
   xAxisSurface = graphicsContext.requestSurface(redColor, redColor);
   yAxisSurface = graphicsContext.requestSurface(greenColor, greenColor);
   zAxisSurface = graphicsContext.requestSurface(blueColor, blueColor);
   dragPlaneSurface = graphicsContext.requestSurface(dragPlaneColor, dragPlaneColor);
+  bodyComSphereSurface = graphicsContext.requestSurface(bodyComSphereColor, bodyComSphereColor);
+
 
   graphicsContext.pushModelMatrixStack();
   graphicsContext.pushModelMatrixByReference(originPose);
