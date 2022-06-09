@@ -11,7 +11,7 @@ set_property(TARGET SimRobotEditor PROPERTY PDB_OUTPUT_DIRECTORY "${SIMROBOT_LIB
 set_property(TARGET SimRobotEditor PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobotEditor PROPERTY AUTORCC ON)
 target_include_directories(SimRobotEditor PRIVATE "${SIMROBOTEDITOR_ROOT_DIR}")
-target_link_libraries(SimRobotEditor PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
+target_link_libraries(SimRobotEditor PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
 target_link_libraries(SimRobotEditor PRIVATE SimRobotInterface)
 target_link_libraries(SimRobotEditor PRIVATE Flags::Default)
 
@@ -19,5 +19,5 @@ source_group(TREE "${SIMROBOTEDITOR_ROOT_DIR}" FILES ${SIMROBOTEDITOR_SOURCES})
 
 add_library(SimRobotEditorInterface INTERFACE)
 target_include_directories(SimRobotEditorInterface SYSTEM INTERFACE "${SIMROBOTEDITOR_ROOT_DIR}")
-target_link_libraries(SimRobotEditorInterface INTERFACE Qt5::Core)
+target_link_libraries(SimRobotEditorInterface INTERFACE Qt6::Core)
 target_link_libraries(SimRobotEditorInterface INTERFACE SimRobotInterface)
