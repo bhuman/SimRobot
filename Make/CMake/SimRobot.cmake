@@ -19,6 +19,8 @@ if(APPLE)
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtDBus.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGLWidgets.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtPrintSupport.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework"
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework"
