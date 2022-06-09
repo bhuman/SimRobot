@@ -81,8 +81,6 @@ int main(int argc, char* argv[])
   _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
   //_CrtSetBreakAlloc(18969); // Use to track down memory leaks
 #endif
-  QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-  QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QSurfaceFormat format;
   format.setVersion(3, 3);

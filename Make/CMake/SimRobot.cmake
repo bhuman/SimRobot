@@ -55,7 +55,7 @@ set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO")
 set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
-target_link_libraries(SimRobot PRIVATE Qt5::Core Qt5::Gui Qt5::Svg Qt5::Widgets)
+target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::Svg Qt6::Widgets)
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
 target_link_libraries(SimRobot PRIVATE Flags::Default)
@@ -64,14 +64,14 @@ source_group(TREE "${SIMROBOT_ROOT_DIR}" FILES ${SIMROBOT_TREE})
 
 add_library(SimRobotInterface INTERFACE)
 target_include_directories(SimRobotInterface SYSTEM INTERFACE "${SIMROBOT_ROOT_DIR}")
-target_link_libraries(SimRobotInterface INTERFACE Qt5::Core)
+target_link_libraries(SimRobotInterface INTERFACE Qt6::Core)
 
 if(${PLATFORM} STREQUAL Windows)
   add_custom_command(TARGET SimRobot POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      "$<TARGET_FILE:Qt5::Core>" "$<TARGET_FILE:Qt5::Gui>" "$<TARGET_FILE:Qt5::Svg>"
-      "$<TARGET_FILE:Qt5::Widgets>" ${CONTROLLER_DYLIBS} "$<TARGET_FILE_DIR:SimRobot>"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt5::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
+      "$<TARGET_FILE:Qt6::Core>" "$<TARGET_FILE:Qt6::Gui>" "$<TARGET_FILE:Qt6::Svg>"
+      "$<TARGET_FILE:Qt6::Widgets>" ${CONTROLLER_DYLIBS} "$<TARGET_FILE_DIR:SimRobot>"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
 endif()

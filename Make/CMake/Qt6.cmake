@@ -1,5 +1,5 @@
 if(${PLATFORM} STREQUAL Linux)
-  find_package(Qt5 COMPONENTS Concurrent Core Gui Svg Widgets REQUIRED)
+  find_package(Qt6 COMPONENTS Concurrent Core Gui OpenGL OpenGLWidgets Svg Widgets REQUIRED)
 elseif(${PLATFORM} STREQUAL Windows)
   add_library(Qt5::WinMain STATIC IMPORTED)
   set_target_properties(Qt5::WinMain PROPERTIES
