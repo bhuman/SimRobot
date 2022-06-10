@@ -113,15 +113,16 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
   QOpenGLWidget::mouseMoveEvent(event);
 
   const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-   if(objectRenderer.moveDrag(event->x(),
-                              event->y(),
-                              m & Qt::ShiftModifier
-                              ? (m & Qt::ControlModifier
-                                 ? SimObjectRenderer::dragRotateWorld
-                                 : SimObjectRenderer::dragRotate)
-                              : (m & Qt::ControlModifier
-                                 ? SimObjectRenderer::dragNormalObject
-                                 : SimObjectRenderer::dragNormal)))
+  const QPointF position = event->position();
+  if(objectRenderer.moveDrag(static_cast<int>(position.x()),
+                             static_cast<int>(position.y()),
+                             m & Qt::ShiftModifier
+                             ? (m & Qt::ControlModifier
+                                ? SimObjectRenderer::dragRotateWorld
+                                : SimObjectRenderer::dragRotate)
+                             : (m & Qt::ControlModifier
+                                ? SimObjectRenderer::dragNormalObject
+                                : SimObjectRenderer::dragNormal)))
   {
     event->accept();
     update();
@@ -135,7 +136,8 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
   if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-    if(objectRenderer.startDrag(event->x(), event->y(), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
+    const QPointF position = event->position();
+    if(objectRenderer.startDrag(static_cast<int>(position.x()), static_cast<int>(position.y()), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
     {
       event->accept();
       update();
@@ -147,7 +149,8 @@ void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 {
   QOpenGLWidget::mouseReleaseEvent(event);
 
-  if(objectRenderer.releaseDrag(event->x(), event->y()))
+  const QPointF position = event->position();
+  if(objectRenderer.releaseDrag(static_cast<int>(position.x()), static_cast<int>(position.y())))
   {
     event->accept();
     update();
@@ -288,11 +291,7 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
   if(event->angleDelta().y() != 0.f)
   {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     const QPointF position = event->position();
-#else
-    const QPointF position = event->posF();
-#endif
     objectRenderer.zoom(event->angleDelta().y(), static_cast<float>(position.x()),
                         static_cast<float>(position.y()));
     update();
