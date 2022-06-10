@@ -57,7 +57,7 @@ set_property(TARGET SimRobot PROPERTY XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO")
 set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
-target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::Svg Qt6::Widgets)
+target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Svg Qt6::Widgets) # Qt6::OpenGL is only needed to register OpenGL support before the main window is created.
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
 target_link_libraries(SimRobot PRIVATE Flags::Default)
