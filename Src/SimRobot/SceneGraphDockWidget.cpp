@@ -34,11 +34,7 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   QSettings& settings = MainWindow::application->getLayoutSettings();
   settings.beginGroup(".SceneGraph");
   QStringList expandedItemsList = settings.value("ExpandedItems").toStringList();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
   expandedItems = QSet<QString>(expandedItemsList.begin(), expandedItemsList.end());
-#else
-  expandedItems = QSet<QString>::fromList(expandedItemsList);
-#endif
   settings.endGroup();
 }
 

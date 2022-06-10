@@ -123,7 +123,8 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
   QWidget::mouseMoveEvent(event);
 
   const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-  if(objectPainter.moveDrag(event->x(), event->y(), m & Qt::ShiftModifier ? SimObjectPainter::dragRotate : SimObjectPainter::dragNormal))
+  const QPointF position = event->position();
+  if(objectPainter.moveDrag(static_cast<int>(position.x()), static_cast<int>(position.y()), m & Qt::ShiftModifier ? SimObjectPainter::dragRotate : SimObjectPainter::dragNormal))
   {
     event->accept();
     update();
@@ -137,7 +138,8 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
   if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
-    objectPainter.startDrag(event->x(), event->y(), m & Qt::ShiftModifier ? SimObjectPainter::dragRotate : SimObjectPainter::dragNormal);
+    const QPointF position = event->position();
+    objectPainter.startDrag(static_cast<int>(position.x()), static_cast<int>(position.y()), m & Qt::ShiftModifier ? SimObjectPainter::dragRotate : SimObjectPainter::dragNormal);
     event->accept();
     update();
   }
@@ -147,7 +149,8 @@ void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 {
   QWidget::mouseReleaseEvent(event);
 
-  if(objectPainter.releaseDrag(event->x(), event->y()))
+  const QPointF position = event->position();
+  if(objectPainter.releaseDrag(static_cast<int>(position.x()), static_cast<int>(position.y())))
   {
     event->accept();
     update();
@@ -167,11 +170,7 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
 {
   QWidget::wheelEvent(event);
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
   const QPointF position = event->position();
-#else
-  const QPointF position = event->posF();
-#endif
   objectPainter.zoom(event->angleDelta().y(), static_cast<int>(position.x()),
                      static_cast<int>(position.y()));
   event->accept();
