@@ -7,6 +7,8 @@
 #include <QApplication>
 #include <QSurfaceFormat>
 
+extern void qt_registerDefaultPlatformBackingStoreOpenGLSupport();
+
 #ifdef WINDOWS
 #include <crtdbg.h>
 #else
@@ -88,6 +90,14 @@ int main(int argc, char* argv[])
   format.setSamples(1);
   format.setStencilBufferSize(0);
   QSurfaceFormat::setDefaultFormat(format);
+
+  // Workaround: For OpenGL to be used in windows, support must be registered before the window is created.
+  // The following function is declared as a constructor in QtOpenGL (i.e. executed at library loading time),
+  // but since the SimRobot application doesn't reference QtOpenGL it isn't sufficient to link QtOpenGL
+  // due to lazy loading. Therefore, we call this function here (probably resulting in the function being
+  // called twice, but this is handled by the function).
+  qt_registerDefaultPlatformBackingStoreOpenGLSupport();
+
   QApplication app(argc, argv);
 #ifndef WINDOWS
   setlocale(LC_NUMERIC, "C");
