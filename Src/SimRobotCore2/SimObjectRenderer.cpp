@@ -5,7 +5,6 @@
  */
 
 #include "SimObjectRenderer.h"
-#include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
 #include "Simulation/Body.h"
@@ -17,12 +16,7 @@
 #include "Tools/OpenGLTools.h"
 #include <ode/collision.h>
 #include <ode/objects.h>
-
-#ifdef WINDOWS
-typedef int (*GLBlendColorProc)(GLfloat, GLfloat, GLfloat, GLfloat);
-static GLBlendColorProc glBlendColor = nullptr;
-static int noBlendColor(GLfloat, GLfloat, GLfloat, GLfloat) {return 0;}
-#endif
+#include <QOpenGLFunctions_3_3_Core>
 
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
   simObject(simObject),
@@ -59,11 +53,6 @@ void SimObjectRenderer::init()
   }
   initialized = true;
   calcDragPlaneVector();
-#ifdef WINDOWS
-  glBlendColor = reinterpret_cast<GLBlendColorProc>(wglGetProcAddress("glBlendColor"));
-  if(!glBlendColor)
-    glBlendColor = &noBlendColor;
-#endif
 }
 
 void SimObjectRenderer::destroy()
@@ -142,12 +131,13 @@ void SimObjectRenderer::draw()
   const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
   graphicsContext.updateModelMatrices((dragging && dragSelection) || (renderFlags & showCoordinateSystem));
 
   if(renderFlags & enableMultisample)
-    glEnable(GL_MULTISAMPLE);
+    f->glEnable(GL_MULTISAMPLE);
   else
-    glDisable(GL_MULTISAMPLE);
+    f->glDisable(GL_MULTISAMPLE);
 
   // clear
   bool clear = true;
@@ -200,11 +190,11 @@ void SimObjectRenderer::draw()
       registeredAtManager = true;
     }
 
-    glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
+    f->glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-    glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+    f->glEnable(GL_BLEND);
+    f->glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+    f->glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     Simulation::simulation->scene->drawingManager->beforeFrame();
 
@@ -227,10 +217,10 @@ void SimObjectRenderer::draw()
 
     if((renderFlags & enableDrawingsTransparentOcclusion) ||
        !(renderFlags & enableDrawingsOcclusion))
-      glClear(GL_DEPTH_BUFFER_BIT);
+      f->glClear(GL_DEPTH_BUFFER_BIT);
 
     if(renderFlags & enableDrawingsTransparentOcclusion)
-      glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
+      f->glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
 
     Simulation::simulation->scene->drawingManager->beforeDraw();
 
@@ -246,7 +236,7 @@ void SimObjectRenderer::draw()
 
     Simulation::simulation->scene->drawingManager->afterFrame();
 
-    glDisable(GL_BLEND);
+    f->glDisable(GL_BLEND);
   }
 }
 

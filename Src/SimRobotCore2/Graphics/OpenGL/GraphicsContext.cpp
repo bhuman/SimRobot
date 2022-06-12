@@ -731,15 +731,17 @@ bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
 
 void GraphicsContext::finishImageRendering(void* image, int w, int h)
 {
+  QOpenGLFunctions_3_3_Core* f = perContextData[QOpenGLContext::currentContext()].f;
   const int lineSize = w * 3;
-  glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-  glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+  f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
+  f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
 }
 
 void GraphicsContext::finishDepthRendering(void* image, int w, int h)
 {
-  glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-  glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+  QOpenGLFunctions_3_3_Core* f = perContextData[QOpenGLContext::currentContext()].f;
+  f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
+  f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
 }
 
 void GraphicsContext::setSurface(const Surface* surface)
@@ -873,6 +875,11 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
   shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
   return shader;
+}
+
+QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions()
+{
+  return perContextData[QOpenGLContext::currentContext()].f;
 }
 
 void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)

@@ -450,6 +450,12 @@ public:
    */
   QOpenGLContext* getOffscreenContext() const {return offscreenContext;}
 
+  /**
+   * Returns the OpenGL functions for the current context.
+   * @return The functions or \c nullptr if not called between \c startColorRendering / \c startDepthOnlyRendering and \c finishRendering.
+   */
+  QOpenGLFunctions_3_3_Core* getOpenGLFunctions();
+
 private:
   /**
    * A shader (OpenGL: program) with extracted uniform locations.
