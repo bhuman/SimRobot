@@ -452,9 +452,9 @@ public:
 
   /**
    * Returns the OpenGL functions for the current context.
-   * @return The functions or \c nullptr if not called between \c startColorRendering / \c startDepthOnlyRendering and \c finishRendering.
+   * @return The functions or \c nullptr if the context is not registered.
    */
-  QOpenGLFunctions_3_3_Core* getOpenGLFunctions();
+  QOpenGLFunctions_3_3_Core* getOpenGLFunctions() const;
 
 private:
   /**

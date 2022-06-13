@@ -877,9 +877,12 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   return shader;
 }
 
-QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions()
+QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions() const
 {
-  return perContextData[QOpenGLContext::currentContext()].f;
+  if(auto it = perContextData.find(QOpenGLContext::currentContext()); it != perContextData.end())
+    return it->second.f;
+  else
+    return nullptr;
 }
 
 void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
