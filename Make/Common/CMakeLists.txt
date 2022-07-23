@@ -85,7 +85,7 @@ else()
   if(APPLE)
     add_compile_options(-Wno-deprecated)
   else()
-    add_link_options(-fuse-ld=lld)
+    add_link_options(-fuse-ld=mold)
   endif()
 endif()
 
