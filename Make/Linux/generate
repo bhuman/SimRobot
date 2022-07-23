@@ -3,11 +3,18 @@
 
 cd "$(dirname "$(which "$0")")"
 
-if [ -n "$NO_CLION" ]; then
-  for CONFIG in Debug Develop Release; do
-    cmake -DCMAKE_BUILD_TYPE=$CONFIG -G Ninja -S . -B ../../Build/Linux/CMake/$CONFIG
-  done
-else
+USE_CLION=
+
+if [ "$1" = "-c" ]; then
+  USE_CLION=1
+elif [ $# != 0 ]; then
+  echo "usage: $0 [-c]"
+  echo "  options:"
+  echo "    -c    generate a CLion project instead of CMake caches"
+  exit 1
+fi
+
+if [ -f .idea/workspace.xml -o ! -z "$USE_CLION" ]; then
   CMAKE_RUN_CONFIGURATION_MANAGER="    <generated>
       <config projectName=\"SimRobot\" targetName=\"SimRobot\" />
     </generated>"
@@ -16,7 +23,7 @@ else
       <item itemvalue=\"CMake Application.SimRobot\" />
     </list>"
 
-  if [ -e .idea/workspace.xml ]; then
+  if [ -f .idea/workspace.xml ]; then
     (
       sed -n "/<component name=\"CMakeRunConfigurationManager\"/{p;:a;N;/<\/component>\$/!ba;c\\
 $((tr '\n' '@' | sed 's/@/\\\n/g') <<<$CMAKE_RUN_CONFIGURATION_MANAGER)
@@ -41,4 +48,8 @@ $RUN_MANAGER
   </component>
 </project>"
   fi
+else
+  for CONFIG in Debug Develop Release; do
+    cmake -DCMAKE_BUILD_TYPE=$CONFIG -G Ninja -S . -B ../../Build/Linux/CMake/$CONFIG
+  done
 fi

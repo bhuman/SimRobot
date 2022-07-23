@@ -28,11 +28,11 @@ sudo apt-get install clang cmake libqt5svg5-dev lld llvm ninja-build qtbase5-dev
 
 ### Compiling (no IDE)
 
-In the directory `Make/Linux` run `NO_CLION=true ./generate` to generate CMake caches and `./compile [Debug|Develop|Release]` to compile the code. The executable will be located in `Build/Linux/SimRobot/<Debug|Develop|Release>/SimRobot`.
+Run `Make/Linux/generate` to generate CMake caches and `Make/Linux/compile [Debug|Develop|Release]` to compile the code. The executable will be located in `Build/Linux/SimRobot/<Debug|Develop|Release>/SimRobot`.
 
 ### Compiling (CLion)
 
-Run `Make/Linux/generate`. Open `Make/Linux/CMakeLists.txt` in CLion as project (*not* the the one in `Make/Common`). In CLion, you can select a build type, e.g. *Develop*, and then select *Run/Debug SimRobot*.
+Run `Make/Linux/generate -c`. Open `Make/Linux/CMakeLists.txt` in CLion as project (*not* the the one in `Make/Common`). In CLion, you can select a build type, e.g. *Develop*, and then select *Run/Debug SimRobot*.
 
 ## macOS
 
