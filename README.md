@@ -32,7 +32,7 @@ Run `Make/Linux/generate` to generate CMake caches and `Make/Linux/compile [Debu
 
 ### Compiling (CLion)
 
-Run `Make/Linux/generate -c`. Open `Make/Linux/CMakeLists.txt` in CLion as project (*not* the the one in `Make/Common`). In CLion, you can select a build type, e.g. *Develop*, and then select *Run/Debug SimRobot*.
+Run `Make/Linux/generate -c`. Open `Make/Linux/CMakeLists.txt` in CLion as project (*not* the the one in `Make/CMake`). In CLion, you can select a build type, e.g. *Develop*, and then select *Run/Debug SimRobot*.
 
 ## macOS
 

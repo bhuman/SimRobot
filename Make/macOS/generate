@@ -61,7 +61,7 @@ if [ -d "$PROJECTPATH/CMakeFiles" ]; then
 fi
 
 # Create project.
-"$CMAKE" -G Xcode -S ../Common -B $PROJECTDIR
+"$CMAKE" -G Xcode -S ../CMake -B $PROJECTDIR
 
 # Backwards compatibility: Remove the link to project if it exists.
 if [ -L "$PROJECTPATH" ]; then
@@ -85,7 +85,7 @@ while read dir; do
 done <<<"$DIRONLY"
 
 # Assign folders to most source groups.
-grep <$PROJECTSRC/project.pbxproj -v '/Make/Common/CMakeLists.txt' \
+grep <$PROJECTSRC/project.pbxproj -v '/Make/CMake/CMakeLists.txt' \
 | sed \
   -e 's%SimRobot-temp%SimRobot%' \
   -e 's%/Build/macOS/CMakeFiles/%/Make/macOS/SimRobot.xcodeproj/CMakeFiles/%' \
