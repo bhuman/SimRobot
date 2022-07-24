@@ -11,6 +11,6 @@ target_link_libraries(SimpleVehicle PRIVATE SimRobotCore2Interface)
 target_link_libraries(SimpleVehicle PRIVATE Qt5::Widgets)
 target_compile_options(SimpleVehicle PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/GL>>)
 target_link_options(SimpleVehicle PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/LTCG>>)
-target_link_libraries(SimpleVehicle PRIVATE Flags::ForDevelop)
+target_link_libraries(SimpleVehicle PRIVATE Flags::DebugInDevelop)
 
 source_group(TREE "${SIMPLEVEHICLE_ROOT_DIR}" FILES ${SIMPLEVEHICLE_SOURCES})

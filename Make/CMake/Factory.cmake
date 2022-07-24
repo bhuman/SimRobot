@@ -10,6 +10,6 @@ target_include_directories(Factory PRIVATE "${FACTORY_ROOT_DIR}")
 target_link_libraries(Factory PRIVATE SimRobotCore2Interface)
 target_compile_options(Factory PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/GL>>)
 target_link_options(Factory PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/LTCG>>)
-target_link_libraries(Factory PRIVATE Flags::ForDevelop)
+target_link_libraries(Factory PRIVATE Flags::DebugInDevelop)
 
 source_group(TREE "${FACTORY_ROOT_DIR}" FILES ${FACTORY_SOURCES})

@@ -93,10 +93,10 @@ set(_is_msvc "$<CXX_COMPILER_ID:MSVC>")
 set(_is_clang "$<NOT:$<CXX_COMPILER_ID:MSVC>>")
 set(_not_mac "$<NOT:$<PLATFORM_ID:Darwin>>")
 
-add_library(Flags::ForDevelop INTERFACE IMPORTED)
-target_compile_definitions(Flags::ForDevelop INTERFACE
+add_library(Flags::DebugInDevelop INTERFACE IMPORTED)
+target_compile_definitions(Flags::DebugInDevelop INTERFACE
     $<$<CONFIG:Release>:NDEBUG>)
-target_compile_options(Flags::ForDevelop INTERFACE
+target_compile_options(Flags::DebugInDevelop INTERFACE
     $<${_is_msvc}:$<$<CONFIG:Debug>:/ZI>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/Zi>>
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/Od>>
@@ -112,7 +112,7 @@ target_compile_options(Flags::ForDevelop INTERFACE
     $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-parameter>>
     $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-variable>>
     $<${_is_clang}:$<$<CONFIG:Release>:-Wno-unused-lambda-capture>>)
-target_link_options(Flags::ForDevelop INTERFACE
+target_link_options(Flags::DebugInDevelop INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Release>>:/DEBUG>>
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/INCREMENTAL:NO>>
     $<${_is_msvc}:$<$<CONFIG:Develop>:/SAFESEH:NO>>

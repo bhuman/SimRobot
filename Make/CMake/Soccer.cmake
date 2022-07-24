@@ -10,6 +10,6 @@ target_include_directories(Soccer PRIVATE "${SOCCER_ROOT_DIR}")
 target_link_libraries(Soccer PRIVATE SimRobotCore2DInterface)
 target_compile_options(Soccer PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/GL>>)
 target_link_options(Soccer PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/LTCG>>)
-target_link_libraries(Soccer PRIVATE Flags::ForDevelop)
+target_link_libraries(Soccer PRIVATE Flags::DebugInDevelop)
 
 source_group(TREE "${SOCCER_ROOT_DIR}" FILES ${SOCCER_SOURCES})
