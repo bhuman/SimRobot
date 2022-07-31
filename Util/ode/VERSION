@@ -1,4 +1,4 @@
-ODE 1.16.2 (at least for macOS and macOSarm64)
+ODE 0.16.2 (at least for macOS and macOSarm64)
 
 Building on Linux/macOSarm64
 ----------------------------
@@ -11,4 +11,3 @@ CFLAGS="-O2 -mssse3" CXXFLAGS="-O2 -mssse3" ./configure --disable-asserts --disa
 make
 
 Copy include/ode and ode/src/.libs/libode.a
-
