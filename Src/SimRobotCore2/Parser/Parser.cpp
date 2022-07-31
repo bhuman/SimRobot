@@ -244,9 +244,9 @@ Element* Parser::dirLightElement()
   getColor("diffuseColor", false, light->diffuseColor);
   getColor("ambientColor", false, light->ambientColor);
   getColor("specularColor", false, light->specularColor);
-  light->direction[0] = getLength("x", false, light->direction[0]);
-  light->direction[1] = getLength("y", false, light->direction[1]);
-  light->direction[2] = getLength("z", false, light->direction[2]);
+  light->direction[0] = getFloatMinMax("x", false, light->direction[0], -1.f, 1.f);
+  light->direction[1] = getFloatMinMax("y", false, light->direction[1], -1.f, 1.f);
+  light->direction[2] = getFloatMinMax("z", false, light->direction[2], -1.f, 1.f);
   return light;
 }
 
@@ -277,9 +277,9 @@ Element* Parser::spotLightElement()
   light->constantAttenuation = getFloatPositive("constantAttenuation", false, light->constantAttenuation);
   light->linearAttenuation = getFloatPositive("linearAttenuation", false, light->linearAttenuation);
   light->quadraticAttenuation = getFloatPositive("quadraticAttenuation", false, light->quadraticAttenuation);
-  light->direction[0] = getLength("dirX", false, light->direction[0]);
-  light->direction[1] = getLength("dirY", false, light->direction[1]);
-  light->direction[2] = getLength("dirZ", false, light->direction[2]);
+  light->direction[0] = getFloatMinMax("dirX", false, light->direction[0], -1.f, 1.f);
+  light->direction[1] = getFloatMinMax("dirY", false, light->direction[1], -1.f, 1.f);
+  light->direction[2] = getFloatMinMax("dirZ", false, light->direction[2], -1.f, 1.f);
   light->cutoff = getFloatMinMax("cutoff", false, light->cutoff, 0.f, 1.f);
   return light;
 }
