@@ -34,8 +34,7 @@ DirLight::DirLight()
 
 PointLight::PointLight()
 {
-  position[0] = position[1] = 0.f;
-  position[2] = 1.f;
+  position[0] = position[1] = position[2] = 0.f;
 }
 
 SpotLight::SpotLight()
