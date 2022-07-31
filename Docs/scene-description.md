@@ -1,11 +1,54 @@
 # Scene Description
 
-Scene decription files are encoded in XML. Since document type definitions or XML schema are hard to read, the format description is split into two parts. In the following section, the relations between different tags are describe in a EBNF-ish grammar. However, the attributes of the tags are missing, i.e. a terminal symbol such as `"<Deflection>"` or `<Deflection/>` can actually have a number of attributes that are described later in [this section](#attributes).
+## Structure of a Scene Description File
+
+### The Beginning of a Scene File
+
+Every scene file consists of a `<Simulation>` element. In addition to other elements, it can contain `<Include href="...">` tags to insert the contents of other files. These also consist of `<Simulation>` elements, but after the inclusion, their `Simulation` element is removed and only its contents are inserted into the including file. After all includes are resolved, the main `<Simulation>` element must at least contain a `<Scene>` element. The `Scene` specifies which controller is loaded for this scene via the `controller` attribute.
+
+
+### The ref Attribute
+
+An element with a `name` attribute can be referenced by the `ref`-attribute using its name, i.e. elements that are needed repeatedly in a scene need to be defined only once. For example there is only one description of a NAO in its definition file (`NaoV6H25.rsi2`), but NAOs with different jersey colors are needed on a field. For each NAO on the field, there is a reference to the original model. The positioning of the NAOs is done by `Translation` and `Rotation` elements. The color is set by a `Set` element, which is described below.
+
+       ⫶
+    <Body name="Nao">
+      <Set name="NaoColor" value="blue"/>
+        ⫶
+    </Body>
+       ⫶
+    <Body ref="Nao" name="BlueNao">
+      <Translation x="-2" y="0.4" z="320mm"/>
+    </Body>
+    <Body ref="Nao" name="RedNao">
+      <Translation x="-1.5" y="-0.9" z="320mm"/>
+      <Rotation z="180degree"/>
+      <Set name="NaoColor" value="red"/>
+    </Body>
+       ⫶
+
+
+### Placeholders and Set Element
+
+A placeholder has to start with a `$` followed by an arbitrary string. A placeholder is replaced by the definition specified within the corresponding `Set` element. The attribute `name` of a `Set` elements specifies the placeholder, which is replaced by the value specified by the attribute `value` of the `Set` element.
+
+In the following code example, the color of NAO's jersey is set by a `Set` element. Within the definition of the body *Nao* named *RedNao*, the *Set* element sets the placeholder color to the value *red*. The placeholder named *NaoColor* of *Nao*, which is defined in the general definition of a NAO, is replaced by *red* in all elements of the model, also in the ones that are just referenced, such as the appearances of individual body parts. So the `Surface` elements reference a surface named *nao-red*.
+
+       ⫶
+    <ComplexAppearance name="naoTorsoV6_jersey">
+      <Surface ref="nao-$NaoColor"/>
+         ⫶
+    </ComplexAppearance>
+       ⫶
+    <Surface name="nao-red" diffuseColor="rgb(100%, 0%, 0%)" ambientColor="rgb(20%, 12%, 12%)"/>
+       ⫶
 
 
 ## Grammar
 
- In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the following EBNF grammar uses the fourth one `?(...)?` that defines that the sequence of the grammar symbols in between is arbitrary. This reflects the fact that XML usually does not enforce a certain order for subtags. The start symbol of the grammar is `Simulation`.
+Scene decription files are encoded in XML. Since document type definitions or XML schema are hard to read, the format description is split into two parts. In this section, the relations between different tags are describe in a EBNF-ish grammar. However, the attributes of the tags are missing, i.e. a terminal symbol such as `"<Deflection>"` or `<Deflection/>` can actually have a number of attributes that are described later in the [next section](#attributes).
+
+In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the following EBNF grammar uses the fourth one `?(...)?` that defines that the sequence of the grammar symbols in between is arbitrary. This reflects the fact that XML usually does not enforce a certain order for subtags. The start symbol of the grammar is `Simulation`.
 
     appearanceClass            = Appearance
                                | BoxAppearance
@@ -304,50 +347,6 @@ Scene decription files are encoded in XML. Since document type definitions or XM
     
     Vertices                   = "<Vertices>" Vertices Definition "</Vertices>"
                                | "<Vertices/>";
-
-
-## Structure of a Scene Description File
-
-### The Beginning of a Scene File
-
-Every scene file consists of a `<Simulation>` element. In addition to other elements, it can contain `<Include href="...">` tags to insert the contents of other files. These also consist of `<Simulation>` elements, but after the inclusion, their `Simulation` element is removed and only its contents are inserted into the including file. After all includes are resolved, the main `<Simulation>` element must at least contain a `<Scene>` element. The `Scene` specifies which controller is loaded for this scene via the `controller` attribute.
-
-
-### The ref Attribute
-
-An element with a `name` attribute can be referenced by the `ref`-attribute using its name, i.e. elements that are needed repeatedly in a scene need to be defined only once. For example there is only one description of a NAO in its definition file (`NaoV6H25.rsi2`), but NAOs with different jersey colors are needed on a field. For each NAO on the field, there is a reference to the original model. The positioning of the NAOs is done by `Translation` and `Rotation` elements. The color is set by a `Set` element, which is described below.
-
-       ⫶
-    <Body name="Nao">
-      <Set name="NaoColor" value="blue"/>
-        ⫶
-    </Body>
-       ⫶
-    <Body ref="Nao" name="BlueNao">
-      <Translation x="-2" y="0.4" z="320mm"/>
-    </Body>
-    <Body ref="Nao" name="RedNao">
-      <Translation x="-1.5" y="-0.9" z="320mm"/>
-      <Rotation z="180degree"/>
-      <Set name="NaoColor" value="red"/>
-    </Body>
-       ⫶
-
-
-### Placeholders and Set Element
-
-A placeholder has to start with a `$` followed by an arbitrary string. A placeholder is replaced by the definition specified within the corresponding `Set` element. The attribute `name` of a `Set` elements specifies the placeholder, which is replaced by the value specified by the attribute `value` of the `Set` element.
-
-In the following code example, the color of NAO's jersey is set by a `Set` element. Within the definition of the body *Nao* named *RedNao*, the *Set* element sets the placeholder color to the value *red*. The placeholder named *NaoColor* of *Nao*, which is defined in the general definition of a NAO, is replaced by *red* in all elements of the model, also in the ones that are just referenced, such as the appearances of individual body parts. So the `Surface` elements reference a surface named *nao-red*.
-
-       ⫶
-    <ComplexAppearance name="naoTorsoV6_jersey">
-      <Surface ref="nao-$NaoColor"/>
-         ⫶
-    </ComplexAppearance>
-       ⫶
-    <Surface name="nao-red" diffuseColor="rgb(100%, 0%, 0%)" ambientColor="rgb(20%, 12%, 12%)"/>
-       ⫶
 
 
 ## Attributes
