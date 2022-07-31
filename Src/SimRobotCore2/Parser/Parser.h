@@ -177,11 +177,10 @@ private:
   float getFloatMinMax(const char* key, bool required, float defaultValue, float min, float max);
   bool getFloatAndUnit(const char* key, bool required, float defaultValue, float& value, char** unit, Location& unitLocation);
   float getUnit(const char* key, bool required, float defaultValue);
-  float getLength(const char* key, bool required, float defaultValue);
+  float getLength(const char* key, bool required, float defaultValue, bool nonZeroPositive);
   float getMassLengthLength(const char* key, bool required, float defaultValue);
   float getMass(const char* key, bool required, float defaultValue);
-  float getAngle(const char* key, bool required, float defaultValue);
-  float getAngleNonZeroPositive(const char* key, bool required, float defaultValue);
+  float getAngle(const char* key, bool required, float defaultValue, bool nonZeroPositive);
   float getAngularVelocity(const char* key, bool required, float defaultValue);
   float getForce(const char* key, bool required, float defaultValue);
   float getVelocity(const char* key, bool required, float defaultValue);

@@ -256,9 +256,9 @@ Element* Parser::pointLightElement()
   getColor("diffuseColor", false, light->diffuseColor);
   getColor("ambientColor", false, light->ambientColor);
   getColor("specularColor", false, light->specularColor);
-  light->position[0] = getLength("x", false, light->position[0]);
-  light->position[1] = getLength("y", false, light->position[1]);
-  light->position[2] = getLength("z", false, light->position[2]);
+  light->position[0] = getLength("x", false, light->position[0], false);
+  light->position[1] = getLength("y", false, light->position[1], false);
+  light->position[2] = getLength("z", false, light->position[2], false);
   light->constantAttenuation = getFloatPositive("constantAttenuation", false, light->constantAttenuation);
   light->linearAttenuation = getFloatPositive("linearAttenuation", false, light->linearAttenuation);
   light->quadraticAttenuation = getFloatPositive("quadraticAttenuation", false, light->quadraticAttenuation);
@@ -271,9 +271,9 @@ Element* Parser::spotLightElement()
   getColor("diffuseColor", false, light->diffuseColor);
   getColor("ambientColor", false, light->ambientColor);
   getColor("specularColor", false, light->specularColor);
-  light->position[0] = getLength("x", false, light->position[0]);
-  light->position[1] = getLength("y", false, light->position[1]);
-  light->position[2] = getLength("z", false, light->position[2]);
+  light->position[0] = getLength("x", false, light->position[0], false);
+  light->position[1] = getLength("y", false, light->position[1], false);
+  light->position[2] = getLength("z", false, light->position[2], false);
   light->constantAttenuation = getFloatPositive("constantAttenuation", false, light->constantAttenuation);
   light->linearAttenuation = getFloatPositive("linearAttenuation", false, light->linearAttenuation);
   light->quadraticAttenuation = getFloatPositive("quadraticAttenuation", false, light->quadraticAttenuation);
@@ -324,9 +324,9 @@ Element* Parser::boxMassElement()
   BoxMass* boxMass = new BoxMass();
   boxMass->name = getString("name", false);
   boxMass->value = getMass("value", true, 0.f);
-  boxMass->width = getLength("width", true, 0.f);
-  boxMass->height = getLength("height", true, 0.f);
-  boxMass->depth = getLength("depth", true, 0.f);
+  boxMass->width = getLength("width", true, 0.f, true);
+  boxMass->height = getLength("height", true, 0.f, true);
+  boxMass->depth = getLength("depth", true, 0.f, true);
   return boxMass;
 }
 
@@ -335,7 +335,7 @@ Element* Parser::sphereMassElement()
   SphereMass* sphereMass = new SphereMass();
   sphereMass->name = getString("name", false);
   sphereMass->value = getMass("value", true, 0.f);
-  sphereMass->radius = getLength("radius", true, 0.f);
+  sphereMass->radius = getLength("radius", true, 0.f, true);
   return sphereMass;
 }
 
@@ -344,9 +344,9 @@ Element* Parser::inertiaMatrixMassElement()
   InertiaMatrixMass* inertiaMatrixMass = new InertiaMatrixMass();
   inertiaMatrixMass->name = getString("name", false);
   inertiaMatrixMass->value = getMass("value", true, 0.f);
-  inertiaMatrixMass->x = getLength("x", false, 0.f);
-  inertiaMatrixMass->y = getLength("y", false, 0.f);
-  inertiaMatrixMass->z = getLength("z", false, 0.f);
+  inertiaMatrixMass->x = getLength("x", false, 0.f, false);
+  inertiaMatrixMass->y = getLength("y", false, 0.f, false);
+  inertiaMatrixMass->z = getLength("z", false, 0.f, false);
   inertiaMatrixMass->ixx = getMassLengthLength("ixx", true, 0.f);
   inertiaMatrixMass->ixy = getMassLengthLength("ixy", false, 0.f);
   inertiaMatrixMass->ixz = getMassLengthLength("ixz", false, 0.f);
@@ -361,8 +361,8 @@ Element* Parser::capsuleMassElement()
   CapsuleMass* capsuleMass = new CapsuleMass();
   capsuleMass->name = getString("name", false);
   capsuleMass->value = getMass("value", true, 0.f);
-  capsuleMass->radius = getLength("radius", true, 0.f);
-  capsuleMass->height = getLength("height", true, 0.f);
+  capsuleMass->radius = getLength("radius", true, 0.f, true);
+  capsuleMass->height = getLength("height", true, 0.f, true);
   return capsuleMass;
 }
 
@@ -371,8 +371,8 @@ Element* Parser::cylinderMassElement()
   CylinderMass* cylinderMass = new CylinderMass();
   cylinderMass->name = getString("name", false);
   cylinderMass->value = getMass("value", true, 0.f);
-  cylinderMass->radius = getLength("radius", true, 0.f);
-  cylinderMass->height = getLength("height", true, 0.f);
+  cylinderMass->radius = getLength("radius", true, 0.f, true);
+  cylinderMass->height = getLength("height", true, 0.f, true);
   return cylinderMass;
 }
 
@@ -388,9 +388,9 @@ Element* Parser::boxGeometryElement()
   BoxGeometry* boxGeometry = new BoxGeometry();
   getColor("color", false, boxGeometry->color);
   boxGeometry->name = getString("name", false);
-  boxGeometry->width = getLength("width", true, 0.f);
-  boxGeometry->height = getLength("height", true, 0.f);
-  boxGeometry->depth = getLength("depth", true, 0.f);
+  boxGeometry->width = getLength("width", true, 0.f, true);
+  boxGeometry->height = getLength("height", true, 0.f, true);
+  boxGeometry->depth = getLength("depth", true, 0.f, true);
   return boxGeometry;
 }
 
@@ -399,7 +399,7 @@ Element* Parser::sphereGeometryElement()
   SphereGeometry* sphereGeometry = new SphereGeometry();
   getColor("color", false, sphereGeometry->color);
   sphereGeometry->name = getString("name", false);
-  sphereGeometry->radius = getLength("radius", true, 0.f);
+  sphereGeometry->radius = getLength("radius", true, 0.f, true);
   return sphereGeometry;
 }
 
@@ -408,8 +408,8 @@ Element* Parser::cylinderGeometryElement()
   CylinderGeometry* cylinderGeometry = new CylinderGeometry();
   getColor("color", false, cylinderGeometry->color);
   cylinderGeometry->name = getString("name", false);
-  cylinderGeometry->radius = getLength("radius", true, 0.f);
-  cylinderGeometry->height = getLength("height", true, 0.f);
+  cylinderGeometry->radius = getLength("radius", true, 0.f, true);
+  cylinderGeometry->height = getLength("height", true, 0.f, true);
   return cylinderGeometry;
 }
 
@@ -418,8 +418,8 @@ Element* Parser::capsuleGeometryElement()
   CapsuleGeometry* capsuleGeometry = new CapsuleGeometry();
   getColor("color", false, capsuleGeometry->color);
   capsuleGeometry->name = getString("name", false);
-  capsuleGeometry->radius = getLength("radius", true, 0.f);
-  capsuleGeometry->height = getLength("height", true, 0.f);
+  capsuleGeometry->radius = getLength("radius", true, 0.f, true);
+  capsuleGeometry->height = getLength("height", true, 0.f, true);
   return capsuleGeometry;
 }
 
@@ -428,8 +428,8 @@ Element* Parser::torusGeometryElement()
   TorusGeometry* torusGeometry = new TorusGeometry();
   getColor("color", false, torusGeometry->color);
   torusGeometry->name = getString("name", false);
-  torusGeometry->majorRadius = getLength("majorRadius", true, 0.f);
-  torusGeometry->minorRadius = getLength("minorRadius", true, 0.f);
+  torusGeometry->majorRadius = getLength("majorRadius", true, 0.f, true);
+  torusGeometry->minorRadius = getLength("minorRadius", true, 0.f, true);
   return torusGeometry;
 }
 
@@ -471,9 +471,9 @@ Element* Parser::boxAppearanceElement()
 {
   BoxAppearance* boxAppearance = new BoxAppearance();
   boxAppearance->name = getString("name", false);
-  boxAppearance->width = getLength("width", true, 0.f);
-  boxAppearance->height = getLength("height", true, 0.f);
-  boxAppearance->depth = getLength("depth", true, 0.f);
+  boxAppearance->width = getLength("width", true, 0.f, true);
+  boxAppearance->height = getLength("height", true, 0.f, true);
+  boxAppearance->depth = getLength("depth", true, 0.f, true);
   return boxAppearance;
 }
 
@@ -481,7 +481,7 @@ Element* Parser::sphereAppearanceElement()
 {
   SphereAppearance* sphereAppearance = new SphereAppearance();
   sphereAppearance->name = getString("name", false);
-  sphereAppearance->radius = getLength("radius", true, 0.f);
+  sphereAppearance->radius = getLength("radius", true, 0.f, true);
   return sphereAppearance;
 }
 
@@ -489,8 +489,8 @@ Element* Parser::cylinderAppearanceElement()
 {
   CylinderAppearance* cylinderAppearance = new CylinderAppearance();
   cylinderAppearance->name = getString("name", false);
-  cylinderAppearance->height = getLength("height", true, 0.f);
-  cylinderAppearance->radius = getLength("radius", true, 0.f);
+  cylinderAppearance->height = getLength("height", true, 0.f, true);
+  cylinderAppearance->radius = getLength("radius", true, 0.f, true);
   return cylinderAppearance;
 }
 
@@ -498,8 +498,8 @@ Element* Parser::capsuleAppearanceElement()
 {
   CapsuleAppearance* capsuleAppearance = new CapsuleAppearance();
   capsuleAppearance->name = getString("name", false);
-  capsuleAppearance->height = getLength("height", true, 0.f);
-  capsuleAppearance->radius = getLength("radius", true, 0.f);
+  capsuleAppearance->height = getLength("height", true, 0.f, true);
+  capsuleAppearance->radius = getLength("radius", true, 0.f, true);
   return capsuleAppearance;
 }
 
@@ -659,7 +659,7 @@ breakThrice:
 
 Element* Parser::translationElement()
 {
-  Vector3f* translation = new Vector3f(getLength("x", false, 0.f), getLength("y", false, 0.f), getLength("z", false, 0.f));
+  Vector3f* translation = new Vector3f(getLength("x", false, 0.f, false), getLength("y", false, 0.f, false), getLength("z", false, 0.f, false));
 
   SimObject* simObject = dynamic_cast<SimObject*>(element);
   if(simObject)
@@ -680,9 +680,9 @@ Element* Parser::translationElement()
 Element* Parser::rotationElement()
 {
   RotationMatrix* rotation = new RotationMatrix;
-  *rotation *= RotationMatrix::aroundZ(getAngle("z", false, 0.f));
-  *rotation *= RotationMatrix::aroundY(getAngle("y", false, 0.f));
-  *rotation *= RotationMatrix::aroundX(getAngle("x", false, 0.f));
+  *rotation *= RotationMatrix::aroundZ(getAngle("z", false, 0.f, false));
+  *rotation *= RotationMatrix::aroundY(getAngle("y", false, 0.f, false));
+  *rotation *= RotationMatrix::aroundX(getAngle("x", false, 0.f, false));
 
   SimObject* simObject = dynamic_cast<SimObject*>(element);
   if(simObject)
@@ -722,14 +722,14 @@ Element* Parser::deflectionElement()
 
   if(dynamic_cast<Hinge*>(axis->joint))
   {
-    deflection->min = getAngle("min", true, 0.f);
-    deflection->max = getAngle("max", true, 0.f);
-    deflection->offset = getAngle("init", false, 0.f);
+    deflection->min = getAngle("min", true, 0.f, false);
+    deflection->max = getAngle("max", true, 0.f, false);
+    deflection->offset = getAngle("init", false, 0.f, false);
   }
   else if(dynamic_cast<Slider*>(axis->joint))
   {
-    deflection->min = getLength("min", true, 0.f);
-    deflection->max = getLength("max", true, 0.f);
+    deflection->min = getLength("min", true, 0.f, false);
+    deflection->max = getLength("max", true, 0.f, false);
   }
   else
     ASSERT(false);
@@ -834,8 +834,8 @@ Element* Parser::cameraElement()
   camera->name = getString("name", false);
   camera->imageWidth = getIntegerNonZeroPositive("imageWidth", true, 0);
   camera->imageHeight = getIntegerNonZeroPositive("imageHeight", true, 0);
-  camera->angleX = getAngleNonZeroPositive("angleX", true, 0.f);
-  camera->angleY = getAngleNonZeroPositive("angleY", true, 0.f);
+  camera->angleX = getAngle("angleX", true, 0.f, true);
+  camera->angleY = getAngle("angleY", true, 0.f, true);
   return camera;
 }
 
@@ -852,8 +852,8 @@ Element* Parser::objectSegmentedImageSensorElement()
   camera->name = getString("name", false);
   camera->imageWidth = getIntegerNonZeroPositive("imageWidth", true, 0);
   camera->imageHeight = getIntegerNonZeroPositive("imageHeight", true, 0);
-  camera->angleX = getAngleNonZeroPositive("angleX", true, 0.f);
-  camera->angleY = getAngleNonZeroPositive("angleY", true, 0.f);
+  camera->angleX = getAngle("angleX", true, 0.f, true);
+  camera->angleY = getAngle("angleY", true, 0.f, true);
   return camera;
 }
 
@@ -861,8 +861,8 @@ Element* Parser::singleDistanceSensorElement()
 {
   SingleDistanceSensor* singleDistanceSensor = new SingleDistanceSensor();
   singleDistanceSensor->name = getString("name", false);
-  singleDistanceSensor->min = getLength("min", false, 0.f);
-  singleDistanceSensor->max = getLength("max", false, 999999.f);
+  singleDistanceSensor->min = getLength("min", false, 0.f, false);
+  singleDistanceSensor->max = getLength("max", false, 999999.f, false);
   return singleDistanceSensor;
 }
 
@@ -870,10 +870,10 @@ Element* Parser::approxDistanceSensorElement()
 {
   ApproxDistanceSensor* approxDistanceSensor = new ApproxDistanceSensor();
   approxDistanceSensor->name = getString("name", false);
-  approxDistanceSensor->min = getLength("min", false, 0.f);
-  approxDistanceSensor->max = getLength("max", false, 999999.f);
-  approxDistanceSensor->angleX = getAngleNonZeroPositive("angleX", true, 0.f);
-  approxDistanceSensor->angleY = getAngleNonZeroPositive("angleY", true, 0.f);
+  approxDistanceSensor->min = getLength("min", false, 0.f, false);
+  approxDistanceSensor->max = getLength("max", false, 999999.f, false);
+  approxDistanceSensor->angleX = getAngle("angleX", true, 0.f, true);
+  approxDistanceSensor->angleY = getAngle("angleY", true, 0.f, true);
   return approxDistanceSensor;
 }
 
@@ -883,10 +883,10 @@ Element* Parser::depthImageSensorElement()
   depthImageSensor->name = getString("name", false);
   depthImageSensor->imageWidth = getIntegerNonZeroPositive("imageWidth", true, 0);
   depthImageSensor->imageHeight = getIntegerNonZeroPositive("imageHeight", false, 1);
-  depthImageSensor->angleX = getAngleNonZeroPositive("angleX", true, 0.f);
-  depthImageSensor->angleY = getAngleNonZeroPositive("angleY", true, 0.f);
-  depthImageSensor->min = getLength("min", false, 0.f);
-  depthImageSensor->max = getLength("max", false, 999999.f);
+  depthImageSensor->angleX = getAngle("angleX", true, 0.f, true);
+  depthImageSensor->angleY = getAngle("angleY", true, 0.f, true);
+  depthImageSensor->min = getLength("min", false, 0.f, false);
+  depthImageSensor->max = getLength("max", false, 999999.f, false);
 
   const std::string& projection = getString("projection", false);
   if(projection == "" || projection == "perspective")
@@ -915,9 +915,9 @@ Element* Parser::userInputElement()
   if(type == "angle")
   {
     userInput->inputPort.unit = QString::fromUtf8("°");
-    userInput->inputPort.min = getAngle("min", true, 0.f);
-    userInput->inputPort.max = getAngle("max", true, 0.f);
-    userInput->inputPort.defaultValue = getAngle("default", false, 0.f);
+    userInput->inputPort.min = getAngle("min", true, 0.f, false);
+    userInput->inputPort.max = getAngle("max", true, 0.f, false);
+    userInput->inputPort.defaultValue = getAngle("default", false, 0.f, false);
   }
   else if(type == "angularVelocity")
   {
@@ -929,9 +929,9 @@ Element* Parser::userInputElement()
   else if(type == "length" || type == "")
   {
     userInput->inputPort.unit = QString::fromUtf8("m");
-    userInput->inputPort.min = getLength("min", true, 0.f);
-    userInput->inputPort.max = getLength("max", true, 0.f);
-    userInput->inputPort.defaultValue = getLength("default", false, 0.f);
+    userInput->inputPort.min = getLength("min", true, 0.f, false);
+    userInput->inputPort.max = getLength("max", true, 0.f, false);
+    userInput->inputPort.defaultValue = getLength("default", false, 0.f, false);
   }
   else if(type == "velocity")
   {
@@ -1682,13 +1682,20 @@ int Parser::getIntegerNonZeroPositive(const char* key, bool required, int defaul
   return value;
 }
 
-float Parser::getLength(const char* key, bool required, float defaultValue)
+float Parser::getLength(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, defaultValue, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    char msg[256];
+    sprintf(msg, "Expected a positive non-zero value instead of %g", result);
+    handleError(msg, attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(strcmp(endPtr, "mm") == 0)
@@ -1750,34 +1757,14 @@ float Parser::getMass(const char* key, bool required, float defaultValue)
   return result;
 }
 
-float Parser::getAngle(const char* key, bool required, float defaultValue)
+float Parser::getAngle(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, defaultValue, result, &endPtr, unitLocation))
     return defaultValue;
-  if(*endPtr)
-  {
-    if(strcmp(endPtr, "degree") == 0)
-      result *= pi / 180.f;
-    else if(strcmp(endPtr, "radian") != 0)
-    {
-      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"degree, radian\")", unitLocation);
-      return defaultValue;
-    }
-  }
-  return result;
-}
-
-float Parser::getAngleNonZeroPositive(const char* key, bool required, float defaultValue)
-{
-  float result;
-  char* endPtr;
-  Location unitLocation;
-  if(!getFloatAndUnit(key, required, defaultValue, result, &endPtr, unitLocation))
-    return defaultValue;
-  if(result <= 0)
+  if(nonZeroPositive && result <= 0.f)
   {
     char msg[256];
     sprintf(msg, "Expected a positive non-zero value instead of %g", result);
