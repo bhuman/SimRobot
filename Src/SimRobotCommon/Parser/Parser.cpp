@@ -1,71 +1,19 @@
 /**
  * @file Parser.cpp
  *
- * This file implements a class that parses .ros2d scene description files.
+ * This file implements a class that parses .ros2(d) scene description files.
  *
+ * @author Colin Graf
  * @author Arne Hasselbring
- * @author Colin Graf (the parts which have been copied from SimRobotCore2)
  */
 
 #include "Parser.h"
 #include "Parser/Element.h"
 #include "Platform/Assert.h"
-#include "Simulation/Body.h"
-#include "Simulation/Compound.h"
-#include "Simulation/Geometries/ChainGeometry.h"
-#include "Simulation/Geometries/ConvexGeometry.h"
-#include "Simulation/Geometries/DiskGeometry.h"
-#include "Simulation/Geometries/EdgeGeometry.h"
-#include "Simulation/Geometries/Geometry.h"
-#include "Simulation/Geometries/RectGeometry.h"
-#include "Simulation/Masses/DiskMass.h"
-#include "Simulation/Masses/Mass.h"
-#include "Simulation/Masses/PointMass.h"
-#include "Simulation/Masses/RectMass.h"
-#include "Simulation/Scene.h"
-#include "Simulation/Simulation.h"
 #include "Tools/Math/Constants.h"
-#include <box2d/b2_math.h>
-#include <QColor>
 #include <cctype>
 #include <cstring>
 #include <sstream>
-
-Parser::Parser()
-{
-  static const ElementInfo elements[] =
-  {
-    {"Simulation", infrastructureClass, &Parser::simulationElement, nullptr, 0, sceneClass, 0, 0},
-    {"Include", infrastructureClass, &Parser::includeElement, nullptr, 0, 0, 0, 0},
-
-    {"Set", setClass, &Parser::setElement, nullptr, 0, 0, 0, 0},
-
-    {"Scene", sceneClass, &Parser::sceneElement, nullptr, 0, 0, 0, setClass | bodyClass | compoundClass},
-
-    {"Body", bodyClass, &Parser::bodyElement, nullptr, 0, massClass, translationClass | rotationClass, setClass | massClass | geometryClass},
-
-    {"Compound", compoundClass, &Parser::compoundElement, nullptr, 0, 0, translationClass | rotationClass, setClass | bodyClass | compoundClass | geometryClass},
-
-    {"Translation", translationClass, &Parser::translationElement, nullptr, 0, 0, 0, 0},
-
-    {"Rotation", rotationClass, &Parser::rotationElement, nullptr, 0, 0, 0, 0},
-
-    {"Mass", massClass, &Parser::massElement, nullptr, constantFlag, 0, translationClass | rotationClass, setClass | massClass},
-    {"DiskMass", massClass, &Parser::diskMassElement, nullptr, constantFlag, 0, translationClass | rotationClass, setClass | massClass},
-    {"PointMass", massClass, &Parser::pointMassElement, nullptr, constantFlag, 0, translationClass | rotationClass, setClass | massClass},
-    {"RectMass", massClass, &Parser::rectMassElement, nullptr, constantFlag, 0, translationClass | rotationClass, setClass | massClass},
-
-    {"Geometry", geometryClass, &Parser::geometryElement, nullptr, 0, 0, translationClass | rotationClass, setClass | geometryClass},
-    {"ChainGeometry", geometryClass, &Parser::chainGeometryElement, &Parser::verticesText, textFlag, 0, translationClass | rotationClass, setClass | geometryClass},
-    {"ConvexGeometry", geometryClass, &Parser::convexGeometryElement, &Parser::verticesText, textFlag, 0, translationClass | rotationClass, setClass | geometryClass},
-    {"DiskGeometry", geometryClass, &Parser::diskGeometryElement, nullptr, 0, 0, translationClass | rotationClass, setClass | geometryClass},
-    {"EdgeGeometry", geometryClass, &Parser::edgeGeometryElement, nullptr, 0, 0, translationClass | rotationClass, setClass | geometryClass},
-    {"RectGeometry", geometryClass, &Parser::rectGeometryElement, nullptr, 0, 0, translationClass | rotationClass, setClass | geometryClass}
-  };
-
-  for(const ElementInfo& element : elements)
-    elementInfos[element.name] = &element;
-}
 
 Parser::~Parser()
 {
@@ -77,8 +25,6 @@ bool Parser::parse(const std::string& fileName, std::list<std::string>& errors)
 {
   this->errors = &errors;
 
-  ASSERT(!Simulation::simulation->scene);
-
   // If the file is specified as a path, save the path to the directory containing it.
   const std::size_t i = fileName.find_last_of("/\\");
   parseRootDir = i != std::string::npos ? fileName.substr(0, i + 1) : std::string();
@@ -89,14 +35,12 @@ bool Parser::parse(const std::string& fileName, std::list<std::string>& errors)
     // Parse the XML file and create macros.
     if(!readFile(fileName) || preErrorCount != errors.size())
       break;
-    ASSERT(!Simulation::simulation->scene);
 
     // Create the scene graph using the macros.
     parseSimulation();
     if(preErrorCount != errors.size())
       break;
 
-    ASSERT(Simulation::simulation->scene);
     return true;
   }
   while(true);
@@ -109,14 +53,6 @@ bool Parser::parse(const std::string& fileName, std::list<std::string>& errors)
     handleError("Could not load file", Location());
   }
 
-  // Delete whatever elements have already been created.
-  if(Simulation::simulation->scene)
-  {
-    for(Element* element : Simulation::simulation->elements)
-      delete element;
-    Simulation::simulation->elements.clear();
-    Simulation::simulation->scene = nullptr;
-  }
   return false;
 }
 
@@ -144,7 +80,7 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
   ASSERT(!elementInfo || elementInfo->startElementProc);
 
   // The <Simulation> tag must be the outermost and there must be no other ones.
-  if(!elementInfo || passedSimulationTag == (elementInfo->startElementProc == &Parser::simulationElement))
+  if(!elementInfo || passedSimulationTag == !std::strcmp(elementInfo->name, "Simulation"))
   {
     handleError("Unexpected element \"" + name + "\"", location);
     return readElements(false);
@@ -164,9 +100,9 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
     this->elementData = &elementData;
     this->attributes = &attributes;
 
-    (this->*elementInfo->startElementProc)();
+    elementInfo->startElementProc();
 
-    if(elementInfo->startElementProc == &Parser::includeElement)
+    if(!std::strcmp(elementInfo->name, "Include"))
     {
       // Save information that will be overwritten when reading the included file.
       const Location savedIncludeFileLocation = this->includeFileLocation;
@@ -210,7 +146,7 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
     }
     else
     {
-      ASSERT(elementInfo->startElementProc == &Parser::simulationElement);
+      ASSERT(!std::strcmp(elementInfo->name, "Simulation"));
       // Only check that there are no attributes and parse children.
       checkAttributes();
       return readElements(true);
@@ -218,9 +154,9 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
   }
 
   // Expand paths in attributes.
-  if(elementInfo->elementClass == sceneClass)
+  for(const std::string& attribute : elementInfo->pathAttributes)
   {
-    Attributes::iterator iter = attributes.find("background");
+    Attributes::iterator iter = attributes.find(attribute);
     if(iter != attributes.end() && !iter->second.value.empty() &&
        iter->second.value[0] != '/' && iter->second.value[0] != '\\' && // not absolute path on Unix
        (iter->second.value.size() < 2 || iter->second.value[1] != ':')) // or Windows
@@ -243,7 +179,7 @@ bool Parser::handleElement(const std::string& name, Attributes& attributes, cons
   else
   {
     // There may be only one Scene element in the scene description.
-    const bool isScene = elementInfo->startElementProc == &Parser::sceneElement;
+    const bool isScene = !std::strcmp(elementInfo->name, "Scene");
     if(isScene && sceneMacro)
     {
       handleError("Unexpected element \"" + name + "\"", location);
@@ -460,7 +396,7 @@ void Parser::parseMacroElements()
 
   // Handle text / data of the parent.
   if(!replayingMacroElement->text.empty())
-    (this->*elementData->info->textProc)(replayingMacroElement->text, replayingMacroElement->textLocation);
+    elementData->info->textProc(replayingMacroElement->text, replayingMacroElement->textLocation);
 
   const unsigned int parsedChildren = elementData->parsedChildren;
   elementData->parsedChildren = 0;
@@ -528,7 +464,7 @@ void Parser::parseMacroElement(ElementData& elementData)
   {
     // Create the new element and set it as current.
     Element* const parentElement = element;
-    Element* const childElement = (this->*elementData.info->startElementProc)();
+    Element* const childElement = elementData.info->startElementProc();
     element = childElement;
     // Check that all attributes have been used during creation of the element.
     checkAttributes();
@@ -625,7 +561,7 @@ void Parser::parseMacroElement(ElementData& elementData)
 
     // Create the new element and set it as current.
     Element* const parentElement = element;
-    Element* const childElement = (this->*elementData.info->startElementProc)();
+    Element* const childElement = elementData.info->startElementProc();
     element = childElement;
     // Check that all attributes have been used during creation of the element.
     checkAttributes();
@@ -743,6 +679,40 @@ bool Parser::getBool(const char* key, bool required, bool defaultValue)
   return defaultValue;
 }
 
+float Parser::getFloat(const char* key, bool required, float defaultValue)
+{
+  float value;
+  return getFloatRaw(key, required, value) ? value : defaultValue;
+}
+
+float Parser::getFloatPositive(const char* key, bool required, float defaultValue)
+{
+  float value;
+  if(!getFloatRaw(key, required, value))
+    return defaultValue;
+  if(value < 0.f)
+  {
+    handleError("Expected a positive value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  return value;
+}
+
+float Parser::getFloatMinMax(const char* key, bool required, float defaultValue, float min, float max)
+{
+  float value;
+  if(!getFloatRaw(key, required, value))
+    return defaultValue;
+  if(value < min || value > max)
+  {
+    char msg[256];
+    sprintf(msg, "Expected a value between %g and %g instead of %g", min, max, value);
+    handleError(msg, attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  return value;
+}
+
 bool Parser::getFloatAndUnit(const char* key, bool required, float& value, char** unit, Location& unitLocation)
 {
   const std::string* strValue;
@@ -761,12 +731,12 @@ bool Parser::getFloatAndUnit(const char* key, bool required, float& value, char*
   return true;
 }
 
-int Parser::getIntegerNonZeroPositive(const char* key, bool required, int defaultValue)
+int Parser::getInteger(const char* key, bool required, int defaultValue, bool nonZeroPositive)
 {
   int value;
   if(!getIntegerRaw(key, required, value))
     return defaultValue;
-  if(value <= 0)
+  if(nonZeroPositive && value <= 0)
   {
     handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
     return defaultValue;
@@ -787,13 +757,18 @@ std::uint16_t Parser::getUInt16(const char* key, bool required, std::uint16_t de
   return static_cast<std::uint16_t>(value);
 }
 
-float Parser::getLength(const char* key, bool required, float defaultValue)
+float Parser::getLength(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "mm") == 0)
@@ -813,7 +788,7 @@ float Parser::getLength(const char* key, bool required, float defaultValue)
   return result;
 }
 
-float Parser::getAngle(const char* key, bool required, float defaultValue)
+float Parser::getVelocity(const char* key, bool required, float defaultValue)
 {
   float result;
   char* endPtr;
@@ -822,11 +797,102 @@ float Parser::getAngle(const char* key, bool required, float defaultValue)
     return defaultValue;
   if(*endPtr)
   {
+    if(std::strcmp(endPtr, "mm/s") == 0)
+      result *= 0.001f;
+    else if(std::strcmp(endPtr, "cm/s") == 0)
+      result *= 0.01f;
+    else if(std::strcmp(endPtr, "dm/s") == 0)
+      result *= 0.1f;
+    else if(std::strcmp(endPtr, "km/s") == 0)
+      result *= 1000.f;
+    else if(std::strcmp(endPtr, "km/h") == 0)
+      result /= 3.6f;
+    else if(std::strcmp(endPtr, "m/s") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"mm/s, cm/s, dm/s, m/s, km/s, km/h\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getAcceleration(const char* key, bool required, float defaultValue)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(*endPtr)
+  {
+    if(std::strcmp(endPtr, "mm/s^2") == 0)
+      result *= 0.001f;
+    else if(std::strcmp(endPtr, "m/s^2") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"mm/s^2, m/s^2\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getAngle(const char* key, bool required, float defaultValue, bool nonZeroPositive)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  if(*endPtr)
+  {
     if(std::strcmp(endPtr, "degree") == 0)
       result *= pi / 180.f;
     else if(std::strcmp(endPtr, "radian") != 0)
     {
       handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"degree, radian\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getAngularVelocity(const char* key, bool required, float defaultValue)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(*endPtr)
+  {
+    if(std::strcmp(endPtr, "degree/s") == 0)
+      result *= pi / 180.f;
+    else if(std::strcmp(endPtr, "radian/s") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"degree/s, radian/s\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getForce(const char* key, bool required, float defaultValue)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(*endPtr)
+  {
+    if(std::strcmp(endPtr, "N") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected \"N\")", unitLocation);
       return defaultValue;
     }
   }
@@ -855,31 +921,20 @@ float Parser::getMass(const char* key, bool required, float defaultValue)
   return result;
 }
 
-float Parser::getLengthNonZeroPositive(const char* key, bool required, float defaultValue)
+float Parser::getMassLengthLength(const char* key, bool required, float defaultValue)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
-  if(result <= 0.f)
-  {
-    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
-    return defaultValue;
-  }
   if(*endPtr)
   {
-    if(std::strcmp(endPtr, "mm") == 0)
-      result *= 0.001f;
-    else if(std::strcmp(endPtr, "cm") == 0)
-      result *= 0.01f;
-    else if(std::strcmp(endPtr, "dm") == 0)
-      result *= 0.1f;
-    else if(std::strcmp(endPtr, "km") == 0)
-      result *= 1000.f;
-    else if(std::strcmp(endPtr, "m") != 0)
+    if(std::strcmp(endPtr, "g*mm^2") == 0)
+      result *= 0.001f * 0.001f * 0.001f; // 1.0 * 10^-9
+    else if(std::strcmp(endPtr, "kg*m^2") != 0)
     {
-      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"mm, cm, dm, m, km\")", unitLocation);
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"g*mm^2, kg*m^2\")", unitLocation);
       return defaultValue;
     }
   }
@@ -909,7 +964,29 @@ float Parser::getTimeNonZeroPositive(const char* key, bool required, float defau
   return result;
 }
 
-bool Parser::getColor(const char* key, bool required, QColor& color)
+float Parser::getUnit(const char* key, bool required, float defaultValue)
+{
+  float result = 1.f;
+  const std::string* s;
+  if(!getStringRaw(key, required, s))
+    return defaultValue;
+  if(strcmp(s->c_str(), "mm") == 0)
+    result = 0.001f;
+  else if(strcmp(s->c_str(), "cm") == 0)
+    result = 0.01f;
+  else if(strcmp(s->c_str(), "dm") == 0)
+    result = 0.1f;
+  else if(strcmp(s->c_str(), "km") == 0)
+    result = 1000.f;
+  else if(strcmp(s->c_str(), "m") != 0)
+  {
+    handleError("Unexpected unit \"" + *s + "\" (expected one of \"mm, cm, dm, m, km\")", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  return result;
+}
+
+bool Parser::getColor(const char* key, bool required, unsigned char* color)
 {
   const std::string* strValue;
   if(!getStringRaw(key, required, strValue))
@@ -949,28 +1026,28 @@ bool Parser::getColor(const char* key, bool required, QColor& color)
     switch(endPtr - strColor)
     {
       case 3:
-        color.setRed(static_cast<int>(lcol >> 8u));
-        color.setGreen(static_cast<int>((lcol >> 4u) & 0xfu));
-        color.setBlue(static_cast<int>(lcol & 0xfu));
-        color.setAlpha(255);
+        color[0] = static_cast<unsigned char>(((lcol >> 8u) << 4u) | (lcol >> 8u));
+        color[1] = static_cast<unsigned char>((((lcol >> 4u) & 0xfu) << 4u) | ((lcol >> 4u) & 0xfu));
+        color[2] = static_cast<unsigned char>(((lcol & 0xfu) << 4u) | (lcol & 0xfu));
+        color[3] = 255u;
         return true;
       case 4:
-        color.setRed(static_cast<int>(lcol >> 12u));
-        color.setGreen(static_cast<int>((lcol >> 8u) & 0xfu));
-        color.setBlue(static_cast<int>((lcol >> 4u) & 0xfu));
-        color.setAlpha(static_cast<int>(lcol & 0xfu));
+        color[0] = static_cast<unsigned char>(((lcol >> 12u) << 4u) | (lcol >> 12u));
+        color[1] = static_cast<unsigned char>((((lcol >> 8u) & 0xfu) << 4u) | ((lcol >> 8u) & 0xfu));
+        color[2] = static_cast<unsigned char>((((lcol >> 4u) & 0xfu) << 4u) | ((lcol >> 4u) & 0xfu));
+        color[3] = static_cast<unsigned char>(((lcol & 0xfu) << 4u) | (lcol & 0xfu));
         return true;
       case 6:
-        color.setRed(static_cast<int>(lcol >> 16u));
-        color.setGreen(static_cast<int>((lcol >> 8u) & 0xffu));
-        color.setBlue(static_cast<int>(lcol & 0xffu));
-        color.setAlpha(255);
+        color[0] = static_cast<unsigned char>(lcol >> 16u);
+        color[1] = static_cast<unsigned char>((lcol >> 8u) & 0xffu);
+        color[2] = static_cast<unsigned char>(lcol & 0xffu);
+        color[3] = 255u;
         return true;
       case 8:
-        color.setRed(static_cast<int>(lcol >> 24u));
-        color.setGreen(static_cast<int>((lcol >> 16u) & 0xffu));
-        color.setBlue(static_cast<int>((lcol >> 8u) & 0xffu));
-        color.setAlpha(static_cast<int>(lcol & 0xffu));
+        color[0] = static_cast<unsigned char>(lcol >> 24u);
+        color[1] = static_cast<unsigned char>((lcol >> 16u) & 0xffu);
+        color[2] = static_cast<unsigned char>((lcol >> 8u) & 0xffu);
+        color[3] = static_cast<unsigned char>(lcol & 0xffu);
         return true;
       default:
         handleError("Invalid color format", location);
@@ -1004,10 +1081,10 @@ bool Parser::getColor(const char* key, bool required, QColor& color)
       handleError("Invalid color format", location);
       return false;
     }
-    color.setRed(colors[0]);
-    color.setGreen(colors[1]);
-    color.setBlue(colors[2]);
-    color.setAlpha(255);
+    color[0] = static_cast<unsigned char>(colors[0]);
+    color[1] = static_cast<unsigned char>(colors[1]);
+    color[2] = static_cast<unsigned char>(colors[2]);
+    color[3] = 255u;
     return true;
   }
   else if(std::strncmp(strColor, "rgba(", 5) == 0)
@@ -1020,15 +1097,17 @@ bool Parser::getColor(const char* key, bool required, QColor& color)
     {
       while(std::isspace(*strColor))
         ++strColor;
-      colors[i] = static_cast<int>(std::strtol(strColor, const_cast<char**>(&strColor), 10));
       if(i < 3)
       {
+        colors[i] = static_cast<int>(std::strtol(strColor, const_cast<char**>(&strColor), 10));
         if(*strColor == '%')
         {
           ++strColor;
           colors[i] = (colors[i] * 255 + 50) / 100;
         }
       }
+      else
+        colors[i] = static_cast<int>(std::strtof(strColor, const_cast<char**>(&strColor)) * 255.f + 0.5f);
       while(std::isspace(*strColor))
         ++strColor;
       if(i >= 3 || *strColor != ',')
@@ -1041,10 +1120,10 @@ bool Parser::getColor(const char* key, bool required, QColor& color)
       handleError("Invalid color format", location);
       return false;
     }
-    color.setRed(colors[0]);
-    color.setGreen(colors[1]);
-    color.setBlue(colors[2]);
-    color.setAlpha(colors[3]);
+    color[0] = static_cast<unsigned char>(colors[0]);
+    color[1] = static_cast<unsigned char>(colors[1]);
+    color[2] = static_cast<unsigned char>(colors[2]);
+    color[3] = static_cast<unsigned char>(colors[3]);
     return true;
   }
   else
@@ -1067,196 +1146,4 @@ Element* Parser::includeElement()
   if(!includeFile.empty())
     includeFileLocation = attributes->find("href")->second.valueLocation;
   return nullptr;
-}
-
-Element* Parser::setElement()
-{
-  ASSERT(element);
-  const std::string& name = getString("name", true);
-  const std::string& value = getString("value", true);
-  std::unordered_map<std::string, std::string>& vars = elementData->parent->vars;
-  if(vars.find(name) == vars.end())
-    vars[name] = value;
-  return nullptr;
-}
-
-Element* Parser::sceneElement()
-{
-  auto* const scene = new Scene;
-  scene->name = getString("name", false);
-  scene->controller = getString("controller", false);
-  scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
-  scene->velocityIterations = getIntegerNonZeroPositive("velocityIterations", false, 8);
-  scene->positionIterations = getIntegerNonZeroPositive("positionIterations", false, 3);
-  scene->background = getString("background", false);
-
-  ASSERT(!Simulation::simulation->scene);
-  Simulation::simulation->scene = scene;
-  return scene;
-}
-
-Element* Parser::bodyElement()
-{
-  auto* const body = new Body;
-  body->name = getString("name", false);
-  return body;
-}
-
-Element* Parser::compoundElement()
-{
-  auto* const compound = new Compound;
-  compound->name = getString("name", false);
-  return compound;
-}
-
-Element* Parser::translationElement()
-{
-  auto* const translation = new b2Vec2(getLength("x", false, 0.f), getLength("y", false, 0.f));
-
-  auto* const simObject = dynamic_cast<SimObject*>(element);
-  ASSERT(simObject);
-  ASSERT(!simObject->translation);
-  simObject->translation = translation;
-
-  return nullptr;
-}
-
-Element* Parser::rotationElement()
-{
-  auto* const rotation = new b2Rot(getAngle("angle", false, 0.f));
-
-  auto* const simObject = dynamic_cast<SimObject*>(element);
-  ASSERT(simObject);
-  ASSERT(!simObject->rotation);
-  simObject->rotation = rotation;
-
-  return nullptr;
-}
-
-Element* Parser::massElement()
-{
-  auto* const mass = new Mass;
-  mass->name = getString("name", false);
-  return mass;
-}
-
-Element* Parser::diskMassElement()
-{
-  auto* const diskMass = new DiskMass;
-  diskMass->name = getString("name", false);
-  diskMass->value = getMass("value", true, 0.f);
-  diskMass->radius = getLengthNonZeroPositive("radius", true, 0.f);
-  return diskMass;
-}
-
-Element* Parser::pointMassElement()
-{
-  auto* const pointMass = new PointMass;
-  pointMass->name = getString("name", false);
-  pointMass->value = getMass("value", true, 0.f);
-  return pointMass;
-}
-
-Element* Parser::rectMassElement()
-{
-  auto* const rectMass = new RectMass;
-  rectMass->name = getString("name", false);
-  rectMass->value = getMass("value", true, 0.f);
-  rectMass->width = getLengthNonZeroPositive("width", true, 0.f);
-  rectMass->height = getLengthNonZeroPositive("height", true, 0.f);
-  return rectMass;
-}
-
-Element* Parser::geometryElement()
-{
-  auto* const geometry = new Geometry;
-  geometry->name = getString("name", false);
-  geometry->category = getUInt16("category", false, 0);
-  geometry->mask = getUInt16("mask", false, 0xffff);
-  return geometry;
-}
-
-Element* Parser::chainGeometryElement()
-{
-  auto* const chainGeometry = new ChainGeometry;
-  chainGeometry->name = getString("name", false);
-  chainGeometry->category = getUInt16("category", false, 0);
-  chainGeometry->mask = getUInt16("mask", false, 0xffff);
-  chainGeometry->loop = getBool("loop", false, false);
-  getColor("color", false, chainGeometry->color);
-  return chainGeometry;
-}
-
-Element* Parser::convexGeometryElement()
-{
-  auto* const convexGeometry = new ConvexGeometry;
-  convexGeometry->name = getString("name", false);
-  convexGeometry->category = getUInt16("category", false, 0);
-  convexGeometry->mask = getUInt16("mask", false, 0xffff);
-  getColor("color", false, convexGeometry->color);
-  return convexGeometry;
-}
-
-Element* Parser::diskGeometryElement()
-{
-  auto* const diskGeometry = new DiskGeometry;
-  diskGeometry->name = getString("name", false);
-  diskGeometry->category = getUInt16("category", false, 0);
-  diskGeometry->mask = getUInt16("mask", false, 0xffff);
-  diskGeometry->radius = getLengthNonZeroPositive("radius", true, 0.f);
-  getColor("color", false, diskGeometry->color);
-  return diskGeometry;
-}
-
-Element* Parser::edgeGeometryElement()
-{
-  auto* const edgeGeometry = new EdgeGeometry;
-  edgeGeometry->name = getString("name", false);
-  edgeGeometry->category = getUInt16("category", false, 0);
-  edgeGeometry->mask = getUInt16("mask", false, 0xffff);
-  edgeGeometry->length = getLengthNonZeroPositive("length", true, 0.f);
-  getColor("color", false, edgeGeometry->color);
-  return edgeGeometry;
-}
-
-Element* Parser::rectGeometryElement()
-{
-  auto* const rectGeometry = new RectGeometry;
-  rectGeometry->name = getString("name", false);
-  rectGeometry->category = getUInt16("category", false, 0);
-  rectGeometry->mask = getUInt16("mask", false, 0xffff);
-  rectGeometry->width = getLengthNonZeroPositive("width", true, 0.f);
-  rectGeometry->height = getLengthNonZeroPositive("height", true, 0.f);
-  getColor("color", false, rectGeometry->color);
-  return rectGeometry;
-}
-
-void Parser::verticesText(std::string& text, Reader::Location location)
-{
-  std::vector<b2Vec2>* vertices;
-  if(auto* const convexGeometry = dynamic_cast<ConvexGeometry*>(element); convexGeometry)
-    vertices = &convexGeometry->vertices;
-  else
-    vertices = &dynamic_cast<ChainGeometry*>(element)->vertices;
-  const char* str = text.c_str();
-  char* nextStr;
-  float components[2];
-  skipWhitespace(str, location);
-  while(*str)
-  {
-    for(float& component : components)
-    {
-      while(*str == '#') { while(*str && *str != '\n' && *str != '\r') { ++str; ++location.column; }  skipWhitespace(str, location); if(!*str) return; }
-      component = std::strtof(str, &nextStr);
-      if(str == nextStr)
-      {
-        handleError("Invalid vertex text (must be a space separated list of floats)", location);
-        return;
-      }
-      location.column += static_cast<int>(nextStr - str);
-      str = nextStr;
-      skipWhitespace(str, location);
-    }
-    vertices->emplace_back(components[0], components[1]);
-  }
 }

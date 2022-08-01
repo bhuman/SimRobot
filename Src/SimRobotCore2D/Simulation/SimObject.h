@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Parser/Element.h"
+#include "Parser/ElementCore2D.h"
 #include "SimRobotCore2D.h"
 #include "SimRobot.h"
 #include <QString>
@@ -20,7 +20,7 @@ struct b2Rot;
 struct b2Vec2;
 class QIcon;
 
-class SimObject : public Element
+class SimObject : public ElementCore2D
 {
 public:
   /** Destructor. */

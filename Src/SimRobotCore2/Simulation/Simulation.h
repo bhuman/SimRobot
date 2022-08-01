@@ -17,7 +17,7 @@
 #endif
 
 class Scene;
-class Element;
+class ElementCore2;
 
 /**
  * @class Simulation
@@ -29,7 +29,7 @@ public:
   static Simulation* simulation;
 
   Scene* scene = nullptr; /**< The root of the scene graph */
-  std::list<Element*> elements; /**< All scene graph elements */
+  std::list<ElementCore2*> elements; /**< All scene graph elements */
 
   dWorldID physicalWorld = nullptr; /**< The physical world */
   dSpaceID rootSpace = nullptr; /**< The root collision space */

@@ -21,7 +21,7 @@ public:
   /**
    * A vertex library
    */
-  class Vertices : public Element
+  class Vertices : public ElementCore2
   {
   public:
     float unit;
@@ -38,7 +38,7 @@ public:
   /**
    * A normals library
    */
-  class Normals : public Element
+  class Normals : public ElementCore2
   {
   public:
     std::vector<Vector3f> normals; /**< Available normals */
@@ -55,7 +55,7 @@ public:
    * @class TexCoords
    * A texture point library
    */
-  class TexCoords : public Element
+  class TexCoords : public ElementCore2
   {
   public:
     std::vector<Vector2f> coords; /**< Available points */
@@ -82,7 +82,7 @@ public:
    * @class PrimitiveGroup
    * A primitive (aka. face, like triangle or quad...) or a group of primitives
    */
-  class PrimitiveGroup : public Element
+  class PrimitiveGroup : public ElementCore2
   {
   public:
     Mode mode; /**< The primitive group type (\c triangles, \c quads, ...) */

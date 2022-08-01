@@ -1,15 +1,15 @@
 /**
- * @file Element.cpp
+ * @file ElementCore2D.cpp
  *
  * This file implements a base class for all simulation elements.
  *
  * @author Colin Graf
  */
 
-#include "Element.h"
+#include "ElementCore2D.h"
 #include "Simulation/Simulation.h"
 
-Element::Element()
+ElementCore2D::ElementCore2D()
 {
   Simulation::simulation->elements.push_back(this);
 }

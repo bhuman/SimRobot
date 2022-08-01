@@ -15,7 +15,7 @@
 
 class b2Body;
 class b2World;
-class Element;
+class ElementCore2D;
 class Scene;
 
 class Simulation : public b2ContactListener
@@ -42,7 +42,7 @@ public:
   void doSimulationStep();
 
   static Simulation* simulation; /**< The only instance of this class. */
-  std::list<Element*> elements; /**< All elements in the simulation. */
+  std::list<ElementCore2D*> elements; /**< All elements in the simulation. */
   Scene* scene = nullptr; /**< The scene that is being simulated. */
   unsigned int simulationStep = 0; /**< The step counter of the simulation. */
   double simulatedTime = 0.0; /**< The time that has elapsed since the start of the simulation. */

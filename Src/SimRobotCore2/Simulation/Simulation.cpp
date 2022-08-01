@@ -7,8 +7,8 @@
 #include "Simulation.h"
 #include "CoreModule.h"
 #include "Graphics/Primitives.h"
-#include "Parser/Element.h"
-#include "Parser/Parser.h"
+#include "Parser/ElementCore2.h"
+#include "Parser/ParserCore2.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
 #include "Simulation/Body.h"
@@ -37,7 +37,7 @@ Simulation::Simulation()
 
 Simulation::~Simulation()
 {
-  for(Element* element : elements)
+  for(ElementCore2* element : elements)
     delete element;
 
   if(contactGroup)
@@ -64,10 +64,20 @@ Simulation::~Simulation()
 bool Simulation::loadFile(const std::string& filename, std::list<std::string>& errors)
 {
   ASSERT(!scene);
+  ASSERT(elements.empty());
 
-  Parser parser;
+  ParserCore2 parser;
   if(!parser.parse(filename, errors))
+  {
+    if(scene)
+    {
+      for(ElementCore2* element : elements)
+        delete element;
+      elements.clear();
+      scene = nullptr;
+    }
     return false;
+  }
 
   ASSERT(scene);
 

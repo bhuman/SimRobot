@@ -1,10 +1,10 @@
 /**
  * @file Parser.h
  *
- * This file declares a class that parses .ros2d scene description files.
+ * This file declares a class that parses .ros2(d) scene description files.
  *
+ * @author Colin Graf
  * @author Arne Hasselbring
- * @author Colin Graf (the parts which have been copied from SimRobotCore2)
  */
 
 #pragma once
@@ -13,43 +13,33 @@
 #include <list>
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 class Element;
-class QColor;
 
+/**
+ * @class Parser
+ * A parser for .ros2(d) files.
+ */
 class Parser : protected Reader
 {
 public:
-  /** Constructor. */
-  Parser();
-
   /** Destructor. */
   ~Parser();
 
   /**
-   * Parses a .ros2d file into the scene graph.
+   * Parses a .ros2(d) file into the scene graph.
    * @param fileName The name of the file to parse.
    * @param errors A list which is filled with messages about errors during parsing.
    * @return Whether the file was parsed successfully.
    */
   bool parse(const std::string& fileName, std::list<std::string>& errors);
 
-private:
-  using StartElementProc = Element* (Parser::*)();
-  using TextProc = void (Parser::*)(std::string& text, Location location);
+protected:
+  using StartElementProc = std::function<Element*()>;
+  using TextProc = std::function<void(std::string&, Location)>;
 
-  enum ElementClass
-  {
-    infrastructureClass = 0u,
-    setClass            = (1u << 0u),
-    sceneClass          = (1u << 1u),
-    bodyClass           = (1u << 2u),
-    compoundClass       = (1u << 3u),
-    translationClass    = (1u << 4u),
-    rotationClass       = (1u << 5u),
-    massClass           = (1u << 6u),
-    geometryClass       = (1u << 7u)
-  };
+  static constexpr unsigned int infrastructureClass = 0u;
 
   enum ElementFlags
   {
@@ -63,10 +53,11 @@ private:
     unsigned int elementClass; /**< The class which the element type belongs to. */
     StartElementProc startElementProc; /**< The function that is called when an element of this type is encountered. */
     TextProc textProc; /**< The function that is called when text / data within an element of this type is encountered. */
-    unsigned int flags; /**< Additional flags from \c ElementFlags. */
-    unsigned int requiredChildren; /**< Element classes of which one must be a child of this element type. */
-    unsigned int optionalChildren; /**< Element classes which may be children of this element type once. */
-    unsigned int repeatableChildren; /**< Element classes which may be children of this element type in an arbitrary number. */
+    unsigned int flags = 0; /**< Additional flags from \c ElementFlags. */
+    unsigned int requiredChildren = 0; /**< Element classes of which one must be a child of this element type. */
+    unsigned int optionalChildren = 0; /**< Element classes which may be children of this element type once. */
+    unsigned int repeatableChildren = 0; /**< Element classes which may be children of this element type in an arbitrary number. */
+    std::vector<std::string> pathAttributes = {}; /**< Set of attributes that are paths and may need to be made absolute. */
   };
 
   struct ElementData final
@@ -84,9 +75,51 @@ private:
     {}
   };
 
+  /**
+   * Handler for errors during parsing.
+   * @param msg An error message.
+   * @param location The location where the error occurred.
+   */
+  void handleError(const std::string& msg, const Location& location) override;
+
+private:
+  bool getStringRaw(const char* key, bool required, const std::string*& value);
+  bool getFloatRaw(const char* key, bool required, float& value);
+  bool getIntegerRaw(const char* key, bool required, int& value);
+
+protected:
+  const std::string& getString(const char* key, bool required);
+  bool getBool(const char* key, bool required, bool defaultValue);
+  float getFloat(const char* key, bool required, float defaultValue);
+  float getFloatPositive(const char* key, bool required, float defaultValue);
+  float getFloatMinMax(const char* key, bool required, float defaultValue, float min, float max);
+  bool getFloatAndUnit(const char* key, bool required, float& value, char** unit, Location& unitLocation);
+  int getInteger(const char* key, bool required, int defaultValue, bool nonZeroPositive);
+  std::uint16_t getUInt16(const char* key, bool required, std::uint16_t defaultValue);
+  float getLength(const char* key, bool required, float defaultValue, bool nonZeroPositive);
+  float getVelocity(const char* key, bool required, float defaultValue);
+  float getAcceleration(const char* key, bool required, float defaultValue);
+  float getAngle(const char* key, bool required, float defaultValue, bool nonZeroPositive);
+  float getAngularVelocity(const char* key, bool required, float defaultValue);
+  float getForce(const char* key, bool required, float defaultValue);
+  float getMass(const char* key, bool required, float defaultValue);
+  float getMassLengthLength(const char* key, bool required, float defaultValue);
+  float getTimeNonZeroPositive(const char* key, bool required, float defaultValue);
+  float getUnit(const char* key, bool required, float defaultValue);
+  bool getColor(const char* key, bool required, unsigned char* color);
+
+  Element* simulationElement();
+  Element* includeElement();
+
+  std::unordered_map<std::string, const ElementInfo*> elementInfos; /**< Mapping element name strings to handler info. */
+
+  Element* element = nullptr; /**< The last inserted XML element. */
+  ElementData* elementData = nullptr; /**< Element context data required for parsing an XML element. */
+  const Attributes* attributes = nullptr; /**< The current set of attributes. */
+
+private:
   struct MacroElement
   {
-  public:
     MacroElement* parent; /**< The parent macro element. */
     const ElementInfo* elementInfo; /**< The info about the type of this macro element */
     Attributes attributes; /**< The attributes of this macro element. */
@@ -123,17 +156,10 @@ private:
     std::string fileName; /**< The file in which the macro was declared. */
     bool replaying = false; /**< A flag for detecting macro reference loops. */
 
-    Macro(const ElementInfo* elementInfo, std::string fileName, Attributes& attributes, const Location& location) :
-      MacroElement(nullptr, elementInfo, attributes, location), fileName(std::move(fileName))
+    Macro(const ElementInfo* elementInfo, const std::string& fileName, Attributes& attributes, const Location& location) :
+      MacroElement(nullptr, elementInfo, attributes, location), fileName(fileName)
     {}
   };
-
-  /**
-   * Handler for errors during parsing.
-   * @param msg An error message.
-   * @param location The location where the error occurred.
-   */
-  void handleError(const std::string& msg, const Location& location) override;
 
   /**
    * Handler for XML elements.
@@ -184,45 +210,8 @@ private:
    */
   void parseMacroElement(ElementData& elementData);
 
-  bool getStringRaw(const char* key, bool required, const std::string*& value);
-  bool getFloatRaw(const char* key, bool required, float& value);
-  bool getIntegerRaw(const char* key, bool required, int& value);
-  const std::string& getString(const char* key, bool required);
-  bool getBool(const char* key, bool required, bool defaultValue);
-  bool getFloatAndUnit(const char* key, bool required, float& value, char** unit, Location& unitLocation);
-  int getIntegerNonZeroPositive(const char* key, bool required, int defaultValue);
-  std::uint16_t getUInt16(const char* key, bool required, std::uint16_t defaultValue);
-  float getLength(const char* key, bool required, float defaultValue);
-  float getAngle(const char* key, bool required, float defaultValue);
-  float getMass(const char* key, bool required, float defaultValue);
-  float getLengthNonZeroPositive(const char* key, bool required, float defaultValue);
-  float getTimeNonZeroPositive(const char* key, bool required, float defaultValue);
-  bool getColor(const char* key, bool required, QColor& color);
-
-  Element* simulationElement();
-  Element* includeElement();
-  Element* setElement();
-  Element* sceneElement();
-  Element* bodyElement();
-  Element* compoundElement();
-  Element* translationElement();
-  Element* rotationElement();
-  Element* massElement();
-  Element* diskMassElement();
-  Element* pointMassElement();
-  Element* rectMassElement();
-  Element* geometryElement();
-  Element* chainGeometryElement();
-  Element* convexGeometryElement();
-  Element* diskGeometryElement();
-  Element* edgeGeometryElement();
-  Element* rectGeometryElement();
-  void verticesText(std::string& text, Location location);
-
-  std::unordered_map<std::string, const ElementInfo*> elementInfos; /**< Mapping element name strings to handler info. */
-
   std::list<std::string>* errors = nullptr; /**< List of error messages that occurred during parsing. */
-  std::string parseRootDir; /**< The directory in which the main .ros2d file is stored. */
+  std::string parseRootDir; /**< The directory in which the main .ros2(d) file is stored. */
   std::string includeFile; /**< A file to be included. */
   Location includeFileLocation; /**< The location of the path to the included file in the including file. */
 
@@ -234,9 +223,6 @@ private:
 
   MacroElement* recordingMacroElement = nullptr; /**< A macro element set to record subordinate nodes of a macro. */
   MacroElement* replayingMacroElement = nullptr; /**< A macro element set to insert subordinate nodes of a macro. */
-  Element* element = nullptr; /**< The last inserted XML element. */
-  ElementData* elementData = nullptr; /**< Element context data required for parsing an XML element. */
-  const Attributes* attributes = nullptr; /**< The current set of attributes. */
 
   std::string placeholderBuffer; /**< A buffer which contains the most recently resolved placeholder. */
 };

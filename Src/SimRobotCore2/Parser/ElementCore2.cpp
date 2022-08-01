@@ -4,10 +4,10 @@
  * @author Colin Graf
  */
 
-#include "Element.h"
+#include "ElementCore2.h"
 #include "Simulation/Simulation.h"
 
-Element::Element()
+ElementCore2::ElementCore2()
 {
   Simulation::simulation->elements.push_back(this);
 }

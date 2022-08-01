@@ -10,8 +10,8 @@
 #include "CoreModule.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
-#include "Parser/Element.h"
-#include "Parser/Parser.h"
+#include "Parser/ElementCore2D.h"
+#include "Parser/ParserCore2D.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Scene.h"
 #include <box2d/b2_body.h>
@@ -28,7 +28,7 @@ Simulation::Simulation()
 
 Simulation::~Simulation()
 {
-  for(Element* element : elements)
+  for(ElementCore2D* element : elements)
     delete element;
 
   if(staticBody)
@@ -43,11 +43,21 @@ Simulation::~Simulation()
 bool Simulation::loadFile(const std::string& fileName, std::list<std::string>& errors)
 {
   ASSERT(!scene);
+  ASSERT(elements.empty());
 
   // Load the scene.
-  Parser parser;
+  ParserCore2D parser;
   if(!parser.parse(fileName, errors))
+  {
+    if(scene)
+    {
+      for(ElementCore2D* element : elements)
+        delete element;
+      elements.clear();
+      scene = nullptr;
+    }
     return false;
+  }
 
   ASSERT(scene);
 

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Parser/Element.h"
+#include "Parser/ElementCore2.h"
 
 class Joint;
 class Motor;
@@ -15,7 +15,7 @@ class Motor;
  * @class Axis
  * An axis of a joint
  */
-class Axis : public Element
+class Axis : public ElementCore2
 {
 public:
   class Deflection

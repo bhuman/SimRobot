@@ -9,13 +9,13 @@
 
 #pragma once
 
-#include "Parser/Element.h"
+#include "Parser/ElementCore2.h"
 
 /**
  * @class Light
  * A scene light definition
  */
-class Light : public Element
+class Light : public ElementCore2
 {
 public:
   float diffuseColor[4];

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "SimRobotCore2.h"
-#include "Parser/Element.h"
+#include "Parser/ElementCore2.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include "Tools/Math/RotationMatrix.h"
@@ -19,7 +19,7 @@
  * @class SimObject
  * Abstract class for scene graph objects with a name and a transformation
  */
-class SimObject : public Element
+class SimObject : public ElementCore2
 {
 public:
   QString fullName; /**< The path name to the object in the scene graph */

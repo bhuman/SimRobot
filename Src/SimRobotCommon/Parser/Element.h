@@ -11,9 +11,6 @@
 class Element
 {
 public:
-  /** Constructor. */
-  Element();
-
   /** Virtual destructor for polymorphism. */
   virtual ~Element() = default;
 
