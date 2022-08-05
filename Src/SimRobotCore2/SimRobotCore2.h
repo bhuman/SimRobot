@@ -530,7 +530,7 @@ namespace SimRobotCore2
 
     /**
      * Registers a manager for controller drawings
-     * @param manager The drawing manage (must live as long as the entire simulation and cannot be unregistered)
+     * @param manager The drawing manager (must live as long as the entire simulation and cannot be unregistered)
      * @return True if no manager was already registered
      */
     virtual bool registerDrawingManager(Controller3DDrawingManager& manager) = 0;
