@@ -27,12 +27,6 @@ SensorWidget::SensorWidget(SimRobotCore2::SensorPort* sensor) : pen(QColor::from
   sensorType = sensor->getSensorType();;
 }
 
-SensorWidget::~SensorWidget()
-{
-  if(mineData && QApplication::clipboard()->mimeData() == mineData)
-    QApplication::clipboard()->clear(); // hack, prevents crash on exit
-}
-
 void SensorWidget::paintEvent(QPaintEvent*)
 {
   float minValue, maxValue;
@@ -253,20 +247,19 @@ QMenu* SensorWidget::createEditMenu() const
 
 void SensorWidget::copy()
 {
-  QApplication::clipboard()->clear();
-  mineData = new QMimeData;
-  setClipboardGraphics(*mineData);
+  auto* mimeData = new QMimeData;
+  setClipboardGraphics(*mimeData);
   int count = 1;
   for(int i = 0; i < int(sensorDimensions.size()); i++)
     count *= sensorDimensions[i];
   if(count < 10000)
-    setClipboardText(*mineData);
-  QApplication::clipboard()->setMimeData(mineData);
+    setClipboardText(*mimeData);
+  QApplication::clipboard()->setMimeData(mimeData);
 }
 
 void SensorWidget::setClipboardGraphics(QMimeData& mimeData)
 {
-  mimeData.setImageData(QVariant(grab().toImage()));
+  mimeData.setImageData(grab().toImage());
 }
 
 void SensorWidget::setClipboardText(QMimeData& mimeData)

@@ -30,16 +30,12 @@ public:
    */
   SensorWidget(SimRobotCore2::SensorPort* sensor);
 
-  /** Destructor */
-  ~SensorWidget();
-
 private:
   QPainter painter;
   QPen pen;
   SimRobotCore2::SensorPort* sensor;
   SimRobotCore2::SensorPort::SensorType sensorType;
   QList<int> sensorDimensions;
-  QMimeData* mineData = nullptr;
 
   QWidget* getWidget() override {return this;}
   void update() override;
