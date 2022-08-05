@@ -13,6 +13,7 @@
 #include "Tools/Math/Constants.h"
 #include <cctype>
 #include <cstring>
+#include <limits>
 #include <sstream>
 
 Parser::~Parser()
