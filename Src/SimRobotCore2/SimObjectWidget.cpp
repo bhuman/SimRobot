@@ -506,10 +506,10 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   return menu;
 }
+
 void SimObjectWidget::copy()
 {
-  QApplication::clipboard()->clear();
-  QApplication::clipboard()->setPixmap(QPixmap::fromImage(grabFramebuffer()));
+  QApplication::clipboard()->setImage(grabFramebuffer());
 }
 
 void SimObjectWidget::exportAsImage(int width, int height)

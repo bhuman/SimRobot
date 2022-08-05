@@ -22,6 +22,6 @@ For Linux and macOS, the process of compiling the latest libraries is described 
 
 ## Qt
 
-[Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL in `SimRobotCore2`. At the moment, we are still using Qt5. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).
+[Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL provider in `SimRobotCore2`. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).
 
 TODO: More information.
