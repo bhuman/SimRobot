@@ -100,7 +100,9 @@ in vec2 TexCoords;
 
 uniform vec3 cameraPos;
 uniform uint surfaceIndex;
+#ifdef WITH_TEXTURES
 uniform sampler2D diffuseTexture;
+#endif
 layout (std140) uniform Surfaces
 {
   Surface surfaces[NUM_OF_SURFACES];
@@ -600,6 +602,10 @@ void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matr
   ASSERT(!shader);
   ASSERT(!f);
   data = &perContextData[context];
+  // Even if the caller wants textures to be active, we only use the corresponding shader if there are any textures
+  // in the scene. Otherwise, at least the Apple implementation complains that a texture unit is used in a shader
+  // without a bound texture.
+  textures &= !data->textureIDs.empty();
   shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
   f = data->f;
   if(clear)
@@ -619,9 +625,11 @@ void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matr
 
   // Controller drawings might have changed these states in the meantime:
   data->boundVAO = 0;
-  data->boundTexture = 0;
+  // If this shader uses textures, we bind some non-null texture initially. This prevents warnings
+  // on Apple devices and signals setSurface that textures have to be bound.
+  data->boundTexture = textures ? data->textureIDs.front() : 0;
   data->blendEnabled = false;
-  f->glBindTexture(GL_TEXTURE_2D, 0);
+  f->glBindTexture(GL_TEXTURE_2D, data->boundTexture);
   f->glDisable(GL_BLEND);
 }
 
@@ -750,7 +758,9 @@ void GraphicsContext::setSurface(const Surface* surface)
   ASSERT(shader);
   ASSERT(f);
   const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
-  if(newTexture != data->boundTexture)
+  // data->boundTexture is != 0 here iff the shader uses a texture. If the new surface doesn't have
+  // a texture, the old one must stay bound.
+  if(newTexture && data->boundTexture && newTexture != data->boundTexture)
     f->glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
   if(shader->surfaceIndexLocation >= 0)
     f->glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
