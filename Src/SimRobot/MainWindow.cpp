@@ -766,7 +766,11 @@ void MainWindow::setGuiUpdateRate(int rate)
 void MainWindow::open()
 {
   QString fileName = QFileDialog::getOpenFileName(this,
-    tr("Open File"), settings.value("OpenDirectory", "").toString(), tr("Robot Simulation Files (*.ros2 *.ros2d)"));
+    tr("Open File"), settings.value("OpenDirectory", "").toString(), tr("Robot Simulation Files (*.ros2 *.ros2d)")
+#ifdef LINUX
+                                                  , nullptr, QFileDialog::DontUseNativeDialog
+#endif
+                                                  );
 
   if(fileName.isEmpty())
     return;
