@@ -73,11 +73,14 @@ class Q_GUI_EXPORT QGuiApplication : public QCoreApplication
 {
     Q_OBJECT
     Q_PROPERTY(QIcon windowIcon READ windowIcon WRITE setWindowIcon)
-    Q_PROPERTY(QString applicationDisplayName READ applicationDisplayName WRITE setApplicationDisplayName NOTIFY applicationDisplayNameChanged)
+    Q_PROPERTY(QString applicationDisplayName READ applicationDisplayName
+               WRITE setApplicationDisplayName NOTIFY applicationDisplayNameChanged)
     Q_PROPERTY(QString desktopFileName READ desktopFileName WRITE setDesktopFileName)
-    Q_PROPERTY(Qt::LayoutDirection layoutDirection READ layoutDirection WRITE setLayoutDirection NOTIFY layoutDirectionChanged)
+    Q_PROPERTY(Qt::LayoutDirection layoutDirection READ layoutDirection WRITE setLayoutDirection
+               NOTIFY layoutDirectionChanged)
     Q_PROPERTY(QString platformName READ platformName STORED false)
-    Q_PROPERTY(bool quitOnLastWindowClosed  READ quitOnLastWindowClosed WRITE setQuitOnLastWindowClosed)
+    Q_PROPERTY(bool quitOnLastWindowClosed  READ quitOnLastWindowClosed
+               WRITE setQuitOnLastWindowClosed)
     Q_PROPERTY(QScreen *primaryScreen READ primaryScreen NOTIFY primaryScreenChanged STORED false)
 
 public:
@@ -168,10 +171,9 @@ public:
     QString sessionId() const;
     QString sessionKey() const;
     bool isSavingSession() const;
-
-    static bool isFallbackSessionManagementEnabled();
-    static void setFallbackSessionManagementEnabled(bool);
 #endif
+
+    QT_DECLARE_NATIVE_INTERFACE_ACCESSOR(QGuiApplication)
 
     static void sync();
 Q_SIGNALS:
@@ -188,10 +190,11 @@ Q_SIGNALS:
     void commitDataRequest(QSessionManager &sessionManager);
     void saveStateRequest(QSessionManager &sessionManager);
 #endif
-    void paletteChanged(const QPalette &pal);
     void applicationDisplayNameChanged();
-    void fontChanged(const QFont &font);
-
+#if QT_DEPRECATED_SINCE(6, 0)
+    QT_DEPRECATED_VERSION_X_6_0("Handle QEvent::ApplicationPaletteChange instead") void paletteChanged(const QPalette &pal);
+    QT_DEPRECATED_VERSION_X_6_0("Handle QEvent::ApplicationFontChange instead")  void fontChanged(const QFont &font);
+#endif
 protected:
     bool event(QEvent *) override;
     bool compressEvent(QEvent *, QObject *receiver, QPostEventList *) override;
@@ -215,5 +218,7 @@ private:
 };
 
 QT_END_NAMESPACE
+
+#include <QtGui/qguiapplication_platform.h>
 
 #endif // QGUIAPPLICATION_H

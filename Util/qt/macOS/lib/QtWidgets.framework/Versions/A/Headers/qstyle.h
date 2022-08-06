@@ -73,6 +73,8 @@ public:
     QStyle();
     virtual ~QStyle();
 
+    QString name() const;
+
     virtual void polish(QWidget *widget);
     virtual void unpolish(QWidget *widget);
 
@@ -142,9 +144,6 @@ public:
         PE_FrameLineEdit,
         PE_FrameMenu,
         PE_FrameStatusBarItem,
-#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
-        PE_FrameStatusBar Q_DECL_ENUMERATOR_DEPRECATED = PE_FrameStatusBarItem,
-#endif
         PE_FrameTabWidget,
         PE_FrameWindow,
         PE_FrameButtonBevel,
@@ -165,9 +164,6 @@ public:
         PE_IndicatorBranch,
         PE_IndicatorButtonDropDown,
         PE_IndicatorItemViewItemCheck,
-#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
-        PE_IndicatorViewItemCheck Q_DECL_ENUMERATOR_DEPRECATED = PE_IndicatorItemViewItemCheck,
-#endif
         PE_IndicatorCheckBox,
         PE_IndicatorDockWidgetResizeHandle,
         PE_IndicatorHeaderArrow,
@@ -313,9 +309,6 @@ public:
         SE_TabWidgetRightCorner,
 
         SE_ItemViewItemCheckIndicator,
-#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
-        SE_ViewItemCheckIndicator Q_DECL_ENUMERATOR_DEPRECATED = SE_ItemViewItemCheckIndicator,
-#endif
         SE_TabBarTearIndicator,
         SE_TabBarTearIndicatorLeft = SE_TabBarTearIndicator,
 
@@ -332,10 +325,7 @@ public:
         SE_CheckBoxLayoutItem,
         SE_ComboBoxLayoutItem,
         SE_DateTimeEditLayoutItem,
-#if QT_DEPRECATED_SINCE(5, 15) // ### Qt 6: remove
-        SE_DialogButtonBoxLayoutItem Q_DECL_ENUMERATOR_DEPRECATED,
-#endif
-        SE_LabelLayoutItem = SE_DateTimeEditLayoutItem + 2,
+        SE_LabelLayoutItem,
         SE_ProgressBarLayoutItem,
         SE_PushButtonLayoutItem,
         SE_RadioButtonLayoutItem,
@@ -516,10 +506,6 @@ public:
 
         PM_MdiSubWindowFrameWidth,
         PM_MdiSubWindowMinimizedWidth,
-#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
-        PM_MDIFrameWidth Q_DECL_ENUMERATOR_DEPRECATED = PM_MdiSubWindowFrameWidth,
-        PM_MDIMinimizedWidth Q_DECL_ENUMERATOR_DEPRECATED = PM_MdiSubWindowMinimizedWidth,
-#endif
 
         PM_HeaderMargin,
         PM_HeaderMarkSize,
@@ -537,13 +523,7 @@ public:
 
         PM_SpinBoxSliderHeight,
 
-#if QT_DEPRECATED_SINCE(5, 15) // ### Qt 6: remove
-        PM_DefaultTopLevelMargin Q_DECL_ENUMERATOR_DEPRECATED,
-        PM_DefaultChildMargin Q_DECL_ENUMERATOR_DEPRECATED,
-        PM_DefaultLayoutSpacing Q_DECL_ENUMERATOR_DEPRECATED,
-#endif
-
-        PM_ToolBarIconSize = PM_SpinBoxSliderHeight + 4,
+        PM_ToolBarIconSize,
         PM_ListViewIconSize,
         PM_IconViewIconSize,
         PM_SmallIconSize,
@@ -587,6 +567,8 @@ public:
         PM_TitleBarButtonIconSize,
         PM_TitleBarButtonSize,
 
+        PM_LineEditIconSize,
+        PM_LineEditIconMargin,
         // do not add any values below/greater than this
         PM_CustomBase = 0xf0000000
     };
@@ -662,9 +644,6 @@ public:
         SH_ComboBox_Popup,
         SH_TitleBar_NoBorder,
         SH_Slider_StopMouseOverSlider,
-#if QT_DEPRECATED_SINCE(5, 13) // ### Qt 6: remove
-        SH_ScrollBar_StopMouseOverSlider Q_DECL_ENUMERATOR_DEPRECATED = SH_Slider_StopMouseOverSlider,
-#endif
         SH_BlinkCursorWhenTextSelected,
         SH_RichText_FullWidthSelection,
         SH_Menu_Scrollable,
@@ -709,7 +688,6 @@ public:
         SH_ComboBox_PopupFrameStyle,
         SH_MessageBox_TextInteractionFlags,
         SH_DialogButtonBox_ButtonsHaveIcons,
-        SH_SpellCheckUnderlineStyle,
         SH_MessageBox_CenterButtons,
         SH_Menu_SelectionWrap,
         SH_ItemView_MovementWithoutUpdatingSelection,
@@ -757,6 +735,9 @@ public:
         SH_ComboBox_AllowWheelScrolling,
         SH_SpinBox_ButtonsInsideFrame,
         SH_SpinBox_StepModifier,
+        SH_TabBar_AllowWheelScrolling,
+        SH_Table_AlwaysDrawLeftTopGridLines,
+        SH_SpinBox_SelectOnStep,
         // Add new style hint values here
 
         SH_CustomBase = 0xf0000000
@@ -845,6 +826,7 @@ public:
         SP_DialogRetryButton,
         SP_DialogIgnoreButton,
         SP_RestoreDefaultsButton,
+        SP_TabCloseButton,
         // do not add any values below/greater than this
         SP_CustomBase = 0xf0000000
     };
@@ -881,24 +863,21 @@ public:
     const QStyle * proxy() const;
 
 private:
+    void setName(const QString &name);
+
+private:
     Q_DISABLE_COPY(QStyle)
     friend class QWidget;
     friend class QWidgetPrivate;
     friend class QApplication;
     friend class QProxyStyle;
     friend class QProxyStylePrivate;
+    friend class QStyleFactory;
     void setProxy(QStyle *style);
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyle::State)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyle::SubControls)
-
-#if !defined(QT_NO_DEBUG_STREAM)
-// ### Qt 6: Remove in favor of template<class T> QDebug operator<<(QDebug, const QFlags<T> &).
-#  if QT_VERSION < QT_VERSION_CHECK(6,0,0)
-Q_WIDGETS_EXPORT QDebug operator<<(QDebug debug, QStyle::State state);
-#  endif
-#endif
 
 QT_END_NAMESPACE
 

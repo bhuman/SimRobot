@@ -24,4 +24,20 @@ For Linux and macOS, the process of compiling the latest libraries is described 
 
 [Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL provider in `SimRobotCore2`. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).
 
+For macOS, the Qt version is currently 6.3.1. The steps to populate `Util/qt/macOS` (after removing its previous content) were as follows (of course, future versions can require different steps):
+1. Download the macOS online installer from [here](https://www.qt.io/download-qt-installer) (the resulting file should be called something like `qt-unified-macOS-x64-4.4.1-online.dmg`).
+2. Execute the installer in that disk image.
+3. Proceed through the installer by signing in with a Qt account and agreeing to the open source conditions.
+4. Choose a custom installation and some destination folder, e.g. `~/Qt`.
+5. In the following screen, everything can be deselected, but `Qt>Qt 6.3.1>macOS` has to be selected (it seems that QtCreator cannot be deselected).
+6. Proceed by agreeing to the license terms and confirming the installation.
+7. Copy the relevant files/directories from `<Qt directory>/6.3.1/macos` to `Util/qt/macOS`. In 6.3.1, they were the following (of course this also depends on the required Qt components):
+- `Licenses/`
+- `libexec/{moc,rcc}`
+- `lib/Qt{Concurrent,Core,DBus,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.framework/`
+- `plugins/{imageformats/libqjpeg,platforms/libqcocoa,styles/libqmacstyle}.dylib`
+8. Remove `.prl` files: `find Util/qt/macOS/lib -name '*.prl' | xargs rm`
+9. Adjust CMake files, e.g. to update dependency relations, new components etc.
+10. Update these instructions.
+
 TODO: More information.

@@ -44,15 +44,10 @@
 
 QT_REQUIRE_CONFIG(easingcurve);
 
+#include <QtCore/qlist.h>
 #include <QtCore/qobjectdefs.h>
-#include <QtCore/qvector.h>
-#if QT_DEPRECATED_SINCE(5, 0)
-# include <QtCore/qlist.h>
-# include <QtCore/qpoint.h>
-#endif
 
 QT_BEGIN_NAMESPACE
-
 
 class QEasingCurvePrivate;
 class QPointF;
@@ -84,10 +79,9 @@ public:
     QEasingCurve &operator=(const QEasingCurve &other)
     { if ( this != &other ) { QEasingCurve copy(other); swap(copy); } return *this; }
     QEasingCurve(QEasingCurve &&other) noexcept : d_ptr(other.d_ptr) { other.d_ptr = nullptr; }
-    QEasingCurve &operator=(QEasingCurve &&other) noexcept
-    { qSwap(d_ptr, other.d_ptr); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QEasingCurve)
 
-    void swap(QEasingCurve &other) noexcept { qSwap(d_ptr, other.d_ptr); }
+    void swap(QEasingCurve &other) noexcept { qt_ptr_swap(d_ptr, other.d_ptr); }
 
     bool operator==(const QEasingCurve &other) const;
     inline bool operator!=(const QEasingCurve &other) const
@@ -102,12 +96,9 @@ public:
     qreal overshoot() const;
     void setOvershoot(qreal overshoot);
 
-    void addCubicBezierSegment(const QPointF & c1, const QPointF & c2, const QPointF & endPoint);
+    void addCubicBezierSegment(const QPointF &c1, const QPointF &c2, const QPointF &endPoint);
     void addTCBSegment(const QPointF &nextPoint, qreal t, qreal c, qreal b);
-    QVector<QPointF> toCubicSpline() const;
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED QList<QPointF> cubicBezierSpline() const { return toCubicSpline().toList(); }
-#endif
+    QList<QPointF> toCubicSpline() const;
 
     Type type() const;
     void setType(Type type);
@@ -116,13 +107,14 @@ public:
     EasingFunction customType() const;
 
     qreal valueForProgress(qreal progress) const;
+
 private:
     QEasingCurvePrivate *d_ptr;
 #ifndef QT_NO_DEBUG_STREAM
     friend Q_CORE_EXPORT QDebug operator<<(QDebug debug, const QEasingCurve &item);
 #endif
 #ifndef QT_NO_DATASTREAM
-    friend Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QEasingCurve&);
+    friend Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QEasingCurve &);
     friend Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QEasingCurve &);
 #endif
 };
@@ -133,7 +125,7 @@ Q_CORE_EXPORT QDebug operator<<(QDebug debug, const QEasingCurve &item);
 #endif
 
 #ifndef QT_NO_DATASTREAM
-Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QEasingCurve&);
+Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QEasingCurve &);
 Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QEasingCurve &);
 #endif
 

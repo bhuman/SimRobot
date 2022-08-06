@@ -39,17 +39,18 @@
 #ifndef QTEXTLAYOUT_H
 #define QTEXTLAYOUT_H
 
-#include <QtGui/qtguiglobal.h>
-#include <QtCore/qstring.h>
-#include <QtCore/qnamespace.h>
-#include <QtCore/qrect.h>
-#include <QtCore/qvector.h>
 #include <QtGui/qcolor.h>
-#include <QtCore/qobject.h>
 #include <QtGui/qevent.h>
-#include <QtGui/qtextformat.h>
 #include <QtGui/qglyphrun.h>
 #include <QtGui/qtextcursor.h>
+#include <QtGui/qtextformat.h>
+#include <QtGui/qtguiglobal.h>
+
+#include <QtCore/qlist.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qobject.h>
+#include <QtCore/qrect.h>
+#include <QtCore/qstring.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -107,19 +108,7 @@ public:
     // does itemization
     QTextLayout();
     QTextLayout(const QString& text);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QTextLayout(const QString &text, const QFont &font, QPaintDevice *paintdevice = nullptr);
-#ifndef Q_QDOC
-    // the template is necessary to make QTextLayout(font,text,nullptr) and QTextLayout(font,text,NULL)
-    // not ambiguous. Implementation detail that should not be documented.
-    template<char = 0>
-#endif
-    QTextLayout(const QString &textData, const QFont &textFont, const QPaintDevice *paintdevice)
-        : QTextLayout(textData, textFont, const_cast<QPaintDevice*>(paintdevice))
-    {}
-#else
     QTextLayout(const QString &text, const QFont &font, const QPaintDevice *paintdevice = nullptr);
-#endif
     QTextLayout(const QTextBlock &b);
     ~QTextLayout();
 
@@ -150,13 +139,8 @@ public:
         friend bool operator!=(const FormatRange &lhs, const FormatRange &rhs)
         { return !operator==(lhs, rhs); }
     };
-#if QT_DEPRECATED_SINCE(5, 6)
-    QT_DEPRECATED_X("Use setFormats()") void setAdditionalFormats(const QList<FormatRange> &overrides);
-    QT_DEPRECATED_X("Use formats()") QList<FormatRange> additionalFormats() const;
-    QT_DEPRECATED_X("Use clearFormats()") void clearAdditionalFormats();
-#endif
-    void setFormats(const QVector<FormatRange> &overrides);
-    QVector<FormatRange> formats() const;
+    void setFormats(const QList<FormatRange> &overrides);
+    QList<FormatRange> formats() const;
     void clearFormats();
 
     void setCacheEnabled(bool enable);
@@ -185,7 +169,8 @@ public:
     int leftCursorPosition(int oldPos) const;
     int rightCursorPosition(int oldPos) const;
 
-    void draw(QPainter *p, const QPointF &pos, const QVector<FormatRange> &selections = QVector<FormatRange>(),
+    void draw(QPainter *p, const QPointF &pos,
+              const QList<FormatRange> &selections = QList<FormatRange>(),
               const QRectF &clip = QRectF()) const;
     void drawCursor(QPainter *p, const QPointF &pos, int cursorPosition) const;
     void drawCursor(QPainter *p, const QPointF &pos, int cursorPosition, int width) const;
@@ -267,7 +252,7 @@ public:
 
     int lineNumber() const { return index; }
 
-    void draw(QPainter *p, const QPointF &point, const QTextLayout::FormatRange *selection = nullptr) const;
+    void draw(QPainter *painter, const QPointF &position) const;
 
 #if !defined(QT_NO_RAWFONT)
     QList<QGlyphRun> glyphRuns(int from = -1, int length = -1) const;
@@ -276,6 +261,8 @@ public:
 private:
     QTextLine(int line, QTextEngine *e) : index(line), eng(e) {}
     void layout_helper(int numGlyphs);
+    void draw_internal(QPainter *p, const QPointF &pos,
+                       const QTextLayout::FormatRange *selection) const;
 
     friend class QTextLayout;
     friend class QTextFragment;

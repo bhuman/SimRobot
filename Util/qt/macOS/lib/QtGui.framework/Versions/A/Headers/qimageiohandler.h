@@ -41,6 +41,7 @@
 #define QIMAGEIOHANDLER_H
 
 #include <QtGui/qtguiglobal.h>
+#include <QtGui/qimage.h>
 #include <QtCore/qiodevice.h>
 #include <QtCore/qplugin.h>
 #include <QtCore/qfactoryinterface.h>
@@ -69,9 +70,6 @@ public:
     void setFormat(const QByteArray &format) const;
     QByteArray format() const;
 
-    QT_DEPRECATED_X("Use QImageIOHandler::format() instead")
-    virtual QByteArray name() const;
-
     virtual bool canRead() const = 0;
     virtual bool read(QImage *image) = 0;
     virtual bool write(const QImage &image);
@@ -96,9 +94,6 @@ public:
         OptimizedWrite,
         ProgressiveScanWrite,
         ImageTransformation
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        , TransformedByDefault
-#endif
     };
 
     enum Transformation {
@@ -125,6 +120,8 @@ public:
     virtual int nextImageDelay() const;
     virtual int currentImageNumber() const;
     virtual QRect currentImageRect() const;
+
+    static bool allocateImage(QSize size, QImage::Format format, QImage *image);
 
 protected:
     QImageIOHandler(QImageIOHandlerPrivate &dd);

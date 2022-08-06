@@ -64,7 +64,7 @@ public:
     ~QDBusUnixFileDescriptor();
 
     void swap(QDBusUnixFileDescriptor &other) noexcept
-    { qSwap(d, other.d); }
+    { d.swap(other.d); }
 
     bool isValid() const;
 
@@ -85,7 +85,7 @@ Q_DECLARE_SHARED(QDBusUnixFileDescriptor)
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QDBusUnixFileDescriptor)
+QT_DECL_METATYPE_EXTERN(QDBusUnixFileDescriptor, Q_DBUS_EXPORT)
 
 #endif // QT_NO_DBUS
 #endif // QDBUSUNIXFILEDESCRIPTOR_H

@@ -43,6 +43,7 @@
 #include <QtGui/qtguiglobal.h>
 #include <QtCore/qobjectdefs.h>
 #include <QtCore/qnamespace.h>
+#include <QtCore/qcontainerfwd.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -67,7 +68,6 @@ class QFontMetrics;
 class QFontInfo;
 class QPen;
 class QBrush;
-class QMatrix;
 class QPixmap;
 class QBitmap;
 class QMovie;
@@ -80,7 +80,6 @@ class QString;
 class QByteArray;
 class QApplication;
 
-template<typename T> class QList;
 typedef QList<QWidget *> QWidgetList;
 typedef QList<QWindow *> QWindowList;
 
@@ -89,7 +88,7 @@ QT_END_NAMESPACE
 // Window system dependent definitions
 
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_QDOC)
 #  include <QtGui/qwindowdefs_win.h>
 #endif // Q_OS_WIN
 
@@ -102,10 +101,7 @@ typedef QT_PREPEND_NAMESPACE(quintptr) WId;
 
 QT_BEGIN_NAMESPACE
 
-template<class K, class V> class QHash;
 typedef QHash<WId, QWidget *> QWidgetMapper;
-
-template<class V> class QSet;
 typedef QSet<QWidget *> QWidgetSet;
 
 QT_END_NAMESPACE

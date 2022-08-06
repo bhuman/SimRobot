@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtWidgets module of the Qt Toolkit.
@@ -85,16 +85,6 @@ Q_SIGNALS:
     void idPressed(int);
     void idReleased(int);
     void idToggled(int, bool);
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_VERSION_X_5_15("Use QButtonGroup::idClicked(int) instead")
-    void buttonClicked(int);
-    QT_DEPRECATED_VERSION_X_5_15("Use QButtonGroup::idPressed(int) instead")
-    void buttonPressed(int);
-    QT_DEPRECATED_VERSION_X_5_15("Use QButtonGroup::idReleased(int) instead")
-    void buttonReleased(int);
-    QT_DEPRECATED_VERSION_X_5_15("Use QButtonGroup::idToggled(int, bool) instead")
-    void buttonToggled(int, bool);
-#endif
 
 private:
     Q_DISABLE_COPY(QButtonGroup)

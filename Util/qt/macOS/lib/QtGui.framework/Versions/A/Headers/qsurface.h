@@ -69,7 +69,8 @@ public:
         RasterGLSurface,
         OpenVGSurface,
         VulkanSurface,
-        MetalSurface
+        MetalSurface,
+        Direct3DSurface
     };
     Q_ENUM(SurfaceType)
 
@@ -95,6 +96,6 @@ protected:
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QSurface*)
+QT_DECL_METATYPE_EXTERN_TAGGED(QSurface*, QSurface_ptr, Q_GUI_EXPORT)
 
 #endif //QSURFACE_H

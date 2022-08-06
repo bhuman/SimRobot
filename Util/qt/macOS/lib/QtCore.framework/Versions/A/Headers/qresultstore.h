@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -43,26 +43,26 @@
 #include <QtCore/qmap.h>
 #include <QtCore/qdebug.h>
 
+#include <utility>
+
 QT_REQUIRE_CONFIG(future);
 
 QT_BEGIN_NAMESPACE
 
-
 /*
     ResultStore stores indexed results. Results can be added and retrieved
-    either individually batched in a QVector. Retriveing results and checking
+    either individually batched in a QList. Retriveing results and checking
     which indexes are in the store can be done either by iterating or by random
-    accees. In addition results kan be removed from the front of the store,
+    access. In addition results can be removed from the front of the store,
     either individually or in batches.
 */
-
 
 namespace QtPrivate {
 
 class ResultItem
 {
 public:
-    ResultItem(const void *_result, int _count) : m_count(_count), result(_result) { } // contruct with vector of results
+    ResultItem(const void *_result, int _count) : m_count(_count), result(_result) { } // construct with vector of results
     ResultItem(const void *_result) : m_count(0), result(_result) { } // construct with result
     ResultItem() : m_count(0), result(nullptr) { }
     bool isValid() const { return result != nullptr; }
@@ -87,6 +87,8 @@ public:
     bool operator!=(const ResultIteratorBase &other) const;
     bool isVector() const;
     bool canIncrementVectorIndex() const;
+    bool isValid() const;
+
 protected:
     QMap<int, ResultItem>::const_iterator mapIterator;
     int m_vectorIndex;
@@ -97,17 +99,30 @@ public:
         return *pointer<T>();
     }
 
+    template<typename T>
+    T &value()
+    {
+        return *pointer<T>();
+    }
+
+    template <typename T>
+    T *pointer()
+    {
+        const T *p = qAsConst(*this).pointer<T>();
+        return const_cast<T *>(p);
+    }
+
     template <typename T>
     const T *pointer() const
     {
         if (mapIterator.value().isVector())
-            return &(reinterpret_cast<const QVector<T> *>(mapIterator.value().result)->at(m_vectorIndex));
+            return &(reinterpret_cast<const QList<T> *>(mapIterator.value().result)->at(m_vectorIndex));
         else
             return reinterpret_cast<const T *>(mapIterator.value().result);
     }
 };
 
-class Q_CORE_EXPORT ResultStoreBase
+class Q_CORE_EXPORT ResultStoreBase final
 {
 public:
     ResultStoreBase();
@@ -121,11 +136,13 @@ public:
     ResultIteratorBase resultAt(int index) const;
     bool contains(int index) const;
     int count() const;
+    // ### Qt 7: 'virtual' isn't required, can be removed
     virtual ~ResultStoreBase();
 
 protected:
     int insertResultItem(int index, ResultItem &resultItem);
     void insertResultItemIfValid(int index, ResultItem &resultItem);
+    bool containsValidResultItem(int index) const;
     void syncPendingResults();
     void syncResultCount();
     int updateInsertIndex(int index, int _count);
@@ -138,56 +155,96 @@ protected:
     QMap<int, ResultItem> pendingResults;
     int filteredResults;
 
+    template <typename T>
+    static void clear(QMap<int, ResultItem> &store)
+    {
+        QMap<int, ResultItem>::const_iterator mapIterator = store.constBegin();
+        while (mapIterator != store.constEnd()) {
+            if (mapIterator.value().isVector())
+                delete reinterpret_cast<const QList<T> *>(mapIterator.value().result);
+            else
+                delete reinterpret_cast<const T *>(mapIterator.value().result);
+            ++mapIterator;
+        }
+        store.clear();
+    }
+
 public:
     template <typename T>
     int addResult(int index, const T *result)
     {
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
         if (result == nullptr)
             return addResult(index, static_cast<void *>(nullptr));
-        else
-            return addResult(index, static_cast<void *>(new T(*result)));
+
+        return addResult(index, static_cast<void *>(new T(*result)));
     }
 
     template <typename T>
-    int addResults(int index, const QVector<T> *results)
+    int moveResult(int index, T &&result)
     {
-        return addResults(index, new QVector<T>(*results), results->count(), results->count());
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
+        return addResult(index, static_cast<void *>(new T(std::move_if_noexcept(result))));
     }
 
-    template <typename T>
-    int addResults(int index, const QVector<T> *results, int totalCount)
+    template<typename T>
+    int addResults(int index, const QList<T> *results)
     {
+        if (results->empty()) // reject if results are empty
+            return -1;
+
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
+        return addResults(index, new QList<T>(*results), results->count(), results->count());
+    }
+
+    template<typename T>
+    int addResults(int index, const QList<T> *results, int totalCount)
+    {
+        // reject if results are empty, and nothing is filtered away
+        if ((m_filterMode == false || results->count() == totalCount) && results->empty())
+            return -1;
+
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
         if (m_filterMode == true && results->count() != totalCount && 0 == results->count())
             return addResults(index, nullptr, 0, totalCount);
-        else
-            return addResults(index, new QVector<T>(*results), results->count(), totalCount);
+
+        return addResults(index, new QList<T>(*results), results->count(), totalCount);
     }
 
     int addCanceledResult(int index)
     {
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
         return addResult(index, static_cast<void *>(nullptr));
     }
 
     template <typename T>
     int addCanceledResults(int index, int _count)
     {
-        QVector<T> empty;
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+
+        QList<T> empty;
         return addResults(index, &empty, _count);
     }
 
     template <typename T>
     void clear()
     {
-        QMap<int, ResultItem>::const_iterator mapIterator = m_results.constBegin();
-        while (mapIterator != m_results.constEnd()) {
-            if (mapIterator.value().isVector())
-                delete reinterpret_cast<const QVector<T> *>(mapIterator.value().result);
-            else
-                delete reinterpret_cast<const T *>(mapIterator.value().result);
-            ++mapIterator;
-        }
+        ResultStoreBase::clear<T>(m_results);
         resultCount = 0;
-        m_results.clear();
+        insertIndex = 0;
+        ResultStoreBase::clear<T>(pendingResults);
+        filteredResults = 0;
     }
 };
 

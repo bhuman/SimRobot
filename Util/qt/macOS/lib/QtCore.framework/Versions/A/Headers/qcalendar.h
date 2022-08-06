@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2019 The Qt Company Ltd.
+** Copyright (C) 2021 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -130,14 +130,30 @@ public:
     // New entries must be added to the \enum doc in qcalendar.cpp and
     // handled in QCalendarBackend::fromEnum()
     Q_ENUM(System)
+    class SystemId
+    {
+        size_t id;
+        friend class QCalendarBackend;
+        constexpr bool isInEnum() const { return id <= size_t(QCalendar::System::Last); }
+        constexpr explicit SystemId(QCalendar::System e) : id(size_t(e)) { }
+        constexpr explicit SystemId(size_t i) : id(i) { }
+
+    public:
+        constexpr SystemId() : id(~size_t(0)) {}
+        constexpr size_t index() const noexcept { return id; }
+        constexpr bool isValid() const noexcept { return ~id; }
+    };
 
     explicit QCalendar(); // Gregorian, optimised
     explicit QCalendar(System system);
+    // ### Qt 7: remove
     explicit QCalendar(QLatin1String name);
+    // ### Qt 7: use QAnyStringView
     explicit QCalendar(QStringView name);
+    explicit QCalendar(SystemId id);
 
     // QCalendar is a trivially copyable value type.
-    bool isValid() const { return d != nullptr; }
+    bool isValid() const { return d_ptr != nullptr; }
 
     // Date queries:
     int daysInMonth(int month, int year = Unspecified) const;
@@ -178,14 +194,17 @@ public:
 
     // Formatting of date-times:
     QString dateTimeToString(QStringView format, const QDateTime &datetime,
-                             const QDate &dateOnly, const QTime &timeOnly,
+                             QDate dateOnly, QTime timeOnly,
                              const QLocale &locale) const;
 
     // What's available ?
     static QStringList availableCalendars();
 private:
     // Always supplied by QCalendarBackend and expected to be a singleton
-    const QCalendarBackend *d;
+    // Note that the calendar registry destroys all backends when it is itself
+    // destroyed. The code should check if the registry is destroyed before
+    // dereferencing this pointer.
+    const QCalendarBackend *d_ptr;
 };
 
 QT_END_NAMESPACE

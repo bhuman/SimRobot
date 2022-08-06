@@ -42,6 +42,9 @@
 
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtGui/qfont.h>
+#if QT_CONFIG(action)
+#  include <QtGui/qaction.h>
+#endif
 #include <QtWidgets/qgraphicslayoutitem.h>
 #include <QtWidgets/qgraphicsitem.h>
 #include <QtGui/qpalette.h>
@@ -67,7 +70,8 @@ class Q_WIDGETS_EXPORT QGraphicsWidget : public QGraphicsObject, public QGraphic
     Q_INTERFACES(QGraphicsItem QGraphicsLayoutItem)
     Q_PROPERTY(QPalette palette READ palette WRITE setPalette)
     Q_PROPERTY(QFont font READ font WRITE setFont)
-    Q_PROPERTY(Qt::LayoutDirection layoutDirection READ layoutDirection WRITE setLayoutDirection RESET unsetLayoutDirection)
+    Q_PROPERTY(Qt::LayoutDirection layoutDirection READ layoutDirection WRITE setLayoutDirection
+               RESET unsetLayoutDirection)
     Q_PROPERTY(QSizeF size READ size WRITE resize NOTIFY geometryChanged)
     Q_PROPERTY(QSizeF minimumSize READ minimumSize WRITE setMinimumSize)
     Q_PROPERTY(QSizeF preferredSize READ preferredSize WRITE setPreferredSize)
@@ -145,13 +149,8 @@ public:
 #ifndef QT_NO_ACTION
     //actions
     void addAction(QAction *action);
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
     void addActions(const QList<QAction*> &actions);
     void insertActions(QAction *before, const QList<QAction*> &actions);
-#else
-    void addActions(QList<QAction*> actions);
-    void insertActions(QAction *before, QList<QAction*> actions);
-#endif
     void insertAction(QAction *before, QAction *action);
     void removeAction(QAction *action);
     QList<QAction*> actions() const;

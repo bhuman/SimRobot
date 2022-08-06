@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -37,31 +37,44 @@
 **
 ****************************************************************************/
 
+#include <QtCore/qglobal.h>
+
 #ifndef QCONTAINERFWD_H
 #define QCONTAINERFWD_H
 
-#include <QtCore/qglobal.h>
+// std headers can unfortunately not be forward declared
+#include <utility>
 
 QT_BEGIN_NAMESPACE
 
-
-template <class Key, class T> class QCache;
-template <class Key, class T> class QHash;
-#if !defined(QT_NO_LINKED_LIST) && QT_DEPRECATED_SINCE(5, 15)
-template <class T> class QLinkedList;
-#endif
-template <class T> class QList;
-template <class Key, class T> class QMap;
-template <class Key, class T> class QMultiHash;
-template <class Key, class T> class QMultiMap;
-template <class T1, class T2> struct QPair;
-template <class T> class QQueue;
-template <class T> class QSet;
-template <class T> class QStack;
-template<class T, int Prealloc = 256> class QVarLengthArray;
-template <class T> class QVector;
+template <typename Key, typename T> class QCache;
+template <typename Key, typename T> class QHash;
+template <typename Key, typename T> class QMap;
+template <typename Key, typename T> class QMultiHash;
+template <typename Key, typename T> class QMultiMap;
+template <typename T1, typename T2>
+using QPair = std::pair<T1, T2>;
+template <typename T> class QQueue;
+template <typename T> class QSet;
+template <typename T> class QStack;
+template <typename T, qsizetype Prealloc = 256> class QVarLengthArray;
+template <typename T> class QList;
+#ifndef Q_CLANG_QDOC
+template<typename T> using QVector = QList<T>;
+using QStringList = QList<QString>;
 using QByteArrayList = QList<QByteArray>;
+#else
+template<typename T> class QVector;
 class QStringList;
+class QByteArrayList;
+#endif
+class QMetaType;
+class QVariant;
+
+using QVariantList = QList<QVariant>;
+using QVariantMap = QMap<QString, QVariant>;
+using QVariantHash = QHash<QString, QVariant>;
+using QVariantPair = QPair<QVariant, QVariant>;
 
 QT_END_NAMESPACE
 

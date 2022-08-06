@@ -48,8 +48,6 @@
 
 QT_BEGIN_NAMESPACE
 
-
-template <typename T> class QList;
 struct QTextOptionPrivate;
 
 class Q_GUI_EXPORT QTextOption
@@ -83,7 +81,7 @@ public:
     };
 
     QTextOption();
-    /*implicit*/ QTextOption(Qt::Alignment alignment);
+    Q_IMPLICIT QTextOption(Qt::Alignment alignment);
     ~QTextOption();
 
     QTextOption(const QTextOption &o);
@@ -117,11 +115,6 @@ public:
     inline void setFlags(Flags flags);
     inline Flags flags() const { return Flags(f); }
 
-#if QT_DEPRECATED_SINCE(5, 10)
-    QT_DEPRECATED inline void setTabStop(qreal tabStop);
-    QT_DEPRECATED inline qreal tabStop() const { return tabStopDistance(); }
-#endif
-
     inline void setTabStopDistance(qreal tabStopDistance);
     inline qreal tabStopDistance() const { return tab; }
 
@@ -135,12 +128,11 @@ public:
     bool useDesignMetrics() const { return design; }
 
 private:
-    uint align : 8;
+    uint align : 9;
     uint wordWrap : 4;
     uint design : 1;
     uint direction : 2;
-    uint unused : 17;
-    uint unused2; // ### Qt 6: remove unnecessary, extra 32 bits
+    uint unused : 16;
     uint f;
     qreal tab;
     QTextOptionPrivate *d;
@@ -154,16 +146,11 @@ inline void QTextOption::setAlignment(Qt::Alignment aalignment)
 inline void QTextOption::setFlags(Flags aflags)
 { f = aflags; }
 
-#if QT_DEPRECATED_SINCE(5, 10)
-inline void QTextOption::setTabStop(qreal atabStop)
-{ setTabStopDistance(atabStop); }
-#endif
-
 inline void QTextOption::setTabStopDistance(qreal atabStop)
 { tab = atabStop; }
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE( QTextOption::Tab )
+QT_DECL_METATYPE_EXTERN_TAGGED(QTextOption::Tab, QTextOption_Tab, Q_GUI_EXPORT)
 
 #endif // QTEXTOPTION_H

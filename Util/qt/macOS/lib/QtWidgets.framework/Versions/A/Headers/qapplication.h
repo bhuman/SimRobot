@@ -46,19 +46,14 @@
 #include <QtCore/qpoint.h>
 #include <QtCore/qsize.h>
 #include <QtGui/qcursor.h>
-#ifdef QT_INCLUDE_COMPAT
-# include <QtWidgets/qdesktopwidget.h>
-#endif
 #include <QtGui/qguiapplication.h>
 
 QT_BEGIN_NAMESPACE
 
 
-class QDesktopWidget;
 class QStyle;
 class QEventLoop;
 class QIcon;
-template <typename T> class QList;
 class QLocale;
 class QPlatformNativeInterface;
 
@@ -72,15 +67,11 @@ class QApplicationPrivate;
 class Q_WIDGETS_EXPORT QApplication : public QGuiApplication
 {
     Q_OBJECT
-    Q_PROPERTY(QIcon windowIcon READ windowIcon WRITE setWindowIcon)
     Q_PROPERTY(int cursorFlashTime READ cursorFlashTime WRITE setCursorFlashTime)
     Q_PROPERTY(int doubleClickInterval  READ doubleClickInterval WRITE setDoubleClickInterval)
     Q_PROPERTY(int keyboardInputInterval READ keyboardInputInterval WRITE setKeyboardInputInterval)
 #if QT_CONFIG(wheelevent)
     Q_PROPERTY(int wheelScrollLines  READ wheelScrollLines WRITE setWheelScrollLines)
-#endif
-#if QT_DEPRECATED_SINCE(5, 15)
-    Q_PROPERTY(QSize globalStrut READ globalStrut WRITE setGlobalStrut)
 #endif
     Q_PROPERTY(int startDragTime  READ startDragTime WRITE setStartDragTime)
     Q_PROPERTY(int startDragDistance  READ startDragDistance WRITE setStartDragDistance)
@@ -100,14 +91,6 @@ public:
     static QStyle *style();
     static void setStyle(QStyle*);
     static QStyle *setStyle(const QString&);
-    enum ColorSpec { NormalColor=0, CustomColor=1, ManyColor=2 };
-#if QT_DEPRECATED_SINCE(5, 8)
-    QT_DEPRECATED static int colorSpec();
-    QT_DEPRECATED static void setColorSpec(int);
-#endif // QT_DEPRECATED_SINCE(5, 8)
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED static inline void setGraphicsSystem(const QString &) {}
-#endif
 
     using QGuiApplication::palette;
     static QPalette palette(const QWidget *);
@@ -117,17 +100,14 @@ public:
     static QFont font(const QWidget*);
     static QFont font(const char *className);
     static void setFont(const QFont &, const char* className = nullptr);
-    static QFontMetrics fontMetrics();
 
-#if QT_VERSION < 0x060000 // remove these forwarders in Qt 6
-    static void setWindowIcon(const QIcon &icon);
-    static QIcon windowIcon();
+#if QT_DEPRECATED_SINCE(6,0)
+    QT_DEPRECATED_VERSION_X_6_0("Use the QFontMetricsF constructor instead.")
+    static QFontMetrics fontMetrics();
 #endif
 
     static QWidgetList allWidgets();
     static QWidgetList topLevelWidgets();
-
-    static QDesktopWidget *desktop();
 
     static QWidget *activePopupWidget();
     static QWidget *activeModalWidget();
@@ -141,9 +121,6 @@ public:
     static QWidget *topLevelAt(const QPoint &p);
     static inline QWidget *topLevelAt(int x, int y)  { return topLevelAt(QPoint(x, y)); }
 
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED static inline void syncX() {}
-#endif
     static void beep();
     static void alert(QWidget *widget, int duration = 0);
 
@@ -160,10 +137,6 @@ public:
     static void setWheelScrollLines(int);
     static int wheelScrollLines();
 #endif
-#if QT_DEPRECATED_SINCE(5, 15)
-    static void setGlobalStrut(const QSize &);
-    static QSize globalStrut();
-#endif
 
     static void setStartDragTime(int ms);
     static int startDragTime();
@@ -173,26 +146,15 @@ public:
     static bool isEffectEnabled(Qt::UIEffect);
     static void setEffectEnabled(Qt::UIEffect, bool enable = true);
 
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED static QLocale keyboardInputLocale()
-    { return qApp ? QGuiApplication::inputMethod()->locale() : QLocale::c(); }
-    QT_DEPRECATED static Qt::LayoutDirection keyboardInputDirection()
-    { return qApp ? QGuiApplication::inputMethod()->inputDirection() : Qt::LeftToRight; }
-#endif
-
     static int exec();
     bool notify(QObject *, QEvent *) override;
 
 #ifdef QT_KEYPAD_NAVIGATION
-# if QT_DEPRECATED_SINCE(5, 13)
-    static QT_DEPRECATED_X ("Use QApplication::setNavigationMode() instead")
-    void setKeypadNavigationEnabled(bool);
-    static QT_DEPRECATED_X ("Use QApplication::navigationMode() instead")
-    bool keypadNavigationEnabled();
-# endif
     static void setNavigationMode(Qt::NavigationMode mode);
     static Qt::NavigationMode navigationMode();
 #endif
+
+    QT_DECLARE_NATIVE_INTERFACE_ACCESSOR(QApplication)
 
 Q_SIGNALS:
     void focusChanged(QWidget *old, QWidget *now);

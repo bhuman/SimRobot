@@ -49,12 +49,8 @@
 // If C++11 atomics are supported, use them!
 // Note that constexpr support is sometimes disabled in QNX or INTEGRITY builds,
 // but their libraries have <atomic>.
-#elif defined(Q_COMPILER_ATOMICS) && (defined(Q_COMPILER_CONSTEXPR) || defined(Q_OS_QNX) || defined(Q_OS_INTEGRITY))
+#elif defined(Q_COMPILER_ATOMICS)
 #  include <QtCore/qatomic_cxx11.h>
-
-// We only support one fallback: MSVC, because even on version 2015, it lacks full constexpr support
-#elif defined(Q_CC_MSVC)
-#  include <QtCore/qatomic_msvc.h>
 
 // No fallback
 #else
@@ -75,16 +71,7 @@ QT_END_NAMESPACE
 
 // New atomics
 
-#if defined(Q_COMPILER_CONSTEXPR)
-# if defined(Q_CC_CLANG) && Q_CC_CLANG < 303
-   /*
-      Do not define QT_BASIC_ATOMIC_HAS_CONSTRUCTORS for Clang before version 3.3.
-      For details about the bug: see http://llvm.org/bugs/show_bug.cgi?id=12670
-    */
-# else
-#  define QT_BASIC_ATOMIC_HAS_CONSTRUCTORS
-# endif
-#endif
+#define QT_BASIC_ATOMIC_HAS_CONSTRUCTORS
 
 template <typename T>
 class QBasicAtomicInteger
@@ -93,17 +80,13 @@ public:
     typedef T Type;
     typedef QAtomicOps<T> Ops;
     // static check that this is a valid integer
-    Q_STATIC_ASSERT_X(QTypeInfo<T>::isIntegral, "template parameter is not an integral type");
-    Q_STATIC_ASSERT_X(QAtomicOpsSupport<sizeof(T)>::IsSupported, "template parameter is an integral of a size not supported on this platform");
+    static_assert(QTypeInfo<T>::isIntegral, "template parameter is not an integral type");
+    static_assert(QAtomicOpsSupport<sizeof(T)>::IsSupported, "template parameter is an integral of a size not supported on this platform");
 
     typename Ops::Type _q_value;
 
-    // Everything below is either implemented in ../arch/qatomic_XXX.h or (as fallback) in qgenericatomic.h
-#if QT_DEPRECATED_SINCE(5, 14)
-    QT_DEPRECATED_VERSION_X_5_14("Use loadRelaxed") T load() const noexcept { return loadRelaxed(); }
-    QT_DEPRECATED_VERSION_X_5_14("Use storeRelaxed") void store(T newValue) noexcept { storeRelaxed(newValue); }
-#endif
-
+    // Everything below is either implemented in ../arch/qatomic_XXX.h or (as
+    // fallback) in qgenericatomic.h
     T loadRelaxed() const noexcept { return Ops::loadRelaxed(_q_value); }
     void storeRelaxed(T newValue) noexcept { Ops::storeRelaxed(_q_value, newValue); }
 
@@ -112,14 +95,14 @@ public:
     operator T() const noexcept { return loadAcquire(); }
     T operator=(T newValue) noexcept { storeRelease(newValue); return newValue; }
 
-    static Q_DECL_CONSTEXPR bool isReferenceCountingNative() noexcept { return Ops::isReferenceCountingNative(); }
-    static Q_DECL_CONSTEXPR bool isReferenceCountingWaitFree() noexcept { return Ops::isReferenceCountingWaitFree(); }
+    static constexpr bool isReferenceCountingNative() noexcept { return Ops::isReferenceCountingNative(); }
+    static constexpr bool isReferenceCountingWaitFree() noexcept { return Ops::isReferenceCountingWaitFree(); }
 
     bool ref() noexcept { return Ops::ref(_q_value); }
     bool deref() noexcept { return Ops::deref(_q_value); }
 
-    static Q_DECL_CONSTEXPR bool isTestAndSetNative() noexcept { return Ops::isTestAndSetNative(); }
-    static Q_DECL_CONSTEXPR bool isTestAndSetWaitFree() noexcept { return Ops::isTestAndSetWaitFree(); }
+    static constexpr bool isTestAndSetNative() noexcept { return Ops::isTestAndSetNative(); }
+    static constexpr bool isTestAndSetWaitFree() noexcept { return Ops::isTestAndSetWaitFree(); }
 
     bool testAndSetRelaxed(T expectedValue, T newValue) noexcept
     { return Ops::testAndSetRelaxed(_q_value, expectedValue, newValue); }
@@ -139,8 +122,8 @@ public:
     bool testAndSetOrdered(T expectedValue, T newValue, T &currentValue) noexcept
     { return Ops::testAndSetOrdered(_q_value, expectedValue, newValue, &currentValue); }
 
-    static Q_DECL_CONSTEXPR bool isFetchAndStoreNative() noexcept { return Ops::isFetchAndStoreNative(); }
-    static Q_DECL_CONSTEXPR bool isFetchAndStoreWaitFree() noexcept { return Ops::isFetchAndStoreWaitFree(); }
+    static constexpr bool isFetchAndStoreNative() noexcept { return Ops::isFetchAndStoreNative(); }
+    static constexpr bool isFetchAndStoreWaitFree() noexcept { return Ops::isFetchAndStoreWaitFree(); }
 
     T fetchAndStoreRelaxed(T newValue) noexcept
     { return Ops::fetchAndStoreRelaxed(_q_value, newValue); }
@@ -151,8 +134,8 @@ public:
     T fetchAndStoreOrdered(T newValue) noexcept
     { return Ops::fetchAndStoreOrdered(_q_value, newValue); }
 
-    static Q_DECL_CONSTEXPR bool isFetchAndAddNative() noexcept { return Ops::isFetchAndAddNative(); }
-    static Q_DECL_CONSTEXPR bool isFetchAndAddWaitFree() noexcept { return Ops::isFetchAndAddWaitFree(); }
+    static constexpr bool isFetchAndAddNative() noexcept { return Ops::isFetchAndAddNative(); }
+    static constexpr bool isFetchAndAddWaitFree() noexcept { return Ops::isFetchAndAddWaitFree(); }
 
     T fetchAndAddRelaxed(T valueToAdd) noexcept
     { return Ops::fetchAndAddRelaxed(_q_value, valueToAdd); }
@@ -240,11 +223,6 @@ public:
 
     AtomicType _q_value;
 
-#if QT_DEPRECATED_SINCE(5, 14)
-    QT_DEPRECATED_VERSION_X_5_14("Use loadRelaxed") Type load() const noexcept { return loadRelaxed(); }
-    QT_DEPRECATED_VERSION_X_5_14("Use storeRelaxed") void store(Type newValue) noexcept { storeRelaxed(newValue); }
-#endif
-
     Type loadRelaxed() const noexcept { return Ops::loadRelaxed(_q_value); }
     void storeRelaxed(Type newValue) noexcept { Ops::storeRelaxed(_q_value, newValue); }
 
@@ -255,8 +233,8 @@ public:
     Type loadAcquire() const noexcept { return Ops::loadAcquire(_q_value); }
     void storeRelease(Type newValue) noexcept { Ops::storeRelease(_q_value, newValue); }
 
-    static Q_DECL_CONSTEXPR bool isTestAndSetNative() noexcept { return Ops::isTestAndSetNative(); }
-    static Q_DECL_CONSTEXPR bool isTestAndSetWaitFree() noexcept { return Ops::isTestAndSetWaitFree(); }
+    static constexpr bool isTestAndSetNative() noexcept { return Ops::isTestAndSetNative(); }
+    static constexpr bool isTestAndSetWaitFree() noexcept { return Ops::isTestAndSetWaitFree(); }
 
     bool testAndSetRelaxed(Type expectedValue, Type newValue) noexcept
     { return Ops::testAndSetRelaxed(_q_value, expectedValue, newValue); }
@@ -276,8 +254,8 @@ public:
     bool testAndSetOrdered(Type expectedValue, Type newValue, Type &currentValue) noexcept
     { return Ops::testAndSetOrdered(_q_value, expectedValue, newValue, &currentValue); }
 
-    static Q_DECL_CONSTEXPR bool isFetchAndStoreNative() noexcept { return Ops::isFetchAndStoreNative(); }
-    static Q_DECL_CONSTEXPR bool isFetchAndStoreWaitFree() noexcept { return Ops::isFetchAndStoreWaitFree(); }
+    static constexpr bool isFetchAndStoreNative() noexcept { return Ops::isFetchAndStoreNative(); }
+    static constexpr bool isFetchAndStoreWaitFree() noexcept { return Ops::isFetchAndStoreWaitFree(); }
 
     Type fetchAndStoreRelaxed(Type newValue) noexcept
     { return Ops::fetchAndStoreRelaxed(_q_value, newValue); }
@@ -288,8 +266,8 @@ public:
     Type fetchAndStoreOrdered(Type newValue) noexcept
     { return Ops::fetchAndStoreOrdered(_q_value, newValue); }
 
-    static Q_DECL_CONSTEXPR bool isFetchAndAddNative() noexcept { return Ops::isFetchAndAddNative(); }
-    static Q_DECL_CONSTEXPR bool isFetchAndAddWaitFree() noexcept { return Ops::isFetchAndAddWaitFree(); }
+    static constexpr bool isFetchAndAddNative() noexcept { return Ops::isFetchAndAddNative(); }
+    static constexpr bool isFetchAndAddWaitFree() noexcept { return Ops::isFetchAndAddWaitFree(); }
 
     Type fetchAndAddRelaxed(qptrdiff valueToAdd) noexcept
     { return Ops::fetchAndAddRelaxed(_q_value, valueToAdd); }

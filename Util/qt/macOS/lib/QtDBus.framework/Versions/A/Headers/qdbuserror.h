@@ -97,7 +97,7 @@ public:
     QDBusError();
 #ifndef QT_BOOTSTRAPPED
     explicit QDBusError(const DBusError *error);
-    /*implicit*/ QDBusError(const QDBusMessage& msg);
+    Q_IMPLICIT QDBusError(const QDBusMessage& msg);
 #endif
     QDBusError(ErrorType error, const QString &message);
     QDBusError(const QDBusError &other);
@@ -112,9 +112,9 @@ public:
 
     void swap(QDBusError &other) noexcept
     {
-        qSwap(code,   other.code);
-        qSwap(msg,    other.msg);
-        qSwap(nm,     other.nm);
+        std::swap(code, other.code);
+        msg.swap(other.msg);
+        nm.swap(other.nm);
     }
 
     ErrorType type() const;
@@ -132,7 +132,7 @@ private:
     // so the following field cannot be used:
     void *unused;
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusError)
+Q_DECLARE_SHARED(QDBusError)
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_DBUS_EXPORT QDebug operator<<(QDebug, const QDBusError &);
@@ -140,7 +140,10 @@ Q_DBUS_EXPORT QDebug operator<<(QDebug, const QDBusError &);
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QDBusError)
-
+QT_DECL_METATYPE_EXTERN(QDBusError, Q_DBUS_EXPORT)
+#else
+QT_BEGIN_NAMESPACE
+class Q_DBUS_EXPORT QDBusError {}; // dummy class for moc
+QT_END_NAMESPACE
 #endif // QT_NO_DBUS
 #endif

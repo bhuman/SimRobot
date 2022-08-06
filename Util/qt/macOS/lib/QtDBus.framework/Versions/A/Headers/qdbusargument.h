@@ -81,7 +81,7 @@ public:
     QDBusArgument &operator=(const QDBusArgument &other);
     ~QDBusArgument();
 
-    void swap(QDBusArgument &other) noexcept { qSwap(d, other.d); }
+    void swap(QDBusArgument &other) noexcept { qt_ptr_swap(d, other.d); }
 
     // used for marshalling (Qt -> D-BUS)
     QDBusArgument &operator<<(uchar arg);
@@ -103,9 +103,13 @@ public:
 
     void beginStructure();
     void endStructure();
-    void beginArray(int elementMetaTypeId);
+    void beginArray(int elementMetaTypeId)
+    { beginArray(QMetaType(elementMetaTypeId)); }
+    void beginArray(QMetaType elementMetaType);
     void endArray();
-    void beginMap(int keyMetaTypeId, int valueMetaTypeId);
+    void beginMap(int keyMetaTypeId, int valueMetaTypeId)
+    { beginMap(QMetaType(keyMetaTypeId), QMetaType(valueMetaTypeId)); }
+    void beginMap(QMetaType keyMetaType, QMetaType valueMetaType);
     void endMap();
     void beginMapEntry();
     void endMapEntry();
@@ -150,37 +154,35 @@ protected:
     friend class QDBusArgumentPrivate;
     mutable QDBusArgumentPrivate *d;
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusArgument)
+Q_DECLARE_SHARED(QDBusArgument)
 
 QT_END_NAMESPACE
 Q_DECLARE_METATYPE(QDBusArgument)
 QT_BEGIN_NAMESPACE
 
-// ### Qt6: remove the defaulted T * = nullptr from these two (MSVC6 work-around):
-template<typename T> inline T qdbus_cast(const QDBusArgument &arg, T * = nullptr)
+template<typename T> inline T qdbus_cast(const QDBusArgument &arg)
 {
     T item;
     arg >> item;
     return item;
 }
 
-template<typename T> inline T qdbus_cast(const QVariant &v, T * = nullptr)
+template<typename T> inline T qdbus_cast(const QVariant &v)
 {
-    int id = v.userType();
-    if (id == qMetaTypeId<QDBusArgument>())
+    if (v.metaType() == QMetaType::fromType<QDBusArgument>())
         return qdbus_cast<T>(qvariant_cast<QDBusArgument>(v));
     else
         return qvariant_cast<T>(v);
 }
 
 // specialize for QVariant, allowing it to be used in place of QDBusVariant
-template<> inline QVariant qdbus_cast<QVariant>(const QDBusArgument &arg, QVariant *)
+template<> inline QVariant qdbus_cast<QVariant>(const QDBusArgument &arg)
 {
     QDBusVariant item;
     arg >> item;
     return item.variant();
 }
-template<> inline QVariant qdbus_cast<QVariant>(const QVariant &v, QVariant *)
+template<> inline QVariant qdbus_cast<QVariant>(const QVariant &v)
 {
     return qdbus_cast<QDBusVariant>(v).variant();
 }
@@ -224,11 +226,11 @@ Q_DBUS_EXPORT const QDBusArgument &operator>>(const QDBusArgument &a, QLineF &li
 Q_DBUS_EXPORT QDBusArgument &operator<<(QDBusArgument &a, const QLineF &line);
 #endif
 
-template<template <typename> class Container, typename T>
+template<template <typename> class Container, typename T,
+         typename = typename Container<T>::iterator>
 inline QDBusArgument &operator<<(QDBusArgument &arg, const Container<T> &list)
 {
-    int id = qMetaTypeId<T>();
-    arg.beginArray(id);
+    arg.beginArray(QMetaType::fromType<T>());
     typename Container<T>::const_iterator it = list.begin();
     typename Container<T>::const_iterator end = list.end();
     for ( ; it != end; ++it)
@@ -237,7 +239,8 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const Container<T> &list)
     return arg;
 }
 
-template<template <typename> class Container, typename T>
+template<template <typename> class Container, typename T,
+         typename = typename Container<T>::iterator>
 inline const QDBusArgument &operator>>(const QDBusArgument &arg, Container<T> &list)
 {
     arg.beginArray();
@@ -252,39 +255,9 @@ inline const QDBusArgument &operator>>(const QDBusArgument &arg, Container<T> &l
     return arg;
 }
 
-// QList specializations
-template<typename T>
-inline QDBusArgument &operator<<(QDBusArgument &arg, const QList<T> &list)
-{
-    int id = qMetaTypeId<T>();
-    arg.beginArray(id);
-    typename QList<T>::ConstIterator it = list.constBegin();
-    typename QList<T>::ConstIterator end = list.constEnd();
-    for ( ; it != end; ++it)
-        arg << *it;
-    arg.endArray();
-    return arg;
-}
-
-template<typename T>
-inline const QDBusArgument &operator>>(const QDBusArgument &arg, QList<T> &list)
-{
-    arg.beginArray();
-    list.clear();
-    while (!arg.atEnd()) {
-        T item;
-        arg >> item;
-        list.push_back(item);
-    }
-    arg.endArray();
-
-    return arg;
-}
-
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantList &list)
 {
-    int id = qMetaTypeId<QDBusVariant>();
-    arg.beginArray(id);
+    arg.beginArray(QMetaType::fromType<QDBusVariant>());
     QVariantList::ConstIterator it = list.constBegin();
     QVariantList::ConstIterator end = list.constEnd();
     for ( ; it != end; ++it)
@@ -293,15 +266,14 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantList &list)
     return arg;
 }
 
-// QMap specializations
-template<typename Key, typename T>
-inline QDBusArgument &operator<<(QDBusArgument &arg, const QMap<Key, T> &map)
+// Specializations for associative containers
+template <template <typename, typename> class Container, typename Key, typename T,
+         QtPrivate::IfAssociativeIteratorHasKeyAndValue<typename Container<Key, T>::iterator> = true>
+inline QDBusArgument &operator<<(QDBusArgument &arg, const Container<Key, T> &map)
 {
-    int kid = qMetaTypeId<Key>();
-    int vid = qMetaTypeId<T>();
-    arg.beginMap(kid, vid);
-    typename QMap<Key, T>::ConstIterator it = map.constBegin();
-    typename QMap<Key, T>::ConstIterator end = map.constEnd();
+    arg.beginMap(QMetaType::fromType<Key>(), QMetaType::fromType<T>());
+    auto it = map.begin();
+    auto end = map.end();
     for ( ; it != end; ++it) {
         arg.beginMapEntry();
         arg << it.key() << it.value();
@@ -311,8 +283,25 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QMap<Key, T> &map)
     return arg;
 }
 
-template<typename Key, typename T>
-inline const QDBusArgument &operator>>(const QDBusArgument &arg, QMap<Key, T> &map)
+template <template <typename, typename> class Container, typename Key, typename T,
+         QtPrivate::IfAssociativeIteratorHasFirstAndSecond<typename Container<Key, T>::iterator> = true>
+inline QDBusArgument &operator<<(QDBusArgument &arg, const Container<Key, T> &map)
+{
+    arg.beginMap(QMetaType::fromType<Key>(), QMetaType::fromType<T>());
+    auto it = map.begin();
+    auto end = map.end();
+    for ( ; it != end; ++it) {
+        arg.beginMapEntry();
+        arg << it->first << it->second;
+        arg.endMapEntry();
+    }
+    arg.endMap();
+    return arg;
+}
+
+template <template <typename, typename> class Container, typename Key, typename T,
+         QtPrivate::IfAssociativeIteratorHasKeyAndValue<typename Container<Key, T>::iterator> = true>
+inline const QDBusArgument &operator>>(const QDBusArgument &arg, Container<Key, T> &map)
 {
     arg.beginMap();
     map.clear();
@@ -321,7 +310,7 @@ inline const QDBusArgument &operator>>(const QDBusArgument &arg, QMap<Key, T> &m
         T value;
         arg.beginMapEntry();
         arg >> key >> value;
-        static_cast<QMultiMap<Key, T> &>(map).insert(key, value);
+        map.insert(key, value);
         arg.endMapEntry();
     }
     arg.endMap();
@@ -330,7 +319,7 @@ inline const QDBusArgument &operator>>(const QDBusArgument &arg, QMap<Key, T> &m
 
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantMap &map)
 {
-    arg.beginMap(QMetaType::QString, qMetaTypeId<QDBusVariant>());
+    arg.beginMap(QMetaType::fromType<QString>(), QMetaType::fromType<QDBusVariant>());
     QVariantMap::ConstIterator it = map.constBegin();
     QVariantMap::ConstIterator end = map.constEnd();
     for ( ; it != end; ++it) {
@@ -342,44 +331,9 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantMap &map)
     return arg;
 }
 
-// QHash specializations
-template<typename Key, typename T>
-inline QDBusArgument &operator<<(QDBusArgument &arg, const QHash<Key, T> &map)
-{
-    int kid = qMetaTypeId<Key>();
-    int vid = qMetaTypeId<T>();
-    arg.beginMap(kid, vid);
-    typename QHash<Key, T>::ConstIterator it = map.constBegin();
-    typename QHash<Key, T>::ConstIterator end = map.constEnd();
-    for ( ; it != end; ++it) {
-        arg.beginMapEntry();
-        arg << it.key() << it.value();
-        arg.endMapEntry();
-    }
-    arg.endMap();
-    return arg;
-}
-
-template<typename Key, typename T>
-inline const QDBusArgument &operator>>(const QDBusArgument &arg, QHash<Key, T> &map)
-{
-    arg.beginMap();
-    map.clear();
-    while (!arg.atEnd()) {
-        Key key;
-        T value;
-        arg.beginMapEntry();
-        arg >> key >> value;
-        static_cast<QMultiHash<Key, T> &>(map).insert(key, value);
-        arg.endMapEntry();
-    }
-    arg.endMap();
-    return arg;
-}
-
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantHash &map)
 {
-    arg.beginMap(QMetaType::QString, qMetaTypeId<QDBusVariant>());
+    arg.beginMap(QMetaType::fromType<QString>(), QMetaType::fromType<QDBusVariant>());
     QVariantHash::ConstIterator it = map.constBegin();
     QVariantHash::ConstIterator end = map.constEnd();
     for ( ; it != end; ++it) {

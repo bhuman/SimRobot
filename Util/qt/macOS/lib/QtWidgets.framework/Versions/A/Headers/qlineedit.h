@@ -172,10 +172,6 @@ public:
 
     void setTextMargins(int left, int top, int right, int bottom);
     void setTextMargins(const QMargins &margins);
-#if QT_DEPRECATED_SINCE(5, 14)
-    QT_DEPRECATED_X("use textMargins()")
-    void getTextMargins(int *left, int *top, int *right, int *bottom) const;
-#endif
     QMargins textMargins() const;
 
 #if QT_CONFIG(action)
@@ -218,6 +214,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *) override;
     void mouseDoubleClickEvent(QMouseEvent *) override;
     void keyPressEvent(QKeyEvent *) override;
+    void keyReleaseEvent(QKeyEvent *) override;
     void focusInEvent(QFocusEvent *) override;
     void focusOutEvent(QFocusEvent *) override;
     void paintEvent(QPaintEvent *) override;
@@ -233,10 +230,11 @@ protected:
 #endif
 
     void inputMethodEvent(QInputMethodEvent *) override;
-    void initStyleOption(QStyleOptionFrame *option) const;
+    virtual void initStyleOption(QStyleOptionFrame *option) const;
 public:
     QVariant inputMethodQuery(Qt::InputMethodQuery) const override;
     Q_INVOKABLE QVariant inputMethodQuery(Qt::InputMethodQuery property, QVariant argument) const;
+    void timerEvent(QTimerEvent *) override;
     bool event(QEvent *) override;
 protected:
     QRect cursorRect() const;
@@ -265,6 +263,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void _q_updateNeeded(const QRect &))
     Q_PRIVATE_SLOT(d_func(), void _q_textChanged(const QString &))
     Q_PRIVATE_SLOT(d_func(), void _q_clearButtonClicked())
+    Q_PRIVATE_SLOT(d_func(), void _q_controlEditingFinished())
 };
 
 QT_END_NAMESPACE

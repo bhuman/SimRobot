@@ -45,30 +45,28 @@
 QT_BEGIN_NAMESPACE
 
 template <typename T>
-class
-#if QT_HAS_CPP_ATTRIBUTE(nodiscard) && __cplusplus >= 201703L
-[[nodiscard]]
-#endif
-QScopedValueRollback
+class [[nodiscard]] QScopedValueRollback
 {
 public:
-    explicit QScopedValueRollback(T &var)
+    explicit constexpr QScopedValueRollback(T &var)
         : varRef(var), oldValue(var)
     {
     }
 
-    explicit QScopedValueRollback(T &var, T value)
-        : varRef(var), oldValue(std::move(var))
+    explicit constexpr QScopedValueRollback(T &var, T value)
+        : varRef(var), oldValue(qExchange(var, std::move(value)))
     {
-        varRef = std::move(value);
     }
 
+#if __cpp_constexpr >= 201907L
+    constexpr
+#endif
     ~QScopedValueRollback()
     {
         varRef = std::move(oldValue);
     }
 
-    void commit()
+    constexpr void commit()
     {
         oldValue = varRef;
     }

@@ -72,6 +72,9 @@ QT_END_NAMESPACE
 #ifndef HINSTANCE
 Q_DECLARE_HANDLE(HINSTANCE);
 #endif
+#ifndef HMODULE
+typedef HINSTANCE HMODULE;
+#endif
 #ifndef HDC
 Q_DECLARE_HANDLE(HDC);
 #endif
@@ -104,6 +107,9 @@ Q_DECLARE_HANDLE(HRGN);
 #endif
 #ifndef HMONITOR
 Q_DECLARE_HANDLE(HMONITOR);
+#endif
+#ifndef HGLRC
+Q_DECLARE_HANDLE(HGLRC);
 #endif
 #ifndef _HRESULT_DEFINED
 typedef long HRESULT;

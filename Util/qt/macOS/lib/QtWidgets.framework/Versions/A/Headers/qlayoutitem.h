@@ -49,7 +49,7 @@
 QT_BEGIN_NAMESPACE
 
 
-static const Q_DECL_UNUSED int QLAYOUTSIZE_MAX = INT_MAX/256/16;
+inline constexpr int QLAYOUTSIZE_MAX = INT_MAX/256/16;
 
 class QLayout;
 class QLayoutItem;
@@ -74,11 +74,7 @@ public:
     virtual int minimumHeightForWidth(int) const;
     virtual void invalidate();
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    virtual QWidget *widget();
-#else
     virtual QWidget *widget() const;
-#endif
     virtual QLayout *layout();
     virtual QSpacerItem *spacerItem();
 
@@ -137,14 +133,11 @@ public:
     bool isEmpty() const override;
     void setGeometry(const QRect&) override;
     QRect geometry() const override;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QWidget *widget() override;
-#else
     QWidget *widget() const override;
-#endif
 
     bool hasHeightForWidth() const override;
     int heightForWidth(int) const override;
+    int minimumHeightForWidth(int) const override;
     QSizePolicy::ControlTypes controlTypes() const override;
 protected:
     QWidget *wid;

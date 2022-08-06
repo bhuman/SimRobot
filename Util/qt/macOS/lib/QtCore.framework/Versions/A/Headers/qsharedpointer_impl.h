@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2019 The Qt Company Ltd.
-** Copyright (C) 2020 Intel Corporation.
+** Copyright (C) 2021 The Qt Company Ltd.
+** Copyright (C) 2022 Intel Corporation.
 ** Copyright (C) 2019 Klarälvdalens Datakonsult AB.
 ** Contact: https://www.qt.io/licensing/
 **
@@ -63,9 +63,6 @@ QT_END_NAMESPACE
 #include <new>
 #include <QtCore/qatomic.h>
 #include <QtCore/qobject.h>    // for qobject_cast
-#if QT_DEPRECATED_SINCE(5, 6)
-#include <QtCore/qhash.h>
-#endif
 #include <QtCore/qhashfunctions.h>
 
 #include <memory>
@@ -156,6 +153,12 @@ namespace QtSharedPointer {
         inline void checkQObjectShared(...) { }
         inline void setQObjectShared(...) { }
 
+        // Normally, only subclasses of ExternalRefCountData are allocated
+        // One exception exists in getAndRef; that uses the global operator new
+        // to prevent a mismatch with the custom operator delete
+        inline void *operator new(std::size_t) = delete;
+        // placement new
+        inline void *operator new(std::size_t, void *ptr) noexcept { return ptr; }
         inline void operator delete(void *ptr) { ::operator delete(ptr); }
         inline void operator delete(void *, void *) { }
     };
@@ -283,7 +286,6 @@ namespace QtSharedPointer {
 
 template <class T> class QSharedPointer
 {
-    typedef T *QSharedPointer:: *RestrictedBool;
     typedef QtSharedPointer::ExternalRefCountData Data;
     template <typename X>
     using IfCompatible = typename std::enable_if<std::is_convertible<X*, T*>::value, bool>::type;
@@ -301,15 +303,15 @@ public:
     T *data() const noexcept { return value; }
     T *get() const noexcept { return value; }
     bool isNull() const noexcept { return !data(); }
-    operator RestrictedBool() const noexcept { return isNull() ? nullptr : &QSharedPointer::value; }
+    explicit operator bool() const noexcept { return !isNull(); }
     bool operator !() const noexcept { return isNull(); }
     T &operator*() const { return *data(); }
     T *operator->() const noexcept { return data(); }
 
-    Q_DECL_CONSTEXPR QSharedPointer() noexcept : value(nullptr), d(nullptr) { }
+    constexpr QSharedPointer() noexcept : value(nullptr), d(nullptr) { }
     ~QSharedPointer() { deref(); }
 
-    Q_DECL_CONSTEXPR QSharedPointer(std::nullptr_t) noexcept : value(nullptr), d(nullptr) { }
+    constexpr QSharedPointer(std::nullptr_t) noexcept : value(nullptr), d(nullptr) { }
 
     template <class X, IfCompatible<X> = true>
     inline explicit QSharedPointer(X *ptr) : value(ptr) // noexcept
@@ -337,12 +339,7 @@ public:
         other.d = nullptr;
         other.value = nullptr;
     }
-    QSharedPointer &operator=(QSharedPointer &&other) noexcept
-    {
-        QSharedPointer moved(std::move(other));
-        swap(moved);
-        return *this;
-    }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QSharedPointer)
 
     template <class X, IfCompatible<X> = true>
     QSharedPointer(QSharedPointer<X> &&other) noexcept
@@ -446,6 +443,28 @@ public:
         return result;
     }
 
+#define DECLARE_COMPARE_SET(T1, A1, T2, A2) \
+    friend bool operator==(T1, T2) noexcept \
+    { return A1 == A2; } \
+    friend bool operator!=(T1, T2) noexcept \
+    { return A1 != A2; }
+
+#define DECLARE_TEMPLATE_COMPARE_SET(T1, A1, T2, A2) \
+    template <typename X> \
+    friend bool operator==(T1, T2) noexcept \
+    { return A1 == A2; } \
+    template <typename X> \
+    friend bool operator!=(T1, T2) noexcept \
+    { return A1 != A2; }
+
+    DECLARE_TEMPLATE_COMPARE_SET(const QSharedPointer &p1, p1.data(), const QSharedPointer<X> &p2, p2.data())
+    DECLARE_TEMPLATE_COMPARE_SET(const QSharedPointer &p1, p1.data(), X *ptr, ptr)
+    DECLARE_TEMPLATE_COMPARE_SET(X *ptr, ptr, const QSharedPointer &p2, p2.data())
+    DECLARE_COMPARE_SET(const QSharedPointer &p1, p1.data(), std::nullptr_t, nullptr)
+    DECLARE_COMPARE_SET(std::nullptr_t, nullptr, const QSharedPointer &p2, p2.data())
+#undef DECLARE_TEMPLATE_COMPARE_SET
+#undef DECLARE_COMPARE_SET
+
 private:
     explicit QSharedPointer(Qt::Initialization) {}
 
@@ -489,17 +508,13 @@ private:
 
     void internalSwap(QSharedPointer &other) noexcept
     {
-        qSwap(d, other.d);
-        qSwap(this->value, other.value);
+        qt_ptr_swap(d, other.d);
+        qt_ptr_swap(this->value, other.value);
     }
 
-#if defined(Q_NO_TEMPLATE_FRIENDS)
-public:
-#else
     template <class X> friend class QSharedPointer;
     template <class X> friend class QWeakPointer;
     template <class X, class Y> friend QSharedPointer<X> QtSharedPointer::copyAndSetPointer(X * ptr, const QSharedPointer<Y> &src);
-#endif
     void ref() const noexcept { d->weakref.ref(); d->strongref.ref(); }
 
     inline void internalSet(Data *o, T *actual)
@@ -523,8 +538,8 @@ public:
             }
         }
 
-        qSwap(d, o);
-        qSwap(this->value, actual);
+        qt_ptr_swap(d, o);
+        qt_ptr_swap(this->value, actual);
         if (!d || d->strongref.loadRelaxed() == 0)
             this->value = nullptr;
 
@@ -539,7 +554,6 @@ public:
 template <class T>
 class QWeakPointer
 {
-    typedef T *QWeakPointer:: *RestrictedBool;
     typedef QtSharedPointer::ExternalRefCountData Data;
     template <typename X>
     using IfCompatible = typename std::enable_if<std::is_convertible<X*, T*>::value, bool>::type;
@@ -554,31 +568,11 @@ public:
     typedef qptrdiff difference_type;
 
     bool isNull() const noexcept { return d == nullptr || d->strongref.loadRelaxed() == 0 || value == nullptr; }
-    operator RestrictedBool() const noexcept { return isNull() ? nullptr : &QWeakPointer::value; }
+    explicit operator bool() const noexcept { return !isNull(); }
     bool operator !() const noexcept { return isNull(); }
 
-#if QT_DEPRECATED_SINCE(5, 14)
-    QT_DEPRECATED_X("Use toStrongRef() instead, and data() on the returned QSharedPointer")
-    T *data() const noexcept { return internalData(); }
-#endif
-
-    inline QWeakPointer() noexcept : d(nullptr), value(nullptr) { }
+    constexpr QWeakPointer() noexcept : d(nullptr), value(nullptr) { }
     inline ~QWeakPointer() { if (d && !d->weakref.deref()) delete d; }
-
-#ifndef QT_NO_QOBJECT
-    // special constructor that is enabled only if X derives from QObject
-#if QT_DEPRECATED_SINCE(5, 0)
-    template <class X, IfCompatible<X> = true>
-    QT_DEPRECATED inline QWeakPointer(X *ptr) : d(ptr ? Data::getAndRef(ptr) : nullptr), value(ptr)
-    { }
-#endif
-#endif
-
-#if QT_DEPRECATED_SINCE(5, 0)
-    template <class X, IfCompatible<X> = true>
-    QT_DEPRECATED inline QWeakPointer &operator=(X *ptr)
-    { return *this = QWeakPointer(ptr); }
-#endif
 
     QWeakPointer(const QWeakPointer &other) noexcept : d(other.d), value(other.value)
     { if (d) d->weakref.ref(); }
@@ -588,8 +582,24 @@ public:
         other.d = nullptr;
         other.value = nullptr;
     }
-    QWeakPointer &operator=(QWeakPointer &&other) noexcept
-    { QWeakPointer moved(std::move(other)); swap(moved); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QWeakPointer)
+
+    template <class X, IfCompatible<X> = true>
+    QWeakPointer(QWeakPointer<X> &&other) noexcept
+        : d(other.d), value(other.value)
+    {
+        other.d = nullptr;
+        other.value = nullptr;
+    }
+
+    template <class X, IfCompatible<X> = true>
+    QWeakPointer &operator=(QWeakPointer<X> &&other) noexcept
+    {
+        QWeakPointer moved(std::move(other));
+        swap(moved);
+        return *this;
+    }
+
     QWeakPointer &operator=(const QWeakPointer &other) noexcept
     {
         QWeakPointer copy(other);
@@ -599,8 +609,8 @@ public:
 
     void swap(QWeakPointer &other) noexcept
     {
-        qSwap(this->d, other.d);
-        qSwap(this->value, other.value);
+        qt_ptr_swap(this->d, other.d);
+        qt_ptr_swap(this->value, other.value);
     }
 
     inline QWeakPointer(const QSharedPointer<T> &o) : d(o.d), value(o.data())
@@ -624,14 +634,6 @@ public:
         return *this;
     }
 
-    template <class X>
-    bool operator==(const QWeakPointer<X> &o) const noexcept
-    { return d == o.d && value == static_cast<const T *>(o.value); }
-
-    template <class X>
-    bool operator!=(const QWeakPointer<X> &o) const noexcept
-    { return !(*this == o); }
-
     template <class X, IfCompatible<X> = true>
     inline QWeakPointer(const QSharedPointer<X> &o) : d(nullptr), value(nullptr)
     { *this = o; }
@@ -643,6 +645,20 @@ public:
         return *this;
     }
 
+    inline void clear() { *this = QWeakPointer(); }
+
+    inline QSharedPointer<T> toStrongRef() const { return QSharedPointer<T>(*this); }
+    // std::weak_ptr compatibility:
+    inline QSharedPointer<T> lock() const { return toStrongRef(); }
+
+    template <class X>
+    bool operator==(const QWeakPointer<X> &o) const noexcept
+    { return d == o.d && value == static_cast<const T *>(o.value); }
+
+    template <class X>
+    bool operator!=(const QWeakPointer<X> &o) const noexcept
+    { return !(*this == o); }
+
     template <class X>
     bool operator==(const QSharedPointer<X> &o) const noexcept
     { return d == o.d; }
@@ -651,24 +667,27 @@ public:
     bool operator!=(const QSharedPointer<X> &o) const noexcept
     { return !(*this == o); }
 
-    inline void clear() { *this = QWeakPointer(); }
+    template <typename X>
+    friend bool operator==(const QSharedPointer<X> &p1, const QWeakPointer &p2) noexcept
+    { return p2 == p1; }
+    template <typename X>
+    friend bool operator!=(const QSharedPointer<X> &p1, const QWeakPointer &p2) noexcept
+    { return p2 != p1; }
 
-    inline QSharedPointer<T> toStrongRef() const { return QSharedPointer<T>(*this); }
-    // std::weak_ptr compatibility:
-    inline QSharedPointer<T> lock() const { return toStrongRef(); }
-
-#if defined(QWEAKPOINTER_ENABLE_ARROW)
-    inline T *operator->() const { return data(); }
-#endif
+    friend bool operator==(const QWeakPointer &p, std::nullptr_t)
+    { return p.isNull(); }
+    friend bool operator==(std::nullptr_t, const QWeakPointer &p)
+    { return p.isNull(); }
+    friend bool operator!=(const QWeakPointer &p, std::nullptr_t)
+    { return !p.isNull(); }
+    friend bool operator!=(std::nullptr_t, const QWeakPointer &p)
+    { return !p.isNull(); }
 
 private:
     friend struct QtPrivate::EnableInternalData;
-#if defined(Q_NO_TEMPLATE_FRIENDS)
-public:
-#else
     template <class X> friend class QSharedPointer;
+    template <class X> friend class QWeakPointer;
     template <class X> friend class QPointer;
-#endif
 
     template <class X>
     inline QWeakPointer &assign(X *ptr)
@@ -691,8 +710,8 @@ public:
         value = actual;
     }
 
-    // ### Qt 6: remove users of this API; no one should ever access
-    // a weak pointer's data but the weak pointer itself
+    // ### TODO - QTBUG-88102: remove all users of this API; no one should ever
+    // access a weak pointer's data but the weak pointer itself
     inline T *internalData() const noexcept
     {
         return d == nullptr || d->strongref.loadRelaxed() == 0 ? nullptr : value;
@@ -725,12 +744,8 @@ public:
     inline QSharedPointer<T> sharedFromThis() { return QSharedPointer<T>(weakPointer); }
     inline QSharedPointer<const T> sharedFromThis() const { return QSharedPointer<const T>(weakPointer); }
 
-#ifndef Q_NO_TEMPLATE_FRIENDS
 private:
     template <class X> friend class QSharedPointer;
-#else
-public:
-#endif
     template <class X>
     inline void initializeFromSharedPointer(const QSharedPointer<X> &ptr) const
     {
@@ -739,100 +754,6 @@ public:
 
     mutable QWeakPointer<T> weakPointer;
 };
-
-//
-// operator== and operator!=
-//
-template <class T, class X>
-bool operator==(const QSharedPointer<T> &ptr1, const QSharedPointer<X> &ptr2) noexcept
-{
-    return ptr1.data() == ptr2.data();
-}
-template <class T, class X>
-bool operator!=(const QSharedPointer<T> &ptr1, const QSharedPointer<X> &ptr2) noexcept
-{
-    return ptr1.data() != ptr2.data();
-}
-
-template <class T, class X>
-bool operator==(const QSharedPointer<T> &ptr1, const X *ptr2) noexcept
-{
-    return ptr1.data() == ptr2;
-}
-template <class T, class X>
-bool operator==(const T *ptr1, const QSharedPointer<X> &ptr2) noexcept
-{
-    return ptr1 == ptr2.data();
-}
-template <class T, class X>
-bool operator!=(const QSharedPointer<T> &ptr1, const X *ptr2) noexcept
-{
-    return !(ptr1 == ptr2);
-}
-template <class T, class X>
-bool operator!=(const T *ptr1, const QSharedPointer<X> &ptr2) noexcept
-{
-    return !(ptr2 == ptr1);
-}
-
-template <class T, class X>
-bool operator==(const QSharedPointer<T> &ptr1, const QWeakPointer<X> &ptr2) noexcept
-{
-    return ptr2 == ptr1;
-}
-template <class T, class X>
-bool operator!=(const QSharedPointer<T> &ptr1, const QWeakPointer<X> &ptr2) noexcept
-{
-    return ptr2 != ptr1;
-}
-
-template<class T>
-inline bool operator==(const QSharedPointer<T> &lhs, std::nullptr_t) noexcept
-{
-    return lhs.isNull();
-}
-
-template<class T>
-inline bool operator!=(const QSharedPointer<T> &lhs, std::nullptr_t) noexcept
-{
-    return !lhs.isNull();
-}
-
-template<class T>
-inline bool operator==(std::nullptr_t, const QSharedPointer<T> &rhs) noexcept
-{
-    return rhs.isNull();
-}
-
-template<class T>
-inline bool operator!=(std::nullptr_t, const QSharedPointer<T> &rhs) noexcept
-{
-    return !rhs.isNull();
-}
-
-template<class T>
-inline bool operator==(const QWeakPointer<T> &lhs, std::nullptr_t) noexcept
-{
-    return lhs.isNull();
-}
-
-template<class T>
-inline bool operator!=(const QWeakPointer<T> &lhs, std::nullptr_t) noexcept
-{
-    return !lhs.isNull();
-}
-
-template<class T>
-inline bool operator==(std::nullptr_t, const QWeakPointer<T> &rhs) noexcept
-{
-    return rhs.isNull();
-}
-
-template<class T>
-inline bool operator!=(std::nullptr_t, const QWeakPointer<T> &rhs) noexcept
-{
-    return !rhs.isNull();
-}
 
 //
 // operator-
@@ -879,9 +800,9 @@ Q_INLINE_TEMPLATE bool operator<(T *ptr1, const QSharedPointer<X> &ptr2)
 // qHash
 //
 template <class T>
-Q_INLINE_TEMPLATE uint qHash(const QSharedPointer<T> &ptr, uint seed = 0)
+Q_INLINE_TEMPLATE size_t qHash(const QSharedPointer<T> &ptr, size_t seed = 0)
 {
-    return QT_PREPEND_NAMESPACE(qHash)(ptr.data(), seed);
+    return qHash(ptr.data(), seed);
 }
 
 
@@ -982,8 +903,8 @@ qobject_cast(const QWeakPointer<T> &src)
     return qSharedPointerObjectCast<typename QtSharedPointer::RemovePointer<X>::Type, T>(src);
 }
 
-/// ### Qt 6: make this use toStrongRef() (once support for storing
-/// non-managed QObjects in QWeakPointer is removed)
+/// ### TODO - QTBUG-88102: make this use toStrongRef() (once support for
+/// storing non-managed QObjects in QWeakPointer is removed)
 template<typename T>
 QWeakPointer<typename std::enable_if<QtPrivate::IsPointerToTypeDerivedFromQObject<T*>::Value, T>::type>
 qWeakPointerFromVariant(const QVariant &variant)
@@ -1012,15 +933,11 @@ std::shared_ptr<X> qobject_pointer_cast(std::shared_ptr<T> &&src)
     using element_type = typename std::shared_ptr<X>::element_type;
     auto castResult = qobject_cast<element_type *>(src.get());
     if (castResult) {
-        auto result = std::shared_ptr<X>(std::move(src), castResult);
-#if __cplusplus <= 201703L
         // C++2a's move aliasing constructor will leave src empty.
         // Before C++2a we don't really know if the compiler has support for it.
         // The move aliasing constructor is the resolution for LWG2996,
         // which does not impose a feature-testing macro. So: clear src.
-        src.reset();
-#endif
-        return result;
+        return std::shared_ptr<X>(std::exchange(src, nullptr), castResult);
     }
     return std::shared_ptr<X>();
 }
@@ -1039,8 +956,8 @@ std::shared_ptr<X> qSharedPointerObjectCast(std::shared_ptr<T> &&src)
 
 #endif
 
-template<typename T> Q_DECLARE_TYPEINFO_BODY(QWeakPointer<T>, Q_MOVABLE_TYPE);
-template<typename T> Q_DECLARE_TYPEINFO_BODY(QSharedPointer<T>, Q_MOVABLE_TYPE);
+template<typename T> Q_DECLARE_TYPEINFO_BODY(QWeakPointer<T>, Q_RELOCATABLE_TYPE);
+template<typename T> Q_DECLARE_TYPEINFO_BODY(QSharedPointer<T>, Q_RELOCATABLE_TYPE);
 
 
 QT_END_NAMESPACE

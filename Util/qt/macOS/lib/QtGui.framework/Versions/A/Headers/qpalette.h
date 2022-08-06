@@ -68,18 +68,14 @@ public:
     ~QPalette();
     QPalette &operator=(const QPalette &palette);
     QPalette(QPalette &&other) noexcept
-        : d(other.d), data(other.data)
-    { other.d = nullptr; }
-    inline QPalette &operator=(QPalette &&other) noexcept
-    {
-        for_faster_swapping_dont_use = other.for_faster_swapping_dont_use;
-        qSwap(d, other.d); return *this;
-    }
+        : d(qExchange(other.d, nullptr)), currentGroup(other.currentGroup)
+    {}
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QPalette)
 
     void swap(QPalette &other) noexcept
     {
-        qSwap(d, other.d);
-        qSwap(for_faster_swapping_dont_use, other.for_faster_swapping_dont_use);
+        std::swap(currentGroup, other.currentGroup);
+        qt_ptr_swap(d, other.d);
     }
 
     operator QVariant() const;
@@ -96,15 +92,11 @@ public:
                      ToolTipBase, ToolTipText,
                      PlaceholderText,
                      NColorRoles = PlaceholderText + 1,
-#if QT_DEPRECATED_SINCE(5, 13)
-                     Foreground Q_DECL_ENUMERATOR_DEPRECATED_X("Use QPalette::WindowText instead") = WindowText,
-                     Background Q_DECL_ENUMERATOR_DEPRECATED_X("Use QPalette::Window instead") = Window
-#endif
                    };
     Q_ENUM(ColorRole)
 
-    inline ColorGroup currentColorGroup() const { return static_cast<ColorGroup>(data.current_group); }
-    inline void setCurrentColorGroup(ColorGroup cg) { data.current_group = cg; }
+    inline ColorGroup currentColorGroup() const { return currentGroup; }
+    inline void setCurrentColorGroup(ColorGroup cg) { currentGroup = cg; }
 
     inline const QColor &color(ColorGroup cg, ColorRole cr) const
     { return brush(cg, cr).color(); }
@@ -142,25 +134,18 @@ public:
     inline const QBrush &link() const { return brush(Link); }
     inline const QBrush &linkVisited() const { return brush(LinkVisited); }
     inline const QBrush &placeholderText() const { return brush(PlaceholderText); }
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X("Use QPalette::windowText() instead")
-    inline const QBrush &foreground() const { return windowText(); }
-    QT_DEPRECATED_X("Use QPalette::window() instead")
-    inline const QBrush &background() const { return window(); }
-#endif
 
     bool operator==(const QPalette &p) const;
     inline bool operator!=(const QPalette &p) const { return !(operator==(p)); }
     bool isCopyOf(const QPalette &p) const;
 
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED inline int serialNumber() const { return cacheKey() >> 32; }
-#endif
     qint64 cacheKey() const;
 
-    QPalette resolve(const QPalette &) const;
-    inline uint resolve() const { return data.resolve_mask; }
-    inline void resolve(uint mask) { data.resolve_mask = mask; }
+    QPalette resolve(const QPalette &other) const;
+
+    using ResolveMask = quint64;
+    ResolveMask resolveMask() const;
+    void setResolveMask(ResolveMask mask);
 
 private:
     void setColorGroup(ColorGroup cr, const QBrush &windowText, const QBrush &button,
@@ -184,14 +169,8 @@ private:
     void detach();
 
     QPalettePrivate *d;
-    struct Data {
-        uint current_group : 4;
-        uint resolve_mask : 28;
-    };
-    union {
-        Data data;
-        quint32 for_faster_swapping_dont_use;
-    };
+    ColorGroup currentGroup{Active};
+
     friend Q_GUI_EXPORT QDataStream &operator<<(QDataStream &s, const QPalette &p);
 };
 

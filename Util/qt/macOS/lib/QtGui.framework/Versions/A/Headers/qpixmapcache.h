@@ -63,7 +63,7 @@ public:
         { return !operator==(key); }
         Key &operator =(const Key &other);
 
-        void swap(Key &other) noexcept { qSwap(d, other.d); }
+        void swap(Key &other) noexcept { qt_ptr_swap(d, other.d); }
         bool isValid() const noexcept;
 
     private:
@@ -74,12 +74,6 @@ public:
 
     static int cacheLimit();
     static void setCacheLimit(int);
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X("Use bool find(const QString &, QPixmap *) instead")
-    static QPixmap *find(const QString &key);
-    QT_DEPRECATED_X("Use bool find(const QString &, QPixmap *) instead")
-    static bool find(const QString &key, QPixmap &pixmap);
-#endif
     static bool find(const QString &key, QPixmap *pixmap);
     static bool find(const Key &key, QPixmap *pixmap);
     static bool insert(const QString &key, const QPixmap &pixmap);
@@ -94,7 +88,7 @@ public:
     static int totalUsed();
 #endif
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QPixmapCache::Key)
+Q_DECLARE_SHARED(QPixmapCache::Key)
 
 QT_END_NAMESPACE
 

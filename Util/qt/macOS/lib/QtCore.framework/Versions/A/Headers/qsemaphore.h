@@ -41,6 +41,9 @@
 #define QSEMAPHORE_H
 
 #include <QtCore/qglobal.h>
+#include <QtCore/qmutex.h> // for convertToMilliseconds()
+
+#include <chrono>
 
 QT_REQUIRE_CONFIG(thread);
 
@@ -57,17 +60,32 @@ public:
     void acquire(int n = 1);
     bool tryAcquire(int n = 1);
     bool tryAcquire(int n, int timeout);
+    template <typename Rep, typename Period>
+    bool tryAcquire(int n, std::chrono::duration<Rep, Period> timeout)
+    { return tryAcquire(n, QtPrivate::convertToMilliseconds(timeout)); }
 
     void release(int n = 1);
 
     int available() const;
 
+    // std::counting_semaphore compatibility:
+    bool try_acquire() noexcept { return tryAcquire(); }
+    template <typename Rep, typename Period>
+    bool try_acquire_for(const std::chrono::duration<Rep, Period> &timeout)
+    { return tryAcquire(1, timeout); }
+    template <typename Clock, typename Duration>
+    bool try_acquire_until(const std::chrono::time_point<Clock, Duration> &tp)
+    {
+        return try_acquire_for(tp - Clock::now());
+    }
 private:
     Q_DISABLE_COPY(QSemaphore)
 
     union {
         QSemaphorePrivate *d;
-        QBasicAtomicInteger<quintptr> u;        // ### Qt6: make 64-bit
+        QBasicAtomicInteger<quintptr> u;
+        QBasicAtomicInteger<quint32> u32[2];
+        QBasicAtomicInteger<quint64> u64;
     };
 };
 
@@ -81,8 +99,7 @@ public:
         : m_sem(sem), m_n(n) {}
     QSemaphoreReleaser(QSemaphoreReleaser &&other) noexcept
         : m_sem(other.cancel()), m_n(other.m_n) {}
-    QSemaphoreReleaser &operator=(QSemaphoreReleaser &&other) noexcept
-    { QSemaphoreReleaser moved(std::move(other)); swap(moved); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QSemaphoreReleaser)
 
     ~QSemaphoreReleaser()
     {
@@ -92,8 +109,8 @@ public:
 
     void swap(QSemaphoreReleaser &other) noexcept
     {
-        qSwap(m_sem, other.m_sem);
-        qSwap(m_n, other.m_n);
+        qt_ptr_swap(m_sem, other.m_sem);
+        std::swap(m_n, other.m_n);
     }
 
     QSemaphore *semaphore() const noexcept

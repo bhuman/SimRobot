@@ -86,56 +86,70 @@ elseif(${PLATFORM} STREQUAL Windows)
 elseif(APPLE)
   add_library(Qt6::Concurrent SHARED IMPORTED)
   set_target_properties(Qt6::Concurrent PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtConcurrent.framework/QtConcurrent"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtConcurrent.framework/QtConcurrent"
       INTERFACE_LINK_LIBRARIES "Qt6::Core"
       INTERFACE_COMPILE_DEFINITIONS "QT_CONCURRENT_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtConcurrent.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtConcurrent.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtConcurrent.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtConcurrent.framework/Headers")
 
   add_library(Qt6::Core SHARED IMPORTED)
   set_target_properties(Qt6::Core PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework/QtCore"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtCore.framework/QtCore"
       INTERFACE_COMPILE_DEFINITIONS "$<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG>;QT_CORE_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtCore.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtCore.framework/Headers")
+
+  add_library(Qt6::DBus SHARED IMPORTED)
+  set_target_properties(Qt6::DBus PROPERTIES
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtDBus.framework/QtDBus"
+      INTERFACE_COMPILE_DEFINITIONS "QT_DBUS_LIB"
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtDBus.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtDBus.framework/Headers")
 
   add_library(Qt6::Gui SHARED IMPORTED)
   set_target_properties(Qt6::Gui PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/QtGui"
-      INTERFACE_LINK_LIBRARIES "Qt6::Core"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtGui.framework/QtGui"
+      INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::DBus"
       INTERFACE_COMPILE_DEFINITIONS "QT_GUI_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtGui.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtGui.framework/Headers")
 
   add_library(Qt6::OpenGL SHARED IMPORTED)
   set_target_properties(Qt6::OpenGL PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework/QtOpenGL"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGL.framework/QtOpenGL"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
       INTERFACE_COMPILE_DEFINITIONS "QT_OPENGL_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGL.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGL.framework/Headers")
 
   add_library(Qt6::OpenGLWidgets SHARED IMPORTED)
   set_target_properties(Qt6::OpenGLWidgets PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGLWidgets.framework/QtOpenGLWidgets"
-      INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGLWidgets.framework/QtOpenGLWidgets"
+      INTERFACE_LINK_LIBRARIES "Qt6::OpenGL;Qt6::Widgets"
       INTERFACE_COMPILE_DEFINITIONS "QT_OPENGLWIDGETS_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGLWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGLWidgets.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGLWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGLWidgets.framework/Headers")
 
   add_library(Qt6::Svg SHARED IMPORTED)
   set_target_properties(Qt6::Svg PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework/QtSvg"
-      INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui;Qt6::Widgets"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvg.framework/QtSvg"
+      INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
       INTERFACE_COMPILE_DEFINITIONS "QT_SVG_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvg.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvg.framework/Headers")
+
+  add_library(Qt6::SvgWidgets SHARED IMPORTED)
+  set_target_properties(Qt6::SvgWidgets PROPERTIES
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvgWidgets.framework/QtSvgWidgets"
+      INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui;Qt6::Svg;Qt6::Widgets"
+      INTERFACE_COMPILE_DEFINITIONS "QT_SVGWIDGETS_LIB"
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvgWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvgWidgets.framework/Headers")
 
   add_library(Qt6::Widgets SHARED IMPORTED)
   set_target_properties(Qt6::Widgets PROPERTIES
-      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework/QtWidgets"
+      IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtWidgets.framework/QtWidgets"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
       INTERFACE_COMPILE_DEFINITIONS "QT_WIDGETS_LIB"
-      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework/Headers")
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtWidgets.framework;${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtWidgets.framework/Headers")
+
   add_executable(Qt6::moc IMPORTED)
-  set_target_properties(Qt6::moc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/moc")
+  set_target_properties(Qt6::moc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/libexec/moc")
 
   add_executable(Qt6::rcc IMPORTED)
-  set_target_properties(Qt6::rcc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/rcc")
+  set_target_properties(Qt6::rcc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${OS}/libexec/rcc")
 
   set(Qt6Core_VERSION_MAJOR 6)
   set(Qt6Core_VERSION_MINOR 3)

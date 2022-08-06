@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2019 The Qt Company Ltd.
+** Copyright (C) 2022 The Qt Company Ltd.
 ** Copyright (C) 2019 Intel Corporation.
 ** Contact: https://www.qt.io/licensing/
 **
@@ -46,199 +46,15 @@
 #endif
 
 #include <QtCore/qnamespace.h>
-
 #include <QtCore/qobjectdefs_impl.h>
+#include <QtCore/qtmetamacros.h>
 
 QT_BEGIN_NAMESPACE
 
-
 class QByteArray;
 struct QArrayData;
-typedef QArrayData QByteArrayData;
 
 class QString;
-#ifndef Q_MOC_OUTPUT_REVISION
-#define Q_MOC_OUTPUT_REVISION 67
-#endif
-
-// The following macros can be defined by tools that understand Qt
-// to have the information from the macro.
-#ifndef QT_ANNOTATE_CLASS
-# define QT_ANNOTATE_CLASS(type, ...)
-#endif
-#ifndef QT_ANNOTATE_CLASS2
-# define QT_ANNOTATE_CLASS2(type, a1, a2)
-#endif
-#ifndef QT_ANNOTATE_FUNCTION
-# define QT_ANNOTATE_FUNCTION(x)
-#endif
-#ifndef QT_ANNOTATE_ACCESS_SPECIFIER
-# define QT_ANNOTATE_ACCESS_SPECIFIER(x)
-#endif
-
-// The following macros are our "extensions" to C++
-// They are used, strictly speaking, only by the moc.
-
-#ifndef Q_MOC_RUN
-#ifndef QT_NO_META_MACROS
-# if defined(QT_NO_KEYWORDS)
-#  define QT_NO_EMIT
-# else
-#   ifndef QT_NO_SIGNALS_SLOTS_KEYWORDS
-#     define slots Q_SLOTS
-#     define signals Q_SIGNALS
-#   endif
-# endif
-# define Q_SLOTS QT_ANNOTATE_ACCESS_SPECIFIER(qt_slot)
-# define Q_SIGNALS public QT_ANNOTATE_ACCESS_SPECIFIER(qt_signal)
-# define Q_PRIVATE_SLOT(d, signature) QT_ANNOTATE_CLASS2(qt_private_slot, d, signature)
-# define Q_EMIT
-#ifndef QT_NO_EMIT
-# define emit
-#endif
-#ifndef Q_CLASSINFO
-# define Q_CLASSINFO(name, value)
-#endif
-#define Q_PLUGIN_METADATA(x) QT_ANNOTATE_CLASS(qt_plugin_metadata, x)
-#define Q_INTERFACES(x) QT_ANNOTATE_CLASS(qt_interfaces, x)
-#define Q_PROPERTY(...) QT_ANNOTATE_CLASS(qt_property, __VA_ARGS__)
-#define Q_PRIVATE_PROPERTY(d, text) QT_ANNOTATE_CLASS2(qt_private_property, d, text)
-#ifndef Q_REVISION
-# define Q_REVISION(v)
-#endif
-#define Q_OVERRIDE(text) QT_ANNOTATE_CLASS(qt_override, text)
-#define QDOC_PROPERTY(text) QT_ANNOTATE_CLASS(qt_qdoc_property, text)
-#define Q_ENUMS(x) QT_ANNOTATE_CLASS(qt_enums, x)
-#define Q_FLAGS(x) QT_ANNOTATE_CLASS(qt_enums, x)
-#define Q_ENUM_IMPL(ENUM) \
-    friend Q_DECL_CONSTEXPR const QMetaObject *qt_getEnumMetaObject(ENUM) noexcept { return &staticMetaObject; } \
-    friend Q_DECL_CONSTEXPR const char *qt_getEnumName(ENUM) noexcept { return #ENUM; }
-#define Q_ENUM(x) Q_ENUMS(x) Q_ENUM_IMPL(x)
-#define Q_FLAG(x) Q_FLAGS(x) Q_ENUM_IMPL(x)
-#define Q_ENUM_NS_IMPL(ENUM) \
-    inline Q_DECL_CONSTEXPR const QMetaObject *qt_getEnumMetaObject(ENUM) noexcept { return &staticMetaObject; } \
-    inline Q_DECL_CONSTEXPR const char *qt_getEnumName(ENUM) noexcept { return #ENUM; }
-#define Q_ENUM_NS(x) Q_ENUMS(x) Q_ENUM_NS_IMPL(x)
-#define Q_FLAG_NS(x) Q_FLAGS(x) Q_ENUM_NS_IMPL(x)
-#define Q_SCRIPTABLE QT_ANNOTATE_FUNCTION(qt_scriptable)
-#define Q_INVOKABLE  QT_ANNOTATE_FUNCTION(qt_invokable)
-#define Q_SIGNAL QT_ANNOTATE_FUNCTION(qt_signal)
-#define Q_SLOT QT_ANNOTATE_FUNCTION(qt_slot)
-#endif // QT_NO_META_MACROS
-
-#ifndef QT_NO_TRANSLATION
-// full set of tr functions
-#  define QT_TR_FUNCTIONS \
-    static inline QString tr(const char *s, const char *c = nullptr, int n = -1) \
-        { return staticMetaObject.tr(s, c, n); } \
-    QT_DEPRECATED static inline QString trUtf8(const char *s, const char *c = nullptr, int n = -1) \
-        { return staticMetaObject.tr(s, c, n); }
-#else
-// inherit the ones from QObject
-# define QT_TR_FUNCTIONS
-#endif
-
-#ifdef Q_CLANG_QDOC
-#define QT_TR_FUNCTIONS
-#endif
-
-// ### Qt6: remove
-#define Q_OBJECT_CHECK  /* empty, unused since Qt 5.2 */
-
-#if defined(Q_CC_INTEL)
-// Cannot redefine the visibility of a method in an exported class
-# define Q_DECL_HIDDEN_STATIC_METACALL
-#else
-# define Q_DECL_HIDDEN_STATIC_METACALL Q_DECL_HIDDEN
-#endif
-
-#if defined(Q_CC_CLANG) && Q_CC_CLANG >= 306
-#  define Q_OBJECT_NO_OVERRIDE_WARNING      QT_WARNING_DISABLE_CLANG("-Winconsistent-missing-override")
-#elif defined(Q_CC_GNU) && !defined(Q_CC_INTEL) && Q_CC_GNU >= 501
-#  define Q_OBJECT_NO_OVERRIDE_WARNING      QT_WARNING_DISABLE_GCC("-Wsuggest-override")
-#else
-#  define Q_OBJECT_NO_OVERRIDE_WARNING
-#endif
-
-#if defined(Q_CC_GNU) && !defined(Q_CC_INTEL) && Q_CC_GNU >= 600
-#  define Q_OBJECT_NO_ATTRIBUTES_WARNING    QT_WARNING_DISABLE_GCC("-Wattributes")
-#else
-#  define Q_OBJECT_NO_ATTRIBUTES_WARNING
-#endif
-
-/* qmake ignore Q_OBJECT */
-#define Q_OBJECT \
-public: \
-    QT_WARNING_PUSH \
-    Q_OBJECT_NO_OVERRIDE_WARNING \
-    static const QMetaObject staticMetaObject; \
-    virtual const QMetaObject *metaObject() const; \
-    virtual void *qt_metacast(const char *); \
-    virtual int qt_metacall(QMetaObject::Call, int, void **); \
-    QT_TR_FUNCTIONS \
-private: \
-    Q_OBJECT_NO_ATTRIBUTES_WARNING \
-    Q_DECL_HIDDEN_STATIC_METACALL static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **); \
-    QT_WARNING_POP \
-    struct QPrivateSignal {}; \
-    QT_ANNOTATE_CLASS(qt_qobject, "")
-
-/* qmake ignore Q_OBJECT */
-#define Q_OBJECT_FAKE Q_OBJECT QT_ANNOTATE_CLASS(qt_fake, "")
-
-#ifndef QT_NO_META_MACROS
-/* qmake ignore Q_GADGET */
-#define Q_GADGET \
-public: \
-    static const QMetaObject staticMetaObject; \
-    void qt_check_for_QGADGET_macro(); \
-    typedef void QtGadgetHelper; \
-private: \
-    QT_WARNING_PUSH \
-    Q_OBJECT_NO_ATTRIBUTES_WARNING \
-    Q_DECL_HIDDEN_STATIC_METACALL static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **); \
-    QT_WARNING_POP \
-    QT_ANNOTATE_CLASS(qt_qgadget, "") \
-    /*end*/
-
-/* qmake ignore Q_NAMESPACE_EXPORT */
-#define Q_NAMESPACE_EXPORT(...) \
-    extern __VA_ARGS__ const QMetaObject staticMetaObject; \
-    QT_ANNOTATE_CLASS(qt_qnamespace, "") \
-    /*end*/
-
-/* qmake ignore Q_NAMESPACE */
-#define Q_NAMESPACE Q_NAMESPACE_EXPORT() \
-    /*end*/
-
-#endif // QT_NO_META_MACROS
-
-#else // Q_MOC_RUN
-#define slots slots
-#define signals signals
-#define Q_SLOTS Q_SLOTS
-#define Q_SIGNALS Q_SIGNALS
-#define Q_CLASSINFO(name, value) Q_CLASSINFO(name, value)
-#define Q_INTERFACES(x) Q_INTERFACES(x)
-#define Q_PROPERTY(text) Q_PROPERTY(text)
-#define Q_PRIVATE_PROPERTY(d, text) Q_PRIVATE_PROPERTY(d, text)
-#define Q_REVISION(v) Q_REVISION(v)
-#define Q_OVERRIDE(text) Q_OVERRIDE(text)
-#define Q_ENUMS(x) Q_ENUMS(x)
-#define Q_FLAGS(x) Q_FLAGS(x)
-#define Q_ENUM(x) Q_ENUM(x)
-#define Q_FLAGS(x) Q_FLAGS(x)
- /* qmake ignore Q_OBJECT */
-#define Q_OBJECT Q_OBJECT
- /* qmake ignore Q_OBJECT */
-#define Q_OBJECT_FAKE Q_OBJECT_FAKE
- /* qmake ignore Q_GADGET */
-#define Q_GADGET Q_GADGET
-#define Q_SCRIPTABLE Q_SCRIPTABLE
-#define Q_INVOKABLE Q_INVOKABLE
-#define Q_SIGNAL Q_SIGNAL
-#define Q_SLOT Q_SLOT
-#endif //Q_MOC_RUN
 
 #ifndef QT_NO_META_MACROS
 // macro for onaming members
@@ -256,24 +72,27 @@ private: \
 Q_CORE_EXPORT const char *qFlagLocation(const char *method);
 
 #ifndef QT_NO_META_MACROS
-#ifndef QT_NO_DEBUG
-# define QLOCATION "\0" __FILE__ ":" QT_STRINGIFY(__LINE__)
-# ifndef QT_NO_KEYWORDS
-#  define METHOD(a)   qFlagLocation("0"#a QLOCATION)
+# define QMETHOD_CODE  0                        // member type codes
+# define QSLOT_CODE    1
+# define QSIGNAL_CODE  2
+# define QT_PREFIX_CODE(code, a) QT_STRINGIFY(code) #a
+# define QT_STRINGIFY_METHOD(a) QT_PREFIX_CODE(QMETHOD_CODE, a)
+# define QT_STRINGIFY_SLOT(a) QT_PREFIX_CODE(QSLOT_CODE, a)
+# define QT_STRINGIFY_SIGNAL(a) QT_PREFIX_CODE(QSIGNAL_CODE, a)
+# ifndef QT_NO_DEBUG
+#  define QLOCATION "\0" __FILE__ ":" QT_STRINGIFY(__LINE__)
+#  ifndef QT_NO_KEYWORDS
+#   define METHOD(a)   qFlagLocation(QT_STRINGIFY_METHOD(a) QLOCATION)
+#  endif
+#  define SLOT(a)     qFlagLocation(QT_STRINGIFY_SLOT(a) QLOCATION)
+#  define SIGNAL(a)   qFlagLocation(QT_STRINGIFY_SIGNAL(a) QLOCATION)
+# else
+#  ifndef QT_NO_KEYWORDS
+#   define METHOD(a)  QT_STRINGIFY_METHOD(a)
+#  endif
+#  define SLOT(a)     QT_STRINGIFY_SLOT(a)
+#  define SIGNAL(a)   QT_STRINGIFY_SIGNAL(a)
 # endif
-# define SLOT(a)     qFlagLocation("1"#a QLOCATION)
-# define SIGNAL(a)   qFlagLocation("2"#a QLOCATION)
-#else
-# ifndef QT_NO_KEYWORDS
-#  define METHOD(a)   "0"#a
-# endif
-# define SLOT(a)     "1"#a
-# define SIGNAL(a)   "2"#a
-#endif
-
-#define QMETHOD_CODE  0                        // member type codes
-#define QSLOT_CODE    1
-#define QSIGNAL_CODE  2
 #endif // QT_NO_META_MACROS
 
 #define Q_ARG(type, data) QArgument<type >(#type, data)
@@ -285,6 +104,14 @@ class QMetaEnum;
 class QMetaProperty;
 class QMetaClassInfo;
 
+namespace QtPrivate {
+class QMetaTypeInterface;
+}
+
+struct QMethodRawArguments
+{
+    void **arguments;
+};
 
 class Q_CORE_EXPORT QGenericArgument
 {
@@ -341,12 +168,15 @@ struct Q_CORE_EXPORT QMetaObject
     const QMetaObject *superClass() const;
 
     bool inherits(const QMetaObject *metaObject) const noexcept;
-    QObject *cast(QObject *obj) const;
+    QObject *cast(QObject *obj) const
+    { return const_cast<QObject *>(cast(const_cast<const QObject *>(obj))); }
     const QObject *cast(const QObject *obj) const;
 
 #if !defined(QT_NO_TRANSLATION) || defined(Q_CLANG_QDOC)
     QString tr(const char *s, const char *c, int n = -1) const;
 #endif // QT_NO_TRANSLATION
+
+    QMetaType metaType() const;
 
     int methodOffset() const;
     int enumeratorOffset() const;
@@ -558,15 +388,11 @@ struct Q_CORE_EXPORT QMetaObject
         ReadProperty,
         WriteProperty,
         ResetProperty,
-        QueryPropertyDesignable,
-        QueryPropertyScriptable,
-        QueryPropertyStored,
-        QueryPropertyEditable,
-        QueryPropertyUser,
         CreateInstance,
         IndexOfMethod,
         RegisterPropertyMetaType,
-        RegisterMethodArgumentMetaType
+        RegisterMethodArgumentMetaType,
+        BindableProperty
     };
 
     int static_metacall(Call, int, void **) const;
@@ -601,13 +427,14 @@ struct Q_CORE_EXPORT QMetaObject
 #endif
     };
 
-    struct { // private data
+    struct Data { // private data
         SuperData superdata;
-        const QByteArrayData *stringdata;
+        const uint *stringdata;
         const uint *data;
         typedef void (*StaticMetacallFunction)(QObject *, QMetaObject::Call, int, void **);
         StaticMetacallFunction static_metacall;
         const SuperData *relatedMetaObjects;
+        const QtPrivate::QMetaTypeInterface *const *metaTypes;
         void *extradata; //reserved for future use
     } d;
 
@@ -631,14 +458,21 @@ public:
 #ifdef Q_QDOC
     operator bool() const;
 #else
+    // still using the restricted bool trick here, in order to support
+    // code using copy-init (e.g. `bool ok = connect(...)`)
     typedef void *Connection::*RestrictedBool;
     operator RestrictedBool() const { return d_ptr && isConnected_helper() ? &Connection::d_ptr : nullptr; }
 #endif
 
-    Connection(Connection &&o) noexcept : d_ptr(o.d_ptr) { o.d_ptr = nullptr; }
-    Connection &operator=(Connection &&other) noexcept
-    { qSwap(d_ptr, other.d_ptr); return *this; }
+    Connection(Connection &&other) noexcept : d_ptr(qExchange(other.d_ptr, nullptr)) {}
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(Connection)
+    void swap(Connection &other) noexcept { qt_ptr_swap(d_ptr, other.d_ptr); }
 };
+
+inline void swap(QMetaObject::Connection &lhs, QMetaObject::Connection &rhs) noexcept
+{
+    lhs.swap(rhs);
+}
 
 inline const QMetaObject *QMetaObject::superClass() const
 { return d.superdata; }

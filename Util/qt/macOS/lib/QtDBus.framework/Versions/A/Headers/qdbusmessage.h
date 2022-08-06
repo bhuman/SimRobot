@@ -45,14 +45,13 @@
 #include <QtCore/qlist.h>
 #include <QtCore/qvariant.h>
 
-#ifndef QT_NO_DBUS
+#if !defined(QT_NO_DBUS) && !defined(QT_BOOTSTRAPPED)
 
 #if defined(Q_OS_WIN) && defined(interface)
 #  undef interface
 #endif
 
 QT_BEGIN_NAMESPACE
-
 
 class QDBusMessagePrivate;
 class Q_DBUS_EXPORT QDBusMessage
@@ -72,7 +71,7 @@ public:
     QDBusMessage &operator=(const QDBusMessage &other);
     ~QDBusMessage();
 
-    void swap(QDBusMessage &other) noexcept { qSwap(d_ptr, other.d_ptr); }
+    void swap(QDBusMessage &other) noexcept { qt_ptr_swap(d_ptr, other.d_ptr); }
 
     static QDBusMessage createSignal(const QString &path, const QString &interface,
                                      const QString &name);
@@ -87,14 +86,9 @@ public:
     { return createError(QDBusError::errorString(type), msg); }
 
     QDBusMessage createReply(const QList<QVariant> &arguments = QList<QVariant>()) const;
-    inline QDBusMessage createReply(const QVariant &argument) const
-    { return createReply(QList<QVariant>() << argument); }
+    QDBusMessage createReply(const QVariant &argument) const;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
     QDBusMessage createErrorReply(const QString &name, const QString &msg) const;
-#else
-    QDBusMessage createErrorReply(const QString name, const QString &msg) const;
-#endif
     inline QDBusMessage createErrorReply(const QDBusError &err) const
     { return createErrorReply(err.name(), err.message()); }
     QDBusMessage createErrorReply(QDBusError::ErrorType type, const QString &msg) const;
@@ -129,7 +123,7 @@ private:
     friend class QDBusMessagePrivate;
     QDBusMessagePrivate *d_ptr;
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusMessage)
+Q_DECLARE_SHARED(QDBusMessage)
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_DBUS_EXPORT QDebug operator<<(QDebug, const QDBusMessage &);
@@ -137,8 +131,10 @@ Q_DBUS_EXPORT QDebug operator<<(QDebug, const QDBusMessage &);
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QDBusMessage)
+QT_DECL_METATYPE_EXTERN(QDBusMessage, Q_DBUS_EXPORT)
 
+#else
+class Q_DBUS_EXPORT QDBusMessage {}; // dummy class for moc
 #endif // QT_NO_DBUS
 #endif
 

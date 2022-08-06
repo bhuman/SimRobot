@@ -51,7 +51,6 @@ class Q_GUI_EXPORT QIconEngine
 {
 public:
     QIconEngine();
-    QIconEngine(const QIconEngine &other);  // ### Qt6: make protected
     virtual ~QIconEngine();
     virtual void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) = 0;
     virtual QSize actualSize(const QSize &size, QIcon::Mode mode, QIcon::State state);
@@ -65,21 +64,14 @@ public:
     virtual bool read(QDataStream &in);
     virtual bool write(QDataStream &out) const;
 
-    enum IconEngineHook { AvailableSizesHook = 1, IconNameHook, IsNullHook, ScaledPixmapHook };
-
-    struct AvailableSizesArgument
-    {
-        QIcon::Mode mode;
-        QIcon::State state;
-        QList<QSize> sizes;
-    };
-
     virtual QList<QSize> availableSizes(QIcon::Mode mode = QIcon::Normal,
-                                    QIcon::State state = QIcon::Off) const;
+                                    QIcon::State state = QIcon::Off);
 
-    virtual QString iconName() const;
-    bool isNull() const; // ### Qt6 make virtual
-    QPixmap scaledPixmap(const QSize &size, QIcon::Mode mode, QIcon::State state, qreal scale); // ### Qt6 make virtual
+    virtual QString iconName();
+    virtual bool isNull();
+    virtual QPixmap scaledPixmap(const QSize &size, QIcon::Mode mode, QIcon::State state, qreal scale);
+
+    enum IconEngineHook { IsNullHook = 3, ScaledPixmapHook };
 
     struct ScaledPixmapArgument
     {
@@ -90,16 +82,14 @@ public:
         QPixmap pixmap;
     };
 
-    // ### Qt6: move content to proper virtual functions
     virtual void virtual_hook(int id, void *data);
+
+protected:
+    QIconEngine(const QIconEngine &other);
 
 private:
     QIconEngine &operator=(const QIconEngine &other) = delete;
 };
-
-#if QT_DEPRECATED_SINCE(5, 0)
-typedef QIconEngine QIconEngineV2;
-#endif
 
 QT_END_NAMESPACE
 

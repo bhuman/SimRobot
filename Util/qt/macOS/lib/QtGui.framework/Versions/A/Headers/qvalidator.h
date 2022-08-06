@@ -44,7 +44,6 @@
 #include <QtGui/qtguiglobal.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qstring.h>
-#include <QtCore/qregexp.h>
 #if QT_CONFIG(regularexpression)
 #  include <QtCore/qregularexpression.h>
 #endif
@@ -105,7 +104,7 @@ public:
 
     void setBottom(int);
     void setTop(int);
-    virtual void setRange(int bottom, int top);
+    void setRange(int bottom, int top);
 
     int bottom() const { return b; }
     int top() const { return t; }
@@ -119,8 +118,6 @@ private:
     int b;
     int t;
 };
-
-#ifndef QT_NO_REGEXP
 
 class QDoubleValidatorPrivate;
 
@@ -143,8 +140,10 @@ public:
     };
     Q_ENUM(Notation)
     QValidator::State validate(QString &, int &) const override;
+    void fixup(QString &input) const override;
 
-    virtual void setRange(double bottom, double top, int decimals = 0);
+    void setRange(double bottom, double top, int decimals);
+    void setRange(double bottom, double top);
     void setBottom(double);
     void setTop(double);
     void setDecimals(int);
@@ -170,33 +169,6 @@ private:
     int dec;
 };
 
-
-class Q_GUI_EXPORT QRegExpValidator : public QValidator
-{
-    Q_OBJECT
-    Q_PROPERTY(QRegExp regExp READ regExp WRITE setRegExp NOTIFY regExpChanged)
-
-public:
-    explicit QRegExpValidator(QObject *parent = nullptr);
-    explicit QRegExpValidator(const QRegExp& rx, QObject *parent = nullptr);
-    ~QRegExpValidator();
-
-    virtual QValidator::State validate(QString& input, int& pos) const override;
-
-    void setRegExp(const QRegExp& rx);
-    const QRegExp& regExp() const { return r; }
-
-Q_SIGNALS:
-    void regExpChanged(const QRegExp& regExp);
-
-private:
-    Q_DISABLE_COPY(QRegExpValidator)
-
-    QRegExp r;
-};
-
-#endif // QT_NO_REGEXP
-
 #if QT_CONFIG(regularexpression)
 
 class QRegularExpressionValidatorPrivate;
@@ -211,7 +183,7 @@ public:
     explicit QRegularExpressionValidator(const QRegularExpression &re, QObject *parent = nullptr);
     ~QRegularExpressionValidator();
 
-    virtual QValidator::State validate(QString &input, int &pos) const override;
+    QValidator::State validate(QString &input, int &pos) const override;
 
     QRegularExpression regularExpression() const;
 

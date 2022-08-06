@@ -45,9 +45,6 @@
 #include <QtDBus/qtdbusglobal.h>
 #include <QtCore/qvariant.h>
 #include <QtCore/qstring.h>
-#if QT_DEPRECATED_SINCE(5, 6)
-#include <QtCore/qhash.h>
-#endif
 #include <QtCore/qhashfunctions.h>
 
 #ifndef QT_NO_DBUS
@@ -67,7 +64,7 @@ public:
     inline explicit QDBusObjectPath(const QString &path);
     explicit QDBusObjectPath(QString &&p) : m_path(std::move(p)) { doCheck(); }
 
-    void swap(QDBusObjectPath &other) noexcept { qSwap(m_path, other.m_path); }
+    void swap(QDBusObjectPath &other) noexcept { m_path.swap(other.m_path); }
 
     inline void setPath(const QString &path);
 
@@ -79,7 +76,7 @@ public:
 private:
     void doCheck();
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusObjectPath)
+Q_DECLARE_SHARED(QDBusObjectPath)
 
 inline QDBusObjectPath::QDBusObjectPath(const char *objectPath)
     : m_path(QString::fromLatin1(objectPath))
@@ -105,7 +102,7 @@ inline bool operator!=(const QDBusObjectPath &lhs, const QDBusObjectPath &rhs)
 inline bool operator<(const QDBusObjectPath &lhs, const QDBusObjectPath &rhs)
 { return lhs.path() < rhs.path(); }
 
-inline uint qHash(const QDBusObjectPath &objectPath, uint seed = 0)
+inline size_t qHash(const QDBusObjectPath &objectPath, size_t seed = 0)
 { return qHash(objectPath.path(), seed); }
 
 
@@ -122,7 +119,7 @@ public:
     inline explicit QDBusSignature(const QString &signature);
     explicit QDBusSignature(QString &&sig) : m_signature(std::move(sig)) { doCheck(); }
 
-    void swap(QDBusSignature &other) noexcept { qSwap(m_signature, other.m_signature); }
+    void swap(QDBusSignature &other) noexcept { m_signature.swap(other.m_signature); }
 
     inline void setSignature(const QString &signature);
 
@@ -132,7 +129,7 @@ public:
 private:
     void doCheck();
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusSignature)
+Q_DECLARE_SHARED(QDBusSignature)
 
 inline QDBusSignature::QDBusSignature(const char *dBusSignature)
     : m_signature(QString::fromLatin1(dBusSignature))
@@ -158,7 +155,7 @@ inline bool operator!=(const QDBusSignature &lhs, const QDBusSignature &rhs)
 inline bool operator<(const QDBusSignature &lhs, const QDBusSignature &rhs)
 { return lhs.signature() < rhs.signature(); }
 
-inline uint qHash(const QDBusSignature &signature, uint seed = 0)
+inline size_t qHash(const QDBusSignature &signature, size_t seed = 0)
 { return qHash(signature.signature(), seed); }
 
 class QDBusVariant
@@ -172,14 +169,14 @@ public:
     inline explicit QDBusVariant(const QVariant &variant);
     explicit QDBusVariant(QVariant &&v) noexcept : m_variant(std::move(v)) {}
 
-    void swap(QDBusVariant &other) noexcept { qSwap(m_variant, other.m_variant); }
+    void swap(QDBusVariant &other) noexcept { m_variant.swap(other.m_variant); }
 
     inline void setVariant(const QVariant &variant);
 
     inline QVariant variant() const
     { return m_variant; }
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QDBusVariant)
+Q_DECLARE_SHARED(QDBusVariant)
 
 inline  QDBusVariant::QDBusVariant(const QVariant &dBusVariant)
     : m_variant(dBusVariant) { }
@@ -192,9 +189,9 @@ inline bool operator==(const QDBusVariant &v1, const QDBusVariant &v2)
 
 QT_END_NAMESPACE
 
-Q_DECLARE_METATYPE(QDBusVariant)
-Q_DECLARE_METATYPE(QDBusObjectPath)
-Q_DECLARE_METATYPE(QDBusSignature)
+QT_DECL_METATYPE_EXTERN(QDBusVariant, Q_DBUS_EXPORT)
+QT_DECL_METATYPE_EXTERN(QDBusObjectPath, Q_DBUS_EXPORT)
+QT_DECL_METATYPE_EXTERN(QDBusSignature, Q_DBUS_EXPORT)
 
 #endif // QT_NO_DBUS
 #endif

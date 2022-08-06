@@ -53,7 +53,6 @@ class QColor;
 class QIODevice;
 class QRect;
 class QSize;
-class QStringList;
 
 class QImageReaderPrivate;
 class Q_GUI_EXPORT QImageReader
@@ -117,13 +116,6 @@ public:
     void setAutoTransform(bool enabled);
     bool autoTransform() const;
 
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_VERSION_X_5_15("Use QColorSpace instead")
-    void setGamma(float gamma);
-    QT_DEPRECATED_VERSION_X_5_15("Use QColorSpace instead")
-    float gamma() const;
-#endif
-
     QByteArray subType() const;
     QList<QByteArray> supportedSubTypes() const;
 
@@ -149,6 +141,8 @@ public:
     static QList<QByteArray> supportedImageFormats();
     static QList<QByteArray> supportedMimeTypes();
     static QList<QByteArray> imageFormatsForMimeType(const QByteArray &mimeType);
+    static int allocationLimit();
+    static void setAllocationLimit(int mbLimit);
 
 private:
     Q_DISABLE_COPY(QImageReader)
