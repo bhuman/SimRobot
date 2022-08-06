@@ -247,6 +247,9 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   this->height = height;
 
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
+
+  // This is needed for the exportAsImage function of the SimObjectWidget.
+  Simulation::simulation->graphicsContext.getOpenGLFunctions()->glViewport(0, 0, width, height);
 }
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const
