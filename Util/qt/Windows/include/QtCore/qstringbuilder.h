@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -58,12 +58,12 @@ QT_BEGIN_NAMESPACE
 struct Q_CORE_EXPORT QAbstractConcatenable
 {
 protected:
-    static void convertFromAscii(const char *a, int len, QChar *&out) noexcept;
+    static void convertFromUtf8(QByteArrayView in, QChar *&out) noexcept;
     static inline void convertFromAscii(char a, QChar *&out) noexcept
     {
         *out++ = QLatin1Char(a);
     }
-    static void appendLatin1To(const char *a, int len, QChar *out) noexcept;
+    static void appendLatin1To(QLatin1String in, QChar *out) noexcept;
 };
 
 template <typename T> struct QConcatenable {};
@@ -108,7 +108,7 @@ private:
     friend class QString;
     template <typename T> T convertTo() const
     {
-        const uint len = QConcatenable< QStringBuilder<A, B> >::size(*this);
+        const qsizetype len = QConcatenable< QStringBuilder<A, B> >::size(*this);
         T s(len, Qt::Uninitialized);
 
         // we abuse const_cast / constData here because we know we've just
@@ -117,7 +117,7 @@ private:
         typename T::const_iterator const start = d;
         QConcatenable< QStringBuilder<A, B> >::appendTo(*this, d);
 
-        if (!QConcatenable< QStringBuilder<A, B> >::ExactSize && int(len) != d - start) {
+        if (!QConcatenable< QStringBuilder<A, B> >::ExactSize && len != d - start) {
             // this resize is necessary since we allocate a bit too much
             // when dealing with variable sized 8-bit encodings
             s.resize(d - start);
@@ -130,7 +130,7 @@ public:
     typedef typename Concatenable::ConvertTo ConvertTo;
     operator ConvertTo() const { return convertTo<ConvertTo>(); }
 
-    int size() const { return Concatenable::size(*this); }
+    qsizetype size() const { return Concatenable::size(*this); }
 
     const A &a;
     const B &b;
@@ -176,9 +176,9 @@ template <> struct QConcatenable<char> : private QAbstractConcatenable
     typedef char type;
     typedef QByteArray ConvertTo;
     enum { ExactSize = true };
-    static int size(const char) { return 1; }
+    static qsizetype size(const char) { return 1; }
 #ifndef QT_NO_CAST_FROM_ASCII
-    static inline QT_ASCII_CAST_WARN void appendTo(const char c, QChar *&out)
+    QT_ASCII_CAST_WARN static inline void appendTo(const char c, QChar *&out)
     {
         QAbstractConcatenable::convertFromAscii(c, out);
     }
@@ -187,24 +187,43 @@ template <> struct QConcatenable<char> : private QAbstractConcatenable
     { *out++ = c; }
 };
 
-#if defined(Q_COMPILER_UNICODE_STRINGS)
+template <> struct QConcatenable<QByteArrayView> : private QAbstractConcatenable
+{
+    typedef QByteArrayView type;
+    typedef QByteArray ConvertTo;
+    enum { ExactSize = true };
+    static qsizetype size(QByteArrayView bav) { return bav.size(); }
+#ifndef QT_NO_CAST_FROM_ASCII
+    QT_ASCII_CAST_WARN static inline void appendTo(QByteArrayView bav, QChar *&out)
+    {
+        QAbstractConcatenable::convertFromUtf8(bav, out);
+    }
+#endif
+    static inline void appendTo(QByteArrayView bav, char *&out)
+    {
+        qsizetype n = bav.size();
+        if (n)
+            memcpy(out, bav.data(), n);
+        out += n;
+    }
+};
+
 template <> struct QConcatenable<char16_t> : private QAbstractConcatenable
 {
     typedef char16_t type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static Q_DECL_CONSTEXPR int size(char16_t) { return 1; }
+    static constexpr qsizetype size(char16_t) { return 1; }
     static inline void appendTo(char16_t c, QChar *&out)
     { *out++ = c; }
 };
-#endif
 
 template <> struct QConcatenable<QLatin1Char>
 {
     typedef QLatin1Char type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(const QLatin1Char) { return 1; }
+    static qsizetype size(const QLatin1Char) { return 1; }
     static inline void appendTo(const QLatin1Char c, QChar *&out)
     { *out++ = c; }
     static inline void appendTo(const QLatin1Char c, char *&out)
@@ -216,7 +235,7 @@ template <> struct QConcatenable<QChar> : private QAbstractConcatenable
     typedef QChar type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(const QChar) { return 1; }
+    static qsizetype size(const QChar) { return 1; }
     static inline void appendTo(const QChar c, QChar *&out)
     { *out++ = c; }
 };
@@ -226,19 +245,9 @@ template <> struct QConcatenable<QChar::SpecialCharacter> : private QAbstractCon
     typedef QChar::SpecialCharacter type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(const QChar::SpecialCharacter) { return 1; }
+    static qsizetype size(const QChar::SpecialCharacter) { return 1; }
     static inline void appendTo(const QChar::SpecialCharacter c, QChar *&out)
     { *out++ = c; }
-};
-
-template <> struct QConcatenable<QCharRef> : private QAbstractConcatenable
-{
-    typedef QCharRef type;
-    typedef QString ConvertTo;
-    enum { ExactSize = true };
-    static int size(QCharRef) { return 1; }
-    static inline void appendTo(QCharRef c, QChar *&out)
-    { *out++ = QChar(c); }
 };
 
 template <> struct QConcatenable<QLatin1String> : private QAbstractConcatenable
@@ -246,10 +255,10 @@ template <> struct QConcatenable<QLatin1String> : private QAbstractConcatenable
     typedef QLatin1String type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(const QLatin1String a) { return a.size(); }
+    static qsizetype size(const QLatin1String a) { return a.size(); }
     static inline void appendTo(const QLatin1String a, QChar *&out)
     {
-        appendLatin1To(a.latin1(), a.size(), out);
+        appendLatin1To(a, out);
         out += a.size();
     }
     static inline void appendTo(const QLatin1String a, char *&out)
@@ -266,25 +275,12 @@ template <> struct QConcatenable<QString> : private QAbstractConcatenable
     typedef QString type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(const QString &a) { return a.size(); }
+    static qsizetype size(const QString &a) { return a.size(); }
     static inline void appendTo(const QString &a, QChar *&out)
     {
-        const int n = a.size();
-        memcpy(out, reinterpret_cast<const char*>(a.constData()), sizeof(QChar) * n);
-        out += n;
-    }
-};
-
-template <> struct QConcatenable<QStringRef> : private QAbstractConcatenable
-{
-    typedef QStringRef type;
-    typedef QString ConvertTo;
-    enum { ExactSize = true };
-    static int size(const QStringRef &a) { return a.size(); }
-    static inline void appendTo(const QStringRef &a, QChar *&out)
-    {
-        const int n = a.size();
-        memcpy(out, reinterpret_cast<const char*>(a.constData()), sizeof(QChar) * n);
+        const qsizetype n = a.size();
+        if (n)
+            memcpy(out, reinterpret_cast<const char*>(a.constData()), sizeof(QChar) * n);
         out += n;
     }
 };
@@ -294,25 +290,26 @@ template <> struct QConcatenable<QStringView> : private QAbstractConcatenable
     typedef QStringView type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static int size(QStringView a) { return a.length(); }
+    static qsizetype size(QStringView a) { return a.size(); }
     static inline void appendTo(QStringView a, QChar *&out)
     {
         const auto n = a.size();
-        memcpy(out, a.data(), sizeof(QChar) * n);
+        if (n)
+            memcpy(out, a.data(), sizeof(QChar) * n);
         out += n;
     }
 };
 
-template <int N> struct QConcatenable<const char[N]> : private QAbstractConcatenable
+template <qsizetype N> struct QConcatenable<const char[N]> : private QAbstractConcatenable
 {
     typedef const char type[N];
     typedef QByteArray ConvertTo;
     enum { ExactSize = false };
-    static int size(const char[N]) { return N - 1; }
+    static qsizetype size(const char[N]) { return N - 1; }
 #ifndef QT_NO_CAST_FROM_ASCII
-    static inline void QT_ASCII_CAST_WARN appendTo(const char a[N], QChar *&out)
+    QT_ASCII_CAST_WARN static inline void appendTo(const char a[N], QChar *&out)
     {
-        QAbstractConcatenable::convertFromAscii(a, N - 1, out);
+        QAbstractConcatenable::convertFromUtf8(QByteArrayView(a, N - 1), out);
     }
 #endif
     static inline void appendTo(const char a[N], char *&out)
@@ -322,7 +319,7 @@ template <int N> struct QConcatenable<const char[N]> : private QAbstractConcaten
     }
 };
 
-template <int N> struct QConcatenable<char[N]> : QConcatenable<const char[N]>
+template <qsizetype N> struct QConcatenable<char[N]> : QConcatenable<const char[N]>
 {
     typedef char type[N];
 };
@@ -332,10 +329,10 @@ template <> struct QConcatenable<const char *> : private QAbstractConcatenable
     typedef const char *type;
     typedef QByteArray ConvertTo;
     enum { ExactSize = false };
-    static int size(const char *a) { return qstrlen(a); }
+    static qsizetype size(const char *a) { return qstrlen(a); }
 #ifndef QT_NO_CAST_FROM_ASCII
-    static inline void QT_ASCII_CAST_WARN appendTo(const char *a, QChar *&out)
-    { QAbstractConcatenable::convertFromAscii(a, -1, out); }
+    QT_ASCII_CAST_WARN static inline void appendTo(const char *a, QChar *&out)
+    { QAbstractConcatenable::convertFromUtf8(QByteArrayView(a), out); }
 #endif
     static inline void appendTo(const char *a, char *&out)
     {
@@ -351,21 +348,20 @@ template <> struct QConcatenable<char *> : QConcatenable<const char*>
     typedef char *type;
 };
 
-#if defined(Q_COMPILER_UNICODE_STRINGS)
-template <int N> struct QConcatenable<const char16_t[N]> : private QAbstractConcatenable
+template <qsizetype N> struct QConcatenable<const char16_t[N]> : private QAbstractConcatenable
 {
     using type = const char16_t[N];
     using ConvertTo = QString;
     enum { ExactSize = true };
-    static int size(const char16_t[N]) { return N - 1; }
+    static qsizetype size(const char16_t[N]) { return N - 1; }
     static void appendTo(const char16_t a[N], QChar *&out)
     {
-        memcpy(out, a, (N - 1) * sizeof(char16_t));
+        memcpy(static_cast<void *>(out), a, (N - 1) * sizeof(char16_t));
         out += N - 1;
     }
 };
 
-template <int N> struct QConcatenable<char16_t[N]> : QConcatenable<const char16_t[N]>
+template <qsizetype N> struct QConcatenable<char16_t[N]> : QConcatenable<const char16_t[N]>
 {
     using type = char16_t[N];
 };
@@ -375,8 +371,8 @@ template <> struct QConcatenable<const char16_t *> : private QAbstractConcatenab
     using type = const char16_t *;
     using ConvertTo = QString;
     enum { ExactSize = true };
-    static int size(const char16_t *a) { return QStringView(a).length(); }
-    static inline void QT_ASCII_CAST_WARN appendTo(const char16_t *a, QChar *&out)
+    static qsizetype size(const char16_t *a) { return QStringView(a).size(); }
+    QT_ASCII_CAST_WARN static inline void appendTo(const char16_t *a, QChar *&out)
     {
         if (!a)
             return;
@@ -389,18 +385,17 @@ template <> struct QConcatenable<char16_t *> : QConcatenable<const char16_t*>
 {
     typedef char16_t *type;
 };
-#endif // UNICODE_STRINGS
 
 template <> struct QConcatenable<QByteArray> : private QAbstractConcatenable
 {
     typedef QByteArray type;
     typedef QByteArray ConvertTo;
     enum { ExactSize = false };
-    static int size(const QByteArray &ba) { return ba.size(); }
+    static qsizetype size(const QByteArray &ba) { return ba.size(); }
 #ifndef QT_NO_CAST_FROM_ASCII
-    static inline QT_ASCII_CAST_WARN void appendTo(const QByteArray &ba, QChar *&out)
+    QT_ASCII_CAST_WARN static inline void appendTo(const QByteArray &ba, QChar *&out)
     {
-        QAbstractConcatenable::convertFromAscii(ba.constData(), ba.size(), out);
+        QAbstractConcatenable::convertFromUtf8(ba, out);
     }
 #endif
     static inline void appendTo(const QByteArray &ba, char *&out)
@@ -419,7 +414,7 @@ struct QConcatenable< QStringBuilder<A, B> >
     typedef QStringBuilder<A, B> type;
     typedef typename QtStringBuilder::ConvertToTypeHelper<typename QConcatenable<A>::ConvertTo, typename QConcatenable<B>::ConvertTo>::ConvertTo ConvertTo;
     enum { ExactSize = QConcatenable<A>::ExactSize && QConcatenable<B>::ExactSize };
-    static int size(const type &p)
+    static qsizetype size(const type &p)
     {
         return QConcatenable<A>::size(p.a) + QConcatenable<B>::size(p.b);
     }
@@ -453,8 +448,10 @@ template <typename A, typename B>
 QByteArray &appendToByteArray(QByteArray &a, const QStringBuilder<A, B> &b, char)
 {
     // append 8-bit data to a byte array
-    int len = a.size() + QConcatenable< QStringBuilder<A, B> >::size(b);
-    a.reserve(len);
+    qsizetype len = a.size() + QConcatenable< QStringBuilder<A, B> >::size(b);
+    a.detach(); // a detach() in a.data() could reset a.capacity() to a.size()
+    if (len > a.data_ptr().freeSpaceAtEnd()) // capacity() was broken when prepend()-optimization landed
+        a.reserve(qMax(len, 2 * a.capacity()));
     char *it = a.data() + a.size();
     QConcatenable< QStringBuilder<A, B> >::appendTo(b, it);
     a.resize(len); //we need to resize after the appendTo for the case str+=foo+str
@@ -480,14 +477,25 @@ QByteArray &operator+=(QByteArray &a, const QStringBuilder<A, B> &b)
 template <typename A, typename B>
 QString &operator+=(QString &a, const QStringBuilder<A, B> &b)
 {
-    int len = a.size() + QConcatenable< QStringBuilder<A, B> >::size(b);
-    a.reserve(len);
+    qsizetype len = a.size() + QConcatenable< QStringBuilder<A, B> >::size(b);
+    a.detach(); // a detach() in a.data() could reset a.capacity() to a.size()
+    if (len > a.data_ptr().freeSpaceAtEnd()) // capacity() was broken when prepend()-optimization landed
+        a.reserve(qMax(len, 2 * a.capacity()));
     QChar *it = a.data() + a.size();
     QConcatenable< QStringBuilder<A, B> >::appendTo(b, it);
-    a.resize(int(it - a.constData())); //may be smaller than len if there was conversion from utf8
+    // we need to resize after the appendTo for the case str+=foo+str
+    a.resize(it - a.constData()); //may be smaller than len if there was conversion from utf8
     return a;
 }
 
+//
+// inline QAnyStringView members requiring QStringBuilder:
+//
+
+template <typename A, typename B>
+QAnyStringView::QAnyStringView(const QStringBuilder<A, B> &expr,
+                               typename QConcatenable<QStringBuilder<A, B>>::ConvertTo &&capacity)
+    : QAnyStringView(capacity = expr) {}
 
 QT_END_NAMESPACE
 

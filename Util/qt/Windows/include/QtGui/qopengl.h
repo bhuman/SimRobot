@@ -63,9 +63,9 @@
 // access to additional functionality the drivers may expose but
 // which the system headers do not.
 
-#if defined(QT_OPENGL_ES_2)
+#if QT_CONFIG(opengles2)
 # if defined(Q_OS_IOS) || defined(Q_OS_TVOS)
-#  if defined(QT_OPENGL_ES_3)
+#  if QT_CONFIG(opengles3)
 #   include <OpenGLES/ES3/gl.h>
 #   include <OpenGLES/ES3/glext.h>
 #  else
@@ -83,7 +83,7 @@ typedef void* GLeglImageOES;
 
 # elif !defined(Q_OS_DARWIN) // "uncontrolled" ES2 platforms
 
-// In "es2" builds (QT_OPENGL_ES_2) additional defines indicate GLES 3.0 or
+// In "es2" builds (QT_CONFIG(opengles2)) additional defines indicate GLES 3.0 or
 // higher is available *at build time*. In this case include the corresponding
 // header. These are backwards compatible and it should be safe to include
 // headers on top of each other, meaning that applications can include gl2.h
@@ -101,20 +101,20 @@ typedef void* GLeglImageOES;
 #   define QGL_TEMP_GLEXT_PROTO
 #  endif
 
-#  if defined(QT_OPENGL_ES_3_2)
+#  if QT_CONFIG(opengles32)
 #   include <GLES3/gl32.h>
-#  elif defined(QT_OPENGL_ES_3_1)
+#  elif QT_CONFIG(opengles31)
 #   include <GLES3/gl31.h>
-#  elif defined(QT_OPENGL_ES_3)
+#  elif QT_CONFIG(opengles3)
 #   include <GLES3/gl3.h>
 #  else
 #   include <GLES2/gl2.h>
-#endif
+#  endif
 
 #  ifdef QGL_TEMP_GLEXT_PROTO
 #   undef GL_GLEXT_PROTOTYPES
 #   undef QGL_TEMP_GLEXT_PROTO
-# endif
+#  endif
 
 /*
    Some GLES2 implementations (like the one on Harmattan) are missing the
@@ -125,9 +125,9 @@ typedef void* GLeglImageOES;
 typedef char GLchar;
 
 #  include <QtGui/qopengles2ext.h>
-# endif // Q_OS_MAC
+# endif
 #else // non-ES2 platforms
-# if defined(Q_OS_MAC)
+# if defined(Q_OS_MACOS)
 #  include <OpenGL/gl.h>
 #  define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
 #  include <OpenGL/gl3.h>
@@ -144,11 +144,11 @@ typedef char GLchar;
 #   include <GL/gl.h>
 #  endif
 #  include <QtGui/qopenglext.h>
-# endif // Q_OS_MAC
-#endif // QT_OPENGL_ES_2
+# endif
+#endif // !QT_CONFIG(opengles2)
 
 // Desktops can support OpenGL 4.
-#if !defined(QT_OPENGL_ES_2)
+#if !QT_CONFIG(opengles2)
 #define QT_OPENGL_3
 #define QT_OPENGL_3_2
 #define QT_OPENGL_4
@@ -157,15 +157,13 @@ typedef char GLchar;
 # endif
 #endif
 
-QT_BEGIN_NAMESPACE
-
 
 // When all else fails we provide sensible fallbacks - this is needed to
 // allow compilation on OS X 10.6
-#if !defined(QT_OPENGL_ES_2)
+#if !QT_CONFIG(opengles2)
 
 // OS X 10.6 doesn't define these which are needed below
-// OS X 10.7 and later defien them in gl3.h
+// OS X 10.7 and later define them in gl3.h
 #ifndef APIENTRY
 #define APIENTRY
 #endif
@@ -287,6 +285,7 @@ typedef GLintptr GLvdpauSurfaceNV;
 // End of block copied from glext.h
 #endif
 
+QT_BEGIN_NAMESPACE
 
 // Types that aren't defined in all system's gl.h files.
 typedef ptrdiff_t qopengl_GLintptr;

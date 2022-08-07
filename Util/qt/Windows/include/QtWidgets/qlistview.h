@@ -150,7 +150,8 @@ protected:
     void resizeContents(int width, int height);
     QSize contentsSize() const;
 
-    void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = QVector<int>()) override;
+    void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
+                     const QList<int> &roles = QList<int>()) override;
     void rowsInserted(const QModelIndex &parent, int start, int end) override;
     void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
 
@@ -169,7 +170,7 @@ protected:
     void startDrag(Qt::DropActions supportedActions) override;
 #endif // QT_CONFIG(draganddrop)
 
-    QStyleOptionViewItem viewOptions() const override;
+    void initViewItemOption(QStyleOptionViewItem *option) const override;
     void paintEvent(QPaintEvent *e) override;
 
     int horizontalOffset() const override;
@@ -193,6 +194,7 @@ protected:
 
 private:
     int visualIndex(const QModelIndex &index) const;
+    friend class QCommonListViewBase;
 
     Q_DECLARE_PRIVATE(QListView)
     Q_DISABLE_COPY(QListView)

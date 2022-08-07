@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -53,7 +53,6 @@ class Q_CORE_EXPORT QStandardPaths
     Q_GADGET
 
 public:
-    // Do not re-order, must match QDesktopServices
     enum StandardLocation {
         DesktopLocation,
         DocumentsLocation,
@@ -64,7 +63,7 @@ public:
         PicturesLocation,
         TempLocation,
         HomeLocation,
-        DataLocation,
+        AppLocalDataLocation,
         CacheLocation,
         GenericDataLocation,
         RuntimeLocation,
@@ -73,8 +72,7 @@ public:
         GenericCacheLocation,
         GenericConfigLocation,
         AppDataLocation,
-        AppConfigLocation,
-        AppLocalDataLocation = DataLocation
+        AppConfigLocation
     };
     Q_ENUM(StandardLocation)
 
@@ -96,9 +94,6 @@ public:
 
     static QString findExecutable(const QString &executableName, const QStringList &paths = QStringList());
 
-#if QT_DEPRECATED_SINCE(5, 2)
-    static QT_DEPRECATED void enableTestMode(bool testMode);
-#endif
     static void setTestModeEnabled(bool testMode);
     static bool isTestModeEnabled();
 

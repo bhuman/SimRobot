@@ -57,6 +57,7 @@ class QImageReader;
 class QColor;
 class QVariant;
 class QPlatformPixmap;
+QT_DECLARE_QESDP_SPECIALIZATION_DTOR_WITH_EXPORT(QPlatformPixmap, Q_GUI_EXPORT)
 
 class Q_GUI_EXPORT QPixmap : public QPaintDevice
 {
@@ -70,13 +71,15 @@ public:
     explicit QPixmap(const char * const xpm[]);
 #endif
     QPixmap(const QPixmap &);
+    QPixmap(QPixmap &&other) noexcept : QPaintDevice(), data(std::move(other.data)) {}
     ~QPixmap();
 
     QPixmap &operator=(const QPixmap &);
-    inline QPixmap &operator=(QPixmap &&other) noexcept
-    { qSwap(data, other.data); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QPixmap)
     inline void swap(QPixmap &other) noexcept
-    { qSwap(data, other.data); }
+    { data.swap(other.data); }
+    bool operator==(const QPixmap &) const = delete;
+    bool operator!=(const QPixmap &) const = delete;
 
     operator QVariant() const;
 
@@ -92,18 +95,13 @@ public:
     static int defaultDepth();
 
     void fill(const QColor &fillColor = Qt::white);
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X("Use QPainter or fill(QColor)")
-    void fill(const QPaintDevice *device, const QPoint &ofs);
-    QT_DEPRECATED_X("Use QPainter or fill(QColor)")
-    void fill(const QPaintDevice *device, int xofs, int yofs);
-#endif
 
     QBitmap mask() const;
     void setMask(const QBitmap &);
 
     qreal devicePixelRatio() const;
     void setDevicePixelRatio(qreal scaleFactor);
+    QSizeF deviceIndependentSize() const;
 
     bool hasAlpha() const;
     bool hasAlphaChannel() const;
@@ -113,15 +111,6 @@ public:
 #endif
     QBitmap createMaskFromColor(const QColor &maskColor, Qt::MaskMode mode = Qt::MaskInColor) const;
 
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X("Use QScreen::grabWindow() instead")
-    static QPixmap grabWindow(WId, int x = 0, int y = 0, int w = -1, int h = -1);
-    QT_DEPRECATED_X("Use QWidget::grab() instead")
-    static QPixmap grabWidget(QObject *widget, const QRect &rect);
-    QT_DEPRECATED_X("Use QWidget::grab() instead")
-    static QPixmap grabWidget(QObject *widget, int x = 0, int y = 0, int w = -1, int h = -1);
-#endif
-
     inline QPixmap scaled(int w, int h, Qt::AspectRatioMode aspectMode = Qt::IgnoreAspectRatio,
                           Qt::TransformationMode mode = Qt::FastTransformation) const
         { return scaled(QSize(w, h), aspectMode, mode); }
@@ -129,12 +118,6 @@ public:
                    Qt::TransformationMode mode = Qt::FastTransformation) const;
     QPixmap scaledToWidth(int w, Qt::TransformationMode mode = Qt::FastTransformation) const;
     QPixmap scaledToHeight(int h, Qt::TransformationMode mode = Qt::FastTransformation) const;
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_X("Use transformed(const QTransform &, Qt::TransformationMode mode)")
-    QPixmap transformed(const QMatrix &, Qt::TransformationMode mode = Qt::FastTransformation) const;
-    QT_DEPRECATED_X("Use trueMatrix(const QTransform &m, int w, int h)")
-    static QMatrix trueMatrix(const QMatrix &m, int w, int h);
-#endif // QT_DEPRECATED_SINCE(5, 15)
     QPixmap transformed(const QTransform &, Qt::TransformationMode mode = Qt::FastTransformation) const;
     static QTransform trueMatrix(const QTransform &m, int w, int h);
 
@@ -160,9 +143,6 @@ public:
     inline void scroll(int dx, int dy, int x, int y, int width, int height, QRegion *exposed = nullptr);
     void scroll(int dx, int dy, const QRect &rect, QRegion *exposed = nullptr);
 
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED inline int serialNumber() const { return cacheKey() >> 32; }
-#endif
     qint64 cacheKey() const;
 
     bool isDetached() const;
@@ -173,11 +153,6 @@ public:
     QPaintEngine *paintEngine() const override;
 
     inline bool operator!() const { return isNull(); }
-
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED inline QPixmap alphaChannel() const;
-    QT_DEPRECATED inline void setAlphaChannel(const QPixmap &);
-#endif
 
 protected:
     int metric(PaintDeviceMetric) const override;
@@ -228,23 +203,6 @@ inline bool QPixmap::loadFromData(const QByteArray &buf, const char *format,
     return loadFromData(reinterpret_cast<const uchar *>(buf.constData()), buf.size(), format, flags);
 }
 
-#if QT_DEPRECATED_SINCE(5, 0)
-inline QPixmap QPixmap::alphaChannel() const
-{
-    QT_WARNING_PUSH
-    QT_WARNING_DISABLE_DEPRECATED
-    return QPixmap::fromImage(toImage().alphaChannel());
-    QT_WARNING_POP
-}
-
-inline void QPixmap::setAlphaChannel(const QPixmap &p)
-{
-    QImage image = toImage();
-    image.setAlphaChannel(p.toImage());
-    *this = QPixmap::fromImage(image);
-
-}
-#endif
 
 /*****************************************************************************
  QPixmap stream functions

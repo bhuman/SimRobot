@@ -40,11 +40,11 @@
 #ifndef QTREEWIDGET_H
 #define QTREEWIDGET_H
 
-#include <QtWidgets/qtwidgetsglobal.h>
 #include <QtWidgets/qtreeview.h>
 #include <QtWidgets/qtreewidgetitemiterator.h>
+#include <QtWidgets/qtwidgetsglobal.h>
+#include <QtCore/qlist.h>
 #include <QtCore/qvariant.h>
-#include <QtCore/qvector.h>
 
 QT_REQUIRE_CONFIG(treewidget);
 
@@ -113,7 +113,7 @@ public:
         { return data(column, Qt::StatusTipRole).toString(); }
     inline void setStatusTip(int column, const QString &statusTip);
 
-#ifndef QT_NO_TOOLTIP
+#if QT_CONFIG(tooltip)
     inline QString toolTip(int column) const
         { return data(column, Qt::ToolTipRole).toString(); }
     inline void setToolTip(int column, const QString &toolTip);
@@ -134,28 +134,10 @@ public:
     inline void setTextAlignment(int column, int alignment)
         { setData(column, Qt::TextAlignmentRole, alignment); }
 
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::background() instead")
-    inline QColor backgroundColor(int column) const
-        { return qvariant_cast<QColor>(data(column, Qt::BackgroundRole)); }
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setBackground() instead")
-    inline void setBackgroundColor(int column, const QColor &color)
-        { setData(column, Qt::BackgroundRole, color); }
-#endif
-
     inline QBrush background(int column) const
         { return qvariant_cast<QBrush>(data(column, Qt::BackgroundRole)); }
     inline void setBackground(int column, const QBrush &brush)
         { setData(column, Qt::BackgroundRole, brush.style() != Qt::NoBrush ? QVariant(brush) : QVariant()); }
-
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::foreground() instead")
-    inline QColor textColor(int column) const
-        { return qvariant_cast<QColor>(data(column, Qt::ForegroundRole)); }
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setForeground() instead")
-    inline void setTextColor(int column, const QColor &color)
-        { setData(column, Qt::ForegroundRole, color); }
-#endif
 
     inline QBrush foreground(int column) const
         { return qvariant_cast<QBrush>(data(column, Qt::ForegroundRole)); }
@@ -219,12 +201,15 @@ private:
 
     int rtti;
     // One item has a vector of column entries. Each column has a vector of (role, value) pairs.
-    QVector< QVector<QWidgetItemData> > values;
-    QTreeWidget *view;
+    QList<QList<QWidgetItemData>> values;
+    QTreeWidget *view = nullptr;
     QTreeWidgetItemPrivate *d;
-    QTreeWidgetItem *par;
+    QTreeWidgetItem *par = nullptr;
+    // ### Qt7: Move children to d-pointer and replace QList by a suitable data structure.
+    //          to fix QTBUG-94546
     QList<QTreeWidgetItem*> children;
-    Qt::ItemFlags itemFlags;
+    Qt::ItemFlags itemFlags = Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled
+            | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
 };
 
 inline void QTreeWidgetItem::setText(int column, const QString &atext)
@@ -238,7 +223,7 @@ inline void QTreeWidgetItem::setStatusTip(int column, const QString &astatusTip)
 { setData(column, Qt::StatusTipRole, astatusTip); }
 #endif
 
-#ifndef QT_NO_TOOLTIP
+#if QT_CONFIG(tooltip)
 inline void QTreeWidgetItem::setToolTip(int column, const QString &atoolTip)
 { setData(column, Qt::ToolTipRole, atoolTip); }
 #endif
@@ -315,35 +300,15 @@ public:
     void setItemWidget(QTreeWidgetItem *item, int column, QWidget *widget);
     inline void removeItemWidget(QTreeWidgetItem *item, int column);
 
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::isSelected() instead")
-    bool isItemSelected(const QTreeWidgetItem *item) const;
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setSelected() instead")
-    void setItemSelected(const QTreeWidgetItem *item, bool select);
-#endif
     QList<QTreeWidgetItem*> selectedItems() const;
     QList<QTreeWidgetItem*> findItems(const QString &text, Qt::MatchFlags flags,
                                       int column = 0) const;
 
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::isHidden() instead")
-    bool isItemHidden(const QTreeWidgetItem *item) const;
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setHidden() instead")
-    void setItemHidden(const QTreeWidgetItem *item, bool hide);
-
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::isExpanded() instead")
-    bool isItemExpanded(const QTreeWidgetItem *item) const;
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setExpanded() instead")
-    void setItemExpanded(const QTreeWidgetItem *item, bool expand);
-
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::isFirstColumnSpanned() instead")
-    bool isFirstItemColumnSpanned(const QTreeWidgetItem *item) const;
-    QT_DEPRECATED_X ("Use QTreeWidgetItem::setFirstColumnSpanned() instead")
-    void setFirstItemColumnSpanned(const QTreeWidgetItem *item, bool span);
-#endif
-
     QTreeWidgetItem *itemAbove(const QTreeWidgetItem *item) const;
     QTreeWidgetItem *itemBelow(const QTreeWidgetItem *item) const;
+
+    QModelIndex indexFromItem(const QTreeWidgetItem *item, int column = 0) const;
+    QTreeWidgetItem *itemFromIndex(const QModelIndex &index) const;
 
     void setSelectionModel(QItemSelectionModel *selectionModel) override;
 
@@ -360,7 +325,6 @@ Q_SIGNALS:
     void itemDoubleClicked(QTreeWidgetItem *item, int column);
     void itemActivated(QTreeWidgetItem *item, int column);
     void itemEntered(QTreeWidgetItem *item, int column);
-    // ### Qt 6: add changed roles
     void itemChanged(QTreeWidgetItem *item, int column);
     void itemExpanded(QTreeWidgetItem *item);
     void itemCollapsed(QTreeWidgetItem *item);
@@ -370,29 +334,11 @@ Q_SIGNALS:
 protected:
     bool event(QEvent *e) override;
     virtual QStringList mimeTypes() const;
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
     virtual QMimeData *mimeData(const QList<QTreeWidgetItem *> &items) const;
-#else
-    virtual QMimeData *mimeData(const QList<QTreeWidgetItem*> items) const;
-#endif
     virtual bool dropMimeData(QTreeWidgetItem *parent, int index,
                               const QMimeData *data, Qt::DropAction action);
     virtual Qt::DropActions supportedDropActions() const;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-public:
-#else
-protected:
-#endif
-    QList<QTreeWidgetItem*> items(const QMimeData *data) const;
-
-    QModelIndex indexFromItem(const QTreeWidgetItem *item, int column = 0) const;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QModelIndex indexFromItem(QTreeWidgetItem *item, int column = 0) const; // ### Qt 6: remove
-#endif
-    QTreeWidgetItem *itemFromIndex(const QModelIndex &index) const;
-
-protected:
 #if QT_CONFIG(draganddrop)
     void dropEvent(QDropEvent *event) override;
 #endif

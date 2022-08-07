@@ -43,6 +43,7 @@
 #include <QtGui/qtguiglobal.h>
 #include <QtCore/qpoint.h>
 #include <QtGui/qwindowdefs.h>
+#include <QtGui/qbitmap.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -82,34 +83,27 @@ public:
     QCursor();
     QCursor(Qt::CursorShape shape);
     QCursor(const QBitmap &bitmap, const QBitmap &mask, int hotX=-1, int hotY=-1);
-    QCursor(const QPixmap &pixmap, int hotX=-1, int hotY=-1);
+    explicit QCursor(const QPixmap &pixmap, int hotX=-1, int hotY=-1);
     QCursor(const QCursor &cursor);
     ~QCursor();
     QCursor &operator=(const QCursor &cursor);
-    QCursor(QCursor &&other) noexcept : d(other.d) { other.d = nullptr; }
-    inline QCursor &operator=(QCursor &&other) noexcept
-    { swap(other); return *this; }
+    QCursor(QCursor &&other) noexcept : d(qExchange(other.d, nullptr)) {}
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QCursor)
 
-    void swap(QCursor &other) noexcept { qSwap(d, other.d); }
+    void swap(QCursor &other) noexcept { qt_ptr_swap(d, other.d); }
 
     operator QVariant() const;
 
     Qt::CursorShape shape() const;
     void setShape(Qt::CursorShape newShape);
 
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_VERSION_X(5, 15, "Use the other overload which returns QBitmap by-value")
-    const QBitmap *bitmap() const; // ### Qt 7: Remove function
+#if QT_DEPRECATED_SINCE(6, 0)
+    QBitmap bitmap(Qt::ReturnByValueConstant) const { return bitmap(); }
+    QBitmap mask(Qt::ReturnByValueConstant) const { return mask(); }
+#endif // QT_DEPRECATED_SINCE(6, 0)
+    QBitmap bitmap() const;
+    QBitmap mask() const;
 
-    QT_DEPRECATED_VERSION_X(5, 15, "Use the other overload which returns QBitmap by-value")
-    const QBitmap *mask() const; // ### Qt 7: Remove function
-
-    QBitmap bitmap(Qt::ReturnByValueConstant) const;
-    QBitmap mask(Qt::ReturnByValueConstant) const;
-#else
-    QBitmap bitmap(Qt::ReturnByValueConstant = Qt::ReturnByValue) const; // ### Qt 7: Remove arg
-    QBitmap mask(Qt::ReturnByValueConstant = Qt::ReturnByValue) const; // ### Qt 7: Remove arg
-#endif // QT_DEPRECATED_SINCE(5, 15)
     QPixmap pixmap() const;
     QPoint hotSpot() const;
 
@@ -122,12 +116,10 @@ public:
 
 private:
     friend Q_GUI_EXPORT bool operator==(const QCursor &lhs, const QCursor &rhs) noexcept;
+    friend inline bool operator!=(const QCursor &lhs, const QCursor &rhs) noexcept { return !(lhs == rhs); }
     QCursorData *d;
 };
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QCursor)
-
-Q_GUI_EXPORT bool operator==(const QCursor &lhs, const QCursor &rhs) noexcept;
-inline bool operator!=(const QCursor &lhs, const QCursor &rhs) noexcept { return !(lhs == rhs); }
+Q_DECLARE_SHARED(QCursor)
 
 /*****************************************************************************
   QCursor stream functions

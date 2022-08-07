@@ -49,7 +49,6 @@ QT_BEGIN_NAMESPACE
 
 
 class QPaintEngine;
-class QPaintDevicePrivate;
 
 class Q_GUI_EXPORT QPaintDevice                                // device for QPainter
 {
@@ -83,8 +82,8 @@ public:
     int logicalDpiY() const { return metric(PdmDpiY); }
     int physicalDpiX() const { return metric(PdmPhysicalDpiX); }
     int physicalDpiY() const { return metric(PdmPhysicalDpiY); }
-    int devicePixelRatio() const { return metric(PdmDevicePixelRatio); }
-    qreal devicePixelRatioF()  const { return metric(PdmDevicePixelRatioScaled) / devicePixelRatioFScale(); }
+    qreal devicePixelRatio() const { return metric(PdmDevicePixelRatioScaled) / devicePixelRatioFScale(); }
+    qreal devicePixelRatioF()  const { return devicePixelRatio(); }
     int colorCount() const { return metric(PdmNumColors); }
     int depth() const { return metric(PdmDepth); }
 
@@ -99,8 +98,6 @@ protected:
     ushort        painters;                        // refcount
 private:
     Q_DISABLE_COPY(QPaintDevice)
-
-    QPaintDevicePrivate *reserved;
 
     friend class QPainter;
     friend class QPainterPrivate;

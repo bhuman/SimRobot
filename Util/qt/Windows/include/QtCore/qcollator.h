@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Copyright (C) 2013 Aleix Pol Gonzalez <aleixpol@kde.org>
 ** Contact: https://www.qt.io/licensing/
 **
@@ -57,12 +57,13 @@ public:
     QCollatorSortKey(const QCollatorSortKey &other);
     ~QCollatorSortKey();
     QCollatorSortKey &operator=(const QCollatorSortKey &other);
-    inline QCollatorSortKey &operator=(QCollatorSortKey &&other) noexcept
-    { swap(other); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QCollatorSortKey)
     void swap(QCollatorSortKey &other) noexcept
     { d.swap(other.d); }
 
     int compare(const QCollatorSortKey &key) const;
+    friend bool operator<(const QCollatorSortKey &lhs, const QCollatorSortKey &rhs)
+    { return lhs.compare(rhs) < 0; }
 
 protected:
     QCollatorSortKey(QCollatorSortKeyPrivate*);
@@ -72,11 +73,6 @@ protected:
 private:
     QCollatorSortKey();
 };
-
-inline bool operator<(const QCollatorSortKey &lhs, const QCollatorSortKey &rhs)
-{
-    return lhs.compare(rhs) < 0;
-}
 
 class Q_CORE_EXPORT QCollator
 {
@@ -88,11 +84,10 @@ public:
     QCollator &operator=(const QCollator &);
     QCollator(QCollator &&other) noexcept
         : d(other.d) { other.d = nullptr; }
-    QCollator &operator=(QCollator &&other) noexcept
-    { swap(other); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QCollator)
 
     void swap(QCollator &other) noexcept
-    { qSwap(d, other.d); }
+    { qt_ptr_swap(d, other.d); }
 
     void setLocale(const QLocale &locale);
     QLocale locale() const;
@@ -107,9 +102,10 @@ public:
     bool ignorePunctuation() const;
 
 #if QT_STRINGVIEW_LEVEL < 2
-    int compare(const QString &s1, const QString &s2) const;
-    int compare(const QStringRef &s1, const QStringRef &s2) const;
-    int compare(const QChar *s1, int len1, const QChar *s2, int len2) const;
+    int compare(const QString &s1, const QString &s2) const
+    { return compare(QStringView(s1), QStringView(s2)); }
+    int compare(const QChar *s1, int len1, const QChar *s2, int len2) const
+    { return compare(QStringView(s1, len1), QStringView(s2, len2)); }
 
     bool operator()(const QString &s1, const QString &s2) const
     { return compare(s1, s2) < 0; }
@@ -120,6 +116,9 @@ public:
     { return compare(s1, s2) < 0; }
 
     QCollatorSortKey sortKey(const QString &string) const;
+
+    static int defaultCompare(QStringView s1, QStringView s2);
+    static QCollatorSortKey defaultSortKey(QStringView key);
 
 private:
     QCollatorPrivate *d;

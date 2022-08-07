@@ -52,7 +52,8 @@ class QItemSelection;
 class Q_CORE_EXPORT QAbstractProxyModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(QAbstractItemModel* sourceModel READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+    Q_PROPERTY(QAbstractItemModel *sourceModel READ sourceModel WRITE setSourceModel
+               NOTIFY sourceModelChanged BINDABLE bindableSourceModel)
 
 public:
     explicit QAbstractProxyModel(QObject *parent = nullptr);
@@ -60,6 +61,7 @@ public:
 
     virtual void setSourceModel(QAbstractItemModel *sourceModel);
     QAbstractItemModel *sourceModel() const;
+    QBindable<QAbstractItemModel *> bindableSourceModel();
 
     Q_INVOKABLE virtual QModelIndex mapToSource(const QModelIndex &proxyIndex) const = 0;
     Q_INVOKABLE virtual QModelIndex mapFromSource(const QModelIndex &sourceIndex) const = 0;
@@ -78,9 +80,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
     bool setItemData(const QModelIndex& index, const QMap<int, QVariant> &roles) override;
     bool setHeaderData(int section, Qt::Orientation orientation, const QVariant &value, int role = Qt::EditRole) override;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     bool clearItemData(const QModelIndex &index) override;
-#endif
 
     QModelIndex buddy(const QModelIndex &index) const override;
     bool canFetchMore(const QModelIndex &parent) const override;
@@ -98,14 +98,13 @@ public:
     QStringList mimeTypes() const override;
     Qt::DropActions supportedDragActions() const override;
     Qt::DropActions supportedDropActions() const override;
+    QHash<int, QByteArray> roleNames() const override;
 
 Q_SIGNALS:
     void sourceModelChanged(QPrivateSignal);
 
-protected Q_SLOTS:
-    void resetInternalData();
-
 protected:
+    QModelIndex createSourceIndex(int row, int col, void *internalPtr) const;
     QAbstractProxyModel(QAbstractProxyModelPrivate &, QObject *parent);
 
 private:

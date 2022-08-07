@@ -61,16 +61,18 @@ namespace QtConcurrent {
     reserve and process at a time. This is done by measuring the time spent
     in the user code versus the control part code, and then increasing
     the block size if the ratio between them is to small. The block size
-    management is done on the basis of the median of several timing measuremens,
-    and it is done induvidualy for each thread.
+    management is done on the basis of the median of several timing measurements,
+    and it is done individually for each thread.
 */
 class Q_CONCURRENT_EXPORT BlockSizeManager
 {
 public:
-    BlockSizeManager(int iterationCount);
+    explicit BlockSizeManager(QThreadPool *pool, int iterationCount);
+
     void timeBeforeUser();
     void timeAfterUser();
     int blockSize();
+
 private:
     inline bool blockSizeMaxed()
     {
@@ -80,60 +82,33 @@ private:
     const int maxBlockSize;
     qint64 beforeUser;
     qint64 afterUser;
-    Median<double> controlPartElapsed;
-    Median<double> userPartElapsed;
+    Median controlPartElapsed;
+    Median userPartElapsed;
     int m_blockSize;
 
     Q_DISABLE_COPY(BlockSizeManager)
-};
-
-// ### Qt6: Replace BlockSizeManager with V2 implementation
-class Q_CONCURRENT_EXPORT BlockSizeManagerV2
-{
-public:
-    explicit BlockSizeManagerV2(int iterationCount);
-
-    void timeBeforeUser();
-    void timeAfterUser();
-    int blockSize();
-
-private:
-    inline bool blockSizeMaxed()
-    {
-        return (m_blockSize >= maxBlockSize);
-    }
-
-    const int maxBlockSize;
-    qint64 beforeUser;
-    qint64 afterUser;
-    MedianDouble controlPartElapsed;
-    MedianDouble userPartElapsed;
-    int m_blockSize;
-
-    Q_DISABLE_COPY(BlockSizeManagerV2)
 };
 
 template <typename T>
 class ResultReporter
 {
 public:
-    ResultReporter(ThreadEngine<T> *_threadEngine)
-    :threadEngine(_threadEngine)
+    ResultReporter(ThreadEngine<T> *_threadEngine, T &_defaultValue)
+        : threadEngine(_threadEngine), defaultValue(_defaultValue)
     {
-
     }
 
     void reserveSpace(int resultCount)
     {
         currentResultCount = resultCount;
-        vector.resize(qMax(resultCount, vector.count()));
+        resizeList(qMax(resultCount, vector.count()));
     }
 
     void reportResults(int begin)
     {
         const int useVectorThreshold = 4; // Tunable parameter.
         if (currentResultCount > useVectorThreshold) {
-            vector.resize(currentResultCount);
+            resizeList(currentResultCount);
             threadEngine->reportResults(vector, begin);
         } else {
             for (int i = 0; i < currentResultCount; ++i)
@@ -148,7 +123,18 @@ public:
 
     int currentResultCount;
     ThreadEngine<T> *threadEngine;
-    QVector<T> vector;
+    QList<T> vector;
+
+private:
+    void resizeList(qsizetype size)
+    {
+        if constexpr (std::is_default_constructible_v<T>)
+            vector.resize(size);
+        else
+            vector.resize(size, defaultValue);
+    }
+
+    T &defaultValue;
 };
 
 template <>
@@ -159,6 +145,22 @@ public:
     inline void reserveSpace(int) { }
     inline void reportResults(int) { }
     inline void * getPointer() { return nullptr; }
+};
+
+template<typename T>
+struct DefaultValueContainer
+{
+    template<typename U = T>
+    DefaultValueContainer(U &&_value) : value(std::forward<U>(_value))
+    {
+    }
+
+    T value;
+};
+
+template<>
+struct DefaultValueContainer<void>
+{
 };
 
 inline bool selectIteration(std::bidirectional_iterator_tag)
@@ -179,22 +181,53 @@ inline bool selectIteration(std::random_access_iterator_tag)
 template <typename Iterator, typename T>
 class IterateKernel : public ThreadEngine<T>
 {
+    using IteratorCategory = typename std::iterator_traits<Iterator>::iterator_category;
+
 public:
     typedef T ResultType;
 
-    IterateKernel(Iterator _begin, Iterator _end)
-        : begin(_begin), end(_end), current(_begin), currentIndex(0),
-           forIteration(selectIteration(typename std::iterator_traits<Iterator>::iterator_category())), progressReportingEnabled(true)
+    template<typename U = T, std::enable_if_t<std::is_same_v<U, void>, bool> = true>
+    IterateKernel(QThreadPool *pool, Iterator _begin, Iterator _end)
+        : ThreadEngine<U>(pool),
+          begin(_begin),
+          end(_end),
+          current(_begin),
+          iterationCount(selectIteration(IteratorCategory()) ? std::distance(_begin, _end) : 0),
+          forIteration(selectIteration(IteratorCategory())),
+          progressReportingEnabled(true)
     {
-        iterationCount =  forIteration ? std::distance(_begin, _end) : 0;
+    }
+
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, void>, bool> = true>
+    IterateKernel(QThreadPool *pool, Iterator _begin, Iterator _end)
+        : ThreadEngine<U>(pool),
+          begin(_begin),
+          end(_end),
+          current(_begin),
+          iterationCount(selectIteration(IteratorCategory()) ? std::distance(_begin, _end) : 0),
+          forIteration(selectIteration(IteratorCategory())),
+          progressReportingEnabled(true),
+          defaultValue(U())
+    {
+    }
+
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, void>, bool> = true>
+    IterateKernel(QThreadPool *pool, Iterator _begin, Iterator _end, U &&_defaultValue)
+        : ThreadEngine<U>(pool),
+          begin(_begin),
+          end(_end),
+          current(_begin),
+          iterationCount(selectIteration(IteratorCategory()) ? std::distance(_begin, _end) : 0),
+          forIteration(selectIteration(IteratorCategory())),
+          progressReportingEnabled(true),
+          defaultValue(std::forward<U>(_defaultValue))
+    {
     }
 
     virtual ~IterateKernel() { }
 
-    virtual bool runIteration(Iterator it, int index , T *result)
-        { Q_UNUSED(it); Q_UNUSED(index); Q_UNUSED(result); return false; }
-    virtual bool runIterations(Iterator _begin, int beginIndex, int endIndex, T *results)
-        { Q_UNUSED(_begin); Q_UNUSED(beginIndex); Q_UNUSED(endIndex); Q_UNUSED(results); return false; }
+    virtual bool runIteration(Iterator, int , T *) { return false; }
+    virtual bool runIterations(Iterator, int, int, T *) { return false; }
 
     void start() override
     {
@@ -221,8 +254,8 @@ public:
 
     ThreadFunctionResult forThreadFunction()
     {
-        BlockSizeManagerV2 blockSizeManager(iterationCount);
-        ResultReporter<T> resultReporter(this);
+        BlockSizeManager blockSizeManager(ThreadEngineBase::threadPool, iterationCount);
+        ResultReporter<T> resultReporter = createResultsReporter();
 
         for(;;) {
             if (this->isCanceled())
@@ -275,7 +308,7 @@ public:
         if (iteratorThreads.testAndSetAcquire(0, 1) == false)
             return ThreadFinished;
 
-        ResultReporter<T> resultReporter(this);
+        ResultReporter<T> resultReporter = createResultsReporter();
         resultReporter.reserveSpace(1);
 
         while (current != end) {
@@ -306,18 +339,26 @@ public:
         return ThreadFinished;
     }
 
+private:
+    ResultReporter<T> createResultsReporter()
+    {
+        if constexpr (!std::is_same_v<T, void>)
+            return ResultReporter<T>(this, defaultValue.value);
+        else
+            return ResultReporter<T>(this);
+    }
 
 public:
     const Iterator begin;
     const Iterator end;
     Iterator current;
     QAtomicInt currentIndex;
-    bool forIteration;
     QAtomicInt iteratorThreads;
-    int iterationCount;
-
-    bool progressReportingEnabled;
     QAtomicInt completed;
+    const int iterationCount;
+    const bool forIteration;
+    bool progressReportingEnabled;
+    DefaultValueContainer<ResultType> defaultValue;
 };
 
 } // namespace QtConcurrent

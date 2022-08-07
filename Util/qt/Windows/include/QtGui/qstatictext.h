@@ -64,11 +64,11 @@ public:
     QStaticText();
     explicit QStaticText(const QString &text);
     QStaticText(const QStaticText &other);
-    QStaticText &operator=(QStaticText &&other) noexcept { swap(other); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QStaticText)
     QStaticText &operator=(const QStaticText &);
     ~QStaticText();
 
-    void swap(QStaticText &other) noexcept { qSwap(data, other.data); }
+    void swap(QStaticText &other) noexcept { data.swap(other.data); }
 
     void setText(const QString &text);
     QString text() const;

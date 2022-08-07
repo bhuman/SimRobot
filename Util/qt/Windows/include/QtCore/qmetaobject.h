@@ -46,24 +46,26 @@
 
 QT_BEGIN_NAMESPACE
 
-
-template <typename T> class QList;
+class QUntypedBindable;
 
 #define Q_METAMETHOD_INVOKE_MAX_ARGS 10
 
 class Q_CORE_EXPORT QMetaMethod
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaMethod() : mobj(nullptr), handle(0) {}
+    constexpr inline QMetaMethod() : mobj(nullptr), data({ nullptr }) {}
 
     QByteArray methodSignature() const;
     QByteArray name() const;
     const char *typeName() const;
     int returnType() const;
+    QMetaType returnMetaType() const;
     int parameterCount() const;
     int parameterType(int index) const;
+    QMetaType parameterMetaType(int index) const;
     void getParameterTypes(int *types) const;
     QList<QByteArray> parameterTypes() const;
+    QByteArray parameterTypeName(int index) const;
     QList<QByteArray> parameterNames() const;
     const char *tag() const;
     enum Access { Private, Protected, Public };
@@ -73,7 +75,9 @@ public:
     enum Attributes { Compatibility = 0x1, Cloned = 0x2, Scriptable = 0x4 };
     int attributes() const;
     int methodIndex() const;
+    int relativeMethodIndex() const;
     int revision() const;
+    bool isConst() const;
 
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }
 
@@ -171,41 +175,51 @@ public:
     static inline QMetaMethod fromSignal(PointerToMemberFunction signal)
     {
         typedef QtPrivate::FunctionPointer<PointerToMemberFunction> SignalType;
-        Q_STATIC_ASSERT_X(QtPrivate::HasQ_OBJECT_Macro<typename SignalType::Object>::Value,
-                          "No Q_OBJECT in the class with the signal");
+        static_assert(QtPrivate::HasQ_OBJECT_Macro<typename SignalType::Object>::Value,
+                      "No Q_OBJECT in the class with the signal");
         return fromSignalImpl(&SignalType::Object::staticMetaObject,
                               reinterpret_cast<void **>(&signal));
     }
 
 private:
-#if QT_DEPRECATED_SINCE(5,0)
-    // signature() has been renamed to methodSignature() in Qt 5.
-    // Warning, that function returns a QByteArray; check the life time if
-    // you convert to char*.
-    char *signature(struct renamedInQt5_warning_checkTheLifeTime * = nullptr) = delete;
-#endif
     static QMetaMethod fromSignalImpl(const QMetaObject *, void **);
+    static QMetaMethod fromRelativeMethodIndex(const QMetaObject *mobj, int index);
+    static QMetaMethod fromRelativeConstructorIndex(const QMetaObject *mobj, int index);
+
+    struct Data {
+        enum { Size = 6 };
+
+        uint name() const { return d[0]; }
+        uint argc() const { return d[1]; }
+        uint parameters() const { return d[2]; }
+        uint tag() const { return d[3]; }
+        uint flags() const { return d[4]; }
+        uint metaTypeOffset() const { return d[5]; }
+        bool operator==(const Data &other) const { return d == other.d; }
+
+        const uint *d;
+    };
+    constexpr QMetaMethod(const QMetaObject *metaObject, const Data &data_)
+        : mobj(metaObject), data(data_)
+    {}
 
     const QMetaObject *mobj;
-    uint handle;
+    Data data;
     friend class QMetaMethodPrivate;
     friend struct QMetaObject;
     friend struct QMetaObjectPrivate;
     friend class QObject;
-    friend bool operator==(const QMetaMethod &m1, const QMetaMethod &m2);
-    friend bool operator!=(const QMetaMethod &m1, const QMetaMethod &m2);
+    friend bool operator==(const QMetaMethod &m1, const QMetaMethod &m2) noexcept
+    { return m1.data == m2.data; }
+    friend bool operator!=(const QMetaMethod &m1, const QMetaMethod &m2) noexcept
+    { return !(m1 == m2); }
 };
-Q_DECLARE_TYPEINFO(QMetaMethod, Q_MOVABLE_TYPE);
-
-inline bool operator==(const QMetaMethod &m1, const QMetaMethod &m2)
-{ return m1.mobj == m2.mobj && m1.handle == m2.handle; }
-inline bool operator!=(const QMetaMethod &m1, const QMetaMethod &m2)
-{ return !(m1 == m2); }
+Q_DECLARE_TYPEINFO(QMetaMethod, Q_RELOCATABLE_TYPE);
 
 class Q_CORE_EXPORT QMetaEnum
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaEnum() : mobj(nullptr), handle(0) {}
+    constexpr inline QMetaEnum() : mobj(nullptr), data({ nullptr }) {}
 
     const char *name() const;
     const char *enumName() const;
@@ -219,55 +233,78 @@ public:
     const char *scope() const;
 
     int keyToValue(const char *key, bool *ok = nullptr) const;
-    const char* valueToKey(int value) const;
-    int keysToValue(const char * keys, bool *ok = nullptr) const;
+    const char *valueToKey(int value) const;
+    int keysToValue(const char *keys, bool *ok = nullptr) const;
     QByteArray valueToKeys(int value) const;
 
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }
 
     inline bool isValid() const { return name() != nullptr; }
 
-    template<typename T> static QMetaEnum fromType() {
-        Q_STATIC_ASSERT_X(QtPrivate::IsQEnumHelper<T>::Value,
-                          "QMetaEnum::fromType only works with enums declared as "
-                          "Q_ENUM, Q_ENUM_NS, Q_FLAG or Q_FLAG_NS");
+    template<typename T>
+    static QMetaEnum fromType()
+    {
+        static_assert(QtPrivate::IsQEnumHelper<T>::Value,
+                      "QMetaEnum::fromType only works with enums declared as "
+                      "Q_ENUM, Q_ENUM_NS, Q_FLAG or Q_FLAG_NS");
         const QMetaObject *metaObject = qt_getEnumMetaObject(T());
         const char *name = qt_getEnumName(T());
         return metaObject->enumerator(metaObject->indexOfEnumerator(name));
     }
 
 private:
+    struct Data {
+        enum { Size = 5 };
+        quint32 name() const { return d[0]; }
+        quint32 alias() const { return d[1]; }
+        quint32 flags() const { return d[2]; }
+        qint32 keyCount() const { return static_cast<qint32>(d[3]); }
+        quint32 data() const { return d[4]; }
+
+        const uint *d;
+    };
+
+    QMetaEnum(const QMetaObject *mobj, int index);
+
     const QMetaObject *mobj;
-    uint handle;
+    Data data;
     friend struct QMetaObject;
+    friend struct QMetaObjectPrivate;
 };
-Q_DECLARE_TYPEINFO(QMetaEnum, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(QMetaEnum, Q_RELOCATABLE_TYPE);
 
 class Q_CORE_EXPORT QMetaProperty
 {
 public:
-    QMetaProperty();
+    constexpr QMetaProperty() : mobj(nullptr), data({ nullptr }) {}
 
     const char *name() const;
     const char *typeName() const;
-    QVariant::Type type() const;
-    int userType() const;
+#if QT_DEPRECATED_SINCE(6, 0)
+    QT_WARNING_PUSH
+    QT_WARNING_DISABLE_DEPRECATED
+    QT_DEPRECATED_VERSION_6_0
+    QVariant::Type type() const
+    { int t = userType(); return t >= QMetaType::User ? QVariant::UserType : QVariant::Type(t); }
+    QT_WARNING_POP
+#endif
+    int userType() const { return typeId(); }
+    int typeId() const { return metaType().id(); }
+    QMetaType metaType() const;
     int propertyIndex() const;
     int relativePropertyIndex() const;
 
     bool isReadable() const;
     bool isWritable() const;
     bool isResettable() const;
-    bool isDesignable(const QObject *obj = nullptr) const;
-    bool isScriptable(const QObject *obj = nullptr) const;
-    bool isStored(const QObject *obj = nullptr) const;
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_VERSION_5_15 bool isEditable(const QObject *obj = nullptr) const;
-#endif
-    bool isUser(const QObject *obj = nullptr) const;
+    bool isDesignable() const;
+    bool isScriptable() const;
+    bool isStored() const;
+    bool isUser() const;
     bool isConstant() const;
     bool isFinal() const;
     bool isRequired() const;
+    bool isBindable() const;
 
     bool isFlagType() const;
     bool isEnumType() const;
@@ -283,20 +320,39 @@ public:
     bool write(QObject *obj, const QVariant &value) const;
     bool reset(QObject *obj) const;
 
+    QUntypedBindable bindable(QObject *object) const;
+
     QVariant readOnGadget(const void *gadget) const;
     bool writeOnGadget(void *gadget, const QVariant &value) const;
     bool resetOnGadget(void *gadget) const;
 
     bool hasStdCppSet() const;
+    bool isAlias() const;
     inline bool isValid() const { return isReadable(); }
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }
 
 private:
     int registerPropertyType() const;
 
+    struct Data {
+        enum { Size = 5 };
+
+        uint name() const { return d[0]; }
+        uint type() const { return d[1]; }
+        uint flags() const { return d[2]; }
+        uint notifyIndex() const { return d[3]; }
+        uint revision() const { return d[4]; }
+
+        int index(const QMetaObject *mobj) const;
+
+        const uint *d;
+    };
+
+    QMetaProperty(const QMetaObject *mobj, int index);
+    static Data getMetaPropertyData(const QMetaObject *mobj, int index);
+
     const QMetaObject *mobj;
-    uint handle;
-    int idx;
+    Data data;
     QMetaEnum menum;
     friend struct QMetaObject;
     friend struct QMetaObjectPrivate;
@@ -305,16 +361,26 @@ private:
 class Q_CORE_EXPORT QMetaClassInfo
 {
 public:
-    Q_DECL_CONSTEXPR inline QMetaClassInfo() : mobj(nullptr), handle(0) {}
+    constexpr inline QMetaClassInfo() : mobj(nullptr), data({ nullptr }) {}
     const char *name() const;
     const char *value() const;
     inline const QMetaObject *enclosingMetaObject() const { return mobj; }
+
 private:
+    struct Data {
+        enum { Size = 2 };
+
+        uint name() const { return d[0]; }
+        uint value() const { return d[1]; }
+
+        const uint *d;
+    };
+
     const QMetaObject *mobj;
-    uint handle;
+    Data data;
     friend struct QMetaObject;
 };
-Q_DECLARE_TYPEINFO(QMetaClassInfo, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(QMetaClassInfo, Q_RELOCATABLE_TYPE);
 
 QT_END_NAMESPACE
 

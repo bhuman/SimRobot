@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtWidgets module of the Qt Toolkit.
@@ -47,7 +47,7 @@
 #include <QtWidgets/qabstractspinbox.h>
 #endif
 #include <QtGui/qicon.h>
-#include <QtGui/qmatrix.h>
+#include <QtGui/qtransform.h>
 #if QT_CONFIG(slider)
 #include <QtWidgets/qslider.h>
 #endif
@@ -103,8 +103,7 @@ public:
     QStyleOption(const QStyleOption &other);
     ~QStyleOption();
 
-    void init(const QWidget *w);
-    inline void initFrom(const QWidget *w) { init(w); }
+    void initFrom(const QWidget *w);
     QStyleOption &operator=(const QStyleOption &other);
 };
 
@@ -128,7 +127,7 @@ class Q_WIDGETS_EXPORT QStyleOptionFrame : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_Frame };
-    enum StyleOptionVersion { Version = 3 };
+    enum StyleOptionVersion { Version = 1 };
 
     int lineWidth;
     int midLineWidth;
@@ -151,15 +150,12 @@ protected:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionFrame::FrameFeatures)
 
-typedef Q_DECL_DEPRECATED QStyleOptionFrame QStyleOptionFrameV2;
-typedef Q_DECL_DEPRECATED QStyleOptionFrame QStyleOptionFrameV3;
-
 #if QT_CONFIG(tabwidget)
 class Q_WIDGETS_EXPORT QStyleOptionTabWidgetFrame : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_TabWidgetFrame };
-    enum StyleOptionVersion { Version = 2 };
+    enum StyleOptionVersion { Version = 1 };
 
     int lineWidth;
     int midLineWidth;
@@ -179,7 +175,6 @@ protected:
     QStyleOptionTabWidgetFrame(int version);
 };
 
-typedef Q_DECL_DEPRECATED QStyleOptionTabWidgetFrame QStyleOptionTabWidgetFrameV2;
 #endif // QT_CONFIG(tabwidget)
 
 
@@ -188,7 +183,7 @@ class Q_WIDGETS_EXPORT QStyleOptionTabBarBase : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_TabBarBase };
-    enum StyleOptionVersion { Version = 2 };
+    enum StyleOptionVersion { Version = 1 };
 
     QTabBar::Shape shape;
     QRect tabBarRect;
@@ -203,7 +198,6 @@ protected:
     QStyleOptionTabBarBase(int version);
 };
 
-typedef Q_DECL_DEPRECATED QStyleOptionTabBarBase QStyleOptionTabBarBaseV2;
 #endif // QT_CONFIG(tabbar)
 
 class Q_WIDGETS_EXPORT QStyleOptionHeader : public QStyleOption
@@ -233,6 +227,24 @@ public:
 
 protected:
     QStyleOptionHeader(int version);
+};
+
+class Q_WIDGETS_EXPORT QStyleOptionHeaderV2 : public QStyleOptionHeader
+{
+public:
+    enum StyleOptionType { Type = SO_Header };
+    enum StyleOptionVersion { Version = 2 };
+
+    QStyleOptionHeaderV2();
+    QStyleOptionHeaderV2(const QStyleOptionHeaderV2 &other) : QStyleOptionHeader(Version) { *this = other; }
+    QStyleOptionHeaderV2 &operator=(const QStyleOptionHeaderV2 &) = default;
+
+    Qt::TextElideMode textElideMode:2;
+    bool isSectionDragTarget:1;
+    int unused:29;
+
+protected:
+    QStyleOptionHeaderV2(int version);
 };
 
 class Q_WIDGETS_EXPORT QStyleOptionButton : public QStyleOption
@@ -265,7 +277,7 @@ class Q_WIDGETS_EXPORT QStyleOptionTab : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_Tab };
-    enum StyleOptionVersion { Version = 3 };
+    enum StyleOptionVersion { Version = 1 };
 
     enum TabPosition { Beginning, Middle, End, OnlyOneTab };
     enum SelectedPosition { NotAdjacent, NextIsSelected, PreviousIsSelected };
@@ -287,6 +299,7 @@ public:
     QSize leftButtonSize;
     QSize rightButtonSize;
     TabFeatures features;
+    int tabIndex = -1;
 
     QStyleOptionTab();
     QStyleOptionTab(const QStyleOptionTab &other) : QStyleOption(Version, Type) { *this = other; }
@@ -296,18 +309,8 @@ protected:
     QStyleOptionTab(int version);
 };
 
-class Q_WIDGETS_EXPORT QStyleOptionTabV4 : public QStyleOptionTab
-{
-public:
-    enum StyleOptionVersion { Version = 4 };
-    QStyleOptionTabV4();
-    int tabIndex = -1;
-};
-
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionTab::CornerWidgets)
 
-typedef Q_DECL_DEPRECATED QStyleOptionTab QStyleOptionTabV2;
-typedef Q_DECL_DEPRECATED QStyleOptionTab QStyleOptionTabV3;
 #endif // QT_CONFIG(tabbar)
 
 
@@ -343,7 +346,7 @@ class Q_WIDGETS_EXPORT QStyleOptionProgressBar : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_ProgressBar };
-    enum StyleOptionVersion { Version = 2 };
+    enum StyleOptionVersion { Version = 1 };
 
     int minimum;
     int maximum;
@@ -351,7 +354,6 @@ public:
     QString text;
     Qt::Alignment textAlignment;
     bool textVisible;
-    Qt::Orientation orientation; // ### Qt 6: remove
     bool invertedAppearance;
     bool bottomToTop;
 
@@ -362,8 +364,6 @@ public:
 protected:
     QStyleOptionProgressBar(int version);
 };
-
-typedef Q_DECL_DEPRECATED QStyleOptionProgressBar QStyleOptionProgressBarV2;
 
 class Q_WIDGETS_EXPORT QStyleOptionMenuItem : public QStyleOption
 {
@@ -383,7 +383,7 @@ public:
     QString text;
     QIcon icon;
     int maxIconWidth;
-    int tabWidth; // ### Qt 6: rename to reservedShortcutWidth
+    int reservedShortcutWidth;
     QFont font;
 
     QStyleOptionMenuItem();
@@ -398,7 +398,7 @@ class Q_WIDGETS_EXPORT QStyleOptionDockWidget : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_DockWidget };
-    enum StyleOptionVersion { Version = 2 };
+    enum StyleOptionVersion { Version = 1 };
 
     QString title;
     bool closable;
@@ -414,15 +414,13 @@ protected:
     QStyleOptionDockWidget(int version);
 };
 
-typedef Q_DECL_DEPRECATED QStyleOptionDockWidget QStyleOptionDockWidgetV2;
-
 #if QT_CONFIG(itemviews)
 
 class Q_WIDGETS_EXPORT QStyleOptionViewItem : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_ViewItem };
-    enum StyleOptionVersion { Version = 4 };
+    enum StyleOptionVersion { Version = 1 };
 
     enum Position { Left, Right, Top, Bottom };
 
@@ -468,17 +466,13 @@ protected:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionViewItem::ViewItemFeatures)
 
-typedef Q_DECL_DEPRECATED QStyleOptionViewItem QStyleOptionViewItemV2;
-typedef Q_DECL_DEPRECATED QStyleOptionViewItem QStyleOptionViewItemV3;
-typedef Q_DECL_DEPRECATED QStyleOptionViewItem QStyleOptionViewItemV4;
-
 #endif // QT_CONFIG(itemviews)
 
 class Q_WIDGETS_EXPORT QStyleOptionToolBox : public QStyleOption
 {
 public:
     enum StyleOptionType { Type = SO_ToolBox };
-    enum StyleOptionVersion { Version = 2 };
+    enum StyleOptionVersion { Version = 1 };
 
     QString text;
     QIcon icon;
@@ -496,8 +490,6 @@ public:
 protected:
     QStyleOptionToolBox(int version);
 };
-
-typedef Q_DECL_DEPRECATED QStyleOptionToolBox QStyleOptionToolBoxV2;
 
 #if QT_CONFIG(rubberband)
 class Q_WIDGETS_EXPORT QStyleOptionRubberBand : public QStyleOption
@@ -552,6 +544,7 @@ public:
     int pageStep;
     qreal notchTarget;
     bool dialWrapping;
+    Qt::KeyboardModifiers keyboardModifiers;
 
     QStyleOptionSlider();
     QStyleOptionSlider(const QStyleOptionSlider &other) : QStyleOptionComplex(Version, Type) { *this = other; }
@@ -623,6 +616,7 @@ public:
     QString currentText;
     QIcon currentIcon;
     QSize iconSize;
+    Qt::Alignment textAlignment = Qt::AlignLeft | Qt::AlignVCenter;
 
     QStyleOptionComboBox();
     QStyleOptionComboBox(const QStyleOptionComboBox &other) : QStyleOptionComplex(Version, Type) { *this = other; }
@@ -693,8 +687,6 @@ public:
     enum StyleOptionVersion { Version = 1 };
 
     QRectF exposedRect;
-    QMatrix matrix;
-    qreal levelOfDetail;
 
     QStyleOptionGraphicsItem();
     QStyleOptionGraphicsItem(const QStyleOptionGraphicsItem &other) : QStyleOption(Version, Type) { *this = other; }

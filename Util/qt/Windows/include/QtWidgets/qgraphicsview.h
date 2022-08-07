@@ -68,13 +68,17 @@ class Q_WIDGETS_EXPORT QGraphicsView : public QAbstractScrollArea
     Q_PROPERTY(QPainter::RenderHints renderHints READ renderHints WRITE setRenderHints)
     Q_PROPERTY(DragMode dragMode READ dragMode WRITE setDragMode)
     Q_PROPERTY(CacheMode cacheMode READ cacheMode WRITE setCacheMode)
-    Q_PROPERTY(ViewportAnchor transformationAnchor READ transformationAnchor WRITE setTransformationAnchor)
+    Q_PROPERTY(ViewportAnchor transformationAnchor READ transformationAnchor
+               WRITE setTransformationAnchor)
     Q_PROPERTY(ViewportAnchor resizeAnchor READ resizeAnchor WRITE setResizeAnchor)
-    Q_PROPERTY(ViewportUpdateMode viewportUpdateMode READ viewportUpdateMode WRITE setViewportUpdateMode)
+    Q_PROPERTY(ViewportUpdateMode viewportUpdateMode READ viewportUpdateMode
+               WRITE setViewportUpdateMode)
 #if QT_CONFIG(rubberband)
-    Q_PROPERTY(Qt::ItemSelectionMode rubberBandSelectionMode READ rubberBandSelectionMode WRITE setRubberBandSelectionMode)
+    Q_PROPERTY(Qt::ItemSelectionMode rubberBandSelectionMode READ rubberBandSelectionMode
+               WRITE setRubberBandSelectionMode)
 #endif
-    Q_PROPERTY(OptimizationFlags optimizationFlags READ optimizationFlags WRITE setOptimizationFlags)
+    Q_PROPERTY(OptimizationFlags optimizationFlags READ optimizationFlags
+               WRITE setOptimizationFlags)
 
 public:
     enum ViewportAnchor {
@@ -107,12 +111,9 @@ public:
     Q_ENUM(ViewportUpdateMode)
 
     enum OptimizationFlag {
-#if QT_DEPRECATED_SINCE(5, 14)
-        DontClipPainter Q_DECL_ENUMERATOR_DEPRECATED_X("This flag is unused") = 0x1, // obsolete
-#endif
-        DontSavePainterState = 0x2,
-        DontAdjustForAntialiasing = 0x4,
-        IndirectPainting = 0x8
+        DontSavePainterState = 0x1,
+        DontAdjustForAntialiasing = 0x2,
+        IndirectPainting = 0x4
     };
     Q_DECLARE_FLAGS(OptimizationFlags, OptimizationFlag)
 
@@ -165,11 +166,6 @@ public:
     void setSceneRect(const QRectF &rect);
     inline void setSceneRect(qreal x, qreal y, qreal w, qreal h);
 
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_X("Use transform()") QMatrix matrix() const;
-    QT_DEPRECATED_X("Use setTransform()") void setMatrix(const QMatrix &matrix, bool combine = false);
-    QT_DEPRECATED_X("Use resetTransform()") void resetMatrix();
-#endif // QT_DEPRECATED_SINCE(5, 15)
     QTransform transform() const;
     QTransform viewportTransform() const;
     bool isTransformed() const;

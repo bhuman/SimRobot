@@ -112,14 +112,15 @@ protected:
     void paintEvent(QPaintEvent *) override;
     void actionEvent(QActionEvent *) override;
 
-    void enterEvent(QEvent *) override;
+    void enterEvent(QEnterEvent *) override;
     void leaveEvent(QEvent *) override;
     void timerEvent(QTimerEvent *) override;
     void changeEvent(QEvent *) override;
 
     bool hitButton(const QPoint &pos) const override;
+    void checkStateSet() override;
     void nextCheckState() override;
-    void initStyleOption(QStyleOptionToolButton *option) const;
+    virtual void initStyleOption(QStyleOptionToolButton *option) const;
 
 private:
     Q_DISABLE_COPY(QToolButton)

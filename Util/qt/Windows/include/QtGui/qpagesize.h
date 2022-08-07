@@ -58,12 +58,8 @@ class Q_GUI_EXPORT QPageSize
 {
 public:
 
-    // ### Qt6 Re-order and remove duplicates
-    // NOTE: Must keep in sync with QPagedPrintEngine and QPrinter
     enum PageSizeId {
-        // Existing Qt sizes
-        A4,
-        B5,
+        // Old Qt sizes
         Letter,
         Legal,
         Executive,
@@ -71,21 +67,24 @@ public:
         A1,
         A2,
         A3,
+        A4,
         A5,
         A6,
         A7,
         A8,
         A9,
+        A10,
         B0,
         B1,
-        B10,
         B2,
         B3,
         B4,
+        B5,
         B6,
         B7,
         B8,
         B9,
+        B10,
         C5E,
         Comm10E,
         DLE,
@@ -95,7 +94,6 @@ public:
         Custom,
 
         // New values derived from PPD standard
-        A10,
         A3Extra,
         A4Extra,
         A4Plus,
@@ -198,10 +196,8 @@ public:
         EnvelopePrc10,
         EnvelopeYou4,
 
-        // Last item, with commonly used synynoms from QPagedPrintEngine / QPrinter
+        // Last item
         LastPageSize = EnvelopeYou4,
-        NPageSize = LastPageSize,
-        NPaperSize = LastPageSize,
 
         // Convenience overloads for naming consistency
         AnsiA = Letter,
@@ -228,7 +224,7 @@ public:
     };
 
     QPageSize();
-    explicit QPageSize(PageSizeId pageSizeId);
+    Q_IMPLICIT QPageSize(PageSizeId pageSizeId);
     explicit QPageSize(const QSize &pointSize,
                        const QString &name = QString(),
                        SizeMatchPolicy matchPolicy = FuzzyMatch);
@@ -236,12 +232,12 @@ public:
                        const QString &name = QString(),
                        SizeMatchPolicy matchPolicy = FuzzyMatch);
     QPageSize(const QPageSize &other);
-    QPageSize &operator=(QPageSize &&other) noexcept { swap(other); return *this; }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QPageSize)
     QPageSize &operator=(const QPageSize &other);
     ~QPageSize();
 
 
-    void swap(QPageSize &other) noexcept { qSwap(d, other.d); }
+    void swap(QPageSize &other) noexcept { d.swap(other.d); }
 
     friend Q_GUI_EXPORT bool operator==(const QPageSize &lhs, const QPageSize &rhs);
     bool isEquivalentTo(const QPageSize &other) const;
@@ -287,6 +283,13 @@ public:
 private:
     friend class QPageSizePrivate;
     friend class QPlatformPrintDevice;
+
+    bool equals(const QPageSize &other) const;
+    friend inline bool operator==(const QPageSize &lhs, const QPageSize &rhs)
+    { return lhs.equals(rhs); }
+    friend inline bool operator!=(const QPageSize &lhs, const QPageSize &rhs)
+    { return !(lhs == rhs); }
+
     QPageSize(const QString &key, const QSize &pointSize, const QString &name);
     QPageSize(int windowsId, const QSize &pointSize, const QString &name);
     QPageSize(QPageSizePrivate &dd);
@@ -294,10 +297,6 @@ private:
 };
 
 Q_DECLARE_SHARED(QPageSize)
-
-Q_GUI_EXPORT bool operator==(const QPageSize &lhs, const QPageSize &rhs);
-inline bool operator!=(const QPageSize &lhs, const QPageSize &rhs)
-{ return !operator==(lhs, rhs); }
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_GUI_EXPORT QDebug operator<<(QDebug dbg, const QPageSize &pageSize);

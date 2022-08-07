@@ -49,13 +49,7 @@
 QT_BEGIN_NAMESPACE
 
 template <typename F>
-class
-#if __has_cpp_attribute(nodiscard)
-// Q_REQUIRED_RESULT can be defined as __warn_unused_result__ or as [[nodiscard]]
-// but the 1st one has some limitations for example can be placed only on functions.
-Q_REQUIRED_RESULT
-#endif
-QScopeGuard
+class [[nodiscard]] QScopeGuard
 {
 public:
     explicit QScopeGuard(F &&f) noexcept
@@ -92,16 +86,11 @@ private:
     bool m_invoke = true;
 };
 
-#ifdef __cpp_deduction_guides
 template <typename F> QScopeGuard(F(&)()) -> QScopeGuard<F(*)()>;
-#endif
 
 //! [qScopeGuard]
 template <typename F>
-#if __has_cpp_attribute(nodiscard)
-Q_REQUIRED_RESULT
-#endif
-QScopeGuard<typename std::decay<F>::type> qScopeGuard(F &&f)
+[[nodiscard]] QScopeGuard<typename std::decay<F>::type> qScopeGuard(F &&f)
 {
     return QScopeGuard<typename std::decay<F>::type>(std::forward<F>(f));
 }

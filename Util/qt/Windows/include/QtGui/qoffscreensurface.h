@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
@@ -42,7 +42,9 @@
 
 #include <QtGui/qtguiglobal.h>
 #include <QtCore/QObject>
+#include <QtCore/qnativeinterface.h>
 #include <QtGui/qsurface.h>
+Q_MOC_INCLUDE(<QScreen>)
 
 QT_BEGIN_NAMESPACE
 
@@ -57,9 +59,7 @@ class Q_GUI_EXPORT QOffscreenSurface : public QObject, public QSurface
     Q_DECLARE_PRIVATE(QOffscreenSurface)
 
 public:
-    // ### Qt 6: merge overloads
-    explicit QOffscreenSurface(QScreen *screen, QObject *parent);
-    explicit QOffscreenSurface(QScreen *screen = nullptr);
+    explicit QOffscreenSurface(QScreen *screen = nullptr, QObject *parent = nullptr);
     ~QOffscreenSurface();
 
     SurfaceType surfaceType() const override;
@@ -80,8 +80,7 @@ public:
 
     QPlatformOffscreenSurface *handle() const;
 
-    void *nativeHandle() const;
-    void setNativeHandle(void *handle);
+    QT_DECLARE_NATIVE_INTERFACE_ACCESSOR(QOffscreenSurface)
 
 Q_SIGNALS:
     void screenChanged(QScreen *screen);
@@ -97,5 +96,7 @@ private:
 };
 
 QT_END_NAMESPACE
+
+#include <QtGui/qoffscreensurface_platform.h>
 
 #endif // QOFFSCREENSURFACE_H

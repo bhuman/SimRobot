@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
@@ -41,6 +41,7 @@
 #define QIODEVICE_H
 
 #include <QtCore/qglobal.h>
+#include <QtCore/qiodevicebase.h>
 #ifndef QT_NO_QOBJECT
 #include <QtCore/qobject.h>
 #else
@@ -61,34 +62,23 @@ class QIODevicePrivate;
 
 class Q_CORE_EXPORT QIODevice
 #ifndef QT_NO_QOBJECT
-    : public QObject
+    : public QObject,
+#else
+    :
 #endif
+      public QIODeviceBase
 {
 #ifndef QT_NO_QOBJECT
     Q_OBJECT
 #endif
 public:
-    enum OpenModeFlag {
-        NotOpen = 0x0000,
-        ReadOnly = 0x0001,
-        WriteOnly = 0x0002,
-        ReadWrite = ReadOnly | WriteOnly,
-        Append = 0x0004,
-        Truncate = 0x0008,
-        Text = 0x0010,
-        Unbuffered = 0x0020,
-        NewOnly = 0x0040,
-        ExistingOnly = 0x0080
-    };
-    Q_DECLARE_FLAGS(OpenMode, OpenModeFlag)
-
     QIODevice();
 #ifndef QT_NO_QOBJECT
     explicit QIODevice(QObject *parent);
 #endif
     virtual ~QIODevice();
 
-    OpenMode openMode() const;
+    QIODeviceBase::OpenMode openMode() const;
 
     void setTextModeEnabled(bool enabled);
     bool isTextModeEnabled() const;
@@ -105,10 +95,10 @@ public:
     int currentWriteChannel() const;
     void setCurrentWriteChannel(int channel);
 
-    virtual bool open(OpenMode mode);
+    virtual bool open(QIODeviceBase::OpenMode mode);
     virtual void close();
 
-    // ### Qt 6: pos() and seek() should not be virtual, and
+    // ### Qt 7 - QTBUG-76492: pos() and seek() should not be virtual, and
     // ### seek() should call a virtual seekData() function.
     virtual qint64 pos() const;
     virtual qint64 size() const;
@@ -133,8 +123,7 @@ public:
 
     qint64 write(const char *data, qint64 len);
     qint64 write(const char *data);
-    inline qint64 write(const QByteArray &data)
-    { return write(data.constData(), data.size()); }
+    qint64 write(const QByteArray &data);
 
     qint64 peek(char *data, qint64 maxlen);
     QByteArray peek(qint64 maxlen);
@@ -167,9 +156,10 @@ protected:
 #endif
     virtual qint64 readData(char *data, qint64 maxlen) = 0;
     virtual qint64 readLineData(char *data, qint64 maxlen);
+    virtual qint64 skipData(qint64 maxSize);
     virtual qint64 writeData(const char *data, qint64 len) = 0;
 
-    void setOpenMode(OpenMode openMode);
+    void setOpenMode(QIODeviceBase::OpenMode openMode);
 
     void setErrorString(const QString &errorString);
 

@@ -65,7 +65,8 @@ class Q_WIDGETS_EXPORT QGesture : public QObject
 
     Q_PROPERTY(Qt::GestureState state READ state)
     Q_PROPERTY(Qt::GestureType gestureType READ gestureType)
-    Q_PROPERTY(QGesture::GestureCancelPolicy gestureCancelPolicy READ gestureCancelPolicy WRITE setGestureCancelPolicy)
+    Q_PROPERTY(QGesture::GestureCancelPolicy gestureCancelPolicy READ gestureCancelPolicy
+               WRITE setGestureCancelPolicy)
     Q_PROPERTY(QPointF hotSpot READ hotSpot WRITE setHotSpot RESET unsetHotSpot)
     Q_PROPERTY(bool hasHotSpot READ hasHotSpot)
 
@@ -142,7 +143,7 @@ public:
         RotationAngleChanged = 0x2,
         CenterPointChanged = 0x4
     };
-    Q_FLAG(ChangeFlag)
+    Q_ENUM(ChangeFlag)
     Q_DECLARE_FLAGS(ChangeFlags, ChangeFlag)
     Q_FLAG(ChangeFlags)
 

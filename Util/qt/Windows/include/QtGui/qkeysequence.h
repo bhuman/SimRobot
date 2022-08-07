@@ -44,10 +44,9 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qobjectdefs.h>
 
+QT_REQUIRE_CONFIG(shortcut);
+
 QT_BEGIN_NAMESPACE
-
-
-#if !defined(QT_NO_SHORTCUT) || defined(Q_CLANG_QDOC)
 
 class QKeySequence;
 
@@ -66,7 +65,7 @@ void qt_set_sequence_auto_mnemonic(bool b);
 class QVariant;
 class QKeySequencePrivate;
 
-Q_GUI_EXPORT Q_DECL_PURE_FUNCTION uint qHash(const QKeySequence &key, uint seed = 0) noexcept;
+Q_GUI_EXPORT Q_DECL_PURE_FUNCTION size_t qHash(const QKeySequence &key, size_t seed = 0) noexcept;
 
 class Q_GUI_EXPORT QKeySequence
 {
@@ -156,6 +155,10 @@ public:
     QKeySequence();
     QKeySequence(const QString &key, SequenceFormat format = NativeText);
     QKeySequence(int k1, int k2 = 0, int k3 = 0, int k4 = 0);
+    QKeySequence(QKeyCombination k1,
+                 QKeyCombination k2 = QKeyCombination::fromCombined(0),
+                 QKeyCombination k3 = QKeyCombination::fromCombined(0),
+                 QKeyCombination k4 = QKeyCombination::fromCombined(0));
     QKeySequence(const QKeySequence &ks);
     QKeySequence(StandardKey key);
     ~QKeySequence();
@@ -179,15 +182,11 @@ public:
     static QKeySequence mnemonic(const QString &text);
     static QList<QKeySequence> keyBindings(StandardKey key);
 
-#if QT_DEPRECATED_SINCE(5, 0)
-    QT_DEPRECATED operator QString() const { return toString(QKeySequence::NativeText); }
-    QT_DEPRECATED operator int() const { if (1 <= count()) return operator [](0); return 0; }
-#endif
     operator QVariant() const;
-    int operator[](uint i) const;
+    QKeyCombination operator[](uint i) const;
     QKeySequence &operator=(const QKeySequence &other);
-    QKeySequence &operator=(QKeySequence &&other) noexcept { swap(other); return *this; }
-    void swap(QKeySequence &other) noexcept { qSwap(d, other.d); }
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QKeySequence)
+    void swap(QKeySequence &other) noexcept { qt_ptr_swap(d, other.d); }
 
     bool operator==(const QKeySequence &other) const;
     inline bool operator!= (const QKeySequence &other) const
@@ -206,13 +205,13 @@ private:
     static QString encodeString(int key);
     int assign(const QString &str);
     int assign(const QString &str, SequenceFormat format);
-    void setKey(int key, int index);
+    void setKey(QKeyCombination key, int index);
 
     QKeySequencePrivate *d;
 
     friend Q_GUI_EXPORT QDataStream &operator<<(QDataStream &in, const QKeySequence &ks);
     friend Q_GUI_EXPORT QDataStream &operator>>(QDataStream &in, QKeySequence &ks);
-    friend Q_GUI_EXPORT uint qHash(const QKeySequence &key, uint seed) noexcept;
+    friend Q_GUI_EXPORT size_t qHash(const QKeySequence &key, size_t seed) noexcept;
     friend class QShortcutMap;
     friend class QShortcut;
 
@@ -226,17 +225,6 @@ Q_DECLARE_SHARED(QKeySequence)
 #if !defined(QT_NO_DEBUG_STREAM) || defined(Q_CLANG_QDOC)
 Q_GUI_EXPORT QDebug operator<<(QDebug, const QKeySequence &);
 #endif
-
-#else
-
-class Q_GUI_EXPORT QKeySequence
-{
-public:
-    QKeySequence() {}
-    QKeySequence(int) {}
-};
-
-#endif // QT_NO_SHORTCUT
 
 QT_END_NAMESPACE
 

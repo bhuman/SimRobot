@@ -42,7 +42,9 @@
 
 #include <QtWidgets/qtwidgetsglobal.h>
 #include <QtGui/qicon.h>
-#include <QtGui/qkeysequence.h>
+#if QT_CONFIG(shortcut)
+#  include <QtGui/qkeysequence.h>
+#endif
 #include <QtWidgets/qwidget.h>
 
 QT_REQUIRE_CONFIG(abstractbutton);
@@ -114,7 +116,7 @@ public:
 
 public Q_SLOTS:
     void setIconSize(const QSize &size);
-    void animateClick(int msec = 100);
+    void animateClick();
     void click();
     void toggle();
     void setChecked(bool);

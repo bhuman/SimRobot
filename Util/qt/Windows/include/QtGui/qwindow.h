@@ -47,6 +47,7 @@
 #include <QtCore/QRect>
 
 #include <QtCore/qnamespace.h>
+#include <QtCore/qnativeinterface.h>
 
 #include <QtGui/qsurface.h>
 #include <QtGui/qsurfaceformat.h>
@@ -64,11 +65,13 @@ QT_BEGIN_NAMESPACE
 class QWindowPrivate;
 
 class QExposeEvent;
+class QPaintEvent;
 class QFocusEvent;
 class QMoveEvent;
 class QResizeEvent;
 class QShowEvent;
 class QHideEvent;
+class QCloseEvent;
 class QKeyEvent;
 class QMouseEvent;
 #if QT_CONFIG(wheelevent)
@@ -105,7 +108,7 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
 
     // Any new properties which you add here MUST be versioned and MUST be documented both as
     // C++ properties in qwindow.cpp AND as QML properties in qquickwindow.cpp.
-    // http://qt-project.org/doc/qt-5.0/qtqml/qtqml-cppintegration-definetypes.html#type-revisions-and-versions
+    // https://doc.qt.io/qt/qtqml-cppintegration-definetypes.html#type-revisions-and-versions
 
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY windowTitleChanged)
     Q_PROPERTY(Qt::WindowModality modality READ modality WRITE setModality NOTIFY modalityChanged)
@@ -115,15 +118,24 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(int minimumWidth READ minimumWidth WRITE setMinimumWidth NOTIFY minimumWidthChanged)
-    Q_PROPERTY(int minimumHeight READ minimumHeight WRITE setMinimumHeight NOTIFY minimumHeightChanged)
+    Q_PROPERTY(int minimumHeight READ minimumHeight WRITE setMinimumHeight
+               NOTIFY minimumHeightChanged)
     Q_PROPERTY(int maximumWidth READ maximumWidth WRITE setMaximumWidth NOTIFY maximumWidthChanged)
-    Q_PROPERTY(int maximumHeight READ maximumHeight WRITE setMaximumHeight NOTIFY maximumHeightChanged)
+    Q_PROPERTY(int maximumHeight READ maximumHeight WRITE setMaximumHeight
+               NOTIFY maximumHeightChanged)
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged)
-    Q_PROPERTY(bool active READ isActive NOTIFY activeChanged REVISION 1)
-    Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged REVISION 1)
-    Q_PROPERTY(Qt::ScreenOrientation contentOrientation READ contentOrientation WRITE reportContentOrientationChange NOTIFY contentOrientationChanged)
-    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged REVISION 1)
-    Q_PRIVATE_PROPERTY(QWindow::d_func(), QWindow* transientParent MEMBER transientParent WRITE setTransientParent NOTIFY transientParentChanged REVISION 13)
+    Q_PROPERTY(bool active READ isActive NOTIFY activeChanged REVISION(2, 1))
+    Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged
+               REVISION(2, 1))
+    Q_PROPERTY(Qt::ScreenOrientation contentOrientation READ contentOrientation
+               WRITE reportContentOrientationChange NOTIFY contentOrientationChanged)
+    Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged REVISION(2, 1))
+#ifdef Q_QDOC
+    Q_PROPERTY(QWindow* transientParent READ transientParent WRITE setTransientParent NOTIFY transientParentChanged)
+#else
+    Q_PRIVATE_PROPERTY(QWindow::d_func(), QWindow* transientParent MEMBER transientParent
+                       WRITE setTransientParent NOTIFY transientParentChanged REVISION(2, 13))
+#endif
 
 public:
     enum Visibility {
@@ -158,8 +170,7 @@ public:
 
     WId winId() const;
 
-    QWindow *parent(AncestorMode mode) const;
-    QWindow *parent() const; // ### Qt6: Merge with above
+    QWindow *parent(AncestorMode mode = ExcludeTransients) const;
     void setParent(QWindow *parent);
 
     bool isTopLevel() const;
@@ -260,6 +271,8 @@ public:
     virtual QAccessibleInterface *accessibleRoot() const;
     virtual QObject *focusObject() const;
 
+    QPointF mapToGlobal(const QPointF &pos) const;
+    QPointF mapFromGlobal(const QPointF &pos) const;
     QPoint mapToGlobal(const QPoint &pos) const;
     QPoint mapFromGlobal(const QPoint &pos) const;
 
@@ -276,8 +289,10 @@ public:
     QVulkanInstance *vulkanInstance() const;
 #endif
 
+    QT_DECLARE_NATIVE_INTERFACE_ACCESSOR(QWindow)
+
 public Q_SLOTS:
-    Q_REVISION(1) void requestActivate();
+    Q_REVISION(2, 1) void requestActivate();
 
     void setVisible(bool visible);
 
@@ -309,15 +324,15 @@ public Q_SLOTS:
     void setMaximumWidth(int w);
     void setMaximumHeight(int h);
 
-    Q_REVISION(1) void alert(int msec);
+    Q_REVISION(2, 1) void alert(int msec);
 
-    Q_REVISION(3) void requestUpdate();
+    Q_REVISION(2, 3) void requestUpdate();
 
 Q_SIGNALS:
     void screenChanged(QScreen *screen);
     void modalityChanged(Qt::WindowModality modality);
     void windowStateChanged(Qt::WindowState windowState);
-    Q_REVISION(2) void windowTitleChanged(const QString &title);
+    Q_REVISION(2, 2) void windowTitleChanged(const QString &title);
 
     void xChanged(int arg);
     void yChanged(int arg);
@@ -331,26 +346,27 @@ Q_SIGNALS:
     void maximumHeightChanged(int arg);
 
     void visibleChanged(bool arg);
-    Q_REVISION(1) void visibilityChanged(QWindow::Visibility visibility);
-    Q_REVISION(1) void activeChanged();
+    Q_REVISION(2, 1) void visibilityChanged(QWindow::Visibility visibility);
+    Q_REVISION(2, 1) void activeChanged();
     void contentOrientationChanged(Qt::ScreenOrientation orientation);
 
     void focusObjectChanged(QObject *object);
 
-    Q_REVISION(1) void opacityChanged(qreal opacity);
+    Q_REVISION(2, 1) void opacityChanged(qreal opacity);
 
-    Q_REVISION(13) void transientParentChanged(QWindow *transientParent);
+    Q_REVISION(2, 13) void transientParentChanged(QWindow *transientParent);
 
 protected:
     virtual void exposeEvent(QExposeEvent *);
     virtual void resizeEvent(QResizeEvent *);
+    virtual void paintEvent(QPaintEvent *);
     virtual void moveEvent(QMoveEvent *);
     virtual void focusInEvent(QFocusEvent *);
     virtual void focusOutEvent(QFocusEvent *);
 
     virtual void showEvent(QShowEvent *);
     virtual void hideEvent(QHideEvent *);
-    // TODO Qt 6 - add closeEvent virtual handler
+    virtual void closeEvent(QCloseEvent *);
 
     virtual bool event(QEvent *) override;
     virtual void keyPressEvent(QKeyEvent *);
@@ -366,11 +382,7 @@ protected:
 #if QT_CONFIG(tabletevent)
     virtual void tabletEvent(QTabletEvent *);
 #endif
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     virtual bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
-#else
-    virtual bool nativeEvent(const QByteArray &eventType, void *message, long *result);
-#endif
 
     QWindow(QWindowPrivate &dd, QWindow *parent);
 

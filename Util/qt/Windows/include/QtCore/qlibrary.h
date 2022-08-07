@@ -41,6 +41,7 @@
 #define QLIBRARY_H
 
 #include <QtCore/qobject.h>
+#include <QtCore/qtaggedpointer.h>
 
 QT_REQUIRE_CONFIG(library);
 
@@ -62,13 +63,13 @@ public:
         DeepBindHint = 0x10
     };
     Q_DECLARE_FLAGS(LoadHints, LoadHint)
-    Q_FLAG(LoadHint)
+    Q_ENUM(LoadHint)
     Q_FLAG(LoadHints)
 
     explicit QLibrary(QObject *parent = nullptr);
-    explicit QLibrary(const QString& fileName, QObject *parent = nullptr);
-    explicit QLibrary(const QString& fileName, int verNum, QObject *parent = nullptr);
-    explicit QLibrary(const QString& fileName, const QString &version, QObject *parent = nullptr);
+    explicit QLibrary(const QString &fileName, QObject *parent = nullptr);
+    explicit QLibrary(const QString &fileName, int verNum, QObject *parent = nullptr);
+    explicit QLibrary(const QString &fileName, const QString &version, QObject *parent = nullptr);
     ~QLibrary();
 
     QFunctionPointer resolve(const char *symbol);
@@ -91,9 +92,14 @@ public:
 
     void setLoadHints(LoadHints hints);
     LoadHints loadHints() const;
+
 private:
-    QLibraryPrivate *d;
-    bool did_load;
+    enum LoadStatusTag {
+        NotLoaded,
+        Loaded
+    };
+
+    QTaggedPointer<QLibraryPrivate, LoadStatusTag> d = nullptr;
     Q_DISABLE_COPY(QLibrary)
 };
 

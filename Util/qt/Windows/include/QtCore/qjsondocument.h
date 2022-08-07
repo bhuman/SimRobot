@@ -74,8 +74,8 @@ struct Q_CORE_EXPORT QJsonParseError
 
     QString    errorString() const;
 
-    int        offset;
-    ParseError error;
+    int        offset = -1;
+    ParseError error = NoError;
 };
 
 class QJsonDocumentPrivate;
@@ -106,25 +106,6 @@ public:
 
     void swap(QJsonDocument &other) noexcept;
 
-    enum DataValidation {
-        Validate,
-        BypassValidation
-    };
-
-#if QT_CONFIG(binaryjson) && QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_X("Use CBOR format instead")
-    static QJsonDocument fromRawData(const char *data, int size, DataValidation validation = Validate);
-
-    QT_DEPRECATED_X("Use CBOR format instead")
-    const char *rawData(int *size) const;
-
-    QT_DEPRECATED_X("Use CBOR format instead")
-    static QJsonDocument fromBinaryData(const QByteArray &data, DataValidation validation  = Validate);
-
-    QT_DEPRECATED_X("Use CBOR format instead")
-    QByteArray toBinaryData() const;
-#endif // QT_CONFIG(binaryjson) && QT_DEPRECATED_SINCE(5, 15)
-
     static QJsonDocument fromVariant(const QVariant &variant);
     QVariant toVariant() const;
 
@@ -136,8 +117,7 @@ public:
     static QJsonDocument fromJson(const QByteArray &json, QJsonParseError *error = nullptr);
 
 #if !defined(QT_JSON_READONLY) || defined(Q_CLANG_QDOC)
-    QByteArray toJson() const; //### Merge in Qt6
-    QByteArray toJson(JsonFormat format) const;
+    QByteArray toJson(JsonFormat format = Indented) const;
 #endif
 
     bool isEmpty() const;
@@ -155,7 +135,7 @@ public:
 #endif
     const QJsonValue operator[](QStringView key) const;
     const QJsonValue operator[](QLatin1String key) const;
-    const QJsonValue operator[](int i) const;
+    const QJsonValue operator[](qsizetype i) const;
 
     bool operator==(const QJsonDocument &other) const;
     bool operator!=(const QJsonDocument &other) const { return !(*this == other); }
@@ -172,7 +152,7 @@ private:
     std::unique_ptr<QJsonDocumentPrivate> d;
 };
 
-Q_DECLARE_SHARED_NOT_MOVABLE_UNTIL_QT6(QJsonDocument)
+Q_DECLARE_SHARED(QJsonDocument)
 
 #if !defined(QT_NO_DEBUG_STREAM) && !defined(QT_JSON_READONLY)
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QJsonDocument &);

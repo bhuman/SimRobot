@@ -50,12 +50,22 @@
 #include <QtCore/qmutex.h>
 #include <QtCore/qthread.h>
 #include <QtCore/qthreadpool.h>
-#include <QtCore/qvector.h>
 
 #include <mutex>
 
 QT_BEGIN_NAMESPACE
 
+namespace QtPrivate {
+
+template<typename Sequence>
+struct SequenceHolder
+{
+    SequenceHolder(const Sequence &s) : sequence(s) { }
+    SequenceHolder(Sequence &&s) : sequence(std::move(s)) { }
+    Sequence sequence;
+};
+
+}
 
 namespace QtConcurrent {
 
@@ -86,7 +96,7 @@ class IntermediateResults
 {
 public:
     int begin, end;
-    QVector<T> vector;
+    QList<T> vector;
 };
 
 enum ReduceOption {
@@ -108,7 +118,8 @@ class ReduceKernel
     const ReduceOptions reduceOptions;
 
     QMutex mutex;
-    int progress, resultsMapSize, threadCount;
+    int progress, resultsMapSize;
+    const int threadCount;
     ResultsMap resultsMap;
 
     bool canReduce(int begin) const
@@ -124,7 +135,7 @@ class ReduceKernel
                       const IntermediateResults<T> &result)
     {
         for (int i = 0; i < result.vector.size(); ++i) {
-            reduce(r, result.vector.at(i));
+            std::invoke(reduce, r, result.vector.at(i));
         }
     }
 
@@ -140,9 +151,9 @@ class ReduceKernel
     }
 
 public:
-    ReduceKernel(ReduceOptions _reduceOptions)
+    ReduceKernel(QThreadPool *pool, ReduceOptions _reduceOptions)
         : reduceOptions(_reduceOptions), progress(0), resultsMapSize(0),
-          threadCount(QThreadPool::globalInstance()->maxThreadCount())
+          threadCount(pool->maxThreadCount())
     { }
 
     void runReduce(ReduceFunctor &reduce,
@@ -222,24 +233,32 @@ public:
 };
 
 template <typename Sequence, typename Base, typename Functor1, typename Functor2>
-struct SequenceHolder2 : public Base
+struct SequenceHolder2 : private QtPrivate::SequenceHolder<Sequence>, public Base
 {
-    SequenceHolder2(const Sequence &_sequence,
-                    Functor1 functor1,
-                    Functor2 functor2,
+    template<typename S = Sequence, typename F1 = Functor1, typename F2 = Functor2>
+    SequenceHolder2(QThreadPool *pool, S &&_sequence, F1 &&functor1, F2 &&functor2,
                     ReduceOptions reduceOptions)
-        : Base(_sequence.begin(), _sequence.end(), functor1, functor2, reduceOptions),
-          sequence(_sequence)
+        : QtPrivate::SequenceHolder<Sequence>(std::forward<S>(_sequence)),
+          Base(pool, this->sequence.cbegin(), this->sequence.cend(),
+               std::forward<F1>(functor1), std::forward<F2>(functor2), reduceOptions)
     { }
 
-    Sequence sequence;
+    template<typename InitialValueType, typename S = Sequence,
+             typename F1 = Functor1, typename F2 = Functor2>
+    SequenceHolder2(QThreadPool *pool, S &&_sequence, F1 &&functor1, F2 &&functor2,
+                    InitialValueType &&initialValue, ReduceOptions reduceOptions)
+        : QtPrivate::SequenceHolder<Sequence>(std::forward<S>(_sequence)),
+          Base(pool, this->sequence.cbegin(), this->sequence.cend(),
+               std::forward<F1>(functor1), std::forward<F2>(functor2),
+               std::forward<InitialValueType>(initialValue), reduceOptions)
+    { }
 
     void finish() override
     {
         Base::finish();
         // Clear the sequence to make sure all temporaries are destroyed
         // before finished is signaled.
-        sequence = Sequence();
+        this->sequence = Sequence();
     }
 };
 

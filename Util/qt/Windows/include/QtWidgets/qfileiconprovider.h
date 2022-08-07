@@ -44,38 +44,26 @@
 #include <QtCore/qfileinfo.h>
 #include <QtCore/qscopedpointer.h>
 #include <QtGui/qicon.h>
+#include <QtGui/qabstractfileiconprovider.h>
 
 QT_BEGIN_NAMESPACE
 
 
 class QFileIconProviderPrivate;
 
-class Q_WIDGETS_EXPORT QFileIconProvider
+class Q_WIDGETS_EXPORT QFileIconProvider : public QAbstractFileIconProvider
 {
 public:
     QFileIconProvider();
-    virtual ~QFileIconProvider();
-    enum IconType { Computer, Desktop, Trashcan, Network, Drive, Folder, File };
+    ~QFileIconProvider();
 
-    enum Option {
-        DontUseCustomDirectoryIcons = 0x00000001
-    };
-    Q_DECLARE_FLAGS(Options, Option)
-
-    virtual QIcon icon(IconType type) const;
-    virtual QIcon icon(const QFileInfo &info) const;
-    virtual QString type(const QFileInfo &info) const;
-
-    void setOptions(Options options);
-    Options options() const;
+    QIcon icon(IconType type) const override;
+    QIcon icon(const QFileInfo &info) const override;
 
 private:
     Q_DECLARE_PRIVATE(QFileIconProvider)
-    QScopedPointer<QFileIconProviderPrivate> d_ptr;
     Q_DISABLE_COPY(QFileIconProvider)
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(QFileIconProvider::Options)
 
 QT_END_NAMESPACE
 

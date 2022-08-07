@@ -116,12 +116,14 @@ protected:
 
 protected:
     QFrame(QFramePrivate &dd, QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
-    void initStyleOption(QStyleOptionFrame *option) const;
+    virtual void initStyleOption(QStyleOptionFrame *option) const;
 
 private:
     Q_DISABLE_COPY(QFrame)
     Q_DECLARE_PRIVATE(QFrame)
 };
+
+Q_DECLARE_MIXED_ENUM_OPERATORS_SYMMETRIC(int, QFrame::Shape, QFrame::Shadow)
 
 QT_END_NAMESPACE
 

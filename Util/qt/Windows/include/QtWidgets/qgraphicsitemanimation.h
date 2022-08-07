@@ -48,11 +48,9 @@ QT_REQUIRE_CONFIG(graphicsview);
 QT_BEGIN_NAMESPACE
 
 class QGraphicsItem;
-class QMatrix;
 class QPointF;
 class QTimeLine;
 class QTransform;
-template <class T1, class T2> struct QPair;
 
 class QGraphicsItemAnimationPrivate;
 class Q_WIDGETS_EXPORT QGraphicsItemAnimation : public QObject
@@ -72,10 +70,6 @@ public:
     QList<QPair<qreal, QPointF> > posList() const;
     void setPosAt(qreal step, const QPointF &pos);
 
-#if QT_DEPRECATED_SINCE(5, 14)
-    QT_DEPRECATED_X("Use transformAt() instead")
-    QMatrix matrixAt(qreal step) const;
-#endif
     QTransform transformAt(qreal step) const;
 
     qreal rotationAt(qreal step) const;
@@ -101,10 +95,6 @@ public:
 
 public Q_SLOTS:
     void setStep(qreal x);
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED_X("Use setStep(0) instead")
-    void reset();
-#endif
 
 protected:
     virtual void beforeAnimationStep(qreal step);

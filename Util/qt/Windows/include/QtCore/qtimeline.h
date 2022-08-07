@@ -54,15 +54,14 @@ class QTimeLinePrivate;
 class Q_CORE_EXPORT QTimeLine : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int duration READ duration WRITE setDuration)
-    Q_PROPERTY(int updateInterval READ updateInterval WRITE setUpdateInterval)
-    Q_PROPERTY(int currentTime READ currentTime WRITE setCurrentTime)
-    Q_PROPERTY(Direction direction READ direction WRITE setDirection)
-    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount)
-#if QT_DEPRECATED_SINCE(5, 15)
-    Q_PROPERTY(CurveShape curveShape READ curveShape WRITE setCurveShape)
-#endif
-    Q_PROPERTY(QEasingCurve easingCurve READ easingCurve WRITE setEasingCurve)
+    Q_PROPERTY(int duration READ duration WRITE setDuration BINDABLE bindableDuration)
+    Q_PROPERTY(int updateInterval READ updateInterval WRITE setUpdateInterval
+               BINDABLE bindableUpdateInterval)
+    Q_PROPERTY(int currentTime READ currentTime WRITE setCurrentTime BINDABLE bindableCurrentTime)
+    Q_PROPERTY(Direction direction READ direction WRITE setDirection BINDABLE bindableDirection)
+    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount BINDABLE bindableLoopCount)
+    Q_PROPERTY(QEasingCurve easingCurve READ easingCurve WRITE setEasingCurve
+               BINDABLE bindableEasingCurve)
 public:
     enum State {
         NotRunning,
@@ -73,16 +72,6 @@ public:
         Forward,
         Backward
     };
-#if QT_DEPRECATED_SINCE(5, 15)
-    enum CurveShape {
-        EaseInCurve,
-        EaseOutCurve,
-        EaseInOutCurve,
-        LinearCurve,
-        SineCurve,
-        CosineCurve
-    };
-#endif
 
     explicit QTimeLine(int duration = 1000, QObject *parent = nullptr);
     virtual ~QTimeLine();
@@ -91,12 +80,15 @@ public:
 
     int loopCount() const;
     void setLoopCount(int count);
+    QBindable<int> bindableLoopCount();
 
     Direction direction() const;
     void setDirection(Direction direction);
+    QBindable<Direction> bindableDirection();
 
     int duration() const;
     void setDuration(int duration);
+    QBindable<int> bindableDuration();
 
     int startFrame() const;
     void setStartFrame(int frame);
@@ -106,18 +98,14 @@ public:
 
     int updateInterval() const;
     void setUpdateInterval(int interval);
-
-#if QT_DEPRECATED_SINCE(5, 15)
-    QT_DEPRECATED_X("Access easingCurve directly")
-    CurveShape curveShape() const;
-    QT_DEPRECATED_X("Access easingCurve directly")
-    void setCurveShape(CurveShape shape);
-#endif
+    QBindable<int> bindableUpdateInterval();
 
     QEasingCurve easingCurve() const;
     void setEasingCurve(const QEasingCurve &curve);
+    QBindable<QEasingCurve> bindableEasingCurve();
 
     int currentTime() const;
+    QBindable<int> bindableCurrentTime();
     int currentFrame() const;
     qreal currentValue() const;
 

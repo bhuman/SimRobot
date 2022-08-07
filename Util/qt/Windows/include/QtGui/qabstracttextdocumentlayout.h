@@ -78,7 +78,7 @@ public:
         int cursorPosition;
         QPalette palette;
         QRectF clip;
-        QVector<Selection> selections;
+        QList<Selection> selections;
     };
 
     virtual void draw(QPainter *painter, const PaintContext &context) = 0;
@@ -129,7 +129,6 @@ private:
     friend class QTextEngine;
     friend class QTextLayout;
     friend class QTextLine;
-    Q_PRIVATE_SLOT(d_func(), void _q_handlerDestroyed(QObject *obj))
     Q_PRIVATE_SLOT(d_func(), int _q_dynamicPageCountSlot())
     Q_PRIVATE_SLOT(d_func(), QSizeF _q_dynamicDocumentSizeSlot())
 };

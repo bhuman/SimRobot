@@ -2,11 +2,18 @@
 #define QT_QTGUI_MODULE_H
 #include <QtGui/QtGuiDepends>
 #include "qtguiglobal.h"
+#include "qabstractfileiconprovider.h"
 #include "qabstracttextdocumentlayout.h"
 #include "qaccessible.h"
 #include "qaccessiblebridge.h"
 #include "qaccessibleobject.h"
 #include "qaccessibleplugin.h"
+#if QT_CONFIG(action)
+#include "qaction.h"
+#endif
+#if QT_CONFIG(action)
+#include "qactiongroup.h"
+#endif
 #include "qbackingstore.h"
 #include "qbitmap.h"
 #include "qbrush.h"
@@ -20,6 +27,10 @@
 #include "qdrag.h"
 #endif
 #include "qevent.h"
+#include "qeventpoint.h"
+#if QT_CONFIG(filesystemmodel)
+#include "qfilesystemmodel.h"
+#endif
 #include "qfont.h"
 #include "qfontdatabase.h"
 #include "qfontinfo.h"
@@ -36,32 +47,23 @@
 #include "qimageiohandler.h"
 #include "qimagereader.h"
 #include "qimagewriter.h"
+#include "qinputdevice.h"
 #include "qinputmethod.h"
+#if QT_CONFIG(shortcut)
 #include "qkeysequence.h"
-#include "qmatrix.h"
+#endif
 #include "qmatrix4x4.h"
 #if QT_CONFIG(movie)
 #include "qmovie.h"
 #endif
 #include "qoffscreensurface.h"
 #include "qopengl.h"
-#include "qopenglbuffer.h"
 #include "qopenglcontext.h"
-#include "qopengldebug.h"
 #include "qopenglextrafunctions.h"
-#include "qopenglframebufferobject.h"
 #include "qopenglfunctions.h"
-#include "qopenglpaintdevice.h"
-#include "qopenglpixeltransferoptions.h"
-#include "qopenglshaderprogram.h"
-#include "qopengltexture.h"
-#include "qopengltextureblitter.h"
-#include "qopengltimerquery.h"
-#include "qopenglversionfunctions.h"
-#include "qopenglvertexarrayobject.h"
-#include "qopenglwindow.h"
 #include "qpagedpaintdevice.h"
 #include "qpagelayout.h"
+#include "qpageranges.h"
 #include "qpagesize.h"
 #include "qpaintdevice.h"
 #include "qpaintdevicewindow.h"
@@ -72,10 +74,10 @@
 #include "qpdfwriter.h"
 #include "qpen.h"
 #include "qpicture.h"
-#include "qpictureformatplugin.h"
 #include "qpixelformat.h"
 #include "qpixmap.h"
 #include "qpixmapcache.h"
+#include "qpointingdevice.h"
 #include "qpolygon.h"
 #include "qquaternion.h"
 #include "qrasterwindow.h"
@@ -83,8 +85,12 @@
 #include "qregion.h"
 #include "qrgb.h"
 #include "qrgba64.h"
+#include "qrgbafloat.h"
 #include "qscreen.h"
 #include "qsessionmanager.h"
+#if QT_CONFIG(shortcut)
+#include "qshortcut.h"
+#endif
 #if QT_CONFIG(standarditemmodel)
 #include "qstandarditemmodel.h"
 #endif
@@ -103,12 +109,18 @@
 #include "qtextobject.h"
 #include "qtextoption.h"
 #include "qtexttable.h"
-#include "qtouchdevice.h"
 #include "qtransform.h"
+#if QT_CONFIG(undogroup)
+#include "qundogroup.h"
+#endif
+#if QT_CONFIG(undocommand)
+#include "qundostack.h"
+#endif
 #include "qvalidator.h"
 #include "qvector2d.h"
 #include "qvector3d.h"
 #include "qvector4d.h"
+#include "qvectornd.h"
 #include "qwindow.h"
 #include "qwindowdefs.h"
 #include "qtguiversion.h"

@@ -49,17 +49,20 @@ QT_BEGIN_NAMESPACE
 class QAnimationGroup;
 class QSequentialAnimationGroup;
 class QAnimationDriver;
+class QUnifiedTimer;
 
 class QAbstractAnimationPrivate;
 class Q_CORE_EXPORT QAbstractAnimation : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(State state READ state NOTIFY stateChanged)
-    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount)
-    Q_PROPERTY(int currentTime READ currentTime WRITE setCurrentTime)
-    Q_PROPERTY(int currentLoop READ currentLoop NOTIFY currentLoopChanged)
-    Q_PROPERTY(Direction direction READ direction WRITE setDirection NOTIFY directionChanged)
+    Q_PROPERTY(State state READ state NOTIFY stateChanged BINDABLE bindableState)
+    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount BINDABLE bindableLoopCount)
+    Q_PROPERTY(int currentTime READ currentTime WRITE setCurrentTime BINDABLE bindableCurrentTime)
+    Q_PROPERTY(int currentLoop READ currentLoop NOTIFY currentLoopChanged
+               BINDABLE bindableCurrentLoop)
+    Q_PROPERTY(Direction direction READ direction WRITE setDirection NOTIFY directionChanged
+               BINDABLE bindableDirection)
     Q_PROPERTY(int duration READ duration)
 
 public:
@@ -85,18 +88,25 @@ public:
     virtual ~QAbstractAnimation();
 
     State state() const;
+    QBindable<QAbstractAnimation::State> bindableState() const;
 
     QAnimationGroup *group() const;
 
     Direction direction() const;
     void setDirection(Direction direction);
+    QBindable<Direction> bindableDirection();
 
     int currentTime() const;
+    QBindable<int> bindableCurrentTime();
+
     int currentLoopTime() const;
 
     int loopCount() const;
     void setLoopCount(int loopCount);
+    QBindable<int> bindableLoopCount();
+
     int currentLoop() const;
+    QBindable<int> bindableCurrentLoop() const;
 
     virtual int duration() const = 0;
     int totalDuration() const;
@@ -147,18 +157,12 @@ public:
 
     virtual qint64 elapsed() const;
 
-#if QT_DEPRECATED_SINCE(5, 13)
-    QT_DEPRECATED void setStartTime(qint64 startTime);
-    QT_DEPRECATED qint64 startTime() const;
-#endif
-
 Q_SIGNALS:
     void started();
     void stopped();
 
 protected:
-    // ### Qt6: Remove timestep argument
-    void advanceAnimation(qint64 timeStep = -1);
+    void advanceAnimation();
     virtual void start();
     virtual void stop();
 

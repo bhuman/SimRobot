@@ -79,13 +79,11 @@ class Q_WIDGETS_EXPORT QTextEdit : public QAbstractScrollArea
 #endif
     Q_PROPERTY(QString plainText READ toPlainText WRITE setPlainText DESIGNABLE false)
     Q_PROPERTY(bool overwriteMode READ overwriteMode WRITE setOverwriteMode)
-#if QT_DEPRECATED_SINCE(5, 10)
-    Q_PROPERTY(int tabStopWidth READ tabStopWidth WRITE setTabStopWidth)
-#endif
     Q_PROPERTY(qreal tabStopDistance READ tabStopDistance WRITE setTabStopDistance)
     Q_PROPERTY(bool acceptRichText READ acceptRichText WRITE setAcceptRichText)
     Q_PROPERTY(int cursorWidth READ cursorWidth WRITE setCursorWidth)
-    Q_PROPERTY(Qt::TextInteractionFlags textInteractionFlags READ textInteractionFlags WRITE setTextInteractionFlags)
+    Q_PROPERTY(Qt::TextInteractionFlags textInteractionFlags READ textInteractionFlags
+               WRITE setTextInteractionFlags)
     Q_PROPERTY(QTextDocument *document READ document WRITE setDocument DESIGNABLE false)
     Q_PROPERTY(QString placeholderText READ placeholderText WRITE setPlaceholderText)
 public:
@@ -166,9 +164,6 @@ public:
     void setWordWrapMode(QTextOption::WrapMode policy);
 
     bool find(const QString &exp, QTextDocument::FindFlags options = QTextDocument::FindFlags());
-#ifndef QT_NO_REGEXP
-    bool find(const QRegExp &exp, QTextDocument::FindFlags options = QTextDocument::FindFlags());
-#endif
 #if QT_CONFIG(regularexpression)
     bool find(const QRegularExpression &exp, QTextDocument::FindFlags options = QTextDocument::FindFlags());
 #endif
@@ -197,11 +192,6 @@ public:
 
     bool overwriteMode() const;
     void setOverwriteMode(bool overwrite);
-
-#if QT_DEPRECATED_SINCE(5, 10)
-    QT_DEPRECATED int tabStopWidth() const;
-    QT_DEPRECATED void setTabStopWidth(int width);
-#endif
 
     qreal tabStopDistance() const;
     void setTabStopDistance(qreal distance);

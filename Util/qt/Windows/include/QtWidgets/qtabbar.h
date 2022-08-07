@@ -63,7 +63,8 @@ class Q_WIDGETS_EXPORT QTabBar: public QWidget
     Q_PROPERTY(Qt::TextElideMode elideMode READ elideMode WRITE setElideMode)
     Q_PROPERTY(bool usesScrollButtons READ usesScrollButtons WRITE setUsesScrollButtons)
     Q_PROPERTY(bool tabsClosable READ tabsClosable WRITE setTabsClosable)
-    Q_PROPERTY(SelectionBehavior selectionBehaviorOnRemove READ selectionBehaviorOnRemove WRITE setSelectionBehaviorOnRemove)
+    Q_PROPERTY(SelectionBehavior selectionBehaviorOnRemove READ selectionBehaviorOnRemove
+               WRITE setSelectionBehaviorOnRemove)
     Q_PROPERTY(bool expanding READ expanding WRITE setExpanding)
     Q_PROPERTY(bool movable READ isMovable WRITE setMovable)
     Q_PROPERTY(bool documentMode READ documentMode WRITE setDocumentMode)
@@ -120,7 +121,7 @@ public:
     Qt::TextElideMode elideMode() const;
     void setElideMode(Qt::TextElideMode mode);
 
-#ifndef QT_NO_TOOLTIP
+#if QT_CONFIG(tooltip)
     void setTabToolTip(int index, const QString &tip);
     QString tabToolTip(int index) const;
 #endif
@@ -202,16 +203,17 @@ protected:
     void showEvent(QShowEvent *) override;
     void hideEvent(QHideEvent *) override;
     void paintEvent(QPaintEvent *) override;
-    void mousePressEvent (QMouseEvent *) override;
-    void mouseMoveEvent (QMouseEvent *) override;
-    void mouseReleaseEvent (QMouseEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent *event) override;
 #endif
     void keyPressEvent(QKeyEvent *) override;
     void changeEvent(QEvent *) override;
     void timerEvent(QTimerEvent *event) override;
-    void initStyleOption(QStyleOptionTab *option, int tabIndex) const;
+    virtual void initStyleOption(QStyleOptionTab *option, int tabIndex) const;
 
 #ifndef QT_NO_ACCESSIBILITY
     friend class QAccessibleTabBar;

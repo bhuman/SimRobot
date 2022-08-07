@@ -53,8 +53,6 @@ QT_REQUIRE_CONFIG(standarditemmodel);
 
 QT_BEGIN_NAMESPACE
 
-template <class T> class QList;
-
 class QStandardItemModel;
 
 class QStandardItemPrivate;
@@ -68,6 +66,7 @@ public:
     virtual ~QStandardItem();
 
     virtual QVariant data(int role = Qt::UserRole + 1) const;
+    virtual void multiData(QModelRoleDataSpan roleDataSpan) const;
     virtual void setData(const QVariant &value, int role = Qt::UserRole + 1);
     void clearData();
 
@@ -81,12 +80,10 @@ public:
     }
     inline void setIcon(const QIcon &icon);
 
-#ifndef QT_NO_TOOLTIP
     inline QString toolTip() const {
         return qvariant_cast<QString>(data(Qt::ToolTipRole));
     }
     inline void setToolTip(const QString &toolTip);
-#endif
 
 #ifndef QT_NO_STATUSTIP
     inline QString statusTip() const {
@@ -175,11 +172,6 @@ public:
     }
     void setUserTristate(bool tristate);
 
-#if QT_DEPRECATED_SINCE(5, 6)
-    QT_DEPRECATED bool isTristate() const { return isAutoTristate(); }
-    QT_DEPRECATED void setTristate(bool tristate);
-#endif
-
 #if QT_CONFIG(draganddrop)
     inline bool isDragEnabled() const {
         return (flags() & Qt::ItemIsDragEnabled) != 0;
@@ -262,10 +254,8 @@ inline void QStandardItem::setText(const QString &atext)
 inline void QStandardItem::setIcon(const QIcon &aicon)
 { setData(aicon, Qt::DecorationRole); }
 
-#ifndef QT_NO_TOOLTIP
 inline void QStandardItem::setToolTip(const QString &atoolTip)
 { setData(atoolTip, Qt::ToolTipRole); }
-#endif
 
 #ifndef QT_NO_STATUSTIP
 inline void QStandardItem::setStatusTip(const QString &astatusTip)
@@ -324,7 +314,7 @@ class QStandardItemModelPrivate;
 class Q_GUI_EXPORT QStandardItemModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(int sortRole READ sortRole WRITE setSortRole)
+    Q_PROPERTY(int sortRole READ sortRole WRITE setSortRole BINDABLE bindableSortRole)
 
 public:
     explicit QStandardItemModel(QObject *parent = nullptr);
@@ -332,6 +322,7 @@ public:
     ~QStandardItemModel();
 
     void setItemRoleNames(const QHash<int,QByteArray> &roleNames);
+    QHash<int, QByteArray> roleNames() const override;
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &child) const override;
@@ -339,13 +330,11 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
-    // Qt 6: Remove
-    QModelIndex sibling(int row, int column, const QModelIndex &idx) const override;
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    void multiData(const QModelIndex &index, QModelRoleDataSpan roleDataSpan) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
-    // Qt 6: add override keyword
-    bool clearItemData(const QModelIndex &index);
+    bool clearItemData(const QModelIndex &index) override;
 
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
@@ -415,13 +404,13 @@ public:
 
     int sortRole() const;
     void setSortRole(int role);
+    QBindable<int> bindableSortRole();
 
     QStringList mimeTypes() const override;
     QMimeData *mimeData(const QModelIndexList &indexes) const override;
     bool dropMimeData (const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
 
 Q_SIGNALS:
-    // ### Qt 6: add changed roles
     void itemChanged(QStandardItem *item);
 
 protected:

@@ -78,10 +78,6 @@ public:
         DockWidgetVerticalTitleBar = 0x08,
 
         DockWidgetFeatureMask = 0x0f,
-#if QT_DEPRECATED_SINCE(5, 15)
-        AllDockWidgetFeatures Q_DECL_ENUMERATOR_DEPRECATED =
-            DockWidgetClosable|DockWidgetMovable|DockWidgetFloatable, // ### Qt 6: remove
-#endif
         NoDockWidgetFeatures  = 0x00,
 
         Reserved              = 0xff
@@ -120,7 +116,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     bool event(QEvent *event) override;
-    void initStyleOption(QStyleOptionDockWidget *option) const;
+    virtual void initStyleOption(QStyleOptionDockWidget *option) const;
 
 private:
     Q_DECLARE_PRIVATE(QDockWidget)

@@ -75,7 +75,8 @@ class Q_WIDGETS_EXPORT QMainWindow : public QWidget
 #endif // QT_CONFIG(dockwidget)
     Q_PROPERTY(DockOptions dockOptions READ dockOptions WRITE setDockOptions)
 #if QT_CONFIG(toolbar)
-    Q_PROPERTY(bool unifiedTitleAndToolBarOnMac READ unifiedTitleAndToolBarOnMac WRITE setUnifiedTitleAndToolBarOnMac)
+    Q_PROPERTY(bool unifiedTitleAndToolBarOnMac READ unifiedTitleAndToolBarOnMac
+               WRITE setUnifiedTitleAndToolBarOnMac)
 #endif
 
 public:
@@ -158,13 +159,10 @@ public:
 
     bool unifiedTitleAndToolBarOnMac() const;
 
-    Qt::ToolBarArea toolBarArea(
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-        const
-#endif
-        QToolBar *toolbar) const;
+    Qt::ToolBarArea toolBarArea(const QToolBar *toolbar) const;
     bool toolBarBreak(QToolBar *toolbar) const;
-#endif
+#endif // QT_CONFIG(toolbar)
+
 #if QT_CONFIG(dockwidget)
     void addDockWidget(Qt::DockWidgetArea area, QDockWidget *dockwidget);
     void addDockWidget(Qt::DockWidgetArea area, QDockWidget *dockwidget,

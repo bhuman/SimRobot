@@ -54,12 +54,15 @@ class Q_CORE_EXPORT QSocketNotifier : public QObject
 public:
     enum Type { Read, Write, Exception };
 
+    explicit QSocketNotifier(Type, QObject *parent = nullptr);
     QSocketNotifier(qintptr socket, Type, QObject *parent = nullptr);
     ~QSocketNotifier();
 
+    void setSocket(qintptr socket);
     qintptr socket() const;
     Type type() const;
 
+    bool isValid() const;
     bool isEnabled() const;
 
 public Q_SLOTS:
@@ -81,7 +84,7 @@ Q_SIGNALS:
     // This means the PMF-based connect(..) will automatically, on recompile, pick up the new
     // version while the old-style connect(..) can query the metaobject system for this version.
 #if defined(Q_MOC_RUN) || defined(BUILDING_QSOCKETNOTIFIER) || defined(Q_QDOC)
-    void activated(int socket, QPrivateSignal);
+    QT_MOC_COMPAT void activated(int socket, QPrivateSignal);
 #endif
 
 protected:
@@ -102,14 +105,14 @@ public:
 #define Q_DECL_CONSTEXPR_NOT_WIN Q_DECL_CONSTEXPR
 #endif
 
-    /* implicit */ Q_DECL_CONSTEXPR_NOT_WIN
+    Q_DECL_CONSTEXPR_NOT_WIN Q_IMPLICIT
     QSocketDescriptor(DescriptorType descriptor = DescriptorType(-1)) noexcept : sockfd(descriptor)
     {
     }
 
 #if defined(Q_OS_WIN) || defined(Q_QDOC)
-    /* implicit */ QSocketDescriptor(qintptr desc) noexcept : sockfd(DescriptorType(desc)) {}
-    operator qintptr() const noexcept { return qintptr(sockfd); }
+    Q_IMPLICIT QSocketDescriptor(qintptr desc) noexcept : sockfd(DescriptorType(desc)) {}
+    Q_IMPLICIT operator qintptr() const noexcept { return qintptr(sockfd); }
     Q_DECL_CONSTEXPR Qt::HANDLE winHandle() const noexcept { return sockfd; }
 #endif
     Q_DECL_CONSTEXPR operator DescriptorType() const noexcept { return sockfd; }
@@ -134,7 +137,8 @@ private:
 };
 
 QT_END_NAMESPACE
-Q_DECLARE_METATYPE(QSocketNotifier::Type)
-Q_DECLARE_METATYPE(QSocketDescriptor)
+
+QT_DECL_METATYPE_EXTERN_TAGGED(QSocketNotifier::Type, QSocketNotifier_Type, Q_CORE_EXPORT)
+QT_DECL_METATYPE_EXTERN(QSocketDescriptor, Q_CORE_EXPORT)
 
 #endif // QSOCKETNOTIFIER_H

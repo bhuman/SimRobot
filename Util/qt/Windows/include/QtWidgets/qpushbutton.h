@@ -93,7 +93,8 @@ protected:
     void keyPressEvent(QKeyEvent *) override;
     void focusInEvent(QFocusEvent *) override;
     void focusOutEvent(QFocusEvent *) override;
-    void initStyleOption(QStyleOptionButton *option) const;
+    void mouseMoveEvent(QMouseEvent *) override;
+    virtual void initStyleOption(QStyleOptionButton *option) const;
     bool hitButton(const QPoint &pos) const override;
     QPushButton(QPushButtonPrivate &dd, QWidget* parent = nullptr);
 

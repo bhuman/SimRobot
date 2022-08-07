@@ -41,20 +41,40 @@
 #define QTESTSUPPORT_WIDGETS_H
 
 #include <QtWidgets/qtwidgetsglobal.h>
+#include <QtGui/qtestsupport_gui.h>
 
 QT_BEGIN_NAMESPACE
 
+class QPointingDevice;
 class QWidget;
 
 namespace QTest {
-Q_WIDGETS_EXPORT Q_REQUIRED_RESULT bool qWaitForWindowActive(QWidget *widget, int timeout = 5000);
-Q_WIDGETS_EXPORT Q_REQUIRED_RESULT bool qWaitForWindowExposed(QWidget *widget, int timeout = 5000);
 
-#if QT_DEPRECATED_SINCE(5, 0)
-QT_DEPRECATED Q_REQUIRED_RESULT inline static bool qWaitForWindowShown(QWidget *widget, int timeout = 5000)
-{ return QTest::qWaitForWindowExposed(widget, timeout); }
-#endif
-}
+[[nodiscard]] Q_WIDGETS_EXPORT bool qWaitForWindowActive(QWidget *widget, int timeout = 5000);
+[[nodiscard]] Q_WIDGETS_EXPORT bool qWaitForWindowExposed(QWidget *widget, int timeout = 5000);
+
+class Q_WIDGETS_EXPORT QTouchEventWidgetSequence : public QTouchEventSequence
+{
+public:
+    ~QTouchEventWidgetSequence() override;
+    QTouchEventWidgetSequence& press(int touchId, const QPoint &pt, QWidget *widget = nullptr);
+    QTouchEventWidgetSequence& move(int touchId, const QPoint &pt, QWidget *widget = nullptr);
+    QTouchEventWidgetSequence& release(int touchId, const QPoint &pt, QWidget *widget = nullptr);
+    QTouchEventWidgetSequence& stationary(int touchId) override;
+
+    void commit(bool processEvents = true) override;
+
+private:
+    QTouchEventWidgetSequence(QWidget *widget, QPointingDevice *aDevice, bool autoCommit);
+
+    QPoint mapToScreen(QWidget *widget, const QPoint &pt);
+
+    QWidget *targetWidget = nullptr;
+
+    friend QTouchEventWidgetSequence touchEvent(QWidget *widget, QPointingDevice *device, bool autoCommit);
+};
+
+} // namespace QTest
 
 QT_END_NAMESPACE
 

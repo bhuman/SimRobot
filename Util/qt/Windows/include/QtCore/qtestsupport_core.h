@@ -42,17 +42,16 @@
 
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qdeadlinetimer.h>
+#include <QtCore/qthread.h>
 
 QT_BEGIN_NAMESPACE
 
-namespace QTestPrivate {
-Q_CORE_EXPORT void qSleep(int ms);
-}
-
 namespace QTest {
 
+Q_CORE_EXPORT void qSleep(int ms);
+
 template <typename Functor>
-Q_REQUIRED_RESULT static bool qWaitFor(Functor predicate, int timeout = 5000)
+[[nodiscard]] static bool qWaitFor(Functor predicate, int timeout = 5000)
 {
     // We should not spin the event loop in case the predicate is already true,
     // otherwise we might send new events that invalidate the predicate.
@@ -76,14 +75,13 @@ Q_REQUIRED_RESULT static bool qWaitFor(Functor predicate, int timeout = 5000)
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 
-        remaining = deadline.remainingTime();
-        if (remaining > 0)
-            QTestPrivate::qSleep(qMin(10, remaining));
-
         if (predicate())
             return true;
 
-        remaining = deadline.remainingTime();
+        remaining = int(deadline.remainingTime());
+        if (remaining > 0)
+            qSleep(qMin(10, remaining));
+        remaining = int(deadline.remainingTime());
     } while (remaining > 0);
 
     return predicate(); // Last chance
