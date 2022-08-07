@@ -38,13 +38,15 @@ For macOS and Windows, the Qt version is currently 6.3.1. The steps to populate 
   - `plugins/{imageformats/libqjpeg,platforms/libqcocoa,styles/libqmacstyle}.dylib`
 - Windows:
   - `bin/{moc,rcc}.exe`
-  - `bin/Qt6{Concurrent,Core,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.dll`
+  - `bin/Qt6{Concurrent,Core,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}[d].dll`
   - `include/Qt{Concurrent,Core,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}/`
-  - `lib/Qt6{Concurrent,Core,EntryPoint,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.lib`
-  - `plugins/{imageformats/qjpeg,platforms/qwindows}.dll`
+  - `lib/Qt6{Concurrent,Core,EntryPoint,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}[d].lib`
+  - `plugins/{imageformats/qjpeg,platforms/qwindows}[d].dll`
 8. The Qt directory can be removed now. On Windows, the "Uninstall Qt" program from the start menu should be used for that.
 9. On macOS, remove the `.prl` files in the `Resources` directories of the frameworks: `find Util/qt/macOS/lib -name '*.prl' | xargs rm`
 10. Adjust CMake files, e.g. to update dependency relations, new components etc.
 11. Update these instructions.
+
+On Windows, the debug versions of the libraries are actually important because the others are incompatible with the debug C++ runtime.
 
 TODO: More information.

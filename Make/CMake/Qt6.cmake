@@ -3,6 +3,9 @@ if(${PLATFORM} STREQUAL Linux)
 elseif(${PLATFORM} STREQUAL Windows)
   add_library(Qt6::Concurrent SHARED IMPORTED)
   set_target_properties(Qt6::Concurrent PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Concurrentd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Concurrentd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Concurrent.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Concurrent.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core"
@@ -11,6 +14,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::Core SHARED IMPORTED)
   set_target_properties(Qt6::Core PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Cored.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Cored.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Core.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Core.dll"
       INTERFACE_LINK_LIBRARIES "$<$<AND:$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>,$<BOOL:$<TARGET_PROPERTY:WIN32_EXECUTABLE>>>:Qt6::EntryPoint>"
@@ -19,10 +25,15 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::EntryPoint STATIC IMPORTED)
   set_target_properties(Qt6::EntryPoint PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6EntryPointd.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6EntryPoint.lib")
 
   add_library(Qt6::Gui SHARED IMPORTED)
   set_target_properties(Qt6::Gui PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Guid.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Guid.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Gui.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Gui.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core"
@@ -31,6 +42,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::OpenGL SHARED IMPORTED)
   set_target_properties(Qt6::OpenGL PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6OpenGLd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6OpenGLd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6OpenGL.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6OpenGL.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
@@ -39,6 +53,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::OpenGLWidgets SHARED IMPORTED)
   set_target_properties(Qt6::OpenGLWidgets PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6OpenGLWidgetsd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6OpenGLWidgetsd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6OpenGLWidgets.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6OpenGLWidgets.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::OpenGL;Qt6::Widgets"
@@ -47,6 +64,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::Svg SHARED IMPORTED)
   set_target_properties(Qt6::Svg PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Svgd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Svgd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Svg.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Svg.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
@@ -55,6 +75,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::SvgWidgets SHARED IMPORTED)
   set_target_properties(Qt6::SvgWidgets PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6SvgWidgetsd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6SvgWidgetsd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6SvgWidgets.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6SvgWidgets.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui;Qt6::Svg;Qt6::Widgets"
@@ -63,6 +86,9 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::Widgets SHARED IMPORTED)
   set_target_properties(Qt6::Widgets PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_IMPLIB_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Widgetsd.lib"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Widgetsd.dll"
       IMPORTED_IMPLIB "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/Qt6Widgets.lib"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/bin/Qt6Widgets.dll"
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui"
@@ -77,10 +103,14 @@ elseif(${PLATFORM} STREQUAL Windows)
 
   add_library(Qt6::qwindows MODULE IMPORTED)
   set_target_properties(Qt6::qwindows PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/qwindowsd.dll"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/qwindows.dll")
 
   add_library(Qt6::qjpeg MODULE IMPORTED)
   set_target_properties(Qt6::qjpeg PROPERTIES
+      IMPORTED_CONFIGURATIONS "Debug"
+      IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/qjpegd.dll"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/qjpeg.dll")
 
   set(Qt6Core_VERSION_MAJOR 6)
