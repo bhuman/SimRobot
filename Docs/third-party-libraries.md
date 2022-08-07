@@ -24,20 +24,27 @@ For Linux and macOS, the process of compiling the latest libraries is described 
 
 [Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL provider in `SimRobotCore2`. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).
 
-For macOS, the Qt version is currently 6.3.1. The steps to populate `Util/qt/macOS` (after removing its previous content) were as follows (of course, future versions can require different steps):
-1. Download the macOS online installer from [here](https://www.qt.io/download-qt-installer) (the resulting file should be called something like `qt-unified-macOS-x64-4.4.1-online.dmg`).
-2. Execute the installer in that disk image.
+For macOS and Windows, the Qt version is currently 6.3.1. The steps to populate `Util/qt/{macOS,Windows}` (after removing its previous content) were as follows (of course, future versions can require different steps):
+1. Download the macOS/Windows online installer from [here](https://www.qt.io/download-qt-installer) (the resulting file should be called something like `qt-unified-{macOS,Windows}-x64-4.4.1-online.dmg`).
+2. Execute the installer, either from the disk image (macOS) or directly (Windows).
 3. Proceed through the installer by signing in with a Qt account and agreeing to the open source conditions.
-4. Choose a custom installation and some destination folder, e.g. `~/Qt`.
-5. In the following screen, everything can be deselected, but `Qt>Qt 6.3.1>macOS` has to be selected (it seems that QtCreator cannot be deselected).
+4. Choose a custom installation and some destination, e.g. `~/Qt` on macOS or `C:\Qt` on Windows (this will be referred as `<Qt directory>` below).
+5. In the following screen, everything should be deselected, but `Qt>Qt 6.3.1>macOS` (on macOS) or `Qt>Qt 6.3.1>MSVC 2019 64-bit` (on Windows) must be selected (it seems that QtCreator cannot be deselected).
 6. Proceed by agreeing to the license terms and confirming the installation.
-7. Copy the relevant files/directories from `<Qt directory>/6.3.1/macos` to `Util/qt/macOS`. In 6.3.1, they were the following (of course this also depends on the required Qt components):
-- `Licenses/`
-- `libexec/{moc,rcc}`
-- `lib/Qt{Concurrent,Core,DBus,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.framework/`
-- `plugins/{imageformats/libqjpeg,platforms/libqcocoa,styles/libqmacstyle}.dylib`
-8. Remove `.prl` files: `find Util/qt/macOS/lib -name '*.prl' | xargs rm`
-9. Adjust CMake files, e.g. to update dependency relations, new components etc.
-10. Update these instructions.
+7. After the installation has finished, copy the relevant files/directories. The `Util/qt/Licenses` directory comes directly from `<Qt directory>/Licenses` (they are the same for macOS and Windows except for minor encoding differences). Both `Util/qt/macOS` and `Util/qt/Windows` are reduced copies of `<Qt directory>/6.3.1/macos` and `<Qt directory>/6.3.1/msvc2019_64`, respectively. In 6.3.1, the specific files/directories were (of course this also depends on the required Qt components):
+- macOS:
+  - `libexec/{moc,rcc}`
+  - `lib/Qt{Concurrent,Core,DBus,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.framework/`
+  - `plugins/{imageformats/libqjpeg,platforms/libqcocoa,styles/libqmacstyle}.dylib`
+- Windows:
+  - `bin/{moc,rcc}.exe`
+  - `bin/Qt6{Concurrent,Core,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.dll`
+  - `include/Qt{Concurrent,Core,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}/`
+  - `lib/Qt6{Concurrent,Core,EntryPoint,Gui,OpenGL,OpenGLWidgets,Svg,SvgWidgets,Widgets}.lib`
+  - `plugins/{imageformats/qjpeg,platforms/qwindows}.dll`
+8. The Qt directory can be removed now. On Windows, the "Uninstall Qt" program from the start menu should be used for that.
+9. On macOS, remove the `.prl` files in the `Resources` directories of the frameworks: `find Util/qt/macOS/lib -name '*.prl' | xargs rm`
+10. Adjust CMake files, e.g. to update dependency relations, new components etc.
+11. Update these instructions.
 
 TODO: More information.
