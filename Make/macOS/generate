@@ -175,6 +175,12 @@ fi
 # Disable App Nap for SimRobot.
 defaults write org.B-Human.SimRobot NSAppSleepDisabled -bool YES
 
+# Disable some default menu entries because they don't work well with recreating the menus each time.
+# At least the dictation and emoji menu entries are still there, but they are somehow less wrong.
+defaults write org.B-Human.SimRobot NSDisabledCharacterPaletteMenuItem -bool YES
+defaults write org.B-Human.SimRobot NSDisabledDictationMenuItem -bool YES
+defaults write org.B-Human.SimRobot NSFullScreenMenuItemEverywhere -bool NO
+
 # Cleanup.
 rm -r $PROJECTSRC
 rm -f $TEMPPATH $TEMPPATH2 $TEMPPATH3
