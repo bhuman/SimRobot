@@ -52,7 +52,9 @@ private:
 
   QAction* fileOpenAct;
   QAction* fileCloseAct;
+#ifndef MACOS
   QAction* fileExitAct;
+#endif
   QAction* toolbarOpenAct;
   QAction* simResetAct;
   QAction* simStartAct;

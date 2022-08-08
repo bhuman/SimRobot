@@ -73,16 +73,12 @@ MainWindow::MainWindow(int, char* argv[]) :
   fileCloseAct->setEnabled(false);
   connect(fileCloseAct, &QAction::triggered, this, &MainWindow::closeFile);
 
-  fileExitAct = new QAction(/*QIcon(":/Icons/Exit.png"), */tr("E&xit"), this);
-#ifdef WINDOWS
+#ifndef MACOS
+  fileExitAct = new QAction(tr("E&xit"), this);
   fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::ALT) + static_cast<int>(Qt::Key_F4)));
-#elif defined MACOS
-  fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_Q)));
-#else
-  fileExitAct->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(Qt::Key_Q), static_cast<int>(Qt::ALT) + static_cast<int>(Qt::Key_F4)));
-#endif
   fileExitAct->setStatusTip(tr("Exit the application"));
   connect(fileExitAct, &QAction::triggered, this, &MainWindow::close);
+#endif
 
   toolbarOpenAct = new QAction(QIcon(":/Icons/folder_page.png"), tr("&Open..."), this);
   toolbarOpenAct->setStatusTip(tr("Open an existing file"));
@@ -174,10 +170,6 @@ unsigned int MainWindow::getAppLocationSum(const QString& appPath)
   QString path = appPath;
   for(int i = 0; i < 5; ++i)
     path = QFileInfo(path).dir().path();
-
-  // HACK: use old layout files
-  path.replace("macOS", "OSX");
-  path.replace("SimRobot-caaaeucszhgdzjbjfxcuvrrhfobi", "SimRobot-coxkvyjsooixypajomfxlpxuegqc");
 #else
   const QString& path(QFileInfo(QFileInfo(appPath).dir().path()).dir().path());
 #endif
@@ -244,12 +236,12 @@ bool MainWindow::unregisterObject(const SimRobot::Object& object)
 
 SimRobot::Object* MainWindow::resolveObject(const QString& fullName, int kind)
 {
-  return sceneGraphDockWidget ? sceneGraphDockWidget->resolveObject(fullName, kind) : 0;
+  return sceneGraphDockWidget ? sceneGraphDockWidget->resolveObject(fullName, kind) : nullptr;
 }
 
 SimRobot::Object* MainWindow::resolveObject(const QVector<QString>& parts, const SimRobot::Object* parent, int kind)
 {
-  return sceneGraphDockWidget ? sceneGraphDockWidget->resolveObject(parent, parts, kind) : 0;
+  return sceneGraphDockWidget ? sceneGraphDockWidget->resolveObject(parent, parts, kind) : nullptr;
 }
 
 int MainWindow::getObjectChildCount(const SimRobot::Object& object)
@@ -259,7 +251,7 @@ int MainWindow::getObjectChildCount(const SimRobot::Object& object)
 
 SimRobot::Object* MainWindow::getObjectChild(const SimRobot::Object& object, int index)
 {
-  return sceneGraphDockWidget ? sceneGraphDockWidget->getObjectChild(&object, index) : 0;
+  return sceneGraphDockWidget ? sceneGraphDockWidget->getObjectChild(&object, index) : nullptr;
 }
 
 bool MainWindow::addStatusLabel(const SimRobot::Module& module, SimRobot::StatusLabel* statusLabel)
@@ -725,9 +717,8 @@ void MainWindow::updateFileMenu()
   {
     fileMenu->addSeparator();
     char shortcut = '1';
-    for(QStringList::const_iterator i = recentFiles.begin(), end = recentFiles.end(); i != end; ++i)
+    for(const QString& file : recentFiles)
     {
-      const QString& file(*i);
       QAction* action = fileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
       connect(action, &QAction::triggered, this, [this, file]{ openFile(file); });
     }
@@ -742,9 +733,8 @@ void MainWindow::updateRecentFileMenu()
 {
   recentFileMenu->clear();
   char shortcut = '1';
-  for(QStringList::const_iterator i = recentFiles.begin(), end = recentFiles.end(); i != end; ++i)
+  for(const QString& file : recentFiles)
   {
-    const QString& file(*i);
     QAction* action = recentFileMenu->addAction("&" + QString(shortcut++) + " " + QFileInfo(file).fileName());
     connect(action, &QAction::triggered, this, [this, file]{ openFile(file); });
   }

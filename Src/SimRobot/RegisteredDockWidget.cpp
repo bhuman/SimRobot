@@ -40,7 +40,7 @@ bool RegisteredDockWidget::canClose()
 
 QMenu* RegisteredDockWidget::createFileMenu() const
 {
-  return widget ? widget->createFileMenu() : 0;
+  return widget ? widget->createFileMenu() : nullptr;
 }
 
 QMenu* RegisteredDockWidget::createEditMenu()
