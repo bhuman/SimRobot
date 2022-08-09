@@ -187,8 +187,7 @@ void RegisteredDockWidget::topLevelChanged(bool topLevel)
 
 void RegisteredDockWidget::copy()
 {
-  QApplication::clipboard()->clear();
-  QApplication::clipboard()->setPixmap(QDockWidget::widget()->grab());
+  QApplication::clipboard()->setImage(QDockWidget::widget()->grab().toImage());
 }
 
 void RegisteredDockWidget::exportAsSvg()
