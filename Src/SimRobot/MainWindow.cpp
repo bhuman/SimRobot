@@ -114,9 +114,6 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
 #endif
 
-  menuBar = new QMenuBar(this);
-  setMenuBar(menuBar);
-
   statusBar = new StatusBar(this);
   setStatusBar(statusBar);
 
@@ -145,6 +142,15 @@ MainWindow::MainWindow(int, char* argv[]) :
   connect(action = helpMenu->addAction(tr("About &Qt...")), &QAction::triggered, qApp, &QApplication::aboutQt);
   action->setMenuRole(QAction::AboutQtRole);
   action->setStatusTip(tr("Show the Qt library's About box"));
+
+  menuBar()->addMenu(fileMenu);
+#ifdef FIX_MACOS_EDIT_MENU
+  editMenu = menuBar()->addMenu(tr("&Edit"));
+  editMenuEndSeparator = editMenu->addSeparator();
+#endif
+  menuBar()->addMenu(viewMenu);
+  menuBar()->addMenu(createSimMenu());
+  menuBar()->addMenu(helpMenu);
 
   updateMenuAndToolBar();
 }
@@ -588,7 +594,6 @@ void MainWindow::updateViewMenu(QMenu* menu)
 
 void MainWindow::updateMenuAndToolBar()
 {
-  menuBar->clear();
   toolBar->clear();
 
   if(dockWidgetFileMenu)
@@ -598,16 +603,21 @@ void MainWindow::updateMenuAndToolBar()
   }
   if(dockWidgetEditMenu)
   {
+#ifndef FIX_MACOS_EDIT_MENU
+    menuBar()->removeAction(dockWidgetEditMenu->menuAction());
+#endif
     delete dockWidgetEditMenu;
     dockWidgetEditMenu = nullptr;
   }
   if(moduleUserMenu)
   {
+    menuBar()->removeAction(moduleUserMenu->menuAction());
     delete moduleUserMenu;
     moduleUserMenu = nullptr;
   }
   if(dockWidgetUserMenu)
   {
+    menuBar()->removeAction(dockWidgetUserMenu->menuAction());
     delete dockWidgetUserMenu;
     dockWidgetUserMenu = nullptr;
   }
@@ -630,8 +640,6 @@ void MainWindow::updateMenuAndToolBar()
         moduleUserMenu = loadedModule->module->createUserMenu();
   }
 
-  menuBar->addMenu(fileMenu);
-
   toolBar->addAction(toolbarOpenAct);
   if(dockWidgetFileMenu)
     addToolBarButtonsFromMenu(dockWidgetFileMenu, toolBar, false);
@@ -648,28 +656,45 @@ void MainWindow::updateMenuAndToolBar()
 
   if(dockWidgetEditMenu)
   {
-    menuBar->addMenu(dockWidgetEditMenu);
+#ifdef FIX_MACOS_EDIT_MENU
+    for(QAction* action : editMenu->actions())
+    {
+      if(action == editMenuEndSeparator)
+        break;
+      editMenu->removeAction(action);
+    }
+    editMenu->insertActions(editMenuEndSeparator, dockWidgetEditMenu->actions());
+#else
+    menuBar()->insertMenu(viewMenu->menuAction(), dockWidgetEditMenu);
+#endif
     addToolBarButtonsFromMenu(dockWidgetEditMenu, toolBar, true);
   }
-  menuBar->addMenu(viewMenu);
-  menuBar->addMenu(createSimMenu());
+#ifdef FIX_MACOS_EDIT_MENU
+  else
+    for(QAction* action : editMenu->actions())
+    {
+      if(action == editMenuEndSeparator)
+        break;
+      editMenu->removeAction(action);
+    }
+#endif
+
+  menuBar()->removeAction(addonMenu->menuAction());
 
   if(moduleUserMenu)
   {
-    menuBar->addMenu(moduleUserMenu);
+    menuBar()->insertMenu(helpMenu->menuAction(), moduleUserMenu);
     addToolBarButtonsFromMenu(moduleUserMenu, toolBar, true);
   }
 
   if(dockWidgetUserMenu)
   {
-    menuBar->addMenu(dockWidgetUserMenu);
+    menuBar()->insertMenu(helpMenu->menuAction(), dockWidgetUserMenu);
     addToolBarButtonsFromMenu(dockWidgetUserMenu, toolBar, true);
   }
 
   if(opened)
-    menuBar->addMenu(addonMenu);
-
-  menuBar->addMenu(helpMenu);
+    menuBar()->insertMenu(helpMenu->menuAction(), addonMenu);
 
 #ifndef LINUX
   QTimer::singleShot(0, toolBar, static_cast<void (QToolBar::*)()>(&QToolBar::update));

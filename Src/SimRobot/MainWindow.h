@@ -62,13 +62,16 @@ private:
 
   QMenu* fileMenu;
   QMenu* recentFileMenu;
+#ifdef FIX_MACOS_EDIT_MENU
+  QMenu* editMenu;
+  QAction* editMenuEndSeparator;
+#endif
   QMenu* viewMenu;
   QMenu* viewUpdateRateMenu = nullptr;
   QActionGroup* viewUpdateRateActionGroup = nullptr;
   QMenu* addonMenu;
   QMenu* helpMenu;
 
-  QMenuBar* menuBar;
   QToolBar* toolBar;
   StatusBar* statusBar;
 
