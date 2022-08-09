@@ -24,7 +24,6 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) :
 {
   setFocusPolicy(Qt::StrongFocus);
   grabGesture(Qt::PinchGesture);
-  setAttribute(Qt::WA_AcceptTouchEvents);
 
   QSettings& settings = CoreModule::application->getLayoutSettings();
   settings.beginGroup(object.getFullName());
