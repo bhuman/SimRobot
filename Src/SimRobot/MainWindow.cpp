@@ -1112,7 +1112,7 @@ void MainWindow::simStop()
 void MainWindow::about()
 {
   QMessageBox::about(this, tr("About SimRobot"),
-    tr("<b>SimRobot</b> 2011 (B-Human Edition)<br><br>\
+    tr("<b>SimRobot</b><br><br>\
 Authors:\
 <blockquote>Tim Laue<br>\
 Thomas Röfer<br>\
@@ -1120,6 +1120,7 @@ Kai Spiess<br>\
 Dennis Pachur<br>\
 Colin Graf<br>\
 Thijs Jeffry de Haas<br>\
+Arne Hasselbring<br>\
 </blockquote>\
 German Research Center for Artificial Intelligence (DFKI)<br>University of Bremen<br><br>\
 Icons by Mark James <a href=\"http://www.famfamfam.com/lab/icons/silk/\">http://www.famfamfam.com/lab/icons/silk/</a>"));

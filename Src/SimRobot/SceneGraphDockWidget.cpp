@@ -283,7 +283,7 @@ void SceneGraphDockWidget::contextMenuEvent(QContextMenuEvent* event)
     // click on window frame
     QDockWidget::contextMenuEvent(event);
     return;
-  };
+  }
 
   clickedItem = static_cast<RegisteredObject*>(treeWidget->itemAt(treeWidget->mapFromParent(event->pos())));
 
