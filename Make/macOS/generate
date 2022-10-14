@@ -137,7 +137,7 @@ else
   # Deactivate some building targets.
   SCHEMETEMPLATE=$SCHEMESRC/SimRobot.xcscheme
   sed <$SCHEMETEMPLATE >$TEMPPATH2 \
-  -e 's%\.\./\.\./Build/macOS/SimRobot-temp%../../Make/macOS/SimRobot%' \
+  -e 's%"container:[^"]*/Build/macOS/SimRobot-temp%"container:../../Make/macOS/SimRobot%' \
   -e 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
    </ProfileAction>%'
   (
