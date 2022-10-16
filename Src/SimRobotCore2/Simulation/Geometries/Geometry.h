@@ -25,7 +25,7 @@ public:
    * @class Material
    * Describes friction properties of the material a geometry is made of
    */
-  class Material : public Element
+  class Material : public ElementCore2
   {
   public:
     std::string name; /**< The name of the material */

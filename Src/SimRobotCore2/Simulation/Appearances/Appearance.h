@@ -17,7 +17,7 @@
 class Appearance : public SimObject, public GraphicalObject, public SimRobotCore2::Appearance
 {
 public:
-  class Surface : public Element
+  class Surface : public ElementCore2
   {
   public:
 
