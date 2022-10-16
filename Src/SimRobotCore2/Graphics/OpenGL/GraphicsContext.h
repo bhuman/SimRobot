@@ -199,6 +199,9 @@ public:
      */
     Texture(const std::string& file);
 
+    /* Destructor. Frees texture memory. */
+    ~Texture();
+
     void* data = nullptr; /**< The raw texture data. */
     GLsizei width = 0; /**< The width of the texture in pixels. */
     GLsizei height = 0; /**< The height of the texture in pixels. */

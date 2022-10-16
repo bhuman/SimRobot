@@ -939,3 +939,8 @@ GraphicsContext::Texture::Texture(const std::string& file)
     p += image.bytesPerLine();
   }
 }
+
+GraphicsContext::Texture::~Texture()
+{
+  delete[] data;
+}
