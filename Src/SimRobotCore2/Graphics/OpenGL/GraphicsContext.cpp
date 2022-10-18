@@ -932,7 +932,7 @@ GraphicsContext::Texture::Texture(const std::string& file)
   if(!data)
     return;
 
-  GLubyte* p = reinterpret_cast<GLubyte*>(data);
+  GLubyte* p = data;
   for(int y = height; y-- > 0;)
   {
     std::memcpy(p, image.scanLine(y), image.bytesPerLine());

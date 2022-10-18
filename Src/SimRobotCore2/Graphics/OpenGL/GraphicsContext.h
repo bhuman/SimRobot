@@ -202,7 +202,7 @@ public:
     /* Destructor. Frees texture memory. */
     ~Texture();
 
-    void* data = nullptr; /**< The raw texture data. */
+    GLubyte* data = nullptr; /**< The raw texture data. */
     GLsizei width = 0; /**< The width of the texture in pixels. */
     GLsizei height = 0; /**< The height of the texture in pixels. */
     bool hasAlpha = false; /**< Whether the texture has an alpha channel. */
