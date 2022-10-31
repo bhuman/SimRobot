@@ -109,6 +109,25 @@ void SimObjectRenderer::draw()
   PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
   GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
 
+  const bool drawAppearances = graphicalObject && surfaceShadeMode != noShading;
+  const bool drawPhysics = physicalObject && (physicsShadeMode != noShading);
+  const bool drawSensors = physicalObject && (renderFlags & showSensors);
+  const bool drawDragPlane = dragging && dragSelection;
+  const bool drawCoordinateSystem = renderFlags & showCoordinateSystem;
+  const bool drawControllerDrawings = (physicalObject || graphicalObject) && drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager;
+
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
+  if(drawAppearances || drawControllerDrawings)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, dragging && dragSelection);
+  if(drawPhysics || drawControllerDrawings)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::physicalDrawing, dragging && dragSelection);
+  if(drawSensors || drawControllerDrawings)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::sensorDrawing, dragging && dragSelection);
+  if(drawControllerDrawings)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::controllerDrawing, dragging && dragSelection);
+  if(drawDragPlane)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::dragPlane, true);
+
   Pose3f invCameraPose = cameraTransformation;
   // Since each object will be drawn globally we need to shift the coordinate system.
   // Also, the origin should be at the parent object's pose.
@@ -128,11 +147,13 @@ void SimObjectRenderer::draw()
   }
   else
     Simulation::simulation->originPose = Pose3f();
+
+  if(drawCoordinateSystem)
+    graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::origin, true);
+
   const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
-  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
-  graphicsContext.updateModelMatrices((dragging && dragSelection) || (renderFlags & showCoordinateSystem));
 
   if(renderFlags & enableMultisample)
     f->glEnable(GL_MULTISAMPLE);
@@ -143,7 +164,7 @@ void SimObjectRenderer::draw()
   bool clear = true;
 
   // draw origin
-  if(renderFlags & showCoordinateSystem)
+  if(drawCoordinateSystem)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, false);
     graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
@@ -154,7 +175,7 @@ void SimObjectRenderer::draw()
   }
 
   // draw object / scene appearance
-  if(graphicalObject && surfaceShadeMode != noShading)
+  if(drawAppearances)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
     graphicalObject->drawAppearances(graphicsContext);
@@ -163,7 +184,7 @@ void SimObjectRenderer::draw()
   }
 
   // draw object / scene physics
-  if(physicalObject && (physicsShadeMode != noShading || renderFlags & showSensors))
+  if(drawPhysics || drawSensors)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
     physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
@@ -172,7 +193,7 @@ void SimObjectRenderer::draw()
   }
 
   // draw drag plane
-  if(dragging && dragSelection)
+  if(drawDragPlane)
   {
     graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, true);
     graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
@@ -181,7 +202,7 @@ void SimObjectRenderer::draw()
   }
 
   // draw controller drawings
-  if((physicalObject || graphicalObject) && drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager)
+  if(drawControllerDrawings)
   {
     // If the manager registered later, it must be done now.
     if(!registeredAtManager)

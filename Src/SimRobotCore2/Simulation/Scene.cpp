@@ -34,7 +34,7 @@ void Scene::createGraphics(GraphicsContext& graphicsContext)
   // Physical object and graphical object share it because it really is just at the origin.
   ASSERT(!::PhysicalObject::modelMatrix);
   ASSERT(!GraphicalObject::modelMatrix);
-  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
 
   graphicsContext.setClearColor(Simulation::simulation->scene->color);
 

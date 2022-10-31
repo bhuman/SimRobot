@@ -209,7 +209,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   graphicsContext.makeCurrent(renderWidth, renderHeight, false);
-  graphicsContext.updateModelMatrices(false);
+  graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
   Pose3f pose = physicalObject->poseInWorld;

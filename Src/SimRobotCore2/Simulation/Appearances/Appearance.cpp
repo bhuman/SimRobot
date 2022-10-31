@@ -63,7 +63,7 @@ void Appearance::createGraphics(GraphicsContext& graphicsContext)
 
   graphicsContext.pushModelMatrix(poseInParent);
   ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
+  modelMatrix = graphicsContext.requestModelMatrix(mesh ? GraphicsContext::ModelMatrix::appearance : GraphicsContext::ModelMatrix::controllerDrawing);
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
 }

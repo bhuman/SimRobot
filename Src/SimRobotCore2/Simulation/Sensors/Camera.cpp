@@ -85,7 +85,7 @@ void Camera::CameraSensor::updateValue()
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   graphicsContext.makeCurrent(imageWidth, imageHeight);
-  graphicsContext.updateModelMatrices(false);
+  graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
   Pose3f pose = physicalObject->poseInWorld;
@@ -139,7 +139,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore2::SensorPort** camera
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   graphicsContext.makeCurrent(imageWidth, imageHeight * count);
-  graphicsContext.updateModelMatrices(false);
+  graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // render images
   int currentHorizontalPos = 0;

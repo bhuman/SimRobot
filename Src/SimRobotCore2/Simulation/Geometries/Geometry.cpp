@@ -39,7 +39,7 @@ void Geometry::createPhysics(GraphicsContext& graphicsContext)
   // \c createGeometry must have been called before.
   graphicsContext.pushModelMatrix(poseInParent);
   ASSERT(!modelMatrix);
-  modelMatrix = graphicsContext.requestModelMatrix();
+  modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::physicalDrawing);
   ::PhysicalObject::createPhysics(graphicsContext);
   graphicsContext.popModelMatrix();
 

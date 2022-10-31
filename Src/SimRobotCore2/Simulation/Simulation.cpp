@@ -130,10 +130,10 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
 
   graphicsContext.pushModelMatrixStack();
   graphicsContext.pushModelMatrixByReference(originPose);
-  originModelMatrix = graphicsContext.requestModelMatrix();
+  originModelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::origin);
   graphicsContext.popModelMatrix();
   graphicsContext.pushModelMatrixByReference(dragPlanePose);
-  dragPlaneModelMatrix = graphicsContext.requestModelMatrix();
+  dragPlaneModelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::dragPlane);
   graphicsContext.popModelMatrix();
   graphicsContext.popModelMatrixStack();
 

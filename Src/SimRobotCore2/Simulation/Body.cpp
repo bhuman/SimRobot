@@ -93,12 +93,12 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.pushModelMatrixByReference(poseInParent);
 
   ASSERT(!::PhysicalObject::modelMatrix);
-  ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+  ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
 
   const Pose3f centerOfMassPose(centerOfMass);
   graphicsContext.pushModelMatrix(centerOfMassPose);
   ASSERT(!comModelMatrix);
-  comModelMatrix = graphicsContext.requestModelMatrix();
+  comModelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::physicalDrawing);
   graphicsContext.popModelMatrix();
 
   //
@@ -191,7 +191,7 @@ void Body::createGraphics(GraphicsContext& graphicsContext)
   ASSERT(graphicsContext.emptyModelMatrixStack());
   graphicsContext.pushModelMatrixByReference(poseInParent);
   ASSERT(!GraphicalObject::modelMatrix);
-  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix();
+  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
   for(Body* child : bodyChildren)

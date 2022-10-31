@@ -237,6 +237,17 @@ public:
    */
   struct ModelMatrix final
   {
+    enum Usage
+    {
+      appearance, /**< This class may be used for appearances and controller drawings. */
+      physicalDrawing, /**< This class may be used for physical drawings and controller drawings. */
+      sensorDrawing, /**< This class may be used for sensor drawings and controller drawings. */
+      controllerDrawing, /**< This class may be used for controller drawings only. */
+      origin, /**< This is the origin model matrix. */
+      dragPlane, /**< This is the drag plane model matrix. */
+      numOfUsages
+    };
+
     /**
      * Returns a pointer to the calculated column-major 4x4 model matrix.
      * @return A pointer to the calculated column-major 4x4 mmodel matrix.
@@ -334,9 +345,10 @@ public:
 
   /**
    * Requests a model matrix that represents the state of the top of the current model matrix stack.
+   * @param usage A hint for which kind of draw calls the model matrix is going to be used.
    * @return The new model matrix. The graphics context retains ownership of the object.
    */
-  ModelMatrix* requestModelMatrix();
+  ModelMatrix* requestModelMatrix(ModelMatrix::Usage usage);
 
   /** Starts a new empty model matrix stack. */
   void pushModelMatrixStack();
@@ -367,9 +379,10 @@ public:
 
   /**
    * Recalculates the model matrices that have a reference component.
+   * @param usage The usage class that should be updated.
    * @param forceUpdate Whether the model matrices should be updated although the simulation step did not change.
    */
-  void updateModelMatrices(bool forceUpdate);
+  void updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate);
 
   /**
    * Starts a color render pass.
@@ -530,6 +543,16 @@ private:
   };
 
   /**
+   * Model matrices of a specific usage class.
+   */
+  struct ModelMatrixSet
+  {
+    std::vector<ModelMatrix*> constantModelMatrices; /**< Model matrices of a specific class that do not change. */
+    std::vector<ModelMatrix*> variableModelMatrices; /**< Model matrices of a specific class that change. */
+    unsigned lastUpdate = -1; /**< The simulation step of the last model matrix update. */
+  };
+
+  /**
    * Sets uniforms for a surface.
    * @param surface The surface to set.
    */
@@ -564,7 +587,7 @@ private:
 
   // Objects that are created during initialization (i.e. before the first call to \c createGraphics) but used throughout the runtime.
   std::unordered_map<std::string, Texture*> textures; /**< Map of filenames to textures. */
-  std::vector<ModelMatrix*> modelMatrices; /**< List of all registered model matrices. */
+  std::array<ModelMatrixSet, ModelMatrix::numOfUsages> modelMatrixSets; /**< List of all registered model matrices. */
   std::vector<Surface*> surfaces; /**< List of all registered surfaces. */
   std::vector<VertexCategory> vertexBuffers; /**< List of the known vertex categories, pointing to all registered vertex buffers. */
   std::size_t vertexBufferTotalSize; /**< The total size of the vertex buffer object. */
@@ -578,9 +601,6 @@ private:
 
   // To construct the model matrices:
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */
-
-  // Bookkeeping during runtime:
-  unsigned lastModelMatrixTimestamp = -1; /**< The simulation step of the last model matrix update. */
 
   // Only valid between \c startColorRendering / \c startDepthOnlyRendering and \c finishRendering:
   PerContextData* data = nullptr; /**< The per context data for the current OpenGL context. */

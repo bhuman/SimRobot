@@ -220,8 +220,13 @@ GraphicsContext::~GraphicsContext()
 
   for(const auto& texture : textures)
     delete texture.second;
-  for(const auto* modelMatrix : modelMatrices)
-    delete modelMatrix;
+  for(const auto& modelMatrixSet : modelMatrixSets)
+  {
+    for(const auto* modelMatrix : modelMatrixSet.variableModelMatrices)
+      delete modelMatrix;
+    for(const auto* modelMatrix : modelMatrixSet.constantModelMatrices)
+      delete modelMatrix;
+  }
   for(const auto* surface : surfaces)
     delete surface;
   for(const auto& pair : vertexBuffers)
@@ -522,7 +527,7 @@ void GraphicsContext::addLight(const Light* light)
   }
 }
 
-GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix()
+GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix(ModelMatrix::Usage usage)
 {
   ModelMatrix* modelMatrix = new ModelMatrix;
   const ModelMatrixStack& modelMatrixStack = modelMatrixStackStack.top();
@@ -538,9 +543,14 @@ GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix()
   for(std::size_t i = startIndex + 1; i < product.size(); ++i)
     modelMatrix->constantPart *= *product[i];
   modelMatrix->memory.row(3) = Eigen::RowVector4f(0.f, 0.f, 0.f, 1.f);
-  modelMatrix->memory.topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
-  modelMatrix->memory.topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
-  modelMatrices.push_back(modelMatrix);
+  if(modelMatrix->variablePart)
+    modelMatrixSets[usage].variableModelMatrices.push_back(modelMatrix);
+  else
+  {
+    modelMatrix->memory.topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
+    modelMatrix->memory.topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
+    modelMatrixSets[usage].constantModelMatrices.push_back(modelMatrix);
+  }
   return modelMatrix;
 }
 
@@ -580,19 +590,18 @@ bool GraphicsContext::emptyModelMatrixStack() const
   return modelMatrixStackStack.top().empty();
 }
 
-void GraphicsContext::updateModelMatrices(bool forceUpdate)
+void GraphicsContext::updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate)
 {
-  if(lastModelMatrixTimestamp == Simulation::simulation->simulationStep && !forceUpdate)
+  if(modelMatrixSets[usage].lastUpdate == Simulation::simulation->simulationStep && !forceUpdate)
     return;
-  lastModelMatrixTimestamp = Simulation::simulation->simulationStep;
+  modelMatrixSets[usage].lastUpdate = Simulation::simulation->simulationStep;
 
-  for(ModelMatrix* modelMatrix : modelMatrices)
-    if(modelMatrix->variablePart)
-    {
-      const Pose3f result = *modelMatrix->variablePart * modelMatrix->constantPart;
-      modelMatrix->memory.topLeftCorner<3, 3>() = result.rotation;
-      modelMatrix->memory.topRightCorner<3, 1>() = result.translation;
-    }
+  for(ModelMatrix* modelMatrix : modelMatrixSets[usage].variableModelMatrices)
+  {
+    const Pose3f result = *modelMatrix->variablePart * modelMatrix->constantPart;
+    modelMatrix->memory.topLeftCorner<3, 3>() = result.rotation;
+    modelMatrix->memory.topRightCorner<3, 1>() = result.translation;
+  }
 }
 
 void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
