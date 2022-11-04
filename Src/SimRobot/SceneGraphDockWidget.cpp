@@ -24,11 +24,15 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   setWidget(treeWidget);
   setFocusProxy(treeWidget);
   treeWidget->setExpandsOnDoubleClick(false);
-  treeWidget->header()->hide();
+  treeWidget->setHeaderHidden(true);
+  treeWidget->setSelectionMode(QAbstractItemView::NoSelection);
 
   connect(treeWidget, &QTreeWidget::activated, this, &SceneGraphDockWidget::itemActivated);
   connect(treeWidget, &QTreeWidget::collapsed, this, &SceneGraphDockWidget::itemCollapsed);
   connect(treeWidget, &QTreeWidget::expanded, this, &SceneGraphDockWidget::itemExpanded);
+  // suppress decoration of the current item which doesn't mix well with our own styling
+  // (maybe the whole thing that is done by setting the font etc. can be achieved better using stylesheets)
+  connect(treeWidget, &QTreeWidget::currentItemChanged, this, [this](auto*, auto*){ treeWidget->setCurrentItem(nullptr); });
 
   // load layout settings
   QSettings& settings = MainWindow::application->getLayoutSettings();
@@ -221,7 +225,6 @@ bool SceneGraphDockWidget::setOpened(const SimRobot::Object* object, bool opened
   if(!item)
     return false;
   item->opened = opened;
-  //item->setFont(0, opened ? boldFont : QFont());
   item->setDisabled(!opened);
   if(!opened)
     item->setFont(0, QFont());
@@ -234,8 +237,6 @@ bool SceneGraphDockWidget::setActive(const SimRobot::Object* object, bool active
   if(!item)
     return false;
   item->setFont(0, active ? boldFont : QFont());
-  if(active)
-    treeWidget->setCurrentItem(item);
   return true;
 }
 
