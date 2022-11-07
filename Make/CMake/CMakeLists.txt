@@ -138,7 +138,7 @@ target_link_options(Flags::Default INTERFACE
     $<${_is_msvc}:$<$<NOT:$<CONFIG:Debug>>:/INCREMENTAL:NO>>
     $<$<AND:${_not_mac},${_is_clang}>:$<$<CONFIG:Release>:-s>>)
 
-set(SIMROBOT_CONTROLLERS Factory SimpleVehicle Soccer)
+set(SIMROBOT_CONTROLLERS Benchmark Factory SimpleVehicle Soccer)
 if(APPLE)
   set(SIMROBOT_LIBRARY_DIR "${OUTPUT_PREFIX}/Build/${OS}/SimRobot/$<CONFIG>/SimRobot.app/Contents/lib")
 else()
@@ -154,8 +154,9 @@ include("../CMake/SimRobotCommon.cmake")
 include("../CMake/SimRobotCore2.cmake")
 include("../CMake/SimRobotCore2D.cmake")
 include("../CMake/SimRobotEditor.cmake")
-include("../CMake/SimpleVehicle.cmake")
+include("../CMake/Benchmark.cmake")
 include("../CMake/Factory.cmake")
+include("../CMake/SimpleVehicle.cmake")
 include("../CMake/Soccer.cmake")
 
 source_group(".PCH" REGULAR_EXPRESSION ".*[ch]xx$")
