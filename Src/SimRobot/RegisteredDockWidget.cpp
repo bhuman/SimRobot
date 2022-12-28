@@ -14,6 +14,7 @@ RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* par
   QDockWidget(parent), fullName(fullName), module(0), object(0), widget(0), flags(0), reallyVisible(false)
 {
   setObjectName(fullName);
+  setFeatures(features() & ~DockWidgetFloatable);
   setAllowedAreas(Qt::TopDockWidgetArea);
   setFocusPolicy(Qt::ClickFocus);
   connect(this, &QDockWidget::visibilityChanged, this, &RegisteredDockWidget::visibilityChanged);
@@ -177,14 +178,6 @@ void RegisteredDockWidget::visibilityChanged(bool visible)
   reallyVisible = visible;
 }
 
-void RegisteredDockWidget::topLevelChanged(bool topLevel)
-{
-  if(topLevel)
-    setFeatures(features() | DockWidgetMovable);
-  else
-    setFeatures(features() & ~DockWidgetMovable);
-}
-
 void RegisteredDockWidget::copy()
 {
   QApplication::clipboard()->setImage(QDockWidget::widget()->grab().toImage());
@@ -240,30 +233,4 @@ void RegisteredDockWidget::exportAsPng()
   pixmap.fill(QColor(0, 0, 0, 0));
   widget->getWidget()->render(&pixmap);
   pixmap.save(fileName, "PNG");
-}
-
-void RegisteredDockWidget::keyPressEvent(QKeyEvent* event)
-{
-  if(isFloating() && (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)) == (Qt::ControlModifier | Qt::ShiftModifier))
-  {
-    static_cast<RegisteredDockWidget*>(qobject_cast<QWidget*>(parent()))->keyPressEvent(event);
-    // note: the dirty cast is for accessing keyPressEvent
-    if(event->isAccepted())
-      return;
-  }
-
-  QDockWidget::keyPressEvent(event);
-}
-
-void RegisteredDockWidget::keyReleaseEvent(QKeyEvent* event)
-{
-  if(isFloating() && (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)) == (Qt::ControlModifier | Qt::ShiftModifier))
-  {
-    static_cast<RegisteredDockWidget*>(qobject_cast<QWidget*>(parent()))->keyReleaseEvent(event);
-    // note: the dirty cast is for accessing keyReleaseEvent
-    if(event->isAccepted())
-      return;
-  }
-
-  QDockWidget::keyReleaseEvent(event);
 }

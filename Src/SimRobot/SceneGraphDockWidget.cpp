@@ -355,11 +355,3 @@ void SceneGraphDockWidget::expandOrCollapseObject()
   else
     treeWidget->expandItem(clickedItem);
 }
-
-void SceneGraphDockWidget::topLevelChanged(bool topLevel)
-{
-  if(topLevel)
-    setFeatures(features() | DockWidgetMovable);
-  else
-    setFeatures(features() & ~DockWidgetMovable);
-}

@@ -1199,7 +1199,6 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
   dockWidget->setWindowTitle(fullName);
   dockWidget->setObjectName(fullName);
   addDockWidget(Qt::TopDockWidgetArea, dockWidget);
-  dockWidget->setFloating(true);
   if(widget)
   {
     dockWidget->setWidget(widget, module, object, flags);
@@ -1254,14 +1253,7 @@ void MainWindow::visibilityChanged(bool visible)
   {
     QDockWidget* dockWidget = qobject_cast<QDockWidget*>(sender());
     if(dockWidget)
-    {
-      if(dockWidget->isFloating())
-      {
-        dockWidget->raise();
-        dockWidget->activateWindow();
-      }
       dockWidget->setFocus();
-    }
   }
 }
 
@@ -1291,9 +1283,7 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
   {
     const RegisteredDockWidget* regDockWidget = qobject_cast<RegisteredDockWidget*>(activeDockWidget);
     if(sceneGraphDockWidget && regDockWidget)
-    {
       sceneGraphDockWidget->setActive(regDockWidget->getObject(), false);
-    }
   }
 
   QDockWidget* prevDockWidget = activeDockWidget;
@@ -1308,15 +1298,7 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
 
     const RegisteredDockWidget* regDockWidget = qobject_cast<RegisteredDockWidget*>(activeDockWidget);
     if(sceneGraphDockWidget && regDockWidget)
-    {
       sceneGraphDockWidget->setActive(regDockWidget->getObject(), true);
-    }
-    if(activeDockWidget->isFloating())
-    {
-      // Set focus to the main window, so that the active window does not change when the focus returns to the main window.
-      // Otherwise it would not be possible to use the customized menu or toolbar.
-      setFocus();
-    }
   }
   updateMenuAndToolBar();
 }

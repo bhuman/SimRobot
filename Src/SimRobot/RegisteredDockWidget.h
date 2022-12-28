@@ -42,14 +42,11 @@ private:
 
   void closeEvent(QCloseEvent* event) override;
   void contextMenuEvent(QContextMenuEvent* event) override;
-  void keyPressEvent(QKeyEvent* event) override;
-  void keyReleaseEvent(QKeyEvent* event) override;
 
 public slots:
   void visibilityChanged(bool visible);
   
 private slots:
-  void topLevelChanged(bool topLevel);
   void copy();
   void exportAsSvg();
   void exportAsPng();

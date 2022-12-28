@@ -71,6 +71,4 @@ private slots:
 
   void openOrCloseObject();
   void expandOrCollapseObject();
-
-  void topLevelChanged(bool topLevel);
 };
