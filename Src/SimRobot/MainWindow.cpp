@@ -112,6 +112,7 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFloatable(false);
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
+  toolBar->setStyleSheet("QToolBar::separator { height : 0px }");
 #endif
 
   statusBar = new StatusBar(this);
@@ -1284,26 +1285,3 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
   }
   updateMenuAndToolBar();
 }
-
-#ifdef MACOS
-bool MainWindow::event(QEvent* event)
-{
-  if(event->type() == QEvent::ActivationChange || event->type() == QEvent::PaletteChange)
-  {
-    QColor color;
-
-    // HACK: It is hard to determine the current color of the title bar.
-    // It depends on dark mode and light mode and whether the window
-    // is currently active.
-    const bool active = QApplication::activeWindow() && QApplication::activeWindow()->isActiveWindow();
-    if(palette().window().color().lightness() < 128)
-      color = active ? QColor(41, 41, 41) : QColor(45, 45, 45);
-    else
-      color = active ? QColor(213, 213, 213) : QColor(246, 246, 246);
-    toolBar->setStyleSheet("QToolBar { border: 0px; background-color : "
-                           + color.name()
-                           + " } QToolBar::separator { height : 0px }");
-  }
-  return QMainWindow::event(event);
-}
-#endif
