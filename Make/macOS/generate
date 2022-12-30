@@ -51,6 +51,7 @@ done <<<"$DIRONLY"
 # Previous cache files are saved if they exist.
 if [ -d "$PROJECTPATH/CMakeFiles" ]; then
   mkdir -p "$PROJECTDIR"
+  xattr -w com.apple.xcode.CreatedByBuildSystem true "$PROJECTDIR"
   if [ -e "$PROJECTDIR/CMakeFiles" ]; then
     if [ -e "$PROJECTDIR/CMakeFiles-temp" ]; then
       rm -r "$PROJECTDIR/CMakeFiles-temp"
