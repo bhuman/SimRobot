@@ -5,6 +5,7 @@
  */
 
 #include <QApplication>
+#include <QLocale>
 #include <QSurfaceFormat>
 
 extern void qt_registerDefaultPlatformBackingStoreOpenGLSupport();
@@ -83,6 +84,10 @@ int main(int argc, char* argv[])
   _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
   //_CrtSetBreakAlloc(18969); // Use to track down memory leaks
 #endif
+
+  // Handle floating point values as programming languages would.
+  QLocale::setDefault(QLocale::C);
+
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QSurfaceFormat format;
   format.setVersion(3, 3);
