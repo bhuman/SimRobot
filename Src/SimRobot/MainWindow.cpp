@@ -32,8 +32,40 @@
 #endif
 #include <iostream>
 
-#define QDOCKWIDGET_STYLE ""
-#define QDOCKWIDGET_STYLE_FOCUS "QDockWidget {font-weight: bold;}"
+#ifdef MACOS
+#include <QPainter>
+#include <QProxyStyle>
+
+#define STYLE_NEW(dockWidget) (dockWidget)->setStyle(new BoldTitleStyle((dockWidget)->style()->name(), dockWidget, activeDockWidget));
+#define STYLE_UPDATE(dockWidget) (dockWidget)->setWindowModified(!(dockWidget)->isWindowModified());
+
+/** This style renders dock widget titles bold if they have the focus. */
+class BoldTitleStyle : public QProxyStyle
+{
+private:
+  const QDockWidget* dockWidget;
+  QDockWidget*& activeDockWidget;
+
+public:
+  BoldTitleStyle(const QString& key, const QDockWidget* dockWidget, QDockWidget*& activeDockWidget)
+  : QProxyStyle(key), dockWidget(dockWidget), activeDockWidget(activeDockWidget) {}
+
+  void drawItemText(QPainter* painter, const QRect& rectangle, int alignment, const QPalette& palette,
+                    bool enabled, const QString& text, QPalette::ColorRole textRole) const override
+  {
+    if(dockWidget == activeDockWidget && textRole == QPalette::WindowText)
+    {
+      QFont font = painter->font();
+      font.setBold(true);
+      painter->setFont(font);
+    }
+    QProxyStyle::drawItemText(painter, rectangle, alignment, palette, enabled, text, textRole);
+  }
+};
+#else
+#define STYLE_NEW(dockWidget) (dockWidget)->setStyleSheet((dockWidget) == activeDockWidget ? "QDockWidget {font-weight: bold;}" : "");
+#define STYLE_UPDATE(dockWidget) STYLE_NEW(dockWidget)
+#endif
 
 SimRobot::Application* MainWindow::application;
 
@@ -220,7 +252,7 @@ bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object
     {
       if(flags & SimRobot::Flag::verticalTitleBar)
         dockWidget->setFeatures(dockWidget->features() | QDockWidget::DockWidgetVerticalTitleBar);
-      dockWidget->setStyleSheet(dockWidget == activeDockWidget ? QDOCKWIDGET_STYLE_FOCUS : QDOCKWIDGET_STYLE);
+      STYLE_NEW(dockWidget);
       dockWidget->setWidget(widget, &module, &object, flags);
       QWidget* qwidget = widget->getWidget();
       Q_ASSERT(qwidget->parent() == dockWidget);
@@ -838,7 +870,7 @@ void MainWindow::openFile(const QString& fileName)
 
   // create scene graph window
   sceneGraphDockWidget = new SceneGraphDockWidget(createSimMenu(), this);
-  sceneGraphDockWidget->setStyleSheet(QDOCKWIDGET_STYLE);
+  STYLE_NEW(sceneGraphDockWidget);
   connect(sceneGraphDockWidget, &SceneGraphDockWidget::visibilityChanged, this, &MainWindow::visibilityChanged);
   addDockWidget(Qt::TopDockWidgetArea, sceneGraphDockWidget);
   connect(sceneGraphDockWidget, &SceneGraphDockWidget::activatedObject, this, static_cast<void (MainWindow::*)(const QString& fullName, const SimRobot::Module* module, SimRobot::Object* object, int flags)>(&MainWindow::openObject));
@@ -1161,7 +1193,7 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
   connect(dockWidget, &RegisteredDockWidget::closedContextMenu, this, &MainWindow::updateMenuAndToolBar);
   if(flags & SimRobot::Flag::verticalTitleBar)
     dockWidget->setFeatures(dockWidget->features() | QDockWidget::DockWidgetVerticalTitleBar);
-  dockWidget->setStyleSheet(dockWidget == activeDockWidget ? QDOCKWIDGET_STYLE_FOCUS : QDOCKWIDGET_STYLE);
+  STYLE_NEW(dockWidget);
   connect(dockWidget, &QDockWidget::visibilityChanged, this, &MainWindow::visibilityChanged);
   dockWidget->setAttribute(Qt::WA_DeleteOnClose);
   dockWidget->setWindowTitle(fullName);
@@ -1257,8 +1289,6 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
 
   if(activeDockWidget)
   {
-    activeDockWidget->setStyleSheet(QDOCKWIDGET_STYLE);
-
     const RegisteredDockWidget* regDockWidget = qobject_cast<RegisteredDockWidget*>(activeDockWidget);
     if(sceneGraphDockWidget && regDockWidget)
     {
@@ -1266,10 +1296,15 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
     }
   }
 
+  QDockWidget* prevDockWidget = activeDockWidget;
   activeDockWidget = newDockWidget;
+
+  if(prevDockWidget)
+    STYLE_UPDATE(prevDockWidget);
+
   if(activeDockWidget)
   {
-    activeDockWidget->setStyleSheet(QDOCKWIDGET_STYLE_FOCUS);
+    STYLE_UPDATE(activeDockWidget);
 
     const RegisteredDockWidget* regDockWidget = qobject_cast<RegisteredDockWidget*>(activeDockWidget);
     if(sceneGraphDockWidget && regDockWidget)
