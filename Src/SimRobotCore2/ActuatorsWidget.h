@@ -100,6 +100,9 @@ public:
   /** Adopts a user controlled actuator value */
   void adoptActuator();
 
+protected:
+  void changeEvent(QEvent* event) override;
+
 signals:
   void releasedClose();
 
@@ -108,6 +111,8 @@ public slots:
   void valueChanged(double value);
 
 private:
+  void styleCloseButton();
+  
   SimRobotCore2::ActuatorPort* actuator;
 
   bool isAngle;

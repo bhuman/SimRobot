@@ -153,7 +153,7 @@ ActuatorWidget::ActuatorWidget(SimRobotCore2::ActuatorPort* actuator, QWidget* p
 #ifdef MACOS
   btnExit->setMaximumWidth(btnExit->height() / 2 + 8);
   btnExit->setMaximumHeight(btnExit->height() / 2 + 8);
-  btnExit->setStyleSheet("QPushButton {background-color: #FAFAFA; padding: 2px; margin: 1px 1px 9px 2px; border: none; border-radius: 2px;} QPushButton:pressed {background-color: #3683F9; color: white;}");
+  styleCloseButton();
 #else
   btnExit->setMaximumWidth(btnExit->height() / 2);
   btnExit->setMaximumHeight(btnExit->height() / 2);
@@ -247,6 +247,36 @@ void ActuatorWidget::adoptActuator()
     if(input)
       input->data.floatValue = input->defaultValue; // setValue would clip value
   }
+}
+
+void ActuatorWidget::changeEvent(QEvent* event)
+{
+#ifdef MACOS
+  if(event->type() == QEvent::PaletteChange)
+    styleCloseButton();
+#endif
+  QWidget::changeEvent(event);
+}
+
+void ActuatorWidget::styleCloseButton()
+{
+  const QPalette& palette = cbxSet->palette();
+  const bool darkMode = palette.windowText().color().lightness() > palette.window().color().lightness();
+
+  // Qt does not seem to report any usable system colors yet
+  const QColor unpressed = darkMode ? QColor(101, 101, 101) : QColor(254, 254, 254);
+  const QColor pressed = darkMode ? QColor(137, 137, 137) : QColor(235, 235, 235);
+  const QColor border = darkMode ? QColor(41, 41, 41) : QColor(207, 207, 207);
+  btnExit->setStyleSheet("QPushButton {"
+                           "background-color: " + unpressed.name() + ";"
+                           "padding: 0px 3px 3px 3px;"
+                           "margin: 3px 0px 4px 2px;"
+                           "border: 1px solid "+ border.name() + ";"
+                           "border-radius: 4px;"
+                         "}"
+                         "QPushButton:pressed {"
+                           "background-color: " + pressed.name() + ";"
+                         "}");
 }
 
 ActuatorsWidget* ActuatorsWidget::actuatorsWidget = nullptr;
