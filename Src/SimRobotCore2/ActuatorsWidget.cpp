@@ -256,7 +256,7 @@ ActuatorsWidget::ActuatorsWidget()
   Q_ASSERT(!actuatorsWidget);
   actuatorsWidget = this;
 
-  //setFocusPolicy(Qt::StrongFocus);
+  setFocusPolicy(Qt::StrongFocus);
   QVBoxLayout* outerLayout = new QVBoxLayout(this);
   layout = new FlowLayout;
   layout->setContentsMargins(0, 0, 0, 0);
