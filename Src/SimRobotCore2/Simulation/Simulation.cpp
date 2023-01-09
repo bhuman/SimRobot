@@ -139,8 +139,6 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
 
   graphicsContext.compile();
 
-  graphicsContext.initOffscreenRenderer();
-
   return true;
 }
 

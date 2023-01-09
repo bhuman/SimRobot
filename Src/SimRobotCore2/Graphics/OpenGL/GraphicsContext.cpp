@@ -279,6 +279,18 @@ void GraphicsContext::compile()
   index = 0;
   for(auto* surface : surfaces)
     surface->index = index++;
+
+  ASSERT(!offscreenSurface && !offscreenContext);
+
+  offscreenSurface = new QOffscreenSurface;
+  offscreenSurface->create();
+
+  offscreenContext = new QOpenGLContext;
+  offscreenContext->setShareContext(QOpenGLContext::globalShareContext());
+  VERIFY(offscreenContext->create());
+  offscreenContext->makeCurrent(offscreenSurface);
+
+  createGraphics();
 }
 
 void GraphicsContext::createGraphics()
@@ -702,21 +714,6 @@ void GraphicsContext::finishRendering()
   data = nullptr;
   shader = nullptr;
   f = nullptr;
-}
-
-void GraphicsContext::initOffscreenRenderer()
-{
-  ASSERT(!offscreenSurface && !offscreenContext);
-
-  offscreenSurface = new QOffscreenSurface;
-  offscreenSurface->create();
-
-  offscreenContext = new QOpenGLContext;
-  offscreenContext->setShareContext(QOpenGLContext::globalShareContext());
-  VERIFY(offscreenContext->create());
-  offscreenContext->makeCurrent(offscreenSurface);
-
-  createGraphics();
 }
 
 bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)

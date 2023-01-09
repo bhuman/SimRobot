@@ -268,7 +268,10 @@ public:
   /** Destructor. */
   ~GraphicsContext();
 
-  /** Determine buffer offsets of all declared buffers etc. */
+  /**
+   * Determine buffer offsets of all declared buffers etc. and prepares the off-screen renderer to render something.
+   * This call changes the rendering context to the rendering context of the off-screen renderer.
+   */
   void compile();
 
   /** Create per context data for the current context (which may include uploading data to the GPU). */
@@ -428,12 +431,6 @@ public:
 
   /** Must be called as counterpart to \c startColorRendering / \c startDepthOnlyRendering. */
   void finishRendering();
-
-  /**
-   * Prepares the off-screen renderer to render something. This call changes the
-   * rendering context to the rendering context of the off-screen renderer.
-   */
-  void initOffscreenRenderer();
 
   /**
    * Selects the OpenGL context of the off-screen renderer.
