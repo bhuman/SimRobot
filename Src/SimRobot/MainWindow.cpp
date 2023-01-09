@@ -270,6 +270,9 @@ bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object
 
 bool MainWindow::unregisterObject(const SimRobot::Object& object)
 {
+  RegisteredDockWidget* dockWidget = openedObjectsByName.value(object.getFullName());
+  if(dockWidget && dockWidget->hasWidget())
+    dockWidget->setWidget(nullptr, nullptr, nullptr, 0);
   return sceneGraphDockWidget ? sceneGraphDockWidget->unregisterObject(&object) : false;
 }
 
