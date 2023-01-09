@@ -82,6 +82,7 @@ namespace SimRobot
     static const int copy = 0x0008; /**< The object's widget has a "copy" entry in its edit menu that can be used to copy a screenshot of the widget to the clipboard */
     static const int exportAsImage = 0x0010; /**< The object's widget  has an "Export Image" entry in its edit menu that can be used to create a svg using the \c paint method of the widget */
     static const int showParent = 0x0020; /**< When added, the parent will be made visible if hidden */
+    static const int sorted = 0x0040; /**< When added, the parent will be made visible if hidden */
 
     // flags for registerModule
     static const int ignoreReset = 0x1000; /**< The module keeps being loaded on scene resets */

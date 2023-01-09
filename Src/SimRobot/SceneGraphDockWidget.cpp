@@ -71,7 +71,7 @@ void SceneGraphDockWidget::registerObject(const SimRobot::Module* module, SimRob
   else
     newItem->setDisabled(true);
   parentItem->addChild(newItem);
-  if(!parent)
+  if(!parent || (flags & SimRobot::Flag::sorted))
     parentItem->sortChildren(0, Qt::AscendingOrder);
   if(expandedItems.contains(newItem->fullName))
     treeWidget->expandItem(newItem);
