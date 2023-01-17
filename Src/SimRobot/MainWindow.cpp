@@ -1026,93 +1026,9 @@ bool MainWindow::closeFile()
 
 void MainWindow::simReset()
 {
-  // "can close" check
-  for(RegisteredDockWidget* dockWidget : openedObjectsByName)
-    if(!dockWidget->canClose())
-      return;
-
-  // start resetting
-  QString openedFilePath = filePath;
-  const bool wasRunning = running || !compiled;
-  QString activeObject;
-  if(activeDockWidget)
-    activeObject = activeDockWidget->objectName();
-  if(running)
-    simStart(); // stop
-
-  filePath.clear(); // modules may read the filePath to distinguish between user request window closing and document closing / resetting
-  layoutRestored = false;
-
-  // delete menus from active window
-  if(activeDockWidget)
-    activeDockWidget = nullptr;
-  updateMenuAndToolBar();
-  setFocus();
-
-  // remove all registered status labels and modules and most registered objects
-  QSet<const SimRobot::Module*> ignoredModules;
-  if(sceneGraphDockWidget)
-    for(LoadedModule* loadedModule : loadedModules)
-    {
-      if(loadedModule->flags & SimRobot::Flag::ignoreReset)
-        ignoredModules.insert(loadedModule->module);
-      else
-        sceneGraphDockWidget->unregisterObjectsFromModule(loadedModule->module);
-    }
-  statusBar->removeAllLabels();
-  registeredModules.clear();
-
-  // destroy most widgets (just the widgets while keeping the docking frame intact)
-  for(RegisteredDockWidget* dockWidget : openedObjectsByName)
-  {
-    const SimRobot::Module* module = dockWidget->getModule();
-    if(module && ignoredModules.contains(module))
-      continue;
-    dockWidget->setWidget(0, 0, 0, 0);
-  }
-
-  // unload all modules
-  for(LoadedModule* loadedModule : loadedModules)
-  {
-    if(loadedModule->flags & SimRobot::Flag::ignoreReset)
-      continue;
-    delete loadedModule->module;
-    loadedModule->module = nullptr;
-    loadedModule->compiled = false;
-  }
-  compiled = false;
-  filePath = openedFilePath;
-
-  // reload all modules
-  for(LoadedModule* loadedModule : loadedModules)
-  {
-    if(loadedModule->module)
-      continue;
-    loadedModule->module = loadedModule->createModule(*this);
-    Q_ASSERT(loadedModule->module);
-  }
-
-  // recompile modules
-  compileModules();
-
-  // restore focus
-  layoutRestored = true;
-  if(!activeObject.isEmpty())
-  {
-    QDockWidget* activeDockWidget = findChild<QDockWidget*>(activeObject);
-    if(activeDockWidget)
-    {
-      activeDockWidget->raise();
-      activeDockWidget->activateWindow();
-      activeDockWidget->setFocus();
-    }
-  }
-  if(!activeDockWidget)
-    updateMenuAndToolBar();
-
-  // start!?
-  if(compiled && wasRunning)
-    simStart();
+  QString fileName = filePath;
+  if(closeFile())
+    openFile(fileName);
 }
 
 void MainWindow::simStart()
