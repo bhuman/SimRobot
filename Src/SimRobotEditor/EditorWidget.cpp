@@ -495,7 +495,7 @@ void EditorWidget::showEvent(QShowEvent* event)
     setTabStopDistance(tabStopWidth * QFontMetrics(font).horizontalAdvance(' '));
   }
 
-  return QTextEdit::QWidget::showEvent(event);
+  return QTextEdit::showEvent(event);
 }
 
 void EditorWidget::contextMenuEvent(QContextMenuEvent* event)
