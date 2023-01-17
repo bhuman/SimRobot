@@ -40,12 +40,11 @@ private:
   {
   public:
     SimRobot::Module* module = nullptr;
-    int flags;
     bool compiled = false;
     using CreateModuleProc = SimRobot::Module* (*)(SimRobot::Application&);
     CreateModuleProc createModule = nullptr;
 
-    LoadedModule(const QString& name, int flags) : QLibrary(name), flags(flags) {}
+    LoadedModule(const QString& name) : QLibrary(name) {}
   };
 
   int timerId = 0; /**< The id of the timer used to get something like an OnIdle callback function to update the simulation. */
@@ -95,9 +94,8 @@ private:
   public:
     QString name;
     QString displayName;
-    int flags;
 
-    RegisteredModule(const QString& name, const QString& displayName, int flags) : name(name), displayName(displayName), flags(flags) {}
+    RegisteredModule(const QString& name, const QString& displayName) : name(name), displayName(displayName) {}
   };
 
   QMap<QString, RegisteredModule> registeredModules; /**< suggested modules (a.k.a. addons) */
@@ -122,7 +120,7 @@ private:
   int getObjectChildCount(const SimRobot::Object& object) override;
   SimRobot::Object* getObjectChild(const SimRobot::Object& object, int index) override;
   bool addStatusLabel(const SimRobot::Module& module, SimRobot::StatusLabel* statusLabel) override;
-  bool registerModule(const SimRobot::Module& module, const QString& displayName, const QString& name, int flags) override;
+  bool registerModule(const SimRobot::Module& module, const QString& displayName, const QString& name) override;
   bool loadModule(const QString& name) override;
   bool openObject(const SimRobot::Object& object) override;
   bool closeObject(const SimRobot::Object& object) override;

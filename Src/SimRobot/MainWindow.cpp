@@ -304,12 +304,10 @@ bool MainWindow::addStatusLabel(const SimRobot::Module& module, SimRobot::Status
   return true;
 }
 
-bool MainWindow::registerModule(const SimRobot::Module&, const QString& displayName, const QString& name, int flags)
+bool MainWindow::registerModule(const SimRobot::Module&, const QString& displayName, const QString& name)
 {
-  registeredModules.insert(name, RegisteredModule(name, displayName, flags));
+  registeredModules.insert(name, RegisteredModule(name, displayName));
   LoadedModule* loadedModule = loadedModulesByName.value(name);
-  if(loadedModule)
-    loadedModule->flags = flags;
   updateAddonMenu();
   return true;
 }
@@ -460,14 +458,6 @@ bool MainWindow::loadModule(const QString& name, bool manually)
   if(loadedModulesByName.contains(name))
     return true; // already loaded
 
-  // look for module flags
-  int flags = 0;
-  {
-    QMap<QString, RegisteredModule>::const_iterator i = registeredModules.find(name);
-    if(i != registeredModules.end())
-      flags = i->flags;
-  }
-
 #ifdef WINDOWS
   const QString& moduleName = name;
 #elif defined MACOS
@@ -476,7 +466,7 @@ bool MainWindow::loadModule(const QString& name, bool manually)
   QString moduleName = QFileInfo(appPath).path() + "/lib" + name + ".so";
 #endif
   {
-    LoadedModule* loadedModule = new LoadedModule(moduleName, flags);
+    LoadedModule* loadedModule = new LoadedModule(moduleName);
     loadedModule->createModule = reinterpret_cast<LoadedModule::CreateModuleProc>(loadedModule->resolve("createModule"));
     if(!loadedModule->createModule)
     {

@@ -122,7 +122,7 @@ bool CoreModule::compile()
   application->addStatusLabel(*this, new CollisionsLabel);
 
   // Suggest further modules.
-  application->registerModule(*this, "File Editor", "SimRobotEditor", SimRobot::Flag::ignoreReset);
+  application->registerModule(*this, "File Editor", "SimRobotEditor");
 
   // Load the controller.
   if(!scene->controller.empty())

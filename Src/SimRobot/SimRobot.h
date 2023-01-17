@@ -83,9 +83,6 @@ namespace SimRobot
     static const int exportAsImage = 0x0010; /**< The object's widget  has an "Export Image" entry in its edit menu that can be used to create a svg using the \c paint method of the widget */
     static const int showParent = 0x0020; /**< When added, the parent will be made visible if hidden */
     static const int sorted = 0x0040; /**< When added, the parent will be made visible if hidden */
-
-    // flags for registerModule
-    static const int ignoreReset = 0x1000; /**< The module keeps being loaded on scene resets */
   };
 
   /**
@@ -147,7 +144,7 @@ namespace SimRobot
     virtual int getObjectChildCount(const Object& object) = 0;
     virtual Object* getObjectChild(const Object& object, int index) = 0;
     virtual bool addStatusLabel(const Module& module, StatusLabel* statusLabel) = 0;
-    virtual bool registerModule(const Module& module, const QString& displayName, const QString& name, int flags = 0) = 0;
+    virtual bool registerModule(const Module& module, const QString& displayName, const QString& name) = 0;
     virtual bool loadModule(const QString& name) = 0;
     virtual bool openObject(const Object& object) = 0;
     virtual bool closeObject(const Object& object) = 0;
