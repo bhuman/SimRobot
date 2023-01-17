@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QResizeEvent>
+#include <QShowEvent>
 #include <QScrollBar>
 #include <QSet>
 #include <QSettings>
@@ -157,37 +158,10 @@ EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileCo
     highlighter = new SyntaxHighlighter(document());
   setFrameStyle(QFrame::NoFrame);
 
-#ifdef WINDOWS
-  QFont font("Courier New", 10);
-#elif defined MACOS
-  QFont font("Monaco", 11);
-#else
-  QFont font("Bitstream Vera Sans Mono", 9);
-#endif
-  setFont(font);
   setLineWrapMode(QTextEdit::NoWrap);
   setAcceptRichText(false);
   setPlainText(fileContent);
   document()->setModified(false);
-
-  QSettings& settings = EditorModule::application->getLayoutSettings();
-  settings.beginGroup(editorObject->fullName);
-  int selectionStart = settings.value("selectionStart").toInt();
-  int selectionEnd = settings.value("selectionEnd").toInt();
-  if(selectionStart || selectionEnd)
-  {
-    QTextCursor cursor = textCursor();
-    cursor.setPosition(selectionStart);
-    cursor.setPosition(selectionEnd, QTextCursor::KeepAnchor);
-    setTextCursor(cursor);
-  }
-  verticalScrollBar()->setValue(settings.value("verticalScrollPosition").toInt());
-  horizontalScrollBar()->setValue(settings.value("horizontalScrollPosition").toInt());
-  useTabStop = settings.value("useTabStop", false).toBool();
-  tabStopWidth = settings.value("tabStopWidth", 2).toInt();
-  settings.endGroup();
-
-  setTabStopDistance(tabStopWidth * QFontMetrics(font).horizontalAdvance(' '));
 
   connect(this, &QTextEdit::copyAvailable, this, &EditorWidget::copyAvailable);
   connect(this, &QTextEdit::undoAvailable, this, &EditorWidget::undoAvailable);
@@ -484,6 +458,44 @@ void EditorWidget::keyPressEvent(QKeyEvent* event)
       if(event->matches(QKeySequence::Copy) || event->matches(QKeySequence::Cut))
         emit pasteAvailable(canPaste());
   }
+}
+
+void EditorWidget::showEvent(QShowEvent* event)
+{
+  if(!shownYet)
+  {
+    shownYet = true;
+
+#ifdef WINDOWS
+    QFont font("Courier New", 10);
+#elif defined MACOS
+    QFont font("Monaco", 11);
+#else
+    QFont font("Bitstream Vera Sans Mono", 9);
+#endif
+    setFont(font);
+
+    QSettings& settings = EditorModule::application->getLayoutSettings();
+    settings.beginGroup(editorObject->fullName);
+    int selectionStart = settings.value("selectionStart").toInt();
+    int selectionEnd = settings.value("selectionEnd").toInt();
+    if(selectionStart || selectionEnd)
+    {
+      QTextCursor cursor = textCursor();
+      cursor.setPosition(selectionStart);
+      cursor.setPosition(selectionEnd, QTextCursor::KeepAnchor);
+      setTextCursor(cursor);
+    }
+    verticalScrollBar()->setValue(settings.value("verticalScrollPosition").toInt());
+    horizontalScrollBar()->setValue(settings.value("horizontalScrollPosition").toInt());
+    useTabStop = settings.value("useTabStop", false).toBool();
+    tabStopWidth = settings.value("tabStopWidth", 2).toInt();
+    settings.endGroup();
+
+    setTabStopDistance(tabStopWidth * QFontMetrics(font).horizontalAdvance(' '));
+  }
+
+  return QTextEdit::QWidget::showEvent(event);
 }
 
 void EditorWidget::contextMenuEvent(QContextMenuEvent* event)

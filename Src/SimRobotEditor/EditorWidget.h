@@ -109,6 +109,7 @@ private:
 
   FileEditorObject* editorObject;
 
+  bool shownYet = false;
   bool canCopy;
   bool canUndo;
   bool canRedo;
@@ -131,6 +132,7 @@ private:
   void contextMenuEvent(QContextMenuEvent* event) override;
   void focusInEvent(QFocusEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
+  void showEvent(QShowEvent* event) override;
 
 signals:
   void pasteAvailable(bool available);
