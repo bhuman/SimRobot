@@ -307,7 +307,6 @@ bool MainWindow::addStatusLabel(const SimRobot::Module& module, SimRobot::Status
 bool MainWindow::registerModule(const SimRobot::Module&, const QString& displayName, const QString& name)
 {
   registeredModules.insert(name, RegisteredModule(name, displayName));
-  LoadedModule* loadedModule = loadedModulesByName.value(name);
   updateAddonMenu();
   return true;
 }
