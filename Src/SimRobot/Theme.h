@@ -23,6 +23,17 @@ namespace Theme
   bool isDarkMode(QWidget* widget);
 
   /**
+   * Updates an icon to match the current color theme.
+   * This assumes that an icon designed for light mode has its isMask
+   * flag set, while an icon designed for dark mode has not. The method
+   * will invert the icon and flip the flag if necessary.
+   * @param widget The palette of this widget is used for detecting dark mode.
+   * @param icon The icon which is updated.
+   * @return The resulting icon.
+   */
+  QIcon updateIcon(QWidget* widget, const QIcon& icon);
+
+  /**
    * Updates the icon of an action to match the current color theme.
    * This assumes that an icon designed for light mode has its isMask
    * flag set, while an icon designed for dark mode has not. The method

@@ -20,21 +20,28 @@ namespace Theme
     return widget->palette().window().color().lightness() < 128;
   }
 
-  QAction* updateIcon(QWidget* widget, QAction* action)
+  QIcon updateIcon(QWidget* widget, const QIcon& icon)
   {
-    const bool darkMode = isDarkMode(widget);
-    if(action->icon().isMask() == darkMode)
+    if(icon.isMask() == isDarkMode(widget))
     {
       QIcon invertedIcon;
-      for(auto& size : action->icon().availableSizes())
+      for(auto& size : icon.availableSizes())
       {
-        QImage image = action->icon().pixmap(size).toImage();
+        QImage image = icon.pixmap(size).toImage();
         image.invertPixels();
         invertedIcon.addPixmap(QPixmap::fromImage(std::move(image)));
       }
-      invertedIcon.setIsMask(!action->icon().isMask());
-      action->setIcon(invertedIcon);
+      invertedIcon.setIsMask(!icon.isMask());
+      return invertedIcon;
     }
+    else
+      return icon;
+  }
+
+  QAction* updateIcon(QWidget* widget, QAction* action)
+  {
+    if(action->icon().isMask() == isDarkMode(widget))
+      action->setIcon(updateIcon(widget, action->icon()));
     return action;
   }
 }

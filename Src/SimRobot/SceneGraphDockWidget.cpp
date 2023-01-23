@@ -8,6 +8,7 @@
 
 #include "SceneGraphDockWidget.h"
 #include "MainWindow.h"
+#include "Theme.h"
 
 SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) : QDockWidget(parent), contextMenu(contextMenu)
 {
@@ -62,7 +63,7 @@ void SceneGraphDockWidget::registerObject(const SimRobot::Module* module, SimRob
   newItem->setText(0, parent ? newItem->fullName.mid(parentFullNameLength + 1) : newItem->fullName);
   const QIcon* icon = object->getIcon();
   if(icon)
-    newItem->setIcon(0, *icon);
+    newItem->setIcon(0, Theme::updateIcon(this, *icon));
   if(flags & SimRobot::Flag::hidden)
     newItem->setHidden(true);
   if(flags & SimRobot::Flag::windowless)
@@ -305,6 +306,17 @@ void SceneGraphDockWidget::contextMenuEvent(QContextMenuEvent* event)
   event->accept();
   menu.exec(mapToGlobal(QPoint(event->x(), event->y())));
   clickedItem = 0;
+}
+
+void SceneGraphDockWidget::changeEvent(QEvent* event)
+{
+  if(event->type() == QEvent::PaletteChange)
+  {
+    for(QTreeWidgetItem* item : treeWidget->findItems(QString("*"), Qt::MatchWrap | Qt::MatchWildcard | Qt::MatchRecursive))
+      if(!item->icon(0).isNull())
+        item->setIcon(0, Theme::updateIcon(this, item->icon(0)));
+  }
+  QWidget::changeEvent(event);
 }
 
 void SceneGraphDockWidget::itemActivated(const QModelIndex& index)
