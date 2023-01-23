@@ -146,7 +146,6 @@ private:
   bool compileModules();
   void updateViewMenu(QMenu* menu);
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
-  QAction* updateIcon(QAction* action) const;
 
 public slots:
   void openFile(const QString& fileName);

@@ -153,7 +153,6 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFloatable(false);
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
-  toolBar->setStyleSheet("QToolBar::separator { background-color: transparent }");
 #endif
 
   statusBar = new StatusBar(this);
@@ -636,6 +635,16 @@ void MainWindow::updateViewMenu(QMenu* menu)
 void MainWindow::updateMenuAndToolBar()
 {
   toolBar->clear();
+#ifdef MACOS
+  QColor hover(128, 128, 128, Theme::isDarkMode(this) ? 64 : 32);
+  QColor checked(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
+  toolBar->setStyleSheet("QToolBar::separator {background-color: transparent; width: 8}"
+                         "QToolButton {background-color: transparent; padding: 3 8 3 8; border-width: 0px; border-radius: 4px}"
+                         "QToolButton::menu-button {background-color: transparent}"
+                         "QToolButton::menu-indicator {width: 6}"
+                         "QToolButton:checked {background-color: " + checked.name(QColor::HexArgb) + "}"
+                         "QToolButton:hover,QToolButton:checked:hover {background-color: " + hover.name(QColor::HexArgb) + "}");
+#endif
 
   if(dockWidgetFileMenu)
   {
@@ -681,6 +690,9 @@ void MainWindow::updateMenuAndToolBar()
         moduleUserMenu = loadedModule->module->createUserMenu();
   }
 
+#ifdef MACOS
+  toolBar->addSeparator();
+#endif
   toolBar->addAction(Theme::updateIcon(this, toolbarOpenAct));
   if(dockWidgetFileMenu)
     addToolBarButtonsFromMenu(dockWidgetFileMenu, toolBar, false);
