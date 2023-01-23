@@ -224,6 +224,8 @@ bool SceneGraphDockWidget::setOpened(const SimRobot::Object* object, bool opened
     return false;
   item->opened = opened;
   item->setFont(0, opened ? boldFont : QFont());
+  if(!opened)
+    item->setSelected(false);
   return true;
 }
 
