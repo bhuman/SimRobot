@@ -59,7 +59,9 @@ QMenu* RegisteredDockWidget::createEditMenu()
 
   if(flags & SimRobot::Flag::copy)
   {
-    QAction* copyAction = menu->addAction(QIcon(":/Icons/icons8-copy-to-clipboard-100.png"), tr("&Copy"));
+    QIcon copyActionIcon(":/Icons/icons8-copy-to-clipboard-100.png");
+    copyActionIcon.setIsMask(true);
+    QAction* copyAction = menu->addAction(copyActionIcon, tr("&Copy"));
     copyAction->setShortcut(QKeySequence(QKeySequence::Copy));
     copyAction->setStatusTip(tr("Copy the window drawing to the clipboard"));
     connect(copyAction, &QAction::triggered, this, &RegisteredDockWidget::copy);

@@ -26,6 +26,8 @@ CoreModule::CoreModule(SimRobot::Application& application) :
   sceneIcon(":/Icons/icons8-3d-model-100.png"),
   objectIcon(":/Icons/icons8-orthogonal-view-100.png")
 {
+  sceneIcon.setIsMask(true);
+  objectIcon.setIsMask(true);
   CoreModule::application = &application;
   CoreModule::module = this;
 }

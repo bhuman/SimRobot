@@ -95,7 +95,9 @@ MainWindow::MainWindow(int, char* argv[]) :
   connect(qApp, &QApplication::focusChanged, this, &MainWindow::focusChanged);
 
   // create actions
-  fileOpenAct = new QAction(QIcon(":/Icons/icons8-open-document-100.png"), tr("&Open..."), this);
+  QIcon fileOpenIcon(":/Icons/icons8-open-document-100.png");
+  fileOpenIcon.setIsMask(true);
+  fileOpenAct = new QAction(fileOpenIcon, tr("&Open..."), this);
   fileOpenAct->setShortcut(QKeySequence(QKeySequence::Open));
   fileOpenAct->setStatusTip(tr("Open an existing scene file"));
   connect(fileOpenAct, &QAction::triggered, this, &MainWindow::open);
@@ -112,24 +114,30 @@ MainWindow::MainWindow(int, char* argv[]) :
   connect(fileExitAct, &QAction::triggered, this, &MainWindow::close);
 #endif
 
-  toolbarOpenAct = new QAction(QIcon(":/Icons/icons8-open-document-100.png"), tr("&Open..."), this);
+  toolbarOpenAct = new QAction(fileOpenIcon, tr("&Open..."), this);
   toolbarOpenAct->setStatusTip(tr("Open an existing file"));
   connect(toolbarOpenAct, &QAction::triggered, this, &MainWindow::open);
 
-  simResetAct = new QAction(QIcon(":/Icons/icons8-skip-to-start-100.png"), tr("&Reset"), this);
+  QIcon simResetIcon(":/Icons/icons8-skip-to-start-100.png");
+  simResetIcon.setIsMask(true);
+  simResetAct = new QAction(simResetIcon, tr("&Reset"), this);
   simResetAct->setStatusTip(tr("Reset the simulation to the beginning"));
   simResetAct->setShortcut(QKeySequence(static_cast<int>(Qt::SHIFT) + static_cast<int>(Qt::Key_F5)));
   simResetAct->setEnabled(false);
   connect(simResetAct, &QAction::triggered, this, &MainWindow::simReset);
 
-  simStartAct = new QAction(QIcon(":/Icons/icons8-play-100.png"), tr("&Start"), this);
+  QIcon simStartIcon(":/Icons/icons8-play-100.png");
+  simStartIcon.setIsMask(true);
+  simStartAct = new QAction(simStartIcon, tr("&Start"), this);
   simStartAct->setStatusTip(tr("Start or stop the simulation"));
   simStartAct->setShortcut(QKeySequence(Qt::Key_F5));
   simStartAct->setCheckable(true);
   simStartAct->setEnabled(false);
   connect(simStartAct, &QAction::triggered, this, &MainWindow::simStart);
 
-  simStepAct = new QAction(QIcon(":/Icons/icons8-step-over-100.png"), tr("&Step"), this);
+  QIcon simStepIcon(":/Icons/icons8-step-over-100.png");
+  simStepIcon.setIsMask(true);
+  simStepAct = new QAction(simStepIcon, tr("&Step"), this);
   simStepAct->setStatusTip(tr("Execute a single simulation step"));
   simStepAct->setShortcut(QKeySequence(Qt::Key_F8));
   simStepAct->setEnabled(false);

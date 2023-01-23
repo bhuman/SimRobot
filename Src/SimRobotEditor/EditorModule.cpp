@@ -23,6 +23,9 @@ SimRobot::Application* EditorModule::application;
 
 EditorModule::EditorModule(SimRobot::Application& application) : EditorObject("Editor", 0), fileIcon(":/Icons/icons8-document-100.png"), folderIcon(":/Icons/icons8-folder-100.png"), editorIcon(":/Icons/icons8-documents-100.png")
 {
+  fileIcon.setIsMask(true);
+  folderIcon.setIsMask(true);
+  editorIcon.setIsMask(true);
   this->module = this;
   this->application = &application;
 }

@@ -308,8 +308,9 @@ void SimObjectWidget::update()
 QMenu* SimObjectWidget::createEditMenu() const
 {
   QMenu* menu = new QMenu(tr("&Edit"));
-
-  QAction* action = menu->addAction(QIcon(":/Icons/icons8-copy-to-clipboard-100.png"), tr("&Copy"));
+  QIcon icon(":/Icons/icons8-copy-to-clipboard-100.png");
+  icon.setIsMask(true);
+  QAction* action = menu->addAction(icon, tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
   action->setStatusTip(tr("Copy the rendered object to the clipboard"));
   connect(action, &QAction::triggered, this, &SimObjectWidget::copy);
@@ -324,7 +325,9 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/icons8-coordinate-system-100.png"));
+    QIcon icon(":/Icons/icons8-coordinate-system-100.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     action->setStatusTip(tr("Select the drag and drop dynamics mode and plane along which operations are performed"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     auto addPlaneAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::DragAndDropPlane plane)
@@ -360,7 +363,9 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   {
     QAction* action = menu->addAction(tr("&Reset Camera"));
-    action->setIcon(QIcon(":/Icons/icons8-camera-100.png"));
+    QIcon icon(":/Icons/icons8-camera-100.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     action->setShortcut(QKeySequence(Qt::Key_R));
     connect(action, &QAction::triggered, this, &SimObjectWidget::resetCamera);
   }
@@ -368,7 +373,9 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Vertical Opening Angle"));
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/icons8-focal-length-100.png"));
+    QIcon icon(":/Icons/icons8-focal-length-100.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     auto addFovYAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, int fovY)
     {
@@ -393,7 +400,9 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Appearances Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/icons8-layers-100.png"));
+    QIcon icon(":/Icons/icons8-layers-100.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     action->setStatusTip(tr("Select different shading techniques for displaying the scene"));
     auto addShadingAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::ShadeMode shading)
     {
@@ -434,7 +443,9 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Drawings Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/icons8-line-chart-100.png"));
+    QIcon icon(":/Icons/icons8-line-chart-100.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     action->setStatusTip(tr("Select different shading techniques for displaying controller drawings"));
     auto addShadingAction = [this, subMenu, actionGroup](const char* label, SimRobotCore2::Renderer::ShadeMode shading)
     {
@@ -473,7 +484,16 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   auto addRenderFlagAction = [this, menu](const char* label, const char* tip, SimRobotCore2::Renderer::RenderFlags flag, const char* icon = nullptr)
   {
-    auto* action = icon ? menu->addAction(QIcon(icon), tr(label)) : menu->addAction(tr(label));
+
+    QAction* action;
+    if(icon)
+    {
+      QIcon qIcon(icon);
+      qIcon.setIsMask(true);
+      action = menu->addAction(qIcon, tr(label));
+    }
+    else
+      action = menu->addAction(tr(label));
     action->setStatusTip(tr(tip));
     action->setCheckable(true);
     action->setChecked(objectRenderer.getRenderFlags() & flag);
