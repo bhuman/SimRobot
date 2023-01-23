@@ -25,7 +25,6 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   setFocusProxy(treeWidget);
   treeWidget->setExpandsOnDoubleClick(false);
   treeWidget->setHeaderHidden(true);
-  treeWidget->setSelectionMode(QAbstractItemView::NoSelection);
 
   connect(treeWidget, &QTreeWidget::activated, this, &SceneGraphDockWidget::itemActivated);
   connect(treeWidget, &QTreeWidget::collapsed, this, &SceneGraphDockWidget::itemCollapsed);
@@ -68,8 +67,6 @@ void SceneGraphDockWidget::registerObject(const SimRobot::Module* module, SimRob
     newItem->setHidden(true);
   if(flags & SimRobot::Flag::windowless)
     newItem->setFont(0, italicFont);
-  else
-    newItem->setDisabled(true);
   parentItem->addChild(newItem);
   if(!parent || (flags & SimRobot::Flag::sorted))
     parentItem->sortChildren(0, Qt::AscendingOrder);
@@ -225,9 +222,7 @@ bool SceneGraphDockWidget::setOpened(const SimRobot::Object* object, bool opened
   if(!item)
     return false;
   item->opened = opened;
-  item->setDisabled(!opened);
-  if(!opened)
-    item->setFont(0, QFont());
+  item->setFont(0, opened ? boldFont : QFont());
   return true;
 }
 
@@ -236,7 +231,7 @@ bool SceneGraphDockWidget::setActive(const SimRobot::Object* object, bool active
   RegisteredObject* item = registeredObjectsByObject.value(object);
   if(!item)
     return false;
-  item->setFont(0, active ? boldFont : QFont());
+  item->setSelected(active);
   return true;
 }
 
