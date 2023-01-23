@@ -641,7 +641,7 @@ void MainWindow::updateMenuAndToolBar()
   toolBar->setStyleSheet("QToolBar::separator {background-color: transparent; width: 8}"
                          "QToolButton {background-color: transparent; padding: 3 8 3 8; border-width: 0px; border-radius: 4px}"
                          "QToolButton::menu-button {background-color: transparent}"
-                         "QToolButton::menu-indicator {width: 6}"
+                         "QToolButton::menu-indicator {width: 0}"
                          "QToolButton:checked {background-color: " + checked.name(QColor::HexArgb) + "}"
                          "QToolButton:hover,QToolButton:checked:hover {background-color: " + hover.name(QColor::HexArgb) + "}");
 #endif
