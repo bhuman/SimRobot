@@ -246,6 +246,8 @@ QAction* SceneGraphDockWidget::toggleViewAction() const
   icon.setIsMask(true);
   action->setIcon(icon);
   action->setShortcut(QKeySequence(Qt::Key_F2));
+  action->setText(tr("Scene Graph"));
+  action->setStatusTip(tr("Show or hide the scene graph"));
   return action;
 }
 
