@@ -238,7 +238,7 @@ bool SceneGraphDockWidget::setActive(const SimRobot::Object* object, bool active
 QAction* SceneGraphDockWidget::toggleViewAction() const
 {
   QAction* action = QDockWidget::toggleViewAction();
-  action->setIcon(QIcon(":/Icons/application_side_tree.png"));
+  action->setIcon(QIcon(":/Icons/icons8-stacked-organizational-chart-100.png"));
   action->setShortcut(QKeySequence(Qt::Key_F2));
   return action;
 }

@@ -309,7 +309,7 @@ QMenu* SimObjectWidget::createEditMenu() const
 {
   QMenu* menu = new QMenu(tr("&Edit"));
 
-  QAction* action = menu->addAction(QIcon(":/Icons/page_copy.png"), tr("&Copy"));
+  QAction* action = menu->addAction(QIcon(":/Icons/icons8-copy-to-clipboard-100.png"), tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
   action->setStatusTip(tr("Copy the rendered object to the clipboard"));
   connect(action, &QAction::triggered, this, &SimObjectWidget::copy);
@@ -324,7 +324,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/DragPlane.png"));
+    action->setIcon(QIcon(":/Icons/icons8-coordinate-system-100.png"));
     action->setStatusTip(tr("Select the drag and drop dynamics mode and plane along which operations are performed"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     auto addPlaneAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::DragAndDropPlane plane)
@@ -360,7 +360,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   {
     QAction* action = menu->addAction(tr("&Reset Camera"));
-    action->setIcon(QIcon(":/Icons/camera.png"));
+    action->setIcon(QIcon(":/Icons/icons8-camera-100.png"));
     action->setShortcut(QKeySequence(Qt::Key_R));
     connect(action, &QAction::triggered, this, &SimObjectWidget::resetCamera);
   }
@@ -368,7 +368,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Vertical Opening Angle"));
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/opening_angle.png"));
+    action->setIcon(QIcon(":/Icons/icons8-focal-length-100.png"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     auto addFovYAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, int fovY)
     {
@@ -393,7 +393,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Appearances Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/layers.png"));
+    action->setIcon(QIcon(":/Icons/icons8-layers-100.png"));
     action->setStatusTip(tr("Select different shading techniques for displaying the scene"));
     auto addShadingAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::ShadeMode shading)
     {
@@ -434,7 +434,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Drawings Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    action->setIcon(QIcon(":/Icons/chart_line.png"));
+    action->setIcon(QIcon(":/Icons/icons8-line-chart-100.png"));
     action->setStatusTip(tr("Select different shading techniques for displaying controller drawings"));
     auto addShadingAction = [this, subMenu, actionGroup](const char* label, SimRobotCore2::Renderer::ShadeMode shading)
     {
@@ -487,7 +487,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   menu->addSeparator();
 
   addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore2::Renderer::showCoordinateSystem);
-  addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore2::Renderer::showSensors, ":/Icons/transmit_go.png");
+  addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore2::Renderer::showSensors, ":/Icons/icons8-speed-100.png");
 
   menu->addSeparator();
 

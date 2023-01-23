@@ -209,7 +209,7 @@ QMenu* EditorWidget::createFileMenu() const
 {
   QMenu* menu = new QMenu(tr("&File"));
 
-  QAction* action = menu->addAction(QIcon(":/Icons/disk.png"), tr("&Save"));
+  QAction* action = menu->addAction(QIcon(":/Icons/icons8-save-100.png"), tr("&Save"));
   action->setShortcut(QKeySequence(QKeySequence::Save));
   action->setStatusTip(tr("Save the document to disk"));
   action->setEnabled(document()->isModified());
@@ -264,14 +264,14 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
     }
   }
 
-  QAction* action = menu->addAction(QIcon(":/Icons/arrow_undo.png"), tr("&Undo"));
+  QAction* action = menu->addAction(QIcon(":/Icons/icons8-undo-100.png"), tr("&Undo"));
   action->setShortcut(QKeySequence(QKeySequence::Undo));
   action->setStatusTip(tr("Undo the last action"));
   action->setEnabled(canUndo);
   connect(action, &QAction::triggered, this, &EditorWidget::undo);
   connect(this, &QTextEdit::undoAvailable, action, &QAction::setEnabled);
 
-  action = menu->addAction(QIcon(":/Icons/arrow_redo.png"), tr("&Redo"));
+  action = menu->addAction(QIcon(":/Icons/icons8-redo-100.png"), tr("&Redo"));
   action->setShortcut(QKeySequence(QKeySequence::Redo));
   action->setStatusTip(tr("Redo the previously undone action"));
   action->setEnabled(canRedo);
@@ -280,21 +280,21 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
 
   menu->addSeparator();
 
-  action = menu->addAction(QIcon(":/Icons/cut.png"), tr("Cu&t"));
+  action = menu->addAction(QIcon(":/Icons/icons8-cut-100.png"), tr("Cu&t"));
   action->setShortcut(QKeySequence(QKeySequence::Cut));
   action->setStatusTip(tr("Cut the current selection's contents to the clipboard"));
   action->setEnabled(canCopy);
   connect(action, &QAction::triggered, this, &EditorWidget::cut);
   connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
-  action = menu->addAction(QIcon(":/Icons/page_copy.png"), tr("&Copy"));
+  action = menu->addAction(QIcon(":/Icons/icons8-copy-to-clipboard-100.png"), tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
   action->setStatusTip(tr("Copy the current selection's contents to the clipboard"));
   action->setEnabled(canCopy);
   connect(action, &QAction::triggered, this, &EditorWidget::copy);
   connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
-  action = menu->addAction(QIcon(":/Icons/page_paste.png"), tr("&Paste"));
+  action = menu->addAction(QIcon(":/Icons/icons8-paste-100.png"), tr("&Paste"));
   action->setShortcut(QKeySequence(QKeySequence::Paste));
   action->setStatusTip(tr("Paste the clipboard's contents into the current selection"));
   action->setEnabled(canPaste());

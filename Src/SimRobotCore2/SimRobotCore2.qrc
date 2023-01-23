@@ -1,16 +1,16 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-  <file>Icons/arrow_rotate_clockwise.png</file>
-  <file>Icons/brick.png</file>
-  <file>Icons/bricks.png</file>
-  <file>Icons/camera.png</file>
-  <file>Icons/chart_line.png</file>
-  <file>Icons/DragPlane.png</file>
-  <file>Icons/layers.png</file>
-  <file>Icons/opening_angle.png</file>
-  <file>Icons/transmit_go.png</file>
-  <file>Icons/link.png</file>
-  <file>Icons/slider.png</file>
-  <file>Icons/note.png</file>
-</qresource>
+  <file>Icons/icons8-3d-model-100.png</file>
+  <file>Icons/icons8-camera-100.png</file>
+  <file>Icons/icons8-coordinate-system-100.png</file>
+  <file>Icons/icons8-engine-100.png</file>
+  <file>Icons/icons8-focal-length-100.png</file>
+  <file>Icons/icons8-layers-100.png</file>
+  <file>Icons/icons8-line-chart-100.png</file>
+  <file>Icons/icons8-link-100.png</file>
+  <file>Icons/icons8-octaedro-100.png</file>
+  <file>Icons/icons8-orthogonal-view-100.png</file>
+  <file>Icons/icons8-slider-control-100.png</file>
+  <file>Icons/icons8-speed-100.png</file>
+  </qresource>
 </RCC>

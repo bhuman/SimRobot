@@ -19,8 +19,8 @@ SimRobot::Application* CoreModule::application;
 CoreModule* CoreModule::module;
 
 CoreModule::CoreModule(SimRobot::Application& application) :
-  sceneIcon(":/Icons/bricks.png"), objectIcon(":/Icons/brick.png"), sensorIcon(":/Icons/transmit_go.png"), actuatorIcon(":/Icons/arrow_rotate_clockwise.png"),
-  hingeIcon(":/Icons/link.png"), sliderIcon(":/Icons/slider.png"), appearanceIcon(":/Icons/note.png")
+  sceneIcon(":/Icons/icons8-3d-model-100.png"), objectIcon(":/Icons/icons8-orthogonal-view-100.png"), sensorIcon(":/Icons/icons8-speed-100.png"), actuatorIcon(":/Icons/icons8-engine-100.png"),
+  hingeIcon(":/Icons/icons8-link-100.png"), sliderIcon(":/Icons/icons8-slider-control-100.png"), appearanceIcon(":/Icons/icons8-octaedro-100.png")
 {
   CoreModule::application = &application;
   CoreModule::module = this;

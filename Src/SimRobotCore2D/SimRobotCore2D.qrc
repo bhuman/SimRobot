@@ -1,8 +1,8 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-  <file>Icons/brick.png</file>
-  <file>Icons/bricks.png</file>
-  <file>Icons/camera.png</file>
-  <file>Icons/dragPlane.png</file>
+  <file>Icons/icons8-3d-model-100.png</file>
+  <file>Icons/icons8-camera-100.png</file>
+  <file>Icons/icons8-coordinate-system-100.png</file>
+  <file>Icons/icons8-orthogonal-view-100.png</file>
 </qresource>
 </RCC>

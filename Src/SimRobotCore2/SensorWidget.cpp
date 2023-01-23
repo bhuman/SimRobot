@@ -238,7 +238,7 @@ QMenu* SensorWidget::createEditMenu() const
 {
   QMenu* menu = new QMenu(tr("&Edit"));
   QAction* action;
-  action = menu->addAction(QIcon(":/Icons/page_copy.png"), tr("&Copy"));
+  action = menu->addAction(QIcon(":/Icons/icons8-copy-to-clipboard-100.png"), tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
   action->setStatusTip(tr("Copy the current selection's contents or view to the clipboard"));
   connect(action, &QAction::triggered, this, &SensorWidget::copy);
