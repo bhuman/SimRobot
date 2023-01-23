@@ -28,6 +28,7 @@ namespace SimRobot
     virtual QMenu* createEditMenu() const {return nullptr;}
     virtual QMenu* createUserMenu() const {return nullptr;}
     virtual void paint(QPainter&) {}
+    virtual void paletteChanged() {}
   };
 
   /**
