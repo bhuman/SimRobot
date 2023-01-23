@@ -153,7 +153,7 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFloatable(false);
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
-  toolBar->setStyleSheet("QToolBar::separator { height : 0px }");
+  toolBar->setStyleSheet("QToolBar::separator { background-color: transparent }");
 #endif
 
   statusBar = new StatusBar(this);
