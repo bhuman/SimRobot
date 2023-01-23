@@ -231,6 +231,7 @@ bool SceneGraphDockWidget::setOpened(const SimRobot::Object* object, bool opened
 
 bool SceneGraphDockWidget::setActive(const SimRobot::Object* object, bool active)
 {
+  treeWidget->selectionModel()->clearSelection();
   RegisteredObject* item = registeredObjectsByObject.value(object);
   if(!item)
     return false;
