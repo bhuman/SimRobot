@@ -8,6 +8,7 @@
 #include "SceneGraphDockWidget.h"
 #include "RegisteredDockWidget.h"
 #include "StatusBar.h"
+#include "Theme.h"
 
 #include <QApplication>
 #include <QAction>
@@ -453,6 +454,13 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
   QMainWindow::keyReleaseEvent(event);
 }
 
+void MainWindow::changeEvent(QEvent* event)
+{
+  if(event->type() == QEvent::PaletteChange)
+    updateMenuAndToolBar();
+  QWidget::changeEvent(event);
+}
+
 QMenu* MainWindow::createPopupMenu()
 {
   QMenu* menu = new QMenu();
@@ -673,18 +681,18 @@ void MainWindow::updateMenuAndToolBar()
         moduleUserMenu = loadedModule->module->createUserMenu();
   }
 
-  toolBar->addAction(toolbarOpenAct);
+  toolBar->addAction(Theme::updateIcon(this, toolbarOpenAct));
   if(dockWidgetFileMenu)
     addToolBarButtonsFromMenu(dockWidgetFileMenu, toolBar, false);
 
   toolBar->addSeparator();
-  toolBar->addAction(simStartAct);
-  toolBar->addAction(simResetAct);
-  toolBar->addAction(simStepAct);
+  toolBar->addAction(Theme::updateIcon(this, simStartAct));
+  toolBar->addAction(Theme::updateIcon(this, simResetAct));
+  toolBar->addAction(Theme::updateIcon(this, simStepAct));
   if(opened && sceneGraphDockWidget)
   {
     toolBar->addSeparator();
-    toolBar->addAction(sceneGraphDockWidget->toggleViewAction());
+    toolBar->addAction(Theme::updateIcon(this, sceneGraphDockWidget->toggleViewAction()));
   }
 
   if(dockWidgetEditMenu)
@@ -751,7 +759,7 @@ void MainWindow::addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool 
     {
       if(addSeparator)
         toolBar->addSeparator();
-      toolBar->addAction(action);
+      toolBar->addAction(Theme::updateIcon(this, action));
       if(action->menu())
         qobject_cast<QToolButton*>(toolBar->widgetForAction(action))->setPopupMode(QToolButton::InstantPopup);
     }

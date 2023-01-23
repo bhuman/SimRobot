@@ -138,6 +138,7 @@ private:
   void dropEvent(QDropEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
   void keyReleaseEvent(QKeyEvent* event) override;
+  void changeEvent(QEvent* event) override;
   QMenu* createPopupMenu() override;
 
   bool loadModule(const QString& name, bool manually);
@@ -145,6 +146,7 @@ private:
   bool compileModules();
   void updateViewMenu(QMenu* menu);
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
+  QAction* updateIcon(QAction* action) const;
 
 public slots:
   void openFile(const QString& fileName);

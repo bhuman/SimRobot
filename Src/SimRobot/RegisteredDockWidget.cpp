@@ -9,6 +9,7 @@
 
 #include "RegisteredDockWidget.h"
 #include "MainWindow.h"
+#include "Theme.h"
 
 RegisteredDockWidget::RegisteredDockWidget(const QString& fullName, QWidget* parent) :
   QDockWidget(parent), fullName(fullName), module(0), object(0), widget(0), flags(0), reallyVisible(false)
@@ -148,11 +149,11 @@ void RegisteredDockWidget::contextMenuEvent(QContextMenuEvent* event)
     for(QAction* action : editMenu->actions())
     {
       editMenu->removeAction(action);
-      menu.addAction(action);
+      menu.addAction(Theme::updateIcon(this, action));
     }
     menu.addSeparator();
   }
-  menu.addAction(simMenu->menuAction());
+  menu.addAction(Theme::updateIcon(this, simMenu->menuAction()));
   if(userMenu)
   {
     QMetaObject::invokeMethod(userMenu, "aboutToShow", Qt::DirectConnection);
@@ -160,7 +161,7 @@ void RegisteredDockWidget::contextMenuEvent(QContextMenuEvent* event)
     for(QAction* action : userMenu->actions())
     {
       userMenu->removeAction(action);
-      menu.addAction(action);
+      menu.addAction(Theme::updateIcon(this, action));
     }
   }
   event->accept();
