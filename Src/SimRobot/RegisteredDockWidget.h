@@ -42,7 +42,6 @@ private:
 
   void closeEvent(QCloseEvent* event) override;
   void contextMenuEvent(QContextMenuEvent* event) override;
-  void changeEvent(QEvent* event) override;
 
 public slots:
   void visibilityChanged(bool visible);

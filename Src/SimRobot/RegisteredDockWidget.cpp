@@ -237,10 +237,3 @@ void RegisteredDockWidget::exportAsPng()
   widget->getWidget()->render(&pixmap);
   pixmap.save(fileName, "PNG");
 }
-
-void RegisteredDockWidget::changeEvent(QEvent* event)
-{
-  if(widget && event->type() == QEvent::PaletteChange)
-    widget->paletteChanged();
-  QDockWidget::changeEvent(event);
-}
