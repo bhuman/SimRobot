@@ -319,7 +319,7 @@ void SceneGraphDockWidget::changeEvent(QEvent* event)
       if(!item->icon(0).isNull())
         item->setIcon(0, Theme::updateIcon(this, item->icon(0)));
   }
-  QWidget::changeEvent(event);
+  QDockWidget::changeEvent(event);
 }
 
 void SceneGraphDockWidget::itemActivated(const QModelIndex& index)

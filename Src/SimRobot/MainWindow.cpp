@@ -457,7 +457,7 @@ void MainWindow::changeEvent(QEvent* event)
 {
   if(event->type() == QEvent::PaletteChange)
     updateMenuAndToolBar();
-  QWidget::changeEvent(event);
+  QMainWindow::changeEvent(event);
 }
 
 QMenu* MainWindow::createPopupMenu()
