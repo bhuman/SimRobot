@@ -31,9 +31,6 @@ SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) 
   connect(treeWidget, &QTreeWidget::activated, this, &SceneGraphDockWidget::itemActivated);
   connect(treeWidget, &QTreeWidget::collapsed, this, &SceneGraphDockWidget::itemCollapsed);
   connect(treeWidget, &QTreeWidget::expanded, this, &SceneGraphDockWidget::itemExpanded);
-  // suppress decoration of the current item which doesn't mix well with our own styling
-  // (maybe the whole thing that is done by setting the font etc. can be achieved better using stylesheets)
-  connect(treeWidget, &QTreeWidget::currentItemChanged, this, [this](auto*, auto*){ treeWidget->setCurrentItem(nullptr); });
 
   // load layout settings
   QSettings& settings = MainWindow::application->getLayoutSettings();
