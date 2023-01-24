@@ -12,6 +12,7 @@
 
 SceneGraphDockWidget::SceneGraphDockWidget(QMenu* contextMenu, QWidget* parent) : QDockWidget(parent), contextMenu(contextMenu)
 {
+  setFeatures(features() & ~DockWidgetFloatable);
   setAllowedAreas(Qt::TopDockWidgetArea);
   setFocusPolicy(Qt::ClickFocus);
   setObjectName(".SceneGraph");
