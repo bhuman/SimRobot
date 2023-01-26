@@ -45,7 +45,7 @@ private:
 
 public slots:
   void visibilityChanged(bool visible);
-  
+
 private slots:
   void copy();
   void exportAsSvg();

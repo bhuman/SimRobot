@@ -112,7 +112,7 @@ public slots:
 
 private:
   void styleCloseButton();
-  
+
   SimRobotCore2::ActuatorPort* actuator;
 
   bool isAngle;
