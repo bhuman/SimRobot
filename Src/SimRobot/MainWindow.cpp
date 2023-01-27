@@ -651,7 +651,6 @@ void MainWindow::updateMenuAndToolBar()
                          "QToolButton:checked:hover {background-color: " + checkedHover.name(QColor::HexArgb) + "}"
                          "QToolButton:checked:pressed {background-color: " + checkedPressed.name(QColor::HexArgb) + "}");
 
-  QColor background = palette().window().color();
   for(QDockWidget* dockWidget : findChildren<QDockWidget*>())
   {
     const bool vertical = (dockWidget->features() & QDockWidget::DockWidgetVerticalTitleBar) != 0;
@@ -659,7 +658,7 @@ void MainWindow::updateMenuAndToolBar()
                               + QString(Theme::isDarkMode(this) ? "-dark" : "") + "-50.png)}"
                               "QDockWidget::title {text-align: center;"
                                 "padding-" + QString(vertical ? "bottom" : "left") + ": 3;"
-                                "background: " + background.name() + "}"
+                                "background: transparent}"
                               "QDockWidget::close-button {border: 0px; border-radius: 4px; background: transparent; subcontrol-origin: content; subcontrol-position: "
                               + QString(vertical ? "center bottom" : "left center") + "}"
                               "QDockWidget::close-button:hover {background: " + hover.name(QColor::HexArgb) + "}"
