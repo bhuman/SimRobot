@@ -24,6 +24,7 @@
 #include <QCloseEvent>
 #include <QUrl>
 #include <QTimer>
+#include <QWidget>
 #ifdef WINDOWS
 #include <Windows.h>
 #elif defined MACOS
@@ -648,8 +649,23 @@ void MainWindow::updateMenuAndToolBar()
                          "QToolButton:hover {background-color: " + hover.name(QColor::HexArgb) + "}"
                          "QToolButton:pressed {background-color: " + pressed.name(QColor::HexArgb) + "}"
                          "QToolButton:checked:hover {background-color: " + checkedHover.name(QColor::HexArgb) + "}"
-                         "QToolButton:checked:pressed {background-color: " + checkedPressed.name(QColor::HexArgb) + "}"
-);
+                         "QToolButton:checked:pressed {background-color: " + checkedPressed.name(QColor::HexArgb) + "}");
+
+  QColor background = palette().window().color();
+  for(QDockWidget* dockWidget : findChildren<QDockWidget*>())
+  {
+    const bool vertical = (dockWidget->features() & QDockWidget::DockWidgetVerticalTitleBar) != 0;
+    dockWidget->setStyleSheet("QDockWidget {titlebar-close-icon: url(:/Icons/icons8-close"
+                              + QString(Theme::isDarkMode(this) ? "-dark" : "") + "-50.png)}"
+                              "QDockWidget::title {text-align: center;"
+                                "padding-" + QString(vertical ? "bottom" : "left") + ": 3;"
+                                "background: " + background.name() + "}"
+                              "QDockWidget::close-button {border: 0px; border-radius: 4px; background: transparent; subcontrol-origin: content; subcontrol-position: "
+                              + QString(vertical ? "center bottom" : "left center") + "}"
+                              "QDockWidget::close-button:hover {background: " + hover.name(QColor::HexArgb) + "}"
+                              "QDockWidget::close-button:pressed {background: " + pressed.name(QColor::HexArgb) + "}");
+  }
+
 #endif
 
   if(dockWidgetFileMenu)
