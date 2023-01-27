@@ -55,7 +55,7 @@ public:
   void drawItemText(QPainter* painter, const QRect& rectangle, int alignment, const QPalette& palette,
                     bool enabled, const QString& text, QPalette::ColorRole textRole) const override
   {
-    if(dockWidget == activeDockWidget && textRole == QPalette::WindowText)
+    if(dockWidget == activeDockWidget && textRole == QPalette::WindowText && text == dockWidget->windowTitle())
     {
       QFont font = painter->font();
       font.setBold(true);
