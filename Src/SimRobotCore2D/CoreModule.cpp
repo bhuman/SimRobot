@@ -23,8 +23,8 @@ SimRobot::Application* CoreModule::application = nullptr;
 CoreModule* CoreModule::module = nullptr;
 
 CoreModule::CoreModule(SimRobot::Application& application) :
-  sceneIcon(":/Icons/icons8-3d-model-100.png"),
-  objectIcon(":/Icons/icons8-orthogonal-view-100.png")
+  sceneIcon(":/Icons/icons8-3d-model-50.png"),
+  objectIcon(":/Icons/icons8-orthogonal-view-50.png")
 {
   sceneIcon.setIsMask(true);
   objectIcon.setIsMask(true);

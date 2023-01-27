@@ -237,7 +237,7 @@ void SensorWidget::update()
 QMenu* SensorWidget::createEditMenu() const
 {
   QMenu* menu = new QMenu(tr("&Edit"));
-  QIcon icon(":/Icons/icons8-copy-to-clipboard-100.png");
+  QIcon icon(":/Icons/icons8-copy-to-clipboard-50.png");
   icon.setIsMask(true);
   QAction* action = menu->addAction(icon, tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));

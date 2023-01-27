@@ -308,7 +308,7 @@ void SimObjectWidget::update()
 QMenu* SimObjectWidget::createEditMenu() const
 {
   QMenu* menu = new QMenu(tr("&Edit"));
-  QIcon icon(":/Icons/icons8-copy-to-clipboard-100.png");
+  QIcon icon(":/Icons/icons8-copy-to-clipboard-50.png");
   icon.setIsMask(true);
   QAction* action = menu->addAction(icon, tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
@@ -325,7 +325,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-coordinate-system-100.png");
+    QIcon icon(":/Icons/icons8-coordinate-system-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select the drag and drop dynamics mode and plane along which operations are performed"));
@@ -363,7 +363,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   {
     QAction* action = menu->addAction(tr("&Reset Camera"));
-    QIcon icon(":/Icons/icons8-camera-100.png");
+    QIcon icon(":/Icons/icons8-camera-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setShortcut(QKeySequence(Qt::Key_R));
@@ -373,7 +373,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Vertical Opening Angle"));
     QAction* action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-focal-length-100.png");
+    QIcon icon(":/Icons/icons8-focal-length-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     QActionGroup* actionGroup = new QActionGroup(subMenu);
@@ -400,7 +400,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Appearances Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-layers-100.png");
+    QIcon icon(":/Icons/icons8-layers-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select different shading techniques for displaying the scene"));
@@ -443,7 +443,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Drawings Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-line-chart-100.png");
+    QIcon icon(":/Icons/icons8-line-chart-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select different shading techniques for displaying controller drawings"));
@@ -507,7 +507,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   menu->addSeparator();
 
   addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore2::Renderer::showCoordinateSystem);
-  addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore2::Renderer::showSensors, ":/Icons/icons8-speed-100.png");
+  addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore2::Renderer::showSensors, ":/Icons/icons8-speed-50.png");
 
   menu->addSeparator();
 

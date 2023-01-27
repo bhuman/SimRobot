@@ -68,7 +68,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* const subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* const action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-coordinate-system-100.png");
+    QIcon icon(":/Icons/icons8-coordinate-system-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select the drag and drop dynamics mode"));
@@ -94,7 +94,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   menu->addSeparator();
 
   QAction* const action = menu->addAction(tr("&Reset Camera"));
-  QIcon icon(":/Icons/icons8-camera-100.png");
+  QIcon icon(":/Icons/icons8-camera-50.png");
   icon.setIsMask(true);
   action->setIcon(icon);
   action->setShortcut(QKeySequence(Qt::Key_R));

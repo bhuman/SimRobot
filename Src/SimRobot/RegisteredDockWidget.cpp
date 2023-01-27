@@ -60,7 +60,7 @@ QMenu* RegisteredDockWidget::createEditMenu()
 
   if(flags & SimRobot::Flag::copy)
   {
-    QIcon copyActionIcon(":/Icons/icons8-copy-to-clipboard-100.png");
+    QIcon copyActionIcon(":/Icons/icons8-copy-to-clipboard-50.png");
     copyActionIcon.setIsMask(true);
     QAction* copyAction = menu->addAction(copyActionIcon, tr("&Copy"));
     copyAction->setShortcut(QKeySequence(QKeySequence::Copy));

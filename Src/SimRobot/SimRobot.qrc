@@ -1,18 +1,18 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-  <file>Icons/icons8-copy-to-clipboard-100.png</file>
-  <file>Icons/icons8-cut-100.png</file>
-  <file>Icons/icons8-folder-100.png</file>
-  <file>Icons/icons8-open-document-100.png</file>
-  <file>Icons/icons8-paste-100.png</file>
-  <file>Icons/icons8-play-100.png</file>
-  <file>Icons/icons8-redo-100.png</file>
-  <file>Icons/icons8-save-100.png</file>
-  <file>Icons/icons8-skip-to-start-100.png</file>
-  <file>Icons/icons8-stacked-organizational-chart-100.png</file>
-  <file>Icons/icons8-step-over-100.png</file>
-  <file>Icons/icons8-text-input-form-100.png</file>
-  <file>Icons/icons8-undo-100.png</file>
+  <file>Icons/icons8-copy-to-clipboard-50.png</file>
+  <file>Icons/icons8-cut-50.png</file>
+  <file>Icons/icons8-folder-50.png</file>
+  <file>Icons/icons8-open-document-50.png</file>
+  <file>Icons/icons8-paste-50.png</file>
+  <file>Icons/icons8-play-50.png</file>
+  <file>Icons/icons8-redo-50.png</file>
+  <file>Icons/icons8-save-50.png</file>
+  <file>Icons/icons8-skip-to-start-50.png</file>
+  <file>Icons/icons8-stacked-organizational-chart-50.png</file>
+  <file>Icons/icons8-step-over-50.png</file>
+  <file>Icons/icons8-text-input-form-50.png</file>
+  <file>Icons/icons8-undo-50.png</file>
   <file>Icons/SimRobot.png</file>
 </qresource>
 </RCC>

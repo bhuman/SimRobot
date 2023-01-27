@@ -209,7 +209,7 @@ QMenu* EditorWidget::createFileMenu() const
 {
   QMenu* menu = new QMenu(tr("&File"));
 
-  QIcon icon(":/Icons/icons8-save-100.png");
+  QIcon icon(":/Icons/icons8-save-50.png");
   icon.setIsMask(true);
   QAction* action = menu->addAction(icon, tr("&Save"));
   action->setShortcut(QKeySequence(QKeySequence::Save));
@@ -266,7 +266,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
     }
   }
 
-  QIcon icon(":/Icons/icons8-undo-100.png");
+  QIcon icon(":/Icons/icons8-undo-50.png");
   icon.setIsMask(true);
   QAction* action = menu->addAction(icon, tr("&Undo"));
   action->setShortcut(QKeySequence(QKeySequence::Undo));
@@ -275,7 +275,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   connect(action, &QAction::triggered, this, &EditorWidget::undo);
   connect(this, &QTextEdit::undoAvailable, action, &QAction::setEnabled);
 
-  icon = QIcon(":/Icons/icons8-redo-100.png");
+  icon = QIcon(":/Icons/icons8-redo-50.png");
   icon.setIsMask(true);
   action = menu->addAction(icon, tr("&Redo"));
   action->setShortcut(QKeySequence(QKeySequence::Redo));
@@ -286,7 +286,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
 
   menu->addSeparator();
 
-  icon = QIcon(":/Icons/icons8-cut-100.png");
+  icon = QIcon(":/Icons/icons8-cut-50.png");
   icon.setIsMask(true);
   action = menu->addAction(icon, tr("Cu&t"));
   action->setShortcut(QKeySequence(QKeySequence::Cut));
@@ -295,7 +295,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   connect(action, &QAction::triggered, this, &EditorWidget::cut);
   connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
-  icon = QIcon(":/Icons/icons8-copy-to-clipboard-100.png");
+  icon = QIcon(":/Icons/icons8-copy-to-clipboard-50.png");
   icon.setIsMask(true);
   action = menu->addAction(icon, tr("&Copy"));
   action->setShortcut(QKeySequence(QKeySequence::Copy));
@@ -304,7 +304,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   connect(action, &QAction::triggered, this, &EditorWidget::copy);
   connect(this, &QTextEdit::copyAvailable, action, &QAction::setEnabled);
 
-  icon = QIcon(":/Icons/icons8-paste-100.png");
+  icon = QIcon(":/Icons/icons8-paste-50.png");
   icon.setIsMask(true);
   action = menu->addAction(icon, tr("&Paste"));
   action->setShortcut(QKeySequence(QKeySequence::Paste));
