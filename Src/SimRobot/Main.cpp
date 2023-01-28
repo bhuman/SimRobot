@@ -78,6 +78,9 @@ int main(int argc, char* argv[])
   QLocale::setDefault(QLocale::C);
 
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+#ifdef MACOS
+  QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
+#endif
   QSurfaceFormat format;
   format.setVersion(3, 3);
   format.setProfile(QSurfaceFormat::CoreProfile);
