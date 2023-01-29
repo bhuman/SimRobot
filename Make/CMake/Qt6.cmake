@@ -1,4 +1,4 @@
-if(${PLATFORM} STREQUAL Linux)
+if(${OS} STREQUAL Linux)
   find_package(Qt6 COMPONENTS Concurrent Core Gui OpenGL OpenGLWidgets Svg SvgWidgets Widgets REQUIRED)
 elseif(${PLATFORM} STREQUAL Windows)
   add_library(Qt6::Concurrent SHARED IMPORTED)
