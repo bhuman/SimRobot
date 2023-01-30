@@ -370,7 +370,7 @@ Reader::Token Reader::readToken()
   const char c = static_cast<char>(reader.get());
   if(!reader.good())
     return endOfInput;
-  ASSERT(c != EOF);
+  ASSERT(c != static_cast<char>(EOF));
   if(c == '\n')
   {
     ++nextLocation.line;
