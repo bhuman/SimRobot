@@ -641,7 +641,8 @@ void MainWindow::updateMenuAndToolBar()
   QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
   QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
   QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
-  toolBar->setStyleSheet("QToolBar::separator {background-color: transparent; width: 8}"
+  toolBar->setStyleSheet("QToolBar {padding: 0 6 0 6}"
+                         "QToolBar::separator {background-color: transparent; width: 12}"
                          "QToolButton {background-color: transparent; padding: 3 8 3 8; border-width: 0px; border-radius: 4px}"
                          "QToolButton::menu-button {background-color: transparent}"
                          "QToolButton::menu-indicator {width: 0}"
@@ -711,9 +712,6 @@ void MainWindow::updateMenuAndToolBar()
         moduleUserMenu = loadedModule->module->createUserMenu();
   }
 
-#ifdef MACOS
-  toolBar->addSeparator();
-#endif
   toolBar->addAction(Theme::updateIcon(this, toolbarOpenAct));
   if(dockWidgetFileMenu)
     addToolBarButtonsFromMenu(dockWidgetFileMenu, toolBar, false);
@@ -755,17 +753,27 @@ void MainWindow::updateMenuAndToolBar()
 
   menuBar()->removeAction(addonMenu->menuAction());
 
+#ifndef MACOS
   if(moduleUserMenu)
   {
     menuBar()->insertMenu(helpMenu->menuAction(), moduleUserMenu);
     addToolBarButtonsFromMenu(moduleUserMenu, toolBar, true);
   }
+#endif
 
   if(dockWidgetUserMenu)
   {
     menuBar()->insertMenu(helpMenu->menuAction(), dockWidgetUserMenu);
     addToolBarButtonsFromMenu(dockWidgetUserMenu, toolBar, true);
   }
+
+#ifdef MACOS
+  if(moduleUserMenu)
+  {
+    menuBar()->insertMenu(helpMenu->menuAction(), moduleUserMenu);
+    addToolBarButtonsFromMenu(moduleUserMenu, toolBar, true);
+  }
+#endif
 
   if(opened)
     menuBar()->insertMenu(helpMenu->menuAction(), addonMenu);
@@ -786,12 +794,28 @@ QMenu* MainWindow::createSimMenu()
 
 void MainWindow::addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator)
 {
+#ifdef MACOS
+  bool first = true;
+#endif
   for(QAction* action : menu->actions())
   {
     if(!action->icon().isNull())
     {
       if(addSeparator)
-        toolBar->addSeparator();
+      {
+#ifdef MACOS
+        if(first && menu != dockWidgetEditMenu)
+        {
+          QWidget* separator = new QWidget();
+          separator->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+          toolBar->addWidget(separator);
+          first = false;
+        }
+        else
+#endif
+          toolBar->addSeparator();
+      }
+
       toolBar->addAction(Theme::updateIcon(this, action));
       if(action->menu())
         qobject_cast<QToolButton*>(toolBar->widgetForAction(action))->setPopupMode(QToolButton::InstantPopup);
