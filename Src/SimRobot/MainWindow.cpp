@@ -658,7 +658,7 @@ void MainWindow::updateMenuAndToolBar()
     dockWidget->setStyleSheet("QDockWidget {titlebar-close-icon: url(:/Icons/icons8-close"
                               + QString(Theme::isDarkMode(this) ? "-dark" : "") + "-50.png)}"
                               "QDockWidget::title {text-align: center;"
-                                "padding-" + QString(vertical ? "bottom" : "left") + ": 3;"
+                                "padding-" + QString(vertical ? "bottom" : "left") + ": 3px;"
                                 "background: transparent}"
                               "QDockWidget::close-button {border: 0px; border-radius: 4px; background: transparent; subcontrol-origin: content; subcontrol-position: "
                               + QString(vertical ? "center bottom" : "left center") + "}"
