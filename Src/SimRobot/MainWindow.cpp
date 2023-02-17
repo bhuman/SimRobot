@@ -808,6 +808,7 @@ void MainWindow::addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool 
         {
           QWidget* separator = new QWidget();
           separator->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+          separator->setAttribute(Qt::WA_TransparentForMouseEvents);
           toolBar->addWidget(separator);
           first = false;
         }
