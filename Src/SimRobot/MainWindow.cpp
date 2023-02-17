@@ -641,11 +641,11 @@ void MainWindow::updateMenuAndToolBar()
   QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
   QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
   QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
-  toolBar->setStyleSheet("QToolBar {padding: 0 6 0 6}"
-                         "QToolBar::separator {background-color: transparent; width: 12}"
-                         "QToolButton {background-color: transparent; padding: 3 8 3 8; border-width: 0px; border-radius: 4px}"
+  toolBar->setStyleSheet("QToolBar {padding: 0px 6px 0px 6px}"
+                         "QToolBar::separator {background-color: transparent; width: 12px}"
+                         "QToolButton {background-color: transparent; padding: 3px 8px 3px 8px; border-width: 0px; border-radius: 4px}"
                          "QToolButton::menu-button {background-color: transparent}"
-                         "QToolButton::menu-indicator {width: 0}"
+                         "QToolButton::menu-indicator {width: 0px}"
                          "QToolButton:checked {background-color: " + pressed.name(QColor::HexArgb) + "}"
                          "QToolButton:hover {background-color: " + hover.name(QColor::HexArgb) + "}"
                          "QToolButton:pressed {background-color: " + pressed.name(QColor::HexArgb) + "}"
