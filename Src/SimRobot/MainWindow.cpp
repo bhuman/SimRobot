@@ -29,6 +29,7 @@
 #include <Windows.h>
 #elif defined MACOS
 #include <mach/mach_time.h>
+#include "AppleHelper.h"
 #else
 #include <ctime>
 #endif
@@ -154,6 +155,7 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFloatable(false);
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
+  updateBackgroundColor(windowHandle());
 #endif
 
   statusBar = new StatusBar(this);

@@ -7,9 +7,10 @@ list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/SimRobot.qrc")
 
 if(APPLE)
   set(SIMROBOT_ICONS "${SIMROBOT_ROOT_DIR}/Icons/SimRobot.icns" "${SIMROBOT_ROOT_DIR}/Icons/SimRobotDoc.icns")
-  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ICONS}")
+  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ICONS}" "${SIMROBOT_ROOT_DIR}/AppleHelper.mm")
 else()
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/SimRobot.rc")
+  list(REMOVE_ITEM SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/AppleHelper.h")
 endif()
 
 set(SIMROBOT_TREE "${SIMROBOT_SOURCES}")
@@ -57,6 +58,9 @@ set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Svg Qt6::Widgets) # Qt6::OpenGL is only needed to register OpenGL support before the main window is created.
+if(APPLE)
+  target_link_libraries(SimRobot PRIVATE ${APP_KIT_FRAMEWORK})
+endif()
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
 target_link_libraries(SimRobot PRIVATE Flags::Default)
