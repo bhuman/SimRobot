@@ -7,6 +7,7 @@
 #include "CoreModule.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/UserInput.h"
+#include "Theme.h"
 #include "Tools/Math/Constants.h"
 #include <QCheckBox>
 #include <QDoubleSpinBox>
@@ -260,23 +261,19 @@ void ActuatorWidget::changeEvent(QEvent* event)
 
 void ActuatorWidget::styleCloseButton()
 {
-  const QPalette& palette = cbxSet->palette();
-  const bool darkMode = palette.windowText().color().lightness() > palette.window().color().lightness();
-
-  // Qt does not seem to report any usable system colors yet
-  const QColor unpressed = darkMode ? QColor(101, 101, 101) : QColor(254, 254, 254);
-  const QColor pressed = darkMode ? QColor(137, 137, 137) : QColor(235, 235, 235);
-  const QColor border = darkMode ? QColor(41, 41, 41) : QColor(207, 207, 207);
+  QColor hover(128, 128, 128, Theme::isDarkMode(this) ? 64 : 32);
+  QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
+  QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
+  QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
   btnExit->setStyleSheet("QPushButton {"
-                           "background-color: " + unpressed.name() + ";"
+                           "background-color: transparent;"
                            "padding: 0px 3px 3px 3px;"
                            "margin: 3px 0px 4px 2px;"
-                           "border: 1px solid "+ border.name() + ";"
+                           "border-width: 0px;"
                            "border-radius: 4px;"
                          "}"
-                         "QPushButton:pressed {"
-                           "background-color: " + pressed.name() + ";"
-                         "}");
+                         "QPushButton:hover {background-color: " + hover.name(QColor::HexArgb) + "}"
+                         "QPushButton:pressed {background-color: " + pressed.name(QColor::HexArgb) + "}");
 }
 
 ActuatorsWidget* ActuatorsWidget::actuatorsWidget = nullptr;
