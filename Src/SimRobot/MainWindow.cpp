@@ -667,7 +667,7 @@ void MainWindow::updateMenuAndToolBar()
                               "QDockWidget::close-button:hover {background: " + hover.name(QColor::HexArgb) + "}"
                               "QDockWidget::close-button:pressed {background: " + pressed.name(QColor::HexArgb) + "}");
   }
-
+  statusBar->setStyleSheet("QStatusBar {background-color: transparent}");
 #endif
 
   if(dockWidgetFileMenu)

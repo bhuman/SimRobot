@@ -7,9 +7,6 @@ StatusBar::StatusBar(QWidget* parent) : QStatusBar(parent), toggleViewAct(0)
   userMessage = latestMessage = tr("Ready");
   showMessage(userMessage);
   connect(this, &QStatusBar::messageChanged, this, &StatusBar::messageChanged);
-#ifdef MACOS
-  setStyleSheet("QStatusBar {background-color: transparent}");
-#endif
 }
 
 void StatusBar::addLabel(const SimRobot::Module* module, SimRobot::StatusLabel* statusLabel)
