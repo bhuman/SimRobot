@@ -1,15 +1,16 @@
 /**
  * @file SimRobot/AppleHelper.cpp
  * This file implements a function that sets the window background color
- * using Objective C++ on macOS.
+ * and makes the title bar drawable using Objective C++ on macOS.
  * @author Thomas Röfer
  */
 
 #import <AppKit/AppKit.h>
 #import <QWindow>
 
-void updateBackgroundColor(QWindow* window)
+void fixMainWindow(WId window)
 {
-  NSView* view = reinterpret_cast<NSView*>(window->winId());
+  NSView* view = reinterpret_cast<NSView*>(window);
   view.window.backgroundColor = [NSColor windowBackgroundColor];
+  view.window.styleMask |= NSWindowStyleMaskFullSizeContentView;
 }

@@ -155,7 +155,8 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setFloatable(false);
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
-  updateBackgroundColor(windowHandle());
+  fixMainWindow(winId());
+  setContentsMargins(0, 28, 0, 0);
 #endif
 
   statusBar = new StatusBar(this);
@@ -196,7 +197,14 @@ MainWindow::MainWindow(int, char* argv[]) :
   menuBar()->addMenu(createSimMenu());
   menuBar()->addMenu(helpMenu);
 
+#ifdef MACOS
+  QPalette pal = palette();
+  pal.setBrush(QPalette::Window, QBrush(QColor(0, 0, 0, 0)));
+  setPalette(pal);
+  connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::applicationStateChanged);
+#else
   updateMenuAndToolBar();
+#endif
 }
 
 QString MainWindow::getAppPath(const char* argv0)
@@ -356,6 +364,20 @@ void MainWindow::showWarning(const QString& title, const QString& message)
 void MainWindow::setStatusMessage(const QString& message)
 {
   statusBar->setUserMessage(message);
+}
+
+void MainWindow::paintEvent(QPaintEvent* event)
+{
+  QMainWindow::paintEvent(event);
+#ifdef MACOS
+  QPainter painter;
+  painter.begin(this);
+  QColor title = qApp->applicationState() == Qt::ApplicationActive
+                 ? QColor(255, 255, 255, Theme::isDarkMode(this) ? 24 : 96)
+                 : QColor(0, 0, 0, Theme::isDarkMode(this) ? 0 : 7);
+  painter.fillRect(0, 0, size().width(), 28, QBrush(title));
+  painter.end();
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)
@@ -643,7 +665,12 @@ void MainWindow::updateMenuAndToolBar()
   QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
   QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
   QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
-  toolBar->setStyleSheet("QToolBar {padding: 0px 6px 0px 6px}"
+  QColor title = qApp->applicationState() == Qt::ApplicationActive
+                 ? QColor(255, 255, 255, Theme::isDarkMode(this) ? 24 : 96)
+                 : QColor(0, 0, 0, Theme::isDarkMode(this) ? 0 : 7);
+  toolBar->setStyleSheet("QToolBar {padding: 0px 6px 0px 6px;"
+                                   "border-bottom: 1px solid " + pressed.name(QColor::HexArgb) + ";"
+                                   "background-color: " + title.name(QColor::HexArgb) + "}"
                          "QToolBar::separator {background-color: transparent; width: 12px}"
                          "QToolButton {background-color: transparent; padding: 3px 8px 3px 8px; border-width: 0px; border-radius: 4px}"
                          "QToolButton::menu-button {background-color: transparent}"
@@ -1284,5 +1311,11 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
     if(sceneGraphDockWidget && regDockWidget)
       sceneGraphDockWidget->setActive(regDockWidget->getObject(), true);
   }
+  updateMenuAndToolBar();
+}
+
+void MainWindow::applicationStateChanged(Qt::ApplicationState)
+{
+  update(0, 0, size().width(), 28);
   updateMenuAndToolBar();
 }

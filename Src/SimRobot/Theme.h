@@ -24,7 +24,7 @@ namespace Theme
    */
   inline bool isDarkMode(QWidget* widget)
   {
-    return widget->palette().window().color().lightness() < 128;
+    return widget->palette().text().color().lightness() > 128;
   }
 
   /**
