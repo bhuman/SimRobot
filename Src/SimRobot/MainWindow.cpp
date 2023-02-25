@@ -482,6 +482,10 @@ void MainWindow::changeEvent(QEvent* event)
 {
   if(event->type() == QEvent::PaletteChange)
     updateMenuAndToolBar();
+#ifdef MACOS
+  else if(event->type() == QEvent::WindowStateChange)
+    setContentsMargins(0, isFullScreen() ? 0 : 28, 0, 0);
+#endif
   QMainWindow::changeEvent(event);
 }
 
@@ -1316,6 +1320,7 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
 
 void MainWindow::applicationStateChanged(Qt::ApplicationState)
 {
-  update(0, 0, size().width(), 28);
+  if(!isFullScreen())
+    update(0, 0, size().width(), 28);
   updateMenuAndToolBar();
 }
