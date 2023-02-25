@@ -510,7 +510,7 @@ void EditorWidget::showEvent(QShowEvent* event)
 
 void EditorWidget::changeEvent(QEvent* event)
 {
-  if(event->type() == QEvent::PaletteChange)
+  if(event->type() == QEvent::PaletteChange && highlighter)
   {
     highlighter->updateColors();
     bool modified = document()->isModified();
