@@ -19,7 +19,8 @@ class SyntaxHighlighter: public QSyntaxHighlighter
   Q_OBJECT
 
 public:
-  SyntaxHighlighter(QTextDocument* parent = nullptr);
+  SyntaxHighlighter(QTextDocument* parent, QWidget* editor);
+  void updateColors();
 
 protected:
   void highlightBlock(const QString& text) override;
@@ -28,6 +29,7 @@ private:
   using IndexType = decltype(QString().length());
   void highlightSubBlock(const QString& text, const IndexType startIndex, const int currState);
 
+  QWidget* editor;
   QRegularExpression xmlCommentStartExpression;
   QRegularExpression xmlCommentEndExpression;
 

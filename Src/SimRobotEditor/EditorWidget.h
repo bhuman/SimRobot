@@ -110,16 +110,16 @@ private:
   FileEditorObject* editorObject;
 
   bool shownYet = false;
-  bool canCopy;
-  bool canUndo;
-  bool canRedo;
+  bool canCopy = false;
+  bool canUndo = false;
+  bool canRedo = false;
 
   bool useTabStop;
   int tabStopWidth;
 
-  SyntaxHighlighter* highlighter;
-  EditorSettingsDialog* editorSettingsDialog;
-  FindAndReplaceDialog* findAndReplaceDialog;
+  SyntaxHighlighter* highlighter = nullptr;
+  EditorSettingsDialog* editorSettingsDialog = nullptr;
+  FindAndReplaceDialog* findAndReplaceDialog = nullptr;
 
   void updateEditMenu(QMenu* menu, bool aboutToShow) const;
 
@@ -133,6 +133,7 @@ private:
   void focusInEvent(QFocusEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
   void showEvent(QShowEvent* event) override;
+  void changeEvent(QEvent* event) override;
 
 signals:
   void pasteAvailable(bool available);

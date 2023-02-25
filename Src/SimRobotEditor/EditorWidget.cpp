@@ -149,13 +149,11 @@ SimRobot::Widget* FileEditorObject::createWidget()
 }
 
 EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileContent) :
-  editorObject(editorObject),
-  canCopy(false), canUndo(false), canRedo(false),
-  highlighter(0), editorSettingsDialog(0), findAndReplaceDialog(0)
+  editorObject(editorObject)
 {
   if(editorObject->filePath.endsWith(".ros2") || editorObject->filePath.endsWith(".ros2d") ||
      editorObject->filePath.endsWith(".rsi2") || editorObject->filePath.endsWith(".rsi2d"))
-    highlighter = new SyntaxHighlighter(document());
+    highlighter = new SyntaxHighlighter(document(), this);
   setFrameStyle(QFrame::NoFrame);
 
   setLineWrapMode(QTextEdit::NoWrap);
@@ -508,6 +506,18 @@ void EditorWidget::showEvent(QShowEvent* event)
   }
 
   return QTextEdit::showEvent(event);
+}
+
+void EditorWidget::changeEvent(QEvent* event)
+{
+  if(event->type() == QEvent::PaletteChange)
+  {
+    highlighter->updateColors();
+    bool modified = document()->isModified();
+    setPlainText(toPlainText());
+    document()->setModified(modified);
+  }
+  QTextEdit::changeEvent(event);
 }
 
 void EditorWidget::contextMenuEvent(QContextMenuEvent* event)

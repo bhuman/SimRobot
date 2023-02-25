@@ -7,9 +7,10 @@
  */
 
 #include "SyntaxHighlighter.h"
+#include "Theme.h"
 
-SyntaxHighlighter::SyntaxHighlighter(QTextDocument* parent) :
-  QSyntaxHighlighter(parent)
+SyntaxHighlighter::SyntaxHighlighter(QTextDocument* parent, QWidget* editor) :
+  QSyntaxHighlighter(parent), editor(editor)
 {
   const QString nameStartCharList = ":A-Z_a-z";
   const QString nameCharList = nameStartCharList + "\\-\\.0-9";
@@ -37,20 +38,31 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument* parent) :
   xmlCloseTagEndExpression = QRegularExpression(">");
   xmlCloseTagEndExpression.optimize();
 
-  xmlTagFormat.setForeground(Qt::darkBlue);
-  xmlTagFormat.setFontItalic(false);
-
   //Attributes
   xmlAttributeStartExpression = QRegularExpression("\\s*" + xmlName + "\\s*=\\s*\\\"");
   xmlAttributeStartExpression.optimize();
   xmlAttributeEndExpression = QRegularExpression("(?<!\\\\)(?:(\\\\\\\\)*)(\")");
   xmlAttributeEndExpression.optimize();
 
-  xmlAttributeFormat.setForeground(Qt::darkMagenta);
-  xmlAttributeFormat.setFontItalic(false);
+  xmlTagFormat.setFontWeight(QFont::Bold);
 
-  xmlAttValFormat.setForeground(QColor(139, 69, 19));
-  xmlAttValFormat.setFontItalic(false);
+  updateColors();
+}
+
+void SyntaxHighlighter::updateColors()
+{
+  if(Theme::isDarkMode(editor))
+  {
+    xmlTagFormat.setForeground(QColor(252, 95, 163));
+    xmlAttributeFormat.setForeground(QColor(191, 133, 85));
+    xmlAttValFormat.setForeground(QColor(252, 106, 93));
+  }
+  else
+  {
+    xmlTagFormat.setForeground(QColor(155, 35, 147));
+    xmlAttributeFormat.setForeground(QColor(129, 95, 3));
+    xmlAttValFormat.setForeground(QColor(196, 26, 22));
+  }
 }
 
 void SyntaxHighlighter::highlightBlock(const QString& text)
