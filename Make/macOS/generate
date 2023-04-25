@@ -8,7 +8,7 @@ cd "$(dirname "$(which "$0")")"
 CMAKE=./cmake
 PROJECTDIR=../../Build/macOS
 PROJECTPATH=SimRobot.xcodeproj
-PROJECTSRC=$PROJECTDIR/SimRobot-temp.xcodeproj
+PROJECTSRC=$PROJECTDIR/SimRobot.xcodeproj
 PLIST="/usr/libexec/PlistBuddy -c"
 TEMPPATH=/tmp/generate.tmp
 TEMPPATH2=/tmp/generate2.tmp
@@ -88,7 +88,6 @@ done <<<"$DIRONLY"
 # Assign folders to most source groups.
 grep <$PROJECTSRC/project.pbxproj -v '/Make/CMake/CMakeLists.txt' \
 | sed \
-  -e 's%SimRobot-temp%SimRobot%' \
   -e 's%/Build/macOS/CMakeFiles/%/Make/macOS/SimRobot.xcodeproj/CMakeFiles/%' \
 | tr '\n' '~' \
 | sed 's%\(isa = PBXGroup;~[^)]*/\* \)\(/[^*]*\)\(/[^*]*\)\( \*/,[^<]*\)<group>";%\1\2\3\4<absolute>";~			path = "\2";%g'\
@@ -138,7 +137,7 @@ else
   # Deactivate some building targets.
   SCHEMETEMPLATE=$SCHEMESRC/SimRobot.xcscheme
   sed <$SCHEMETEMPLATE >$TEMPPATH2 \
-  -e 's%"container:[^"]*/Build/macOS/SimRobot-temp%"container:../../Make/macOS/SimRobot%' \
+  -e 's%"container:[^"]*/Build/macOS/SimRobot%"container:../../Make/macOS/SimRobot%' \
   -e 's%debugDocumentVersioning *= *"YES"/>%debugDocumentVersioning = "YES">\
    </ProfileAction>%'
   (
