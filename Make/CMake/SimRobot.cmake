@@ -1,11 +1,11 @@
 set(SIMROBOT_ROOT_DIR "${SIMROBOT_PREFIX}/Src/SimRobot")
-set(SIMROBOT_OUTPUT_DIR "${OUTPUT_PREFIX}/Build/${OS}/SimRobot/$<CONFIG>")
+set(SIMROBOT_OUTPUT_DIR "${OUTPUT_PREFIX}/Build/${PLATFORM}/SimRobot/$<CONFIG>")
 
 file(GLOB_RECURSE SIMROBOT_SOURCES CONFIGURE_DEPENDS
     "${SIMROBOT_ROOT_DIR}/*.cpp" "${SIMROBOT_ROOT_DIR}/*.h")
 list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ROOT_DIR}/SimRobot.qrc")
 
-if(APPLE)
+if(MACOS)
   set(SIMROBOT_ICONS "${SIMROBOT_ROOT_DIR}/Icons/SimRobot.icns" "${SIMROBOT_ROOT_DIR}/Icons/SimRobotDoc.icns")
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_ICONS}" "${SIMROBOT_ROOT_DIR}/AppleHelper.mm")
 else()
@@ -15,20 +15,20 @@ endif()
 
 set(SIMROBOT_TREE "${SIMROBOT_SOURCES}")
 
-if(APPLE)
+if(MACOS)
   set(SIMROBOT_FRAMEWORKS
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtCore.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtDBus.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtGui.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGL.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtOpenGLWidgets.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtSvg.framework"
-      "${SIMROBOT_PREFIX}/Util/qt/${OS}/lib/QtWidgets.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtCore.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtDBus.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGL.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtOpenGLWidgets.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtSvg.framework"
+      "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework"
       "${CONTROLLER_FRAMEWORKS}")
 
-  set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/${OS}/plugins/platforms/libqcocoa.dylib")
-  set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/${OS}/plugins/imageformats/libqjpeg.dylib")
-  set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/${OS}/plugins/styles/libqmacstyle.dylib")
+  set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/libqcocoa.dylib")
+  set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/libqjpeg.dylib")
+  set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/styles/libqmacstyle.dylib")
   set(SIMROBOT_PLUGINS "${SIMROBOT_PLUGIN_COCOA}" "${SIMROBOT_PLUGIN_JPEG}" "${SIMROBOT_PLUGIN_MACSTYLE}")
 
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}" "${CONTROLLER_DYLIBS}")
@@ -58,7 +58,7 @@ set_property(TARGET SimRobot PROPERTY XCODE_GENERATE_SCHEME ON)
 
 target_include_directories(SimRobot PRIVATE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Svg Qt6::Widgets) # Qt6::OpenGL is only needed to register OpenGL support before the main window is created.
-if(APPLE)
+if(MACOS)
   target_link_libraries(SimRobot PRIVATE ${APP_KIT_FRAMEWORK})
 endif()
 add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
@@ -71,7 +71,7 @@ add_library(SimRobotInterface INTERFACE)
 target_include_directories(SimRobotInterface SYSTEM INTERFACE "${SIMROBOT_ROOT_DIR}")
 target_link_libraries(SimRobotInterface INTERFACE Qt6::Core)
 
-if(${PLATFORM} STREQUAL Windows)
+if(WINDOWS)
   add_custom_command(TARGET SimRobot POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
