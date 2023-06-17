@@ -332,6 +332,18 @@ namespace SimRobotCore2
     virtual const float* getPosition() const = 0;
 
     /**
+     * Returns the velocity of the object
+     * @return The velocity
+     */
+    virtual const float* getVelocity() const = 0;
+
+    /**
+     * Sets the velocity of the object
+     * @param velocity The new velocity
+     */
+    virtual void setVelocity(const float* velocity) = 0;
+
+    /**
      * Returns the pose of the object in the three-dimensional space
      * @param position A buffer for the position vector
      * @param rotation A buffer for the rotation matrix (3x3)

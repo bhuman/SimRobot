@@ -68,6 +68,7 @@ public:
 
 private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
+  Vector3f velocityInWorld; /**< A buffer used by \c getVelocity */
 
   dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
 
@@ -130,6 +131,8 @@ private:
   bool unregisterDrawing(SimRobotCore2::Controller3DDrawing& drawing) override {return ::PhysicalObject::unregisterDrawing(drawing);}
   SimRobotCore2::Body* getParentBody() override {return parentBody;}
   const float* getPosition() const override;
+  const float* getVelocity() const override;
+  void setVelocity(const float* velocity) override;
   bool getPose(float* position, float (*rotation)[3]) const override;
   void move(const float* pos) override;
   void move(const float* pos, const float (*rot)[3]) override;

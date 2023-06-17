@@ -301,6 +301,18 @@ bool Body::getPose(float* pos, float (*rot)[3]) const
   return true;
 }
 
+const float* Body::getVelocity() const
+{
+  Vector3f& velocity = const_cast<Body*>(this)->velocityInWorld;
+  ODETools::convertVector(dBodyGetLinearVel(body), velocity);
+  return velocity.data();
+}
+
+void Body::setVelocity(const float* velocity)
+{
+  dBodySetLinearVel(body, REAL(velocity[0]), REAL(velocity[1]), REAL(velocity[2]));
+}
+
 void Body::move(const float* pos)
 {
   // get pose from ode
