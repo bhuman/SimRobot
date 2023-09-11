@@ -34,6 +34,7 @@ void Axis::create()
 void Axis::addParent(Element& element)
 {
   joint = dynamic_cast<Joint*>(&element);
+  ASSERT(joint);
   ASSERT(!joint->axis);
   joint->axis = this;
 }

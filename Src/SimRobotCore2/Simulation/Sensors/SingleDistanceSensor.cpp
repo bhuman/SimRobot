@@ -11,6 +11,7 @@
 #include "Simulation/Body.h"
 #include "Platform/Assert.h"
 #include <ode/collision.h>
+#include <cmath>
 
 SingleDistanceSensor::SingleDistanceSensor()
 {

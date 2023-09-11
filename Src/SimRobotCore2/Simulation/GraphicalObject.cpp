@@ -6,7 +6,6 @@
 
 #include "GraphicalObject.h"
 #include "Platform/Assert.h"
-#include "SimObjectRenderer.h"
 
 void GraphicalObject::createGraphics(GraphicsContext& graphicsContext)
 {

@@ -10,7 +10,6 @@
 #include "Simulation/Actuators/Actuator.h"
 #include "Simulation/Body.h"
 #include "Simulation/Simulation.h"
-#include "Tools/Math/Constants.h"
 
 void Scene::updateTransformations()
 {

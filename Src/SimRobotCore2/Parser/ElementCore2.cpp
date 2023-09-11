@@ -1,6 +1,6 @@
 /**
- * @file Simulation/Element.cpp
- * Implementation of class Element
+ * @file ElementCore2.cpp
+ * Implementation of class ElementCore2
  * @author Colin Graf
  */
 

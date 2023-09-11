@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "SimRobotCore2.h"
 #include "Simulation/SimObject.h"
 #include "Simulation/PhysicalObject.h"
 #include <ode/mass.h>

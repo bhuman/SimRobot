@@ -11,7 +11,6 @@
 #include "Simulation/Appearances/Appearance.h"
 #include "Simulation/GraphicalObject.h"
 #include "Simulation/PhysicalObject.h"
-#include "Tools/Math/Constants.h"
 #include <list>
 #include <string>
 #include <unordered_map>

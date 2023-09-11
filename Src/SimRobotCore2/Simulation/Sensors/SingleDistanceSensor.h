@@ -8,6 +8,7 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/Sensors/Sensor.h"
+#include "Tools/Math/Pose3f.h"
 #include <ode/common.h>
 
 /**

@@ -8,13 +8,13 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/Appearances/ComplexAppearance.h"
-#include <string>
-#include <list>
-#include <unordered_map>
 #include <ode/common.h>
 #ifdef MULTI_THREADING
 #include <ode/threading.h>
 #endif
+#include <string>
+#include <list>
+#include <unordered_map>
 
 class Scene;
 class ElementCore2;

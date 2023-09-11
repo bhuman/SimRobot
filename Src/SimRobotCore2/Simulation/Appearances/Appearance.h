@@ -7,8 +7,10 @@
 #pragma once
 
 #include "SimRobotCore2.h"
+#include "Graphics/GraphicsContext.h"
 #include "Simulation/GraphicalObject.h"
 #include "Simulation/SimObject.h"
+#include <string>
 
 /**
  * @class Appearance

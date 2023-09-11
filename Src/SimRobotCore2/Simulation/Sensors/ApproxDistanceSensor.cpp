@@ -4,12 +4,12 @@
  * @author Colin Graf
  */
 
+#include "ApproxDistanceSensor.h"
+#include "CoreModule.h"
 #include "Graphics/Primitives.h"
-#include "Simulation/Sensors/ApproxDistanceSensor.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Platform/Assert.h"
 #include "Tools/ODETools.h"
-#include "CoreModule.h"
 #include <algorithm>
 #include <cmath>
 

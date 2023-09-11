@@ -1,6 +1,6 @@
 /**
- * @file Simulation/Element.h
- * Declaration of class Element
+ * @file ElementCore2.h
+ * Declaration of class ElementCore2
  * @author Colin Graf
  */
 
@@ -9,7 +9,7 @@
 #include "Parser/Element.h"
 
 /**
- * @class Element
+ * @class ElementCore2
  * An abstract representation of a ros2-file xml element
  */
 class ElementCore2 : public Element

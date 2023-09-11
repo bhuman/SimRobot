@@ -24,12 +24,11 @@
  * @author Arne Hasselbring
  */
 
+#include "Reader.h"
+#include "Platform/Assert.h"
 #include <cctype>
 #include <fstream>
 #include <iostream>
-
-#include "Reader.h"
-#include "Platform/Assert.h"
 
 bool Reader::readFile(const std::string& fileName)
 {

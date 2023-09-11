@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Simulation/Sensors/Sensor.h"
+#include "Tools/Math/Pose3f.h"
 
 class Body;
 

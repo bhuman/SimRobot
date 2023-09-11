@@ -298,6 +298,6 @@ void Simulation::updateFrameRate()
 void Simulation::registerObjects()
 {
   scene->fullName = scene->name.c_str();
-  CoreModule::application->registerObject(*CoreModule::module, *scene, 0);
+  CoreModule::application->registerObject(*CoreModule::module, *scene, nullptr);
   scene->registerObjects();
 }
