@@ -21,7 +21,6 @@ target_link_options(SimRobotCore2 PRIVATE $<$<CXX_COMPILER_ID:MSVC>:$<$<NOT:$<CO
 target_link_libraries(SimRobotCore2 PRIVATE Flags::Default)
 target_precompile_headers(SimRobotCore2 PRIVATE
     "${SIMROBOTCORE2_ROOT_DIR}/CoreModule.h"
-    "${SIMROBOTCORE2_ROOT_DIR}/Graphics/OpenGL.h"
     "${SIMROBOTCORE2_ROOT_DIR}/Simulation/SimObject.h")
 
 source_group(TREE "${SIMROBOTCORE2_ROOT_DIR}" FILES ${SIMROBOTCORE2_SOURCES})

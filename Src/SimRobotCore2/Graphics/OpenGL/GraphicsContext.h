@@ -8,13 +8,16 @@
 
 #pragma once
 
-#include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include <stack>
 #include <unordered_map>
 #include <vector>
+
+#include <qopengl.h>
+#undef near
+#undef far
 
 class Light;
 class QOffscreenSurface;
