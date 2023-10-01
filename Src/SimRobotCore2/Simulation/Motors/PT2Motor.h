@@ -18,7 +18,7 @@ class PT2Motor : public Motor
 {
 public:
 
-  float x = 0.f; /*< Intermediate value, can be related to current velocity by: x / T */
+  float x = 0.f; /**< Intermediate value, can be related to current velocity by: x / T */
 
   float T = 0.f;
   float D = 0.f;
