@@ -33,14 +33,24 @@ if(MACOS)
 
   list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}" "${CONTROLLER_DYLIBS}")
 
-  set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES
+      MACOSX_PACKAGE_LOCATION Resources)
   set_source_files_properties(${SIMROBOT_FRAMEWORKS} PROPERTIES
       MACOSX_PACKAGE_LOCATION Frameworks
-      XCODE_EXPLICIT_FILE_TYPE wrapper.framework)
-  set_source_files_properties(${CONTROLLER_DYLIBS} PROPERTIES MACOSX_PACKAGE_LOCATION lib)
-  set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/platforms)
-  set_source_files_properties(${SIMROBOT_PLUGIN_JPEG} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/imageformats)
-  set_source_files_properties(${SIMROBOT_PLUGIN_MACSTYLE} PROPERTIES MACOSX_PACKAGE_LOCATION PlugIns/styles)
+      XCODE_EXPLICIT_FILE_TYPE wrapper.framework
+      XCODE_FILE_ATTRIBUTES "CodeSignOnCopy;RemoveHeadersOnCopy")
+  set_source_files_properties(${CONTROLLER_DYLIBS} PROPERTIES
+      MACOSX_PACKAGE_LOCATION lib
+      XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
+  set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES
+      MACOSX_PACKAGE_LOCATION PlugIns/platforms
+      XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
+  set_source_files_properties(${SIMROBOT_PLUGIN_JPEG} PROPERTIES
+      MACOSX_PACKAGE_LOCATION PlugIns/imageformats
+      XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
+  set_source_files_properties(${SIMROBOT_PLUGIN_MACSTYLE} PROPERTIES
+      MACOSX_PACKAGE_LOCATION PlugIns/styles
+      XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
 
   source_group("Libs" FILES ${SIMROBOT_FRAMEWORKS} ${SIMROBOT_PLUGINS} ${CONTROLLER_DYLIBS})
 endif()
