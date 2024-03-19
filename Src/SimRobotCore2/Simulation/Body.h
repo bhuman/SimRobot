@@ -139,4 +139,5 @@ private:
   void resetDynamics() override;
   SimRobotCore2::Body* getRootBody() override {return rootBody;}
   void enablePhysics(bool enable) override;
+  void enableGravity(bool enable) override;
 };

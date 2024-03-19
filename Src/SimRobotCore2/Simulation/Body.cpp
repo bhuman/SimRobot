@@ -371,3 +371,10 @@ void Body::enablePhysics(bool enable)
   for(Body* child : bodyChildren)
     child->enablePhysics(enable);
 }
+
+void Body::enableGravity(bool enable)
+{
+  dBodySetGravityMode(body, static_cast<int>(enable));
+  for(Body* child : bodyChildren)
+    child->enableGravity(enable);
+}

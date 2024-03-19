@@ -382,6 +382,12 @@ namespace SimRobotCore2
      * @param enable Whether to enable or disable the physics simulation
      */
     virtual void enablePhysics(bool enable) = 0;
+
+    /**
+     * Enables or disables the gravity for the body
+     * @param enable Whether to enable or disable gravity
+     */
+    virtual void enableGravity(bool enable) = 0;
   };
 
   /**
