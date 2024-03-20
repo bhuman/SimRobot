@@ -394,6 +394,28 @@ QMenu* SimObjectWidget::createUserMenu() const
     addFovYAction("120°", Qt::Key_6, 120);
   }
 
+  {
+    QMenu* subMenu = menu->addMenu(tr("&Origin"));
+    QActionGroup* actionGroup = new QActionGroup(subMenu);
+    auto addOriginAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore2::Renderer::RenderFlags flag)
+    {
+      auto* action = subMenu->addAction(tr(label));
+      actionGroup->addAction(action);
+      action->setShortcut(QKeySequence(key));
+      action->setCheckable(true);
+      const int mask = SimRobotCore2::Renderer::showAsGlobalView | SimRobotCore2::Renderer::showAsGlobalOrientation;
+      action->setChecked((objectRenderer.getRenderFlags() & mask) == flag);
+      connect(action, &QAction::triggered, this, [this, flag]
+      {
+        const unsigned flags = objectRenderer.getRenderFlags() & ~mask;
+        const_cast<SimObjectWidget*>(this)->objectRenderer.setRenderFlags(flags | flag);
+      });
+    };
+    addOriginAction("S&cene", Qt::Key_C, SimRobotCore2::Renderer::showAsGlobalView);
+    addOriginAction("&Object Position", Qt::Key_O, SimRobotCore2::Renderer::showAsGlobalOrientation);
+    addOriginAction("Object &Pose", Qt::Key_P, SimRobotCore2::Renderer::RenderFlags(0));
+  }
+
   menu->addSeparator();
 
   {

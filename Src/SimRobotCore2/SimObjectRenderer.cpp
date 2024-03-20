@@ -141,6 +141,8 @@ void SimObjectRenderer::draw()
     const Pose3f objectInWorld(RotationMatrix(objectInWorldMatrix.topLeftCorner<3, 3>()), objectInWorldMatrix.topRightCorner<3, 1>());
     if(renderFlags & showAsGlobalView)
       invCameraPose *= simObject.poseInParent * objectInWorld.inverse(); // center on the object's parent
+    else if(renderFlags & showAsGlobalOrientation)
+      invCameraPose *= Pose3f(simObject.poseInParent.rotation) * objectInWorld.inverse(); // center on the object's parent
     else
       invCameraPose *= objectInWorld.inverse(); // center on the object
     Simulation::simulation->originPose = objectInWorld * simObject.poseInParent.inverse();

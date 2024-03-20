@@ -105,6 +105,7 @@ namespace SimRobotCore2
       showAsGlobalView       = (1 << 8),
       enableDrawingsTransparentOcclusion = (1 << 9),
       enableDrawingsOcclusion = (1 << 10),
+      showAsGlobalOrientation = (1 << 11),
     };
 
     /** Virtual destructor */
