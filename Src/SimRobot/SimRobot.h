@@ -69,8 +69,8 @@ namespace SimRobot
   };
 
   /**
-    * Flags that can be used for registering modules and objects
-    */
+     * Flags that can be used for registering modules and objects
+     */
   class Flag
   {
   public:
@@ -160,6 +160,7 @@ namespace SimRobot
     virtual void simStart() = 0;
     virtual void simStep() = 0;
     virtual void simStop() = 0;
+    virtual void openFile(const QString& fileName) = 0;
   };
 }
 
