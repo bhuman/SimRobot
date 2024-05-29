@@ -126,8 +126,8 @@ private:
   bool closeObject(const SimRobot::Object& object) override;
   bool selectObject(const SimRobot::Object& object) override;
   void showWarning(const QString& title, const QString& message) override;
+  const QString& getFilePath() const override { return filePath; }
   void setStatusMessage(const QString& message) override;
-  const QString& getFilePath() const override {return filePath;}
   const QString& getAppPath() const override {return appPath;}
   QSettings& getSettings() override {return settings;}
   QSettings& getLayoutSettings() override {return layoutSettings;}
@@ -149,7 +149,7 @@ private:
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
 
 public slots:
-  void openFile(const QString& fileName);
+  void openFile(const QString& fileName) override;
 
 private slots:
   void unlockLayout();
