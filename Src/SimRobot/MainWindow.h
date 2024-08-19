@@ -149,7 +149,7 @@ private:
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
 
 public slots:
-  void openFile(const QString& fileName);
+  void openFile(const QString& fileName) override;
 
 private slots:
   void unlockLayout();
