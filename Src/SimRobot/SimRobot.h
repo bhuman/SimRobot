@@ -69,8 +69,8 @@ namespace SimRobot
   };
 
   /**
-    * Flags that can be used for registering modules and objects
-    */
+   * Flags that can be used for registering modules and objects
+   */
   class Flag
   {
   public:
