@@ -1297,7 +1297,7 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
   QWidget* newActive = now;
   while(newActive)
   {
-    QWidget* parent = newActive->parentWidget();
+    QWidget* parent = qobject_cast<QWidget*>(newActive->parent());
     if(parent == this)
       break;
     newActive = parent;

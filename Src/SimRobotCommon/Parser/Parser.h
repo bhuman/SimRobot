@@ -10,6 +10,7 @@
 #pragma once
 
 #include "Parser/Reader.h"
+#include <cstdint>
 #include <functional>
 #include <list>
 #include <string>
