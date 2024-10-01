@@ -241,7 +241,7 @@ unsigned int MainWindow::getAppLocationSum(const QString& appPath)
   const QString& path(QFileInfo(QFileInfo(appPath).dir().path()).dir().path());
 #endif
   const QChar* data = path.data();
-  const QChar* dataEnd = data + path.count();
+  const QChar* dataEnd = data + path.size();
   for(; data < dataEnd; ++data)
   {
     sum ^= sum >> 16;
