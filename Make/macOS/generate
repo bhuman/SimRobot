@@ -16,14 +16,18 @@ TEMPPATH2=/tmp/generate2.tmp
 # Create a symbolic link to cmake.
 if [ ! -e "$CMAKE" ]; then
   echo -n "Searching for CMake... "
-  while read file; do
-    if [ -f "$file/Contents/bin/cmake" ]; then
-      ln -sf "$file/Contents/bin/cmake" "$CMAKE"
-    fi
-  done <<<"$(/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -dump \
-  | grep "^[ 	]*path:" \
-  | grep "CMake" \
-  | sed -e "s%[ 	]*path: *%%" -e "s% (.*%%")"
+  if [ -e "$(which cmake)" ]; then
+    ln -sf "$(which cmake)" "$CMAKE"
+  else
+    while read file; do
+      if [ -f "$file/Contents/bin/cmake" ]; then
+        ln -sf "$file/Contents/bin/cmake" "$CMAKE"
+      fi
+    done <<<"$(/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -dump \
+    | grep "^[ 	]*path:" \
+    | grep "CMake" \
+    | sed -e "s%[ 	]*path: *%%" -e "s% (.*%%")"
+  fi
 
   # Could the link be created?
   if [ -e "$CMAKE" ]; then
@@ -31,6 +35,22 @@ if [ ! -e "$CMAKE" ]; then
   else
     echo "Not found."
     exit 1
+  fi
+fi
+
+# Determine current version of macOS SDK.
+SDKVERSION="$(grep "MinimalDisplayName" "$(xcrun --show-sdk-path)/SDKSettings.json" \
+| sed 's%^.*"MinimalDisplayName":"\([^"]*\).*$%\1%')"
+
+if [ -d "$PROJECTPATH" ]; then
+  # Delete project if macOS SDK version changed.
+  if [ -f "$PROJECTPATH/sdkversion" ]; then
+    OLDVERSION="$(cat "$PROJECTPATH/sdkversion")"
+  else
+    OLDVERSION=
+  fi
+  if [ "$OLDVERSION" != "$SDKVERSION" ]; then
+    rm -r "$PROJECTPATH" "$PROJECTDIR"
   fi
 fi
 
@@ -67,6 +87,9 @@ mv "$PROJECTDIR/CMakeFiles" "$PROJECTPATH"
 if [ -e "$PROJECTDIR/CMakeFiles-temp" ]; then
   mv "$PROJECTDIR/CMakeFiles-temp" "$PROJECTDIR/CMakeFiles"
 fi
+
+# Remember macOS SDK version
+echo -n "$SDKVERSION" >"$PROJECTPATH/sdkversion"
 
 touch $PROJECTPATH/project.pbxproj
 if cmp -s $PROJECTPATH/project.pbxproj $PROJECTSRC/project.pbxproj; then
