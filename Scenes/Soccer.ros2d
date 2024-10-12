@@ -65,7 +65,7 @@
     </ConvexGeometry>
   </Body>
 
-  <Scene name="RoboCup" controller="Soccer" stepLength="0.01666666s">
+  <Scene name="RoboCup" controller="Soccer" stepLength="0.01666666s" background="Textures/field.svg">
     <Compound ref="field"/>
 
     <Compound name="robots">
