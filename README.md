@@ -19,10 +19,10 @@ Run `Make/Windows/generate.cmd` and open the solution `Make/Windows/SimRobot.lnk
 
 ### Prerequisites
 
-- A 64-bit Linux, e.g. Ubuntu 22.04 LTS
-- The following packages (here for Ubuntu 22.04 LTS):
+- A 64-bit Linux, e.g. Ubuntu 24.04 LTS
+- The following packages (here for Ubuntu 24.04 LTS):
 ```
-sudo apt-get install clang cmake libbox2d-dev libgl-dev libqt6opengl6-dev libqt6svg6-dev llvm mold ninja-build qt6-base-dev
+sudo apt-get install clang cmake libbox2d-dev libgl-dev llvm mold ninja-build qt6-base-dev qt6-svg-dev
 ```
 - (optionally) CLion 2019.3 or newer
 
