@@ -31,10 +31,14 @@ void ServoMotor::create(Joint* joint)
   if(dJointGetType(joint->joint) == dJointTypeHinge)
   {
     dJointSetHingeParam(joint->joint, dParamFMax, maxForce);
+    dJointSetHingeParam(joint->joint, dParamFudgeFactor, fudgeFactor);
     lastPos = static_cast<float>(dJointGetHingeAngle(joint->joint));
   }
   else
+  {
     dJointSetSliderParam(joint->joint, dParamFMax, maxForce);
+    dJointSetSliderParam(joint->joint, dParamFudgeFactor, fudgeFactor);
+  }
 }
 
 void ServoMotor::act()
@@ -51,16 +55,17 @@ void ServoMotor::act()
   }
 
   float setpoint = this->setpoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
-  const float maxValueChange = maxVelocity * Simulation::simulation->scene->stepLength;
-  if(std::abs(setpoint - currentPos) > maxValueChange)
+
+  float newVel = controller.getOutput(currentPos, setpoint);
+
+  if(std::abs(newVel - currentPos) > maxVelocity)
   {
-    if(setpoint < currentPos)
-      setpoint = currentPos - maxValueChange;
+    if(newVel < currentPos)
+      newVel = currentPos - maxVelocity;
     else
-      setpoint = currentPos + maxValueChange;
+      newVel = currentPos + maxVelocity;
   }
 
-  const float newVel = controller.getOutput(currentPos, setpoint);
   if(dJointGetType(joint->joint) == dJointTypeHinge)
     dJointSetHingeParam(joint->joint, dParamVel, newVel);
   else
@@ -72,8 +77,11 @@ float ServoMotor::Controller::getOutput(float currentPos, float setpoint)
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
   errorSum += i * error * deltaTime;
-  const float result = p * error + errorSum + (d * (error - lastError)) / deltaTime;
+  const float requestVel = setpoint - lastSetpoint;
+  const float result = p * error + errorSum + (d * requestVel) / deltaTime;
   lastError = error;
+  lastSetpoint = setpoint;
+  lastCurrentPos = currentPos;
   return result;
 }
 

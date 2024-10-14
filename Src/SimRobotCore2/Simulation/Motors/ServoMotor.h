@@ -38,11 +38,14 @@ public:
   private:
     float errorSum = 0.f;
     float lastError = 0.f;
+    float lastSetpoint = 0.f;
+    float lastCurrentPos = 0.f;
   };
 
   Controller controller; /**< A PID controller that controls the motor */
   float maxVelocity = 0.f;
   float maxForce = 0.f;
+  float fudgeFactor = 0.f;
 
   /** Default constructor */
   ServoMotor();
