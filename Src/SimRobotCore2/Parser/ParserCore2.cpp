@@ -211,6 +211,13 @@ Element* ParserCore2::sceneElement()
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
   scene->cfm = getFloatMinMax("CFM", false, -1.f, 0.f, 1.f);
   scene->erp = getFloatMinMax("ERP", false, -1.f, 0.f, 1.f);
+  scene->slip1 = getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
+  if(scene->slip1 != -1.f)
+    scene->contactMode |= dContactSlip1;
+  scene->slip2 = getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
+  if(scene->slip2 != -1.f)
+    scene->contactMode |= dContactSlip2;
+
   scene->contactSoftERP = getFloatMinMax("contactSoftERP", false, -1.f, 0.f, 1.f);
   if(scene->contactSoftERP != -1.f)
     scene->contactMode |= dContactSoftERP;
@@ -755,16 +762,24 @@ Element* ParserCore2::servoMotorElement()
   ASSERT(!axis->motor);
 
   if(dynamic_cast<Hinge*>(axis->joint))
-    servoMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
+    servoMotor->forceController.maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
   else if(dynamic_cast<Slider*>(axis->joint))
-    servoMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f);
+    servoMotor->forceController.maxVelocity = getVelocity("maxVelocity", true, 0.f);
   else
     ASSERT(false);
 
-  servoMotor->maxForce = getForce("maxForce", true, 0.f);
+  servoMotor->forceController.maxForce = getForce("maxForce", true, 0.f);
+  servoMotor->forceController.fudgeFactor = getFloat("fudgeFactor", false, -1.f);
+  servoMotor->forceController.minFeedbackForce = getFloat("minFeedbackForce", false, -1.f);
+  servoMotor->forceController.maxFeedbackForce = getFloat("maxFeedbackForce", false, -1.f);
+  servoMotor->forceController.maxPositionDiff = getFloat("maxPositionDiff", false, -1.f);
+  servoMotor->forceController.maxForceGrowth = getFloat("maxForceGrowth", false, -1.f);
+
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
+
+  servoMotor->isNaoMotor = getBool("isNaoMotor", false, 0.f);
 
   axis->motor = servoMotor;
   return nullptr;
