@@ -58,6 +58,7 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
 
     // A servo motor will handle the limits, so ignore them here
     // This is incorrect if the servo motor is not strong enough.
+    // TODO servo motor should not be a special case, but the joints will jump at the limits
     if(!dynamic_cast<ServoMotor*>(axis->motor))
     {
       dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
