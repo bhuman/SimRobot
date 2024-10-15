@@ -98,6 +98,20 @@ void ServoMotor::setValue(float value)
   }
 }
 
+void ServoMotor::setStiffness(float value)
+{
+  stiffness = value / 100.f;
+  if(stiffness < 0.2f)
+    stiffness = 0.2f;
+  if(stiffness > 1.f)
+    stiffness = 1.f;
+
+  if(dJointGetType(joint->joint) == dJointTypeHinge)
+    dJointSetHingeParam(joint->joint, dParamFMax, maxForce * stiffness);
+  else
+    dJointSetSliderParam(joint->joint, dParamFMax, maxForce * stiffness);
+}
+
 bool ServoMotor::getMinAndMax(float& min, float& max) const
 {
   const Axis::Deflection* deflection = joint->axis->deflection;

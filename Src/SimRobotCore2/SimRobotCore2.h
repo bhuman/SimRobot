@@ -617,6 +617,7 @@ namespace SimRobotCore2
     int getKind() const override {return actuatorPort;}
 
     virtual void setValue(float value) = 0;
+    virtual void setStiffness(float value) = 0;
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**

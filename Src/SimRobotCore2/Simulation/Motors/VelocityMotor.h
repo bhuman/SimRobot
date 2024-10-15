@@ -61,12 +61,13 @@ private:
   void create(Joint* joint) override;
 
   /** Called before computing a simulation step to update the joint */
-   void act() override;
+  void act() override;
 
   /** Registers this object at SimRobot's GUI */
   void registerObjects() override;
 
   // actuator API
   void setValue(float value) override;
+  void setStiffness(float) override {};
   bool getMinAndMax(float& min, float& max) const override;
 };
