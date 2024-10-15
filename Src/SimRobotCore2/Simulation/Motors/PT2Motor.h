@@ -60,5 +60,6 @@ private:
 
   // actuator API
   void setValue(float value) override;
+  void setStiffness(float) override {};
   bool getMinAndMax(float& min, float& max) const override;
 };

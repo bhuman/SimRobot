@@ -30,6 +30,7 @@ public:
     SimRobot::Widget* createWidget() override;
     const QString& getUnit() const override {return unit;}
     void setValue(float value) override;
+    void setStiffness(float) override {};
   } inputPort;
 
 private:
