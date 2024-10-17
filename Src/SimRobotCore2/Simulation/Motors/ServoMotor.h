@@ -39,6 +39,7 @@ public:
     float errorSum = 0.f;
     float lastError = 0.f;
     float lastSetpoint = 0.f;
+    float lastRequestVel = 0.f;
     float lastCurrentPos = 0.f;
   };
 
@@ -46,6 +47,10 @@ public:
   float maxVelocity = 0.f;
   float maxForce = 0.f;
   float fudgeFactor = 0.f;
+  float lastSetPoint = 0.f;
+  float lastCurrentpoint = 0.f;
+  dJointFeedback feedback;
+  float currentForce = 0.f;
 
   /** Default constructor */
   ServoMotor();
