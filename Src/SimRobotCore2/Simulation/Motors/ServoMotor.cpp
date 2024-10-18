@@ -30,30 +30,28 @@ void ServoMotor::create(Joint* joint)
   positionSensor.servoMotor = this;
   if(dJointGetType(joint->joint) == dJointTypeHinge)
   {
-    dJointSetHingeParam(joint->joint, dParamFMax, maxForce);
-    if(fudgeFactor != -1.f)
-      dJointSetHingeParam(joint->joint, dParamFudgeFactor, fudgeFactor);
+    dJointSetHingeParam(joint->joint, dParamFMax, forceController.maxForce);
+    if(forceController.fudgeFactor != -1.f)
+      dJointSetHingeParam(joint->joint, dParamFudgeFactor, forceController.fudgeFactor);
     lastPos = static_cast<float>(dJointGetHingeAngle(joint->joint));
   }
   else
   {
-    dJointSetSliderParam(joint->joint, dParamFMax, maxForce);
-    if(fudgeFactor != -1.f)
-      dJointSetSliderParam(joint->joint, dParamFudgeFactor, fudgeFactor);
+    dJointSetSliderParam(joint->joint, dParamFMax, forceController.maxForce);
+    if(forceController.fudgeFactor != -1.f)
+      dJointSetSliderParam(joint->joint, dParamFudgeFactor, forceController.fudgeFactor);
   }
   dJointSetFeedback(joint->joint, &feedback);
+  forceController.isActive = forceController.minFeedbackForce != -1.f && forceController.maxFeedbackForce != -1.f && forceController.maxPositionDiff != 1.f && forceController.maxVelDiff != -1.f && forceController.maxForceGrowth != 1.f && forceController.maxForce > 0;
 }
 
 void ServoMotor::act()
 {
-  const float usedForce = Vector3f(feedback.f1[0], feedback.f1[1], feedback.f1[2]).norm();
-  const float ratio = std::max(0.f, std::min(1.f, std::abs(usedForce) / 52.f));
-  const float counterForce = ratio * maxForce + (1.f - ratio) * 0.5f + 0.5f;
-  currentForce = std::min(maxForce * stiffness, std::min(counterForce, currentForce + 0.5f));
-  dJointSetHingeParam(joint->joint, dParamFMax, currentForce);
   float currentPos = dJointGetType(joint->joint) == dJointTypeHinge
                      ? static_cast<float>(dJointGetHingeAngle(joint->joint))
                      : static_cast<float>(dJointGetSliderPosition(joint->joint));
+  float setpoint = this->lastSetPoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
+
   if(dJointGetType(joint->joint) == dJointTypeHinge)
   {
     const float diff = normalize(currentPos - normalize(lastPos));
@@ -61,29 +59,12 @@ void ServoMotor::act()
     lastPos = currentPos;
   }
 
-  float setpoint = this->lastSetPoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
-  float newVel = controller.getOutput(currentPos, setpoint);
-  if(std::abs(newVel - currentPos) > maxVelocity)
-  {
-    if(newVel < currentPos)
-      newVel = currentPos - maxVelocity;
-    else
-      newVel = currentPos + maxVelocity;
-  }
-
-  if(joint->axis->deflection)
-  {
-    // Near the limits we want to set the cfm to 0. Otherwise the joint position will jump
-    // The fudge factor should also be set to 0, but the left over jump is small enough to be ignored
-    const float maxVelPerFrame = maxVelocity * Simulation::simulation->scene->stepLength;
-    const float nextPos = currentPos + newVel * Simulation::simulation->scene->stepLength;
-    const float maxDiff = std::min(std::abs(nextPos - joint->axis->deflection->min), std::abs(nextPos - joint->axis->deflection->max));
-    // Expected position distance to the limits will be less than the velocity
-    // Prevent "collisions" with the limits by setting cfm and fudge to 0
-    const float ratio = maxDiff > maxVelPerFrame ? 1.f : 0.f;
-    if(joint->axis->cfm != -1.f)
-      dJointSetHingeParam(joint->joint, dParamCFM, ratio * joint->axis->cfm);
-  }
+  if(!isNaoMotor)
+    clipSetpoint(setpoint, currentPos);
+  float newVel = controller.getOutput(currentPos, setpoint, lastCurrentpoint, lastCurrentPos, isNaoMotor);
+  if(isNaoMotor)
+    clipVelocity(newVel, currentPos);
+  handleLimits(currentPos, newVel);
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
     dJointSetHingeParam(joint->joint, dParamVel, newVel);
@@ -91,17 +72,27 @@ void ServoMotor::act()
     dJointSetSliderParam(joint->joint, dParamVel, newVel);
 }
 
-float ServoMotor::Controller::getOutput(float currentPos, float setpoint)
+float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float& lastCurrentpoint, float& lastCurrentPos, const bool isNaoMotor)
 {
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
-  errorSum += i * error * deltaTime;
-  const float requestVel = setpoint - lastSetpoint;
-  const float result = p * error + errorSum + (d * requestVel) / deltaTime;
-  lastError = error;
-  lastSetpoint = setpoint;
-  lastCurrentPos = currentPos;
-  return result;
+  if(isNaoMotor)
+  {
+    errorSum += i * error * deltaTime;
+    const float requestVel = setpoint - lastCurrentpoint;
+    const float result = p * error + errorSum + (d * requestVel) / deltaTime;
+    lastError = error;
+    lastCurrentpoint = setpoint;
+    lastCurrentPos = currentPos;
+    return result;
+  }
+  else
+  {
+    errorSum += i * error * deltaTime;
+    const float result = p * error + errorSum + (d * (error - lastError)) / deltaTime;
+    lastError = error;
+    return result;
+  }
 }
 
 void ServoMotor::setValue(float value)
@@ -127,9 +118,9 @@ void ServoMotor::setStiffness(float value)
     stiffness = 1.f;
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
-    dJointSetHingeParam(joint->joint, dParamFMax, maxForce * stiffness);
+    dJointSetHingeParam(joint->joint, dParamFMax, forceController.maxForce * stiffness);
   else
-    dJointSetSliderParam(joint->joint, dParamFMax, maxForce * stiffness);
+    dJointSetSliderParam(joint->joint, dParamFMax, forceController.maxForce * stiffness);
 }
 
 bool ServoMotor::getMinAndMax(float& min, float& max) const
@@ -179,4 +170,67 @@ void ServoMotor::registerObjects()
 
   CoreModule::application->registerObject(*CoreModule::module, positionSensor, joint);
   CoreModule::application->registerObject(*CoreModule::module, *this, joint);
+}
+
+void ServoMotor::handleLimits(const float currentPos, const float newVel)
+{
+  if(joint->axis->deflection && joint->axis->cfm != -1.f)
+  {
+    // Near the limits we want to set the cfm to 0. Otherwise the joint position will jump
+    // The fudge factor should also be set to 0, but the left over jump is small enough to be ignored
+    const float maxVelPerFrame = forceController.maxVelocity * Simulation::simulation->scene->stepLength;
+    const float nextPos = currentPos + newVel * Simulation::simulation->scene->stepLength;
+    const float maxDiff = std::min(std::abs(nextPos - joint->axis->deflection->min), std::abs(nextPos - joint->axis->deflection->max));
+    // Expected position distance to the limits will be less than the velocity
+    // Prevent "collisions" with the limits by setting cfm and fudge to 0
+    const float ratio = maxDiff > maxVelPerFrame ? 1.f : 0.f;
+    dJointSetHingeParam(joint->joint, dParamCFM, ratio * joint->axis->cfm);
+  }
+}
+
+void ServoMotor::clipVelocity(float& velocity, const float currentPos)
+{
+  if(std::abs(velocity - currentPos) > forceController.maxVelocity)
+  {
+    if(velocity < currentPos)
+      velocity = currentPos - forceController.maxVelocity;
+    else
+      velocity = currentPos + forceController.maxVelocity;
+  }
+}
+
+void ServoMotor::clipSetpoint(float& setpoint, const float currentPos)
+{
+  const float maxPositionChange = Simulation::simulation->scene->stepLength * forceController.maxVelocity;
+  if(std::abs(setpoint - currentPos) > maxPositionChange)
+  {
+    if(setpoint < currentPos)
+      setpoint = currentPos - maxPositionChange;
+    else
+      setpoint = currentPos + maxPositionChange;
+  }
+}
+
+void ServoMotor::ForceController::updateForce(const float positionDiff, const float velocityDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness)
+{
+  if(!isActive)
+    return;
+
+  // Force needed to counter act outside forces
+  const float usedForce = Vector3f(feedback.f1[0], feedback.f1[1], feedback.f1[2]).norm();
+  const float outsideRatio = std::max(0.f, std::min(1.f, std::abs(usedForce) / maxFeedbackForce)); // 68
+  const float outsideForce = outsideRatio * maxForce + (1.f - outsideRatio) * minFeedbackForce;
+
+  // Force needed to handle the current position difference
+  const float positionRatio = std::min(1.f, std::abs(positionDiff) / maxPositionDiff); // 0.087
+  const float positionForce = positionRatio * maxForce + (1.f - positionRatio) * minFeedbackForce;
+
+  // Force needed to handle the current velocity difference
+  // TODO
+
+  // Determine used force
+  const float maxNeededForce = std::max({ outsideForce, positionForce });
+  currentForce = std::min(maxForce * stiffness, std::min(maxNeededForce, currentForce + maxForceGrowth));
+
+  dJointSetHingeParam(joint, dParamFMax, currentForce);
 }

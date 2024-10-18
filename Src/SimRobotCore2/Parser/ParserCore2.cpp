@@ -755,17 +755,25 @@ Element* ParserCore2::servoMotorElement()
   ASSERT(!axis->motor);
 
   if(dynamic_cast<Hinge*>(axis->joint))
-    servoMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
+    servoMotor->forceController.maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
   else if(dynamic_cast<Slider*>(axis->joint))
-    servoMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f);
+    servoMotor->forceController.maxVelocity = getVelocity("maxVelocity", true, 0.f);
   else
     ASSERT(false);
 
-  servoMotor->maxForce = getForce("maxForce", true, 0.f);
-  servoMotor->fudgeFactor = getFloat("fudgeFactor", false, 1.f);
+  servoMotor->forceController.maxForce = getForce("maxForce", true, 0.f);
+  servoMotor->forceController.fudgeFactor = getFloat("fudgeFactor", false, -1.f);
+  servoMotor->forceController.minFeedbackForce = getFloat("minFeedbackForce", false, -1.f);
+  servoMotor->forceController.maxFeedbackForce = getFloat("maxFeedbackForce", false, -1.f);
+  servoMotor->forceController.maxPositionDiff = getFloat("maxPositionDiff", false, -1.f);
+  servoMotor->forceController.maxVelDiff = getFloat("maxVelDiff", false, -1.f);
+  servoMotor->forceController.maxForceGrowth = getFloat("maxForceGrowth", false, -1.f);
+
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
+
+  servoMotor->isNaoMotor = getBool("isNaoMotor", false, 0.f);
 
   axis->motor = servoMotor;
   return nullptr;
