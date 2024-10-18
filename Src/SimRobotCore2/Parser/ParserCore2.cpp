@@ -211,6 +211,13 @@ Element* ParserCore2::sceneElement()
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
   scene->cfm = getFloatMinMax("CFM", false, -1.f, 0.f, 1.f);
   scene->erp = getFloatMinMax("ERP", false, -1.f, 0.f, 1.f);
+  scene->slip1 = getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
+  if(scene->slip1 != -1.f)
+    scene->contactMode |= dContactSlip1;
+  scene->slip2 = getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
+  if(scene->slip2 != -1.f)
+    scene->contactMode |= dContactSlip2;
+
   scene->contactSoftERP = getFloatMinMax("contactSoftERP", false, -1.f, 0.f, 1.f);
   if(scene->contactSoftERP != -1.f)
     scene->contactMode |= dContactSoftERP;

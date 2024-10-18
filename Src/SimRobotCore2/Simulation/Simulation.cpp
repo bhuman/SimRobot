@@ -127,7 +127,6 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   dragPlaneSurface = graphicsContext.requestSurface(dragPlaneColor, dragPlaneColor);
   bodyComSphereSurface = graphicsContext.requestSurface(bodyComSphereColor, bodyComSphereColor);
 
-
   graphicsContext.pushModelMatrixStack();
   graphicsContext.pushModelMatrixByReference(originPose);
   originModelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::origin);
@@ -268,14 +267,10 @@ void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1
     cont->surface.mode = simulation->scene->contactMode | dContactApprox1;
     cont->surface.mu = friction;
 
-    /*
-    cont->surface.bounce = 0.f;
-    cont->surface.bounce_vel = 0.001f;
-    cont->surface.slip1 = 0.f;
-    cont->surface.slip2 = 0.f;
-    */
     cont->surface.soft_erp = simulation->scene->contactSoftERP;
     cont->surface.soft_cfm = simulation->scene->contactSoftCFM;
+    cont->surface.slip1 = simulation->scene->slip1;
+    cont->surface.slip2 = simulation->scene->slip2;
 
     dJointID c = dJointCreateContact(simulation->physicalWorld, simulation->contactGroup, cont);
     ASSERT(bodyId1 == dGeomGetBody(cont->geom.g1));
