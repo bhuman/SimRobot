@@ -33,7 +33,7 @@ void ServoMotor::create(Joint* joint)
     dJointSetHingeParam(joint->joint, dParamFMax, forceController.maxForce);
     if(forceController.fudgeFactor != -1.f)
       dJointSetHingeParam(joint->joint, dParamFudgeFactor, forceController.fudgeFactor);
-    lastPos = static_cast<float>(dJointGetHingeAngle(joint->joint));
+    lastCurrentPos = static_cast<float>(dJointGetHingeAngle(joint->joint));
   }
   else
   {
@@ -42,7 +42,7 @@ void ServoMotor::create(Joint* joint)
       dJointSetSliderParam(joint->joint, dParamFudgeFactor, forceController.fudgeFactor);
   }
   dJointSetFeedback(joint->joint, &feedback);
-  forceController.isActive = forceController.minFeedbackForce != -1.f && forceController.maxFeedbackForce != -1.f && forceController.maxPositionDiff != 1.f && forceController.maxVelDiff != -1.f && forceController.maxForceGrowth != 1.f && forceController.maxForce > 0;
+  forceController.isActive = forceController.minFeedbackForce != -1.f && forceController.maxFeedbackForce != -1.f && forceController.maxPositionDiff != -1.f && forceController.maxForceGrowth != -1.f && forceController.maxForce > 0;
 }
 
 void ServoMotor::act()
@@ -50,42 +50,41 @@ void ServoMotor::act()
   float currentPos = dJointGetType(joint->joint) == dJointTypeHinge
                      ? static_cast<float>(dJointGetHingeAngle(joint->joint))
                      : static_cast<float>(dJointGetSliderPosition(joint->joint));
-  float setpoint = this->lastSetPoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
+  float setpoint = this->currentSetPoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
   {
-    const float diff = normalize(currentPos - normalize(lastPos));
-    currentPos = lastPos + diff;
-    lastPos = currentPos;
+    const float diff = normalize(currentPos - normalize(lastCurrentPos));
+    currentPos = lastCurrentPos + diff;
   }
 
   if(!isNaoMotor)
     clipSetpoint(setpoint, currentPos);
-  float newVel = controller.getOutput(currentPos, setpoint, lastCurrentpoint, lastCurrentPos, isNaoMotor);
+  float newVel = controller.getOutput(currentPos, setpoint, lastCurrentPos, lastSetpoint, isNaoMotor);
   if(isNaoMotor)
     clipVelocity(newVel, currentPos);
   handleLimits(currentPos, newVel);
 
-  forceController.updateForce(currentPos - setpoint, 0.f /** todo */, joint->joint, feedback, stiffness);
+  forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
     dJointSetHingeParam(joint->joint, dParamVel, newVel);
   else
     dJointSetSliderParam(joint->joint, dParamVel, newVel);
+
+  lastCurrentPos = currentPos;
 }
 
-float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float& lastCurrentpoint, float& lastCurrentPos, const bool isNaoMotor)
+float ServoMotor::Controller::getOutput(const float currentPos, const float setpoint, const float lastCurrentPos, const float lastSetpoint, const bool isNaoMotor)
 {
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
   if(isNaoMotor)
   {
     errorSum += i * error * deltaTime;
-    const float requestVel = setpoint - lastCurrentpoint;
+    const float requestVel = setpoint - lastSetpoint;
     const float result = p * error + errorSum + (d * requestVel) / deltaTime;
     lastError = error;
-    lastCurrentpoint = setpoint;
-    lastCurrentPos = currentPos;
     return result;
   }
   else
@@ -99,16 +98,20 @@ float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float&
 
 void ServoMotor::setValue(float value)
 {
-  lastSetPoint = setpoint;
-  setpoint = value;
+  lastSetpoint = currentSetPoint;
+  currentSetPoint = bufferedSetPoint;
+  bufferedSetPoint = value;
   const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
-    if(setpoint > deflection->max)
-      setpoint = deflection->max;
-    else if(setpoint < deflection->min)
-      setpoint = deflection->min;
+    if(bufferedSetPoint > deflection->max)
+      bufferedSetPoint = deflection->max;
+    else if(bufferedSetPoint < deflection->min)
+      bufferedSetPoint = deflection->min;
   }
+  // lastSetpoint does not matter for non nao motors, as those do not have the extra one frame delay
+  if(!isNaoMotor)
+    currentSetPoint = bufferedSetPoint;
 }
 
 void ServoMotor::setStiffness(float value)
@@ -144,8 +147,8 @@ void ServoMotor::PositionSensor::updateValue()
                      : static_cast<float>(dJointGetSliderPosition(servoMotor->joint->joint))) + (servoMotor->joint->axis->deflection ? servoMotor->joint->axis->deflection->offset : 0.f);
   if(dJointGetType(servoMotor->joint->joint) == dJointTypeHinge)
   {
-    const float diff = normalize(data.floatValue - normalize(servoMotor->lastPos));
-    data.floatValue = servoMotor->lastPos + diff;
+    const float diff = normalize(data.floatValue - normalize(servoMotor->lastCurrentPos));
+    data.floatValue = servoMotor->lastCurrentPos + diff;
   }
 }
 
@@ -213,7 +216,7 @@ void ServoMotor::clipSetpoint(float& setpoint, const float currentPos)
   }
 }
 
-void ServoMotor::ForceController::updateForce(const float positionDiff, const float velocityDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness)
+void ServoMotor::ForceController::updateForce(const float positionDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness)
 {
   if(!isActive)
     return;
@@ -226,9 +229,6 @@ void ServoMotor::ForceController::updateForce(const float positionDiff, const fl
   // Force needed to handle the current position difference
   const float positionRatio = std::min(1.f, std::abs(positionDiff) / maxPositionDiff); // 0.087
   const float positionForce = positionRatio * maxForce + (1.f - positionRatio) * minFeedbackForce;
-
-  // Force needed to handle the current velocity difference
-  // TODO
 
   // Determine used force
   const float maxNeededForce = std::max({ outsideForce, positionForce });
