@@ -66,6 +66,8 @@ void ServoMotor::act()
     clipVelocity(newVel, currentPos);
   handleLimits(currentPos, newVel);
 
+  forceController.updateForce(currentPos - setpoint, 0.f /** todo */, joint->joint, feedback, stiffness);
+
   if(dJointGetType(joint->joint) == dJointTypeHinge)
     dJointSetHingeParam(joint->joint, dParamVel, newVel);
   else
