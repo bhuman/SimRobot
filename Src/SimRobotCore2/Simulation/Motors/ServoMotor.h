@@ -33,24 +33,42 @@ public:
      * @param setpoint The desired value
      * @return The controller output
      */
-    float getOutput(float currentPos, float setpoint);
+    float getOutput(float currentPos, float setpoint, float& lastCurrentpoint, float& lastCurrentPos, const bool isNaoMotor);
 
   private:
     float errorSum = 0.f;
     float lastError = 0.f;
-    float lastSetpoint = 0.f;
     float lastRequestVel = 0.f;
-    float lastCurrentPos = 0.f;
+  };
+
+  class ForceController
+  {
+  public:
+    float minFeedbackForce = -1.f;
+    float maxFeedbackForce = -1.f;
+    float maxPositionDiff = -1.f;
+    float maxVelDiff = -1.f;
+    float maxForceGrowth = -1.f;
+    float maxForce = 0.f;
+    float maxVelocity = 0.f;
+    float fudgeFactor = 0.f;
+
+    bool isActive = true;
+    float currentForce = 0.f;
+
+    void updateForce(const float positionDiff, const float velocityDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness);
   };
 
   Controller controller; /**< A PID controller that controls the motor */
-  float maxVelocity = 0.f;
-  float maxForce = 0.f;
-  float fudgeFactor = 0.f;
-  float lastSetPoint = 0.f;
+  ForceController forceController;
+  bool isNaoMotor = false;
+
+  float bufferedSetPoint = 0.f;
   float lastCurrentpoint = 0.f;
   dJointFeedback feedback;
-  float currentForce = 0.f;
+
+  float lastCurrentPos = 0.f;
+  float lastSetPoint = 0.f;
 
   /** Default constructor */
   ServoMotor();
@@ -89,4 +107,7 @@ private:
   void setValue(float value) override;
   void setStiffness(float value) override;
   bool getMinAndMax(float& min, float& max) const override;
+  void handleLimits(const float currentPos, const float newVel);
+  void clipVelocity(float& velocity, const float currentPos);
+  void clipSetpoint(float& setpoint, const float currentPos);
 };
