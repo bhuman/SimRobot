@@ -773,7 +773,6 @@ Element* ParserCore2::servoMotorElement()
   servoMotor->forceController.minFeedbackForce = getFloat("minFeedbackForce", false, -1.f);
   servoMotor->forceController.maxFeedbackForce = getFloat("maxFeedbackForce", false, -1.f);
   servoMotor->forceController.maxPositionDiff = getFloat("maxPositionDiff", false, -1.f);
-  servoMotor->forceController.maxVelDiff = getFloat("maxVelDiff", false, -1.f);
   servoMotor->forceController.maxForceGrowth = getFloat("maxForceGrowth", false, -1.f);
 
   servoMotor->controller.p = getFloat("p", true, 0.f);

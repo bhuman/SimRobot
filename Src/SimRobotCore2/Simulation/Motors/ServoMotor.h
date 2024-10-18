@@ -33,7 +33,7 @@ public:
      * @param setpoint The desired value
      * @return The controller output
      */
-    float getOutput(float currentPos, float setpoint, float& lastCurrentpoint, float& lastCurrentPos, const bool isNaoMotor);
+    float getOutput(const float currentPos, const float setpoint, const float lastCurrentPos, const float lastSetpoint, const bool isNaoMotor);
 
   private:
     float errorSum = 0.f;
@@ -47,7 +47,6 @@ public:
     float minFeedbackForce = -1.f;
     float maxFeedbackForce = -1.f;
     float maxPositionDiff = -1.f;
-    float maxVelDiff = -1.f;
     float maxForceGrowth = -1.f;
     float maxForce = 0.f;
     float maxVelocity = 0.f;
@@ -56,7 +55,7 @@ public:
     bool isActive = true;
     float currentForce = 0.f;
 
-    void updateForce(const float positionDiff, const float velocityDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness);
+    void updateForce(const float positionDiff, const dJointID joint, const dJointFeedback& feedback, const float stiffness);
   };
 
   Controller controller; /**< A PID controller that controls the motor */
@@ -64,11 +63,11 @@ public:
   bool isNaoMotor = false;
 
   float bufferedSetPoint = 0.f;
-  float lastCurrentpoint = 0.f;
+  float lastCurrentPos = 0.f;
   dJointFeedback feedback;
 
-  float lastCurrentPos = 0.f;
-  float lastSetPoint = 0.f;
+  float lastSetpoint = 0.f;
+  float currentSetPoint = 0.f;
 
   /** Default constructor */
   ServoMotor();
@@ -87,9 +86,6 @@ private:
     void updateValue() override;
     bool getMinAndMax(float& min, float& max) const override;
   } positionSensor;
-
-  /** Last position of an angular hinge. */
-  float lastPos;
 
   /**
    * Initializes the motor
