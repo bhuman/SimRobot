@@ -1002,29 +1002,29 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `isNaoMotor`: Whether the servo is for a NAO robot.
-          - *Default*: false
-          - *Use*: optional
-          - *Range*: false/true
+          - **Default**: false
+          - **Use**: optional
+          - **Range**: false/true
       - `minFeedbackForce`: Scale the used force to this minimum.
-          - *Default*: -1
-          - *Use*: optional
-          - *Range*: [-MAXFLOAT, MAXFLOAT]
+          - **Default**: -1
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `maxFeedbackForce`: Scale the used force to the maximum based on the applied forces to the servo's joint.
-          - *Default*: -1
-          - *Use*: optional
-          - *Range*: [-MAXFLOAT, MAXFLOAT]
+          - **Default**: -1
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `maxPositionDiff`: Scale the used force to the maximum based on the position difference.
-          - *Default*: -1
-          - *Use*: optional
-          - *Range*: [-MAXFLOAT, MAXFLOAT]
+          - **Default**: -1
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `maxForceGrowth`: Scale the used maximum force by this value compared to the previous execution frame.
-          - *Default*: -1
-          - *Use*: optional
-          - *Range*: [-MAXFLOAT, MAXFLOAT]
+          - **Default**: -1
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `fudgeFactor`: Sets ODE's dParamFudgeFactor (scale this excess force).
-          - *Default*: -1
-          - *Use*: optional
-          - *Range*: [-MAXFLOAT, MAXFLOAT]
+          - **Default**: -1
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
   - `VelocityMotor`: Instantiates a velocity-controlled motor.
       - `maxVelocity`: The maximum velocity of this motor.
           - **Units**: radian/s, degree/s
