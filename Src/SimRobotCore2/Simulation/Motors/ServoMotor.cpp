@@ -50,7 +50,7 @@ void ServoMotor::act()
   float currentPos = dJointGetType(joint->joint) == dJointTypeHinge
                      ? static_cast<float>(dJointGetHingeAngle(joint->joint))
                      : static_cast<float>(dJointGetSliderPosition(joint->joint));
-  float setpoint = this->currentSetPoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
+  float setpoint = this->currentSetpoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
   {
@@ -98,20 +98,20 @@ float ServoMotor::Controller::getOutput(const float currentPos, const float setp
 
 void ServoMotor::setValue(float value)
 {
-  lastSetpoint = currentSetPoint;
-  currentSetPoint = bufferedSetPoint;
-  bufferedSetPoint = value;
+  lastSetpoint = currentSetpoint;
+  currentSetpoint = bufferedSetpoint;
+  bufferedSetpoint = value;
   const Axis::Deflection* deflection = joint->axis->deflection;
   if(deflection)
   {
-    if(bufferedSetPoint > deflection->max)
-      bufferedSetPoint = deflection->max;
-    else if(bufferedSetPoint < deflection->min)
-      bufferedSetPoint = deflection->min;
+    if(bufferedSetpoint > deflection->max)
+      bufferedSetpoint = deflection->max;
+    else if(bufferedSetpoint < deflection->min)
+      bufferedSetpoint = deflection->min;
   }
   // lastSetpoint does not matter for non nao motors, as those do not have the extra one frame delay
   if(!isNaoMotor)
-    currentSetPoint = bufferedSetPoint;
+    currentSetpoint = bufferedSetpoint;
 }
 
 void ServoMotor::setStiffness(float value)
