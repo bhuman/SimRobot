@@ -60,7 +60,7 @@ void ServoMotor::act()
 
   if(!isNaoMotor)
     clipSetpoint(setpoint, currentPos);
-  float newVel = controller.getOutput(currentPos, setpoint, lastCurrentPos, lastSetpoint, isNaoMotor);
+  float newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
   if(isNaoMotor)
     clipVelocity(newVel, currentPos);
   handleLimits(currentPos, newVel);
@@ -75,7 +75,7 @@ void ServoMotor::act()
   lastCurrentPos = currentPos;
 }
 
-float ServoMotor::Controller::getOutput(const float currentPos, const float setpoint, const float lastCurrentPos, const float lastSetpoint, const bool isNaoMotor)
+float ServoMotor::Controller::getOutput(const float currentPos, const float setpoint, const float lastSetpoint, const bool isNaoMotor)
 {
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
@@ -222,7 +222,7 @@ void ServoMotor::ForceController::updateForce(const float positionDiff, const dJ
     return;
 
   // Force needed to counter act outside forces
-  const float usedForce = Vector3f(feedback.f1[0], feedback.f1[1], feedback.f1[2]).norm();
+  const float usedForce = Vector3f(static_cast<float>(feedback.f1[0]), static_cast<float>(feedback.f1[1]), static_cast<float>(feedback.f1[2])).norm();
   const float outsideRatio = std::max(0.f, std::min(1.f, std::abs(usedForce) / maxFeedbackForce)); // 68
   const float outsideForce = outsideRatio * maxForce + (1.f - outsideRatio) * minFeedbackForce;
 

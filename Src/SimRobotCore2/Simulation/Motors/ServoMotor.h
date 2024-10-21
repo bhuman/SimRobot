@@ -31,14 +31,15 @@ public:
      * Computes the controller output. Do not call this more than once per simulation step
      * @param currentPos A measured value
      * @param setpoint The desired value
+     * @param lastSetpoint The previous desired value
+     * @param isNaoMator Is the control for a nao motor?
      * @return The controller output
      */
-    float getOutput(const float currentPos, const float setpoint, const float lastCurrentPos, const float lastSetpoint, const bool isNaoMotor);
+    float getOutput(const float currentPos, const float setpoint, const float lastSetpoint, const bool isNaoMotor);
 
   private:
     float errorSum = 0.f;
     float lastError = 0.f;
-    float lastRequestVel = 0.f;
   };
 
   class ForceController
