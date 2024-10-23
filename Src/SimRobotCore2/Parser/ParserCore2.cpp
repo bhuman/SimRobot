@@ -729,6 +729,7 @@ Element* ParserCore2::deflectionElement()
   else
     ASSERT(false);
 
+  deflection->setStops = getBool("isActive", false, true);
   deflection->stopCFM = getFloatMinMax("stopCFM", false, -1.f, 0.f, 1.f);
   deflection->stopERP = getFloatMinMax("stopERP", false, -1.f, 0.f, 1.f);
 

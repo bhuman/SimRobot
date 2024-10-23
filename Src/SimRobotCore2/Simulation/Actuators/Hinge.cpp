@@ -51,13 +51,19 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   if(axis->deflection)
   {
     const Axis::Deflection& deflection = *axis->deflection;
-    float minHingeLimit = deflection.min;
-    float maxHingeLimit = deflection.max;
-    if(minHingeLimit > maxHingeLimit)
-      minHingeLimit = maxHingeLimit;
 
-    dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
-    dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
+    // Only set stops if requested
+    if(deflection.setStops)
+    {
+      float minHingeLimit = deflection.min;
+      float maxHingeLimit = deflection.max;
+      if(minHingeLimit > maxHingeLimit)
+        minHingeLimit = maxHingeLimit;
+
+      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
+      dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
+    }
+
     if(deflection.stopCFM != -1.f)
       dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
     if(deflection.stopERP != -1.f)
