@@ -653,14 +653,6 @@ void SimObjectWidget::toggleCameraMode()
   update();
 }
 
-void SimObjectWidget::fitCamera()
-{
-  /*
-  objectRenderer.fitCamera();
-  update();
-   */
-}
-
 void SimObjectWidget::toggleRenderFlag(int flag)
 {
   unsigned int flags = objectRenderer.getRenderFlags();

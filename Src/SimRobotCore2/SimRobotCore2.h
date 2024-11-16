@@ -188,7 +188,6 @@ namespace SimRobotCore2
     virtual CameraMode getCameraMode() const = 0;
     virtual void toggleCameraMode() = 0;
     virtual void resetCamera() = 0;
-    virtual void fitCamera() = 0; // not implemented
 
     virtual int getFovY() const = 0;
 

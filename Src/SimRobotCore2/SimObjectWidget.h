@@ -69,7 +69,6 @@ private slots:
   void setDragMode(int mode);
   void resetCamera();
   void toggleCameraMode();
-  void fitCamera();
   void toggleRenderFlag(int flag);
   void exportAsImage(int width, int height);
 };

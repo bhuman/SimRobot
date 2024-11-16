@@ -309,15 +309,6 @@ void SimObjectRenderer::zoom(float change, float x, float y)
   updateCameraTransformation();
 }
 
-void SimObjectRenderer::fitCamera()
-{
-  /*
-  if(simObject)
-    simulation->fitCamera(cameraTarget, cameraPos, width, height, simObject);
-  calculateUpVector();
-   */
-}
-
 void SimObjectRenderer::setDragPlane(DragAndDropPlane plane)
 {
   dragPlane = plane;

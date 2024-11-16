@@ -90,7 +90,6 @@ public:
   CameraMode getCameraMode() const override {return cameraMode;}
   void toggleCameraMode() override {};
   void resetCamera() override;
-  void fitCamera() override;
   int getFovY() const override {return int(fovY);}
   void setDragPlane(DragAndDropPlane plane) override;
   DragAndDropPlane getDragPlane() const override {return dragPlane;}
