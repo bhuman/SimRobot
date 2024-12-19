@@ -941,7 +941,7 @@ void MainWindow::open()
 {
   QString fileName = QFileDialog::getOpenFileName(this,
     tr("Open File"), settings.value("OpenDirectory", "").toString(), tr("Robot Simulation Files (*.ros2 *.ros2d)")
-#if defined LINUX && defined QT_VERSION && QT_VERSION <= QT_VERSION_CHECK(6, 6, 0)
+#if defined LINUX && defined QT_VERSION && QT_VERSION < QT_VERSION_CHECK(6, 6, 0)
                                                   , nullptr, QFileDialog::DontUseNativeDialog
 #endif
                                                   );

@@ -558,7 +558,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
   QSettings& settings = CoreModule::application->getSettings();
   QString fileName = QFileDialog::getSaveFileName(this,
                                                   tr("Export as Image"), settings.value("ExportDirectory", "").toString(), tr("Portable Network Graphic (*.png)")
-#if defined LINUX && defined QT_VERSION && QT_VERSION <= QT_VERSION_CHECK(6, 6, 0)
+#if defined LINUX && defined QT_VERSION && QT_VERSION < QT_VERSION_CHECK(6, 6, 0)
                                                   , nullptr, QFileDialog::DontUseNativeDialog
 #endif
                                                   );
