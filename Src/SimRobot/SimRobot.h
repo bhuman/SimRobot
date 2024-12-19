@@ -156,6 +156,7 @@ namespace SimRobot
     virtual QSettings& getSettings() = 0;
     virtual QSettings& getLayoutSettings() = 0;
     virtual bool isSimRunning() = 0;
+    virtual bool isSimResetting() = 0;
     virtual void simReset() = 0;
     virtual void simStart() = 0;
     virtual void simStep() = 0;

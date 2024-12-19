@@ -1144,9 +1144,11 @@ bool MainWindow::closeFile()
 
 void MainWindow::simReset()
 {
+  resetting = true;
   QString fileName = filePath;
   if(closeFile())
     openFile(fileName);
+  resetting = false;
 }
 
 void MainWindow::simStart()

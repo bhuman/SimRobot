@@ -84,6 +84,7 @@ private:
   bool opened = false;
   bool compiled = false;
   bool running = false;
+  bool resetting = false;
   bool layoutRestored = true;
   int guiUpdateRate = 100;
   unsigned int lastGuiUpdate = 0;
@@ -177,6 +178,9 @@ private slots:
 public:
   // Provides information on whether the simulation is running or not
   bool isSimRunning() override { return running; }
+
+  // Provides information on whether the simulation is currently resetting
+  bool isSimResetting() override { return resetting; }
 
 public slots:
   void simReset() override;
