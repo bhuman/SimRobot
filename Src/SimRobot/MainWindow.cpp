@@ -1132,6 +1132,11 @@ bool MainWindow::closeFile()
     statusBar->setUserMessage(QString());
     compiled = false;
     running = false;
+    if(timerId)
+    {
+      killTimer(timerId);
+      timerId = 0;
+    }
   }
 
   return true;
