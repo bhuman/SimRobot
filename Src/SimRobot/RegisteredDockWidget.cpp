@@ -194,9 +194,10 @@ void RegisteredDockWidget::exportAsSvg()
   QSettings& settings = MainWindow::application->getSettings();
   QString fileName = QFileDialog::getSaveFileName(this,
     tr("Export as SVG"), settings.value("ExportDirectory", "").toString(), tr("Scalable Vector Graphics (*.svg)")
-#ifdef LINUX
-    , nullptr, QFileDialog::DontUseNativeDialog
-#endif
+  #if defined LINUX  && defined(QT_VERSION) && (QT_VERSION <= QT_VERSION_CHECK(6, 6, 0))
+  ,
+  nullptr, QFileDialog::DontUseNativeDialog
+  #endif
     );
   if(fileName.isEmpty())
     return;
@@ -224,9 +225,11 @@ void RegisteredDockWidget::exportAsPng()
   QSettings& settings = MainWindow::application->getSettings();
   QString fileName = QFileDialog::getSaveFileName(this,
     tr("Export as PNG"), settings.value("ExportDirectory", "").toString(), tr("(*.png)")
-#ifdef LINUX
-    , nullptr, QFileDialog::DontUseNativeDialog
-#endif
+  #if defined LINUX  && defined(QT_VERSION) && (QT_VERSION <= QT_VERSION_CHECK(6, 6, 0))
+  ,
+  nullptr, QFileDialog::DontUseNativeDialog
+  #endif
+
     );
   if(fileName.isEmpty())
     return;
