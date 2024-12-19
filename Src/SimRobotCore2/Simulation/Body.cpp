@@ -118,6 +118,8 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
   if(geometry.rotation)
     offset.rotate(*geometry.rotation);
 
+  Body* rootBody = collideWithParent ? this : this->rootBody;
+
   // create space if required
   if(!rootBody->bodySpace)
     rootBody->bodySpace = dHashSpaceCreate(Simulation::simulation->movableSpace);
@@ -359,6 +361,8 @@ void Body::resetDynamics()
 void Body::enablePhysics(bool enable)
 {
   enable ? dBodyEnable(body) : dBodyDisable(body);
+
+  Body* rootBody = collideWithParent ? this : this->rootBody;
 
   if(rootBody->bodySpace)
   {

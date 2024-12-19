@@ -291,6 +291,7 @@ Element* ParserCore2::bodyElement()
 {
   Body* body = new Body();
   body->name = getString("name", false);
+  body->collideWithParent = getBool("collideWithParent", false, false);
   return body;
 }
 

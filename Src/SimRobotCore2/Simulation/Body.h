@@ -27,6 +27,7 @@ public:
   dBodyID body = nullptr;
   Body* rootBody = nullptr; /**< The first movable body in a chain of bodies (might point to itself) */
   dMass mass; /**< The mass of the body (at \c centerOfMass)*/
+  bool collideWithParent = false; /**< Check for collisions with parent bodies. */
 
   /** Default constructor */
   Body();
