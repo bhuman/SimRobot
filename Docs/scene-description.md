@@ -438,6 +438,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `name`: The name of the body.
           - **Use**: optional
           - **Range**: String
+      - `collideWithParent`: Detect collisions with parent bodies.
+          - **Default**: false
+          - **Use**: optional
+          - **Range**: false/true
 
 
 ### compoundClass
