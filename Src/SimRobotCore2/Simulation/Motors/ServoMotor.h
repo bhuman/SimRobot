@@ -32,7 +32,7 @@ public:
      * @param currentPos A measured value
      * @param setpoint The desired value
      * @param lastSetpoint The previous desired value
-     * @param isNaoMator Is the control for a nao motor?
+     * @param isNaoMotor Is the control for a NAO motor?
      * @return The controller output
      */
     float getOutput(const float currentPos, const float setpoint, const float lastSetpoint, const bool isNaoMotor);

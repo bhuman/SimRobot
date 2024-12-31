@@ -26,14 +26,14 @@ static float surfaceColors[numOfBodySurfaces][4] =
   {1.0f, .37f, .73f, 1.0f}, // pink,
   {0.5f, 0.0f, 0.5f, 1.0f}, // purple,
   {0.0f, 0.0f, 0.5f, 1.0f}, // navy,
-  {.54f, .17f, .89f, 1.0f}, // blueviolet
-  {0.0f, .75f, 1.0f, 1.0f}, // deepskyblue,
+  {.54f, .17f, .89f, 1.0f}, // blue violet
+  {0.0f, .75f, 1.0f, 1.0f}, // deep sky blue,
   {0.5f, 0.5f, 0.0f, 1.0f}, // olive,
   {0.0f, 1.0f, 0.0f, 1.0f}, // lime,
-  {.13f, .70f, .67f, 1.0f}, // lightseagreen,
+  {.13f, .70f, .67f, 1.0f}, // light sea green,
   {.82f, .41f, .12f, 1.0f}, // chocolate,
   {1.0f, .65f, 0.0f, 1.0f}, // orange,
-  {1.0f, .55f, 0.0f, 1.0f}  // darkorange,
+  {1.0f, .55f, 0.0f, 1.0f}  // dark orange,
 };
 
 ObjectSegmentedImageSensor::ObjectSegmentedImageSensor() :

@@ -19,7 +19,7 @@ class Body;
 class Scene : public PhysicalObject, public SimRobotCore2D::Scene
 {
 public:
-  /** Loads the background image and creates phyiscs of children. */
+  /** Loads the background image and creates physics of children. */
   void createPhysics() override;
 
   /**

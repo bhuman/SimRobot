@@ -996,23 +996,23 @@ bool Parser::getColor(const char* key, bool required, unsigned char* color)
   const char* strColor = strValue->c_str();
   if(*strColor == '#')
   {
-    // HTML style color (#rrggbb and #rgb)
-    // + self invented #rrggbbaa and #rgba
+    // HTML style color (#rrggbb and #rgb) | cspell:disable-line
+    // + self invented #rrggbbaa and #rgba | cspell:disable-line
     ++strColor;
-    unsigned int lcol = 0;
+    unsigned int lCol = 0;
     const char* endPtr = strColor;
     for(;;)
     {
       const int c = std::tolower(*endPtr);
       if(c >= '0' && c <= '9')
       {
-        lcol <<= 4u;
-        lcol |= static_cast<unsigned int>(c - '0');
+        lCol <<= 4u;
+        lCol |= static_cast<unsigned int>(c - '0');
       }
       else if(c >= 'a' && c <= 'f')
       {
-        lcol <<= 4u;
-        lcol |= static_cast<unsigned int>(c - 'a' + 10);
+        lCol <<= 4u;
+        lCol |= static_cast<unsigned int>(c - 'a' + 10);
       }
       else if(!c)
         break;
@@ -1027,28 +1027,28 @@ bool Parser::getColor(const char* key, bool required, unsigned char* color)
     switch(endPtr - strColor)
     {
       case 3:
-        color[0] = static_cast<unsigned char>(((lcol >> 8u) << 4u) | (lcol >> 8u));
-        color[1] = static_cast<unsigned char>((((lcol >> 4u) & 0xfu) << 4u) | ((lcol >> 4u) & 0xfu));
-        color[2] = static_cast<unsigned char>(((lcol & 0xfu) << 4u) | (lcol & 0xfu));
+        color[0] = static_cast<unsigned char>(((lCol >> 8u) << 4u) | (lCol >> 8u));
+        color[1] = static_cast<unsigned char>((((lCol >> 4u) & 0xfu) << 4u) | ((lCol >> 4u) & 0xfu));
+        color[2] = static_cast<unsigned char>(((lCol & 0xfu) << 4u) | (lCol & 0xfu));
         color[3] = 255u;
         return true;
       case 4:
-        color[0] = static_cast<unsigned char>(((lcol >> 12u) << 4u) | (lcol >> 12u));
-        color[1] = static_cast<unsigned char>((((lcol >> 8u) & 0xfu) << 4u) | ((lcol >> 8u) & 0xfu));
-        color[2] = static_cast<unsigned char>((((lcol >> 4u) & 0xfu) << 4u) | ((lcol >> 4u) & 0xfu));
-        color[3] = static_cast<unsigned char>(((lcol & 0xfu) << 4u) | (lcol & 0xfu));
+        color[0] = static_cast<unsigned char>(((lCol >> 12u) << 4u) | (lCol >> 12u));
+        color[1] = static_cast<unsigned char>((((lCol >> 8u) & 0xfu) << 4u) | ((lCol >> 8u) & 0xfu));
+        color[2] = static_cast<unsigned char>((((lCol >> 4u) & 0xfu) << 4u) | ((lCol >> 4u) & 0xfu));
+        color[3] = static_cast<unsigned char>(((lCol & 0xfu) << 4u) | (lCol & 0xfu));
         return true;
       case 6:
-        color[0] = static_cast<unsigned char>(lcol >> 16u);
-        color[1] = static_cast<unsigned char>((lcol >> 8u) & 0xffu);
-        color[2] = static_cast<unsigned char>(lcol & 0xffu);
+        color[0] = static_cast<unsigned char>(lCol >> 16u);
+        color[1] = static_cast<unsigned char>((lCol >> 8u) & 0xffu);
+        color[2] = static_cast<unsigned char>(lCol & 0xffu);
         color[3] = 255u;
         return true;
       case 8:
-        color[0] = static_cast<unsigned char>(lcol >> 24u);
-        color[1] = static_cast<unsigned char>((lcol >> 16u) & 0xffu);
-        color[2] = static_cast<unsigned char>((lcol >> 8u) & 0xffu);
-        color[3] = static_cast<unsigned char>(lcol & 0xffu);
+        color[0] = static_cast<unsigned char>(lCol >> 24u);
+        color[1] = static_cast<unsigned char>((lCol >> 16u) & 0xffu);
+        color[2] = static_cast<unsigned char>((lCol >> 8u) & 0xffu);
+        color[3] = static_cast<unsigned char>(lCol & 0xffu);
         return true;
       default:
         handleError("Invalid color format", location);

@@ -79,7 +79,7 @@ protected:
    * Reads the subordinate elements of the current element (if any)
    * @param callHandler Whether handler functions (\c handleElement or \c handleText) should be called. Set it to \c false to pass the children of unexpected elements.
    * @param isRoot Whether this is the root syntax tree node of the file
-   * @return Whether an error occured
+   * @return Whether an error occurred
    */
   bool readElements(bool callHandler, bool isRoot = false);
 

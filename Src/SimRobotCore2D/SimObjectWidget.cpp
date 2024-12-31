@@ -63,7 +63,7 @@ void SimObjectWidget::update()
 
 QMenu* SimObjectWidget::createUserMenu() const
 {
-  auto* const menu = new QMenu(tr(&object == Simulation::simulation->scene ? "S&cene" : "&Object"));
+  auto* const menu = new QMenu(tr(&object == Simulation::simulation->scene ? "S&cene" : "&Object")); // cspell:disable-line
 
   {
     QMenu* const subMenu = menu->addMenu(tr("&Drag and Drop"));

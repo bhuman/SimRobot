@@ -69,7 +69,7 @@ public:
   /**
    * Loads a file and initializes the simulation
    * @param filename The name of the file
-   * @param errors The errors that occured during parsing.
+   * @param errors The errors that occurred during parsing.
    */
   bool loadFile(const std::string& filename, std::list<std::string>& errors);
 

@@ -236,7 +236,7 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
     QRegularExpression rx(editorObject->subFileRegExpPattern, QRegularExpression::CaseInsensitiveOption);
     QString fileContent = toPlainText();
     QStringList includeFiles;
-    QSet<QString> inculdeFilesSet;
+    QSet<QString> includeFilesSet;
     QString suffix = QFileInfo(editorObject->name).suffix();
     QRegularExpressionMatch match;
     decltype(match.capturedEnd()) pos = 0;
@@ -245,10 +245,10 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
       QString file = match.captured(1).remove('\"');
       if(QFileInfo(file).suffix().isEmpty())
         (file += '.') += suffix;
-      if(!inculdeFilesSet.contains(file))
+      if(!includeFilesSet.contains(file))
       {
         includeFiles.append(file);
-        inculdeFilesSet.insert(file);
+        includeFilesSet.insert(file);
       }
       pos = match.capturedEnd();
     }

@@ -76,7 +76,7 @@ void ApproxDistanceSensor::DistanceSensor::staticCollisionCallback(ApproxDistanc
   ODETools::convertVector(pos, geomPos);
   const float approxSqrDist = (geomPos - sensor->pose.translation).squaredNorm() - geometry->innerRadiusSqr;
   if(approxSqrDist >= sensor->closestSqrDistance)
-    return; // we already found another geometrie that was closer
+    return; // we already found another geometry that was closer
 
   const Vector3f relPos = sensor->invertedPose * geomPos;
   if(relPos.x() <= 0.f)

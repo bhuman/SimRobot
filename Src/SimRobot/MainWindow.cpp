@@ -282,9 +282,9 @@ bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object
         dockWidget->setFeatures(dockWidget->features() | QDockWidget::DockWidgetVerticalTitleBar);
       STYLE_NEW(dockWidget);
       dockWidget->setWidget(widget, &module, &object, flags);
-      QWidget* qwidget = widget->getWidget();
-      Q_ASSERT(qwidget->parent() == dockWidget);
-      dockWidget->setFocusProxy(qwidget);
+      QWidget* qWidget = widget->getWidget();
+      Q_ASSERT(qWidget->parent() == dockWidget);
+      dockWidget->setFocusProxy(qWidget);
       if(sceneGraphDockWidget)
         sceneGraphDockWidget->setOpened(&object, true);
 
@@ -1241,9 +1241,9 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
   if(widget)
   {
     dockWidget->setWidget(widget, module, object, flags);
-    QWidget* qwidget = widget->getWidget();
-    Q_ASSERT(qwidget->parent() == dockWidget);
-    dockWidget->setFocusProxy(qwidget);
+    QWidget* qWidget = widget->getWidget();
+    Q_ASSERT(qWidget->parent() == dockWidget);
+    dockWidget->setFocusProxy(qWidget);
   }
 
   Q_ASSERT(openedObjectsByName.value(fullName) == 0);

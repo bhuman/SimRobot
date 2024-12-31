@@ -136,15 +136,15 @@ static void getTorusAABB(dGeomID geom, dReal aabb[6])
   const dReal* R = dGeomGetRotation(geom);
   const dReal* p = dGeomGetPosition(geom);
   const auto* torus = static_cast<const TorusData*>(dGeomGetClassData(geom));
-  const dReal xrange = torus->majorRadius * (dFabs(R[0]) + dFabs(R[1])) + torus->minorRadius * dFabs(R[2]);
-  const dReal yrange = torus->majorRadius * (dFabs(R[4]) + dFabs(R[5])) + torus->minorRadius * dFabs(R[6]);
-  const dReal zrange = torus->majorRadius * (dFabs(R[8]) + dFabs(R[9])) + torus->minorRadius * dFabs(R[10]);
-  aabb[0] = p[0] - xrange;
-  aabb[1] = p[0] + xrange;
-  aabb[2] = p[1] - yrange;
-  aabb[3] = p[1] + yrange;
-  aabb[4] = p[2] - zrange;
-  aabb[5] = p[2] + zrange;
+  const dReal xRange = torus->majorRadius * (dFabs(R[0]) + dFabs(R[1])) + torus->minorRadius * dFabs(R[2]);
+  const dReal yRange = torus->majorRadius * (dFabs(R[4]) + dFabs(R[5])) + torus->minorRadius * dFabs(R[6]);
+  const dReal zRange = torus->majorRadius * (dFabs(R[8]) + dFabs(R[9])) + torus->minorRadius * dFabs(R[10]);
+  aabb[0] = p[0] - xRange;
+  aabb[1] = p[0] + xRange;
+  aabb[2] = p[1] - yRange;
+  aabb[3] = p[1] + yRange;
+  aabb[4] = p[2] - zRange;
+  aabb[5] = p[2] + zRange;
 }
 
 static dColliderFn* getTorusCollider(int num)

@@ -300,7 +300,7 @@ void SceneGraphDockWidget::contextMenuEvent(QContextMenuEvent* event)
     }
     if(clickedItem->childCount() > 0)
     {
-      QAction* action = menu.addAction(tr(clickedItem->isExpanded() ? "Collaps&e" : "&Expand"));
+      QAction* action = menu.addAction(tr(clickedItem->isExpanded() ? "Collaps&e" : "&Expand")); // cspell:disable-line
       connect(action, &QAction::triggered, this, &SceneGraphDockWidget::expandOrCollapseObject);
       menu.addSeparator();
     }

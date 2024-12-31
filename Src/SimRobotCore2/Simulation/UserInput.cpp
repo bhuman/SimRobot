@@ -1,6 +1,6 @@
 /**
  * @file Simulation/UserInput.h
- * Implemention of class to forward user input. An actuator port can be set
+ * Implementation of class to forward user input. An actuator port can be set
  * by the user and a controller can read that value through a sensor port.
  * @author Thomas Röfer
  */

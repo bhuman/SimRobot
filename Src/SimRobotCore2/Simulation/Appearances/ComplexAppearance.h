@@ -70,7 +70,7 @@ public:
 
   /**
    * @enum Mode
-   * Possibile primitive group types (\c triangles, \c quads, ...)
+   * Possible primitive group types (\c triangles, \c quads, ...)
    */
   enum Mode
   {
