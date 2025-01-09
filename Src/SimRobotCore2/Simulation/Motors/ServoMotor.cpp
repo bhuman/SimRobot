@@ -79,21 +79,10 @@ float ServoMotor::Controller::getOutput(const float currentPos, const float setp
 {
   const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
-  if(isNaoMotor)
-  {
-    errorSum += i * error * deltaTime;
-    const float requestVel = setpoint - lastSetpoint;
-    const float result = p * error + errorSum + (d * requestVel) / deltaTime;
-    lastError = error;
-    return result;
-  }
-  else
-  {
-    errorSum += i * error * deltaTime;
-    const float result = p * error + errorSum + (d * (error - lastError)) / deltaTime;
-    lastError = error;
-    return result;
-  }
+  errorSum += i * error * deltaTime;
+  const float result = p * error + errorSum + d * (isNaoMotor ? setpoint - lastSetpoint : error - lastError) / deltaTime;
+  lastError = error;
+  return result;
 }
 
 void ServoMotor::setValue(float value)
