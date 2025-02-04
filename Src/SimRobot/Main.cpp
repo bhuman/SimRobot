@@ -105,24 +105,24 @@ int main(int argc, char* argv[])
 #endif
 
   // open file from commandline
-  for (int i = 1; i < argc; i++)
+  for(int i = 1; i < argc; i++)
   {
-    if (*argv[i] != '-' && strcmp(argv[i], "YES"))
+    if(*argv[i] != '-' && strcmp(argv[i], "YES"))
     {
-        mainWindow.openFile(argv[i]);
+      mainWindow.openFile(argv[i]);
     }
 #ifndef MACOS
-    if (strcmp(argv[i], "-noWindow") == 0)
+    if(strcmp(argv[i], "-noWindow") == 0)
     {
-        noWindow = true;
+      noWindow = true;
     }
 #endif
   }
 
 #ifndef MACOS
-  if (!noWindow)
+  if(!noWindow)
   {
-      mainWindow.show();
+    mainWindow.show();
   }
 #endif
 
