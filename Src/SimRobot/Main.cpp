@@ -104,12 +104,22 @@ int main(int argc, char* argv[])
   for(int i = 1; i < argc; i++)
   {
     if(*argv[i] != '-' && strcmp(argv[i], "YES"))
+    {
+#ifdef MACOS
+      if(!mainWindow.isVisible() && !noWindow)
+        mainWindow.show();
+#endif
       mainWindow.openFile(argv[i]);
+    }
     if(strcmp(argv[i], "-noWindow") == 0)
       noWindow = true;
   }
 
-  if(!noWindow)
+  if(
+#ifdef MACOS
+     !mainWindow.isVisible() &&
+#endif
+     !noWindow)
     mainWindow.show();
 
   return app.exec();
