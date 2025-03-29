@@ -30,12 +30,12 @@ public:
     /**
      * Computes the controller output. Do not call this more than once per simulation step
      * @param currentPos A measured value
-     * @param setpoint The desired value
-     * @param lastSetpoint The previous desired value
+     * @param clippedSetpoint The desired value, but clipped according to the maximum velocity.
+     * @param otherSetpoint The original setpoint. If \c isNaoMotor, the previous desired value instead.
      * @param isNaoMotor Is the control for a NAO motor?
      * @return The controller output
      */
-    float getOutput(const float currentPos, const float setpoint, const float lastSetpoint, const bool isNaoMotor);
+    float getOutput(const float currentPos, const float clippedSetpoint, const float otherSetpoint, const bool isNaoMotor);
 
   private:
     float errorSum = 0.f;
