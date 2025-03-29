@@ -61,10 +61,12 @@ void ServoMotor::act()
   }
 
   if(!isNaoMotor)
+  {
+    lastSetpoint = setpoint;
     clipSetpoint(setpoint, currentPos);
+  }
   float newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
-  if(isNaoMotor)
-    clipVelocity(newVel);
+  clipVelocity(newVel);
   handleLimits(currentPos, newVel);
 
   forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
@@ -77,12 +79,14 @@ void ServoMotor::act()
   lastCurrentPos = currentPos;
 }
 
-float ServoMotor::Controller::getOutput(const float currentPos, const float setpoint, const float lastSetpoint, const bool isNaoMotor)
+float ServoMotor::Controller::getOutput(const float currentPos, const float clippedSetpoint, const float otherSetpoint, const bool isNaoMotor)
 {
   const float deltaTime = Simulation::simulation->scene->stepLength;
-  const float error = setpoint - currentPos;
-  errorSum += i * error * deltaTime;
-  const float result = p * error + errorSum + d * (isNaoMotor ? setpoint - lastSetpoint : error - lastError) / deltaTime;
+  const float error = otherSetpoint - currentPos;
+  const float clippedError = clippedSetpoint - currentPos;
+  errorSum += i * clippedError * deltaTime;
+  const float result = p * (isNaoMotor ? clippedError : error) + errorSum
+                       + d * (isNaoMotor ? clippedSetpoint - otherSetpoint : error - lastError) / deltaTime;
   lastError = error;
   return result;
 }
