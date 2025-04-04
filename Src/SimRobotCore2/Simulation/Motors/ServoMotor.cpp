@@ -43,6 +43,8 @@ void ServoMotor::create(Joint* joint)
   }
   dJointSetFeedback(joint->joint, &feedback);
   forceController.isActive = forceController.minFeedbackForce != -1.f && forceController.maxFeedbackForce != -1.f && forceController.maxPositionDiff != -1.f && forceController.maxForceGrowth != -1.f && forceController.maxForce > 0;
+
+  currentSetpoint = (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
 }
 
 void ServoMotor::act()
