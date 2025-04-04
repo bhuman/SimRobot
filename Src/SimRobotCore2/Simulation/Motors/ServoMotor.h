@@ -109,7 +109,7 @@ private:
   void handleLimits(const float currentPos, const float newVel);
 
   /** Clip the planned velocity to ensure to not exceed the maximum velocity */
-  void clipVelocity(float& velocity, const float currentPos);
+  void clipVelocity(float& velocity);
 
   /** Clip the setpoint based on the maximum velocity */
   void clipSetpoint(float& setpoint, const float currentPos);

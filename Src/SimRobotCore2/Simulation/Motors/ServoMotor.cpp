@@ -62,7 +62,7 @@ void ServoMotor::act()
     clipSetpoint(setpoint, currentPos);
   float newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
   if(isNaoMotor)
-    clipVelocity(newVel, currentPos);
+    clipVelocity(newVel);
   handleLimits(currentPos, newVel);
 
   forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
@@ -182,14 +182,14 @@ void ServoMotor::handleLimits(const float currentPos, const float newVel)
   }
 }
 
-void ServoMotor::clipVelocity(float& velocity, const float currentPos)
+void ServoMotor::clipVelocity(float& velocity)
 {
-  if(std::abs(velocity - currentPos) > forceController.maxVelocity)
+  if(std::abs(velocity) > forceController.maxVelocity)
   {
-    if(velocity < currentPos)
-      velocity = currentPos - forceController.maxVelocity;
+    if(velocity < 0)
+      velocity = -forceController.maxVelocity;
     else
-      velocity = currentPos + forceController.maxVelocity;
+      velocity = forceController.maxVelocity;
   }
 }
 
