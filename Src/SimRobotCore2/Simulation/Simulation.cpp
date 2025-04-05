@@ -29,10 +29,29 @@
 
 Simulation* Simulation::simulation = nullptr;
 
+#ifdef WINDOWS
+static void odeHandler(const char* prefix, int errnum, const char* msg, va_list ap)
+{
+  char buf[1000];
+  vsprintf(buf, msg, ap);
+  OutputDebugString((prefix + ("(" + std::to_string(errnum)) + "): " + buf + "\n").c_str());
+}
+
+static void odeDebugHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE debug", errnum, msg, ap); }
+static void odeErrorHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE error", errnum, msg, ap); }
+static void odeMessageHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE message", errnum, msg, ap); }
+
+#endif
+
 Simulation::Simulation()
 {
   ASSERT(!simulation);
   simulation = this;
+#ifdef WINDOWS
+  dSetDebugHandler(&odeDebugHandler);
+  dSetErrorHandler(&odeErrorHandler);
+  dSetMessageHandler(&odeMessageHandler);
+#endif
 }
 
 Simulation::~Simulation()
