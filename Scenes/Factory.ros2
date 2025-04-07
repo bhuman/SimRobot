@@ -170,7 +170,7 @@
         <Translation y="-0.8" z="0.3"/>
         <Axis y="1.0">
           <Deflection min="0.01" max="10.4"/>
-          <ServoMotor name="MixMotor" maxVelocity="2.0" maxForce="100.0" p="15"/>
+          <ServoMotor name="MixMotor" maxVelocity="1.0" maxForce="100.0" p="15"/>
         </Axis>
         <Body name="SlideBox">
           <Translation x="0.0" y="0.1" z="0.27"/>
