@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
       break;
     }
 
-#ifdef MACOS
+#ifndef MACOS
   if(!noWindow)
     mainWindow.show();
 #endif
