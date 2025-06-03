@@ -99,28 +99,26 @@ int main(int argc, char* argv[])
   app.setApplicationName("SimRobot");
 
   bool noWindow = false;
+  for(int i = 1; i < argc; i++)
+    noWindow |= strcmp(argv[i], "-noWindow") == 0;
+
+#ifdef MACOS
+  if(!noWindow)
+    mainWindow.show();
+#endif
 
   // open file from commandline
   for(int i = 1; i < argc; i++)
-  {
     if(*argv[i] != '-' && strcmp(argv[i], "YES"))
     {
-#ifdef MACOS
-      if(!mainWindow.isVisible() && !noWindow)
-        mainWindow.show();
-#endif
       mainWindow.openFile(argv[i]);
+      break;
     }
-    if(strcmp(argv[i], "-noWindow") == 0)
-      noWindow = true;
-  }
 
-  if(
 #ifdef MACOS
-     !mainWindow.isVisible() &&
-#endif
-     !noWindow)
+  if(!noWindow)
     mainWindow.show();
+#endif
 
   return app.exec();
 }
