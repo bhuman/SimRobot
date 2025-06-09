@@ -618,6 +618,7 @@ namespace SimRobotCore2
     virtual void setValue(float value) = 0;
     virtual void setStiffness(float value) = 0;
     virtual bool getMinAndMax(float& min, float& max) const = 0;
+    virtual void setPuppetState(bool isPuppet) = 0;
 
     /**
      * Returns the name of the unit of the actuator's set point

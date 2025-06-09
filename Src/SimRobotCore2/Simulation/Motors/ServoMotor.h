@@ -71,6 +71,8 @@ public:
   float lastSetpoint = 0.f; /**< The last executed setpoint. */
   float currentSetpoint = 0.f; /**< The current to be executed setpoint. */
 
+  bool isPuppet = false; /**< Is the motor used to replay sensor data? */
+
   /** Default constructor */
   ServoMotor();
 
@@ -118,4 +120,5 @@ private:
   void setValue(float value) override;
   void setStiffness(float value) override;
   bool getMinAndMax(float& min, float& max) const override;
+  void setPuppetState(bool isPuppet) override;
 };

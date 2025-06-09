@@ -60,16 +60,22 @@ void ServoMotor::act()
     currentPos = lastCurrentPos + diff;
   }
 
-  if(!isNaoMotor)
+  float newVel = 0.f;
+  if(!isPuppet)
   {
-    lastSetpoint = setpoint;
-    clipSetpoint(setpoint, currentPos);
-  }
-  float newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
-  clipVelocity(newVel);
-  handleLimits(currentPos, newVel);
+    if(!isNaoMotor)
+    {
+      lastSetpoint = setpoint;
+      clipSetpoint(setpoint, currentPos);
+    }
+    newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
+    clipVelocity(newVel);
+    handleLimits(currentPos, newVel);
 
-  forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
+    forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
+  }
+  else
+    newVel = (setpoint - currentPos) / Simulation::simulation->scene->stepLength;
 
   if(dJointGetType(joint->joint) == dJointTypeHinge)
     dJointSetHingeParam(joint->joint, dParamVel, newVel);
@@ -230,4 +236,14 @@ void ServoMotor::ForceController::updateForce(const float positionDiff, const dJ
   currentForce = std::min(maxForce * stiffness, std::min(maxNeededForce, currentForce + maxForceGrowth));
 
   dJointSetHingeParam(joint, dParamFMax, currentForce);
+}
+
+void ServoMotor::setPuppetState(bool isPuppet)
+{
+  this->isPuppet = isPuppet;
+  if(isPuppet)
+  {
+    setStiffness(100);
+    dJointSetHingeParam(joint->joint, dParamFMax, 1000);
+  }
 }
