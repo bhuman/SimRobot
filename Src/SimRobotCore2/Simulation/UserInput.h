@@ -32,7 +32,7 @@ public:
     const QString& getUnit() const override {return unit;}
     void setValue(float value) override;
     void setStiffness(float) override {};
-    void setPuppetState(bool isPuppet) override {};
+    void setPuppetState(bool) override {};
   } inputPort;
 
 private:
