@@ -63,6 +63,7 @@ void ServoMotor::act()
   float newVel = 0.f;
   if(!isPuppet)
   {
+    forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
     if(!isNaoMotor)
     {
       lastSetpoint = setpoint;
@@ -71,8 +72,6 @@ void ServoMotor::act()
     newVel = controller.getOutput(currentPos, setpoint, lastSetpoint, isNaoMotor);
     clipVelocity(newVel);
     handleLimits(currentPos, newVel);
-
-    forceController.updateForce(currentPos - setpoint, joint->joint, feedback, stiffness);
   }
   else
     newVel = (setpoint - currentPos) / Simulation::simulation->scene->stepLength;
