@@ -135,8 +135,9 @@ void SimObjectRenderer::draw()
   // If the object is neither a physical nor a graphical object, nothing happens, but in that case, nothing (except for a coordinate system) will be drawn anyway.
   if(&simObject != Simulation::simulation->scene && (physicalObject || graphicalObject))
   {
-    const auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
+    auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
     ASSERT(modelMatrix);
+    modelMatrix->updateMemory();
     Eigen::Map<const Matrix4f> objectInWorldMatrix(modelMatrix->getPointer());
     const Pose3f objectInWorld(RotationMatrix(objectInWorldMatrix.topLeftCorner<3, 3>()), objectInWorldMatrix.topRightCorner<3, 1>());
     if(renderFlags & showAsGlobalView)

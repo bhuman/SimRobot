@@ -609,11 +609,7 @@ void GraphicsContext::updateModelMatrices(ModelMatrix::Usage usage, bool forceUp
   modelMatrixSets[usage].lastUpdate = Simulation::simulation->simulationStep;
 
   for(ModelMatrix* modelMatrix : modelMatrixSets[usage].variableModelMatrices)
-  {
-    const Pose3f result = *modelMatrix->variablePart * modelMatrix->constantPart;
-    modelMatrix->memory.topLeftCorner<3, 3>() = result.rotation;
-    modelMatrix->memory.topRightCorner<3, 1>() = result.translation;
-  }
+    modelMatrix->updateMemory();
 }
 
 void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
@@ -949,4 +945,11 @@ GraphicsContext::Texture::Texture(const std::string& file)
 GraphicsContext::Texture::~Texture()
 {
   delete[] data;
+}
+
+void GraphicsContext::ModelMatrix::updateMemory()
+{
+  const Pose3f result = *variablePart * constantPart;
+  memory.topLeftCorner<3, 3>() = result.rotation;
+  memory.topRightCorner<3, 1>() = result.translation;
 }

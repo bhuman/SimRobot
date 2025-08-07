@@ -257,6 +257,9 @@ public:
      */
     const float* getPointer() const {return memory.data();}
 
+    /** Updates the memory for the final product. */
+    void updateMemory();
+
   private:
     Pose3f constantPart; /**< The constant part of the model matrix. */
     const Pose3f* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
