@@ -31,7 +31,7 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   Joint::createPhysics(graphicsContext);
 
   // find bodies to connect
-  Body* parentBody = dynamic_cast<Body*>(parent);
+  [[maybe_unused]] Body* parentBody = dynamic_cast<Body*>(parent);
   ASSERT(!parentBody || parentBody->body);
   ASSERT(!children.empty());
   Body* childBody = dynamic_cast<Body*>(children.front());
