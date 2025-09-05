@@ -86,7 +86,7 @@ if(WINDOWS)
       COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:SimRobot>/platforms" "$<TARGET_FILE_DIR:SimRobot>/imageformats"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:Qt6::Core>" "$<TARGET_FILE:Qt6::Gui>" "$<TARGET_FILE:Qt6::OpenGL>" "$<TARGET_FILE:Qt6::OpenGLWidgets>" "$<TARGET_FILE:Qt6::Svg>"
-      "$<TARGET_FILE:Qt6::Widgets>" ${CONTROLLER_DYLIBS} "$<TARGET_FILE_DIR:SimRobot>"
+      "$<TARGET_FILE:Qt6::Widgets>" "$<TARGET_FILE:mujoco::mujoco>" ${CONTROLLER_DYLIBS} "$<TARGET_FILE_DIR:SimRobot>"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::qwindows>" "$<TARGET_FILE_DIR:SimRobot>/platforms"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::qjpeg>" "$<TARGET_FILE_DIR:SimRobot>/imageformats")
 endif()
