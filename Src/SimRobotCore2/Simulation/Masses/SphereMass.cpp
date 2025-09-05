@@ -5,9 +5,14 @@
  */
 
 #include "SphereMass.h"
-#include <ode/mass.h>
 
 void SphereMass::assembleMass()
 {
-  dMassSetSphereTotal(&mass, value, radius);
+  mass = value;
+  inertia[0] = 0.4f * value * radius*radius;
+  inertia[1] = 0.4f * value * radius*radius;
+  inertia[2] = 0.4f * value * radius*radius;
+  inertia[3] = 0.f;
+  inertia[4] = 0.f;
+  inertia[5] = 0.f;
 }

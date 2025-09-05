@@ -7,16 +7,20 @@
 #include "CapsuleGeometry.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include <ode/collision.h>
+#include <mujoco/mujoco.h>
 #include <algorithm>
 
-dGeomID CapsuleGeometry::createGeometry(dSpaceID space)
+mjsGeom* CapsuleGeometry::createGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(space);
+  Geometry::createGeometry(body);
+  mjsGeom* geom = mjs_addGeom(body, nullptr);
+  geom->type = mjGEOM_CAPSULE;
+  geom->size[0] = radius;
+  geom->size[1] = 0.5f * height - radius;
   innerRadius = radius;
   innerRadiusSqr = innerRadius * innerRadius;
   outerRadius = std::max(radius, height * 0.5f);
-  return dCreateCapsule(space, radius, height - radius - radius);
+  return geom;
 }
 
 void CapsuleGeometry::createPhysics(GraphicsContext& graphicsContext)

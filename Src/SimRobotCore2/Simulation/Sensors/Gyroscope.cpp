@@ -8,8 +8,8 @@
 #include "CoreModule.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
-#include "Tools/ODETools.h"
-#include <ode/objects.h>
+#include "Simulation/Simulation.h"
+#include <mujoco/mujoco.h>
 
 Gyroscope::Gyroscope()
 {
@@ -26,10 +26,22 @@ void Gyroscope::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
+  const char* sitename = Simulation::simulation->getName(mjOBJ_SITE, "site");
+
+  mjsSite* site = mjs_addSite(sensor.body->body, nullptr);
+  mjs_setName(site->element, sitename);
   if(translation)
-    sensor.offset.translation = *translation;
+    mju_f2n(site->pos, translation->data(), 3);
+  /*
   if(rotation)
-    sensor.offset.rotation = *rotation;
+    site->quat = ...;
+   */
+
+  mjsSensor* sensor = mjs_addSensor(Simulation::simulation->spec);
+  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "gyroscope", &(this->sensor.sensorID)));
+  sensor->type = mjSENS_GYRO;
+  sensor->objtype = mjOBJ_SITE;
+  mjs_setString(sensor->objname, sitename);
 }
 
 void Gyroscope::addParent(Element& element)
@@ -49,13 +61,6 @@ void Gyroscope::registerObjects()
 
 void Gyroscope::GyroscopeSensor::updateValue()
 {
-  const dReal* angularVelInWorld = dBodyGetAngularVel(body->body);
-  dVector3 result;
-  dBodyVectorFromWorld(body->body, angularVelInWorld[0], angularVelInWorld[1], angularVelInWorld[2], result);
-  Vector3f angularVelInBody;
-  ODETools::convertVector(result, angularVelInBody);
-  const Vector3f angularVelInSensor = offset.rotation.inverse() * angularVelInBody;
-  angularVel[0] = angularVelInSensor.x();
-  angularVel[1] = angularVelInSensor.y();
-  angularVel[2] = angularVelInSensor.z();
+  ASSERT(Simulation::simulation->model->sensor_dim[sensorID] == 3);
+  mju_n2f(angularVel, Simulation::simulation->data->sensordata + Simulation::simulation->model->sensor_adr[sensorID], 3);
 }

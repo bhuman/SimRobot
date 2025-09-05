@@ -6,14 +6,15 @@
 
 #include "Mass.h"
 #include "Platform/Assert.h"
-#include "Tools/ODETools.h"
-#include <ode/mass.h>
+#include <cstring>
 
-const dMass& Mass::createMass()
+float Mass::createMass(Vector3f& com, float* inertia)
 {
   if(!created)
   {
     assembleMass();
+    ASSERT(children.empty()); // TODO
+    /*
     for(auto* iter : children)
     {
       auto* childMassDesc = dynamic_cast<Mass*>(iter);
@@ -35,12 +36,16 @@ const dMass& Mass::createMass()
       else
         dMassAdd(&mass, &childMass);
     }
+    */
     created = true;
   }
+  com = this->com;
+  std::memcpy(inertia, this->inertia, sizeof(this->inertia));
   return mass;
 }
 
 void Mass::assembleMass()
 {
-  dMassSetZero(&mass);
+  mass = 0.f;
+  std::memset(inertia, 0, sizeof(inertia));
 }

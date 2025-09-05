@@ -8,9 +8,8 @@
 #include "Platform/Assert.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Simulation.h"
-#include "Tools/ODETools.h"
 #include "Tools/OpenGLTools.h"
-#include <ode/collision.h>
+#include <mujoco/mujoco.h>
 
 void Compound::addParent(Element& element)
 {
@@ -25,7 +24,7 @@ void Compound::createPhysics(GraphicsContext& graphicsContext)
   {
     Geometry* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
-      addGeometry(poseInWorld, *geometry, nullptr);
+      addGeometry(poseInWorld, *geometry);
   }
 
   OpenGLTools::convertTransformation(rotation, translation, poseInParent);
@@ -36,7 +35,7 @@ void Compound::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.popModelMatrix();
 }
 
-void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobotCore2::CollisionCallback* callback)
+void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry)
 {
   // compute pose
   Pose3f geomPose = parentPose;
@@ -46,16 +45,16 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobo
     geomPose.rotate(*geometry.rotation);
 
   // create geometry
-  dGeomID geom = geometry.createGeometry(Simulation::simulation->staticSpace);
+  mjsGeom* geom = geometry.createGeometry(Simulation::simulation->worldbody);
   if(geom)
   {
-    dGeomSetData(geom, &geometry);
+    // dGeomSetData(geom, &geometry);
 
     // set pose
-    dGeomSetPosition(geom, geomPose.translation.x(), geomPose.translation.y(), geomPose.translation.z());
-    dMatrix3 matrix3;
-    ODETools::convertMatrix(geomPose.rotation, matrix3);
-    dGeomSetRotation(geom, matrix3);
+    mju_f2n(geom->pos, geomPose.translation.data(), 3);
+    mjtNum buf[9];
+    mju_f2n(buf, geomPose.rotation.transpose().data(), 9);
+    mju_mat2Quat(geom->quat, buf);
   }
 
   // handle nested geometries
@@ -63,7 +62,7 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobo
   {
     Geometry* geometry = dynamic_cast<Geometry*>(iter);
     if(geometry)
-      addGeometry(geomPose, *geometry, callback);
+      addGeometry(geomPose, *geometry);
   }
 }
 

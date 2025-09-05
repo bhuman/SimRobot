@@ -18,7 +18,6 @@ class Motor : public Actuator::Port
 {
 public:
   float setpoint = 0.f;
-  float stiffness = 1.f;
 
   /**
    * Creates the physical representation of the motor

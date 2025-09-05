@@ -32,7 +32,7 @@ public:
 private:
   /**
    * @class PositionSensor
-   * A position sensor interface
+   * A angle sensor interface
    */
   class PositionSensor : public Sensor::Port
   {
@@ -60,6 +60,5 @@ private:
 
   // actuator API
   void setValue(float value) override;
-  void setStiffness(float) override {};
   bool getMinAndMax(float& min, float& max) const override;
 };

@@ -6,10 +6,8 @@
 
 #pragma once
 
-#include "SimRobotCore2.h"
 #include "Simulation/SimObject.h"
 #include "Simulation/PhysicalObject.h"
-#include <ode/mass.h>
 
 /**
  * @class Mass
@@ -22,10 +20,12 @@ public:
    * Creates the mass of a physical object (including children and not including \c translation and \c rotation)
    * @return The mass
    */
-  const dMass& createMass();
+  float createMass(Vector3f& com, float* inertia);
 
 protected:
-  dMass mass;
+  float mass;
+  Vector3f com = Vector3f::Zero();
+  float inertia[6];
   bool created = false;
 
   /** Creates the mass (not including children, \c translation or \c rotation) */

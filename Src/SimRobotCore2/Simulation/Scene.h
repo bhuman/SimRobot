@@ -11,6 +11,7 @@
 #include "Simulation/Appearances/Appearance.h"
 #include "Simulation/GraphicalObject.h"
 #include "Simulation/PhysicalObject.h"
+#include "Tools/Math/Constants.h"
 #include <list>
 #include <string>
 #include <unordered_map>
@@ -32,8 +33,6 @@ public:
   float gravity; /**< The gravity in the simulated world */
   float erp; /**< ODE's erp parameter */
   float cfm; /**< ODE's cfm parameter */
-  float slip1; /**< ODE's slip1 parameter */
-  float slip2; /**< ODE's slip2 parameter */
   int contactMode = 0; /**< The default contact mode for contacts between bodies */
   float contactSoftERP;
   float contactSoftCFM;

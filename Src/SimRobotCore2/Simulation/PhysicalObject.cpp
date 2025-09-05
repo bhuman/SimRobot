@@ -7,6 +7,7 @@
 #include "PhysicalObject.h"
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
+#include "SimObjectRenderer.h"
 
 void PhysicalObject::addParent(Element& element)
 {

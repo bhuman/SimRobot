@@ -13,45 +13,17 @@
 #include "Platform/System.h"
 #include "Simulation/Body.h"
 #include "Simulation/Geometries/Geometry.h"
-#include "Simulation/Geometries/TorusGeometry.h"
 #include "Simulation/Scene.h"
-#include "Tools/ODETools.h"
-#include <ode/collision.h>
-#include <ode/collision_space.h>
-#include <ode/objects.h>
-#include <ode/odeinit.h>
+#include <mujoco/mujoco.h>
 #include <algorithm>
 #include <cmath>
-#ifdef MULTI_THREADING
-#include <ode/threading_impl.h>
-#include <thread>
-#endif
 
 Simulation* Simulation::simulation = nullptr;
-
-#ifdef WINDOWS
-static void odeHandler(const char* prefix, int errnum, const char* msg, va_list ap)
-{
-  char buf[1000];
-  vsprintf(buf, msg, ap);
-  OutputDebugString((prefix + ("(" + std::to_string(errnum)) + "): " + buf + "\n").c_str());
-}
-
-static void odeDebugHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE debug", errnum, msg, ap); }
-static void odeErrorHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE error", errnum, msg, ap); }
-static void odeMessageHandler(int errnum, const char* msg, va_list ap) { odeHandler("ODE message", errnum, msg, ap); }
-
-#endif
 
 Simulation::Simulation()
 {
   ASSERT(!simulation);
   simulation = this;
-#ifdef WINDOWS
-  dSetDebugHandler(&odeDebugHandler);
-  dSetErrorHandler(&odeErrorHandler);
-  dSetMessageHandler(&odeMessageHandler);
-#endif
 }
 
 Simulation::~Simulation()
@@ -59,22 +31,10 @@ Simulation::~Simulation()
   for(ElementCore2* element : elements)
     delete element;
 
-  if(contactGroup)
-    dJointGroupDestroy(contactGroup);
-  if(rootSpace)
-    dSpaceDestroy(rootSpace);
-  if(physicalWorld)
-  {
-#ifdef MULTI_THREADING
-    dThreadingImplementationShutdownProcessing(threading);
-    dThreadingThreadPoolWaitIdleState(pool);
-    dThreadingFreeThreadPool(pool);
-    dWorldSetStepThreadingImplementation(physicalWorld, nullptr, nullptr);
-    dThreadingFreeImplementation(threading);
-#endif
-    dWorldDestroy(physicalWorld);
-    dCloseODE();
-  }
+  if(data)
+    mj_deleteData(data);
+  if(model)
+    mj_deleteModel(model);
 
   ASSERT(simulation == this);
   simulation = nullptr;
@@ -100,31 +60,71 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
 
   ASSERT(scene);
 
-  dInitODE();
-  physicalWorld = dWorldCreate();
-  rootSpace = dHashSpaceCreate(nullptr);
-  staticSpace = dHashSpaceCreate(rootSpace);
-  movableSpace = dHashSpaceCreate(rootSpace);
-  contactGroup = dJointGroupCreate(0);
+  spec = mj_makeSpec();
+  ASSERT(spec);
 
-  TorusGeometry::registerGeometryClass();
-  dWorldSetGravity(physicalWorld, REAL(0.), REAL(0.), static_cast<dReal>(scene->gravity));
-  if(scene->erp != -1.f)
-    dWorldSetERP(physicalWorld, scene->erp);
-  if(scene->cfm != -1.f)
-    dWorldSetCFM(physicalWorld, scene->cfm);
-  if(scene->quickSolverIterations != -1)
-    dWorldSetQuickStepNumIterations(physicalWorld, scene->quickSolverIterations);
-#ifdef MULTI_THREADING
-  threading = dThreadingAllocateMultiThreadedImplementation();
-  pool = dThreadingAllocateThreadPool(std::thread::hardware_concurrency(), 0, dAllocateFlagBasicData, nullptr);
-  dThreadingThreadPoolServeMultiThreadedImplementation(pool, threading);
-  dWorldSetStepThreadingImplementation(physicalWorld, dThreadingImplementationGetFunctions(threading), threading);
-#endif
+  spec->compiler.degree = 0;
+  spec->compiler.inertiafromgeom = mjINERTIAFROMGEOM_AUTO;
+
+  spec->option.timestep = scene->stepLength;
+  spec->option.apirate = scene->stepLength;
+  spec->option.integrator = 0;
+  spec->option.iterations = 50;
+  spec->option.tolerance = 1e-6;
+  spec->option.solver = 2;
+  spec->option.jacobian = 2;
+  spec->option.gravity[0] = mjtNum(0);
+  spec->option.gravity[1] = mjtNum(0);
+  spec->option.gravity[2] = mjtNum(scene->gravity);
+
+  /*spec->option.enableflags |= mjENBL_OVERRIDE;
+
+  // 2. Reibung (o_friction) setzen:
+  spec->option.o_friction[0] = 1.0;     // sliding
+  spec->option.o_friction[1] = 1.0;   // torsional
+  spec->option.o_friction[2] = 0.005;  // rolling
+  // Für volle Kompatibilität:
+  spec->option.o_friction[3] = 0.0001;
+  spec->option.o_friction[4] = 0.0001;
+   */
+  // 3. solref setzen (Timeconst, Damping):
+  /* spec->option.o_solref[0] = 0.02;
+   spec->option.o_solref[1] = 1.0;
+
+   // 4. solimp setzen (Impedance-Koeffizienten):
+   spec->option.o_solimp[0] = 0.9;
+   spec->option.o_solimp[1] = 0.95;
+   spec->option.o_solimp[2] = 0.001;
+   spec->option.o_solimp[3] = 0.5;
+   spec->option.o_solimp[4] = 2.0;
+   spec->option.o_margin = 0;*/
+
+  worldbody = mjs_findBody(spec, "world");
 
   graphicsContext.pushModelMatrixStack();
   scene->createPhysics(graphicsContext);
   graphicsContext.popModelMatrixStack();
+
+  model = mj_compile(spec, nullptr);
+
+  if(!model)
+  {
+    errors.push_back(mjs_getError(spec));
+    return false;
+  }
+
+  data = mj_makeData(model);
+  ASSERT(data);
+
+  for(auto& n : names)
+  {
+    const int id = mj_name2id(model, n.type, n.name.c_str());
+    ASSERT(id >= 0);
+    // if(n.type == mjOBJ_BODY) bodymap[id] = n.obj;
+    // if(n.type == mjOBJ_GEOM) geommap[id] = n.obj;
+    if(n.idptr)
+      *(n.idptr) = id;
+  }
 
   graphicsContext.pushModelMatrixStack();
   scene->createGraphics(graphicsContext);
@@ -165,139 +165,25 @@ void Simulation::doSimulationStep()
   ++simulationStep;
   simulatedTime += scene->stepLength;
 
+  mj_step1(model, data);
+
   scene->updateActuators();
 
-  collisions = contactPoints = 0;
+  mj_step2(model, data);
 
-  dSpaceCollide2(reinterpret_cast<dGeomID>(staticSpace), reinterpret_cast<dGeomID>(movableSpace), this, reinterpret_cast<dNearCallback*>(&staticCollisionWithSpaceCallback));
-  if(scene->detectBodyCollisions)
-    dSpaceCollide(movableSpace, this, reinterpret_cast<dNearCallback*>(&staticCollisionSpaceWithSpaceCallback));
+  std::memset(data->xfrc_applied, 0, model->nbody * 6 * sizeof(mjtNum));
 
-  if(scene->useQuickSolver && (simulationStep % scene->quickSolverSkip) == 0)
-    dWorldQuickStep(physicalWorld, scene->stepLength);
-  else
-    dWorldStep(physicalWorld, scene->stepLength);
-  dJointGroupEmpty(contactGroup);
+  collisions = contactPoints = data->ncon; // TODO MJC
+  /*
+  for(int i = 0; i < data->ncon; ++i)
+  {
+    const int geom1 = data->contact[i].geom[0];
+    const int geom2 = data->contact[i].geom[1];
+    fprintf(stderr, "%d %d\n", geom1, geom2);
+  }
+   */
 
   updateFrameRate();
-}
-
-void Simulation::staticCollisionWithSpaceCallback(Simulation* simulation, dGeomID geomId1, dGeomID geomId2)
-{
-  ASSERT(!dGeomIsSpace(geomId1));
-  ASSERT(dGeomIsSpace(geomId2));
-  dSpaceCollide2(geomId1, geomId2, simulation, reinterpret_cast<dNearCallback*>(&staticCollisionCallback));
-}
-
-void Simulation::staticCollisionSpaceWithSpaceCallback(Simulation* simulation, dGeomID geomId1, dGeomID geomId2)
-{
-  ASSERT(dGeomIsSpace(geomId1));
-  ASSERT(dGeomIsSpace(geomId2));
-  dSpaceCollide2(geomId1, geomId2, simulation, reinterpret_cast<dNearCallback*>(&staticCollisionCallback));
-}
-
-void Simulation::staticCollisionCallback(Simulation* simulation, dGeomID geomId1, dGeomID geomId2)
-{
-  ASSERT(!dGeomIsSpace(geomId1));
-  ASSERT(!dGeomIsSpace(geomId2));
-
-#ifndef NDEBUG
-  {
-    dBodyID bodyId1 = dGeomGetBody(geomId1);
-    dBodyID bodyId2 = dGeomGetBody(geomId2);
-    ASSERT(bodyId1 || bodyId2);
-
-    Body* body1 = bodyId1 ? static_cast<Body*>(dBodyGetData(bodyId1)) : nullptr;
-    Body* body2 = bodyId2 ? static_cast<Body*>(dBodyGetData(bodyId2)) : nullptr;
-    ASSERT(!body1 || !body2 || body1->rootBody != body2->rootBody);
-  }
-#endif
-
-  dContact contact[32];
-  int collisions = dCollide(geomId1, geomId2, 32, &contact[0].geom, sizeof(dContact));
-  if(collisions <= 0)
-    return;
-
-  Geometry* geometry1 = static_cast<Geometry*>(dGeomGetData(geomId1));
-  Geometry* geometry2 = static_cast<Geometry*>(dGeomGetData(geomId2));
-
-  if(geometry1->collisionCallbacks && !geometry2->immaterial)
-  {
-    for(SimRobotCore2::CollisionCallback* callback : *geometry1->collisionCallbacks)
-      callback->collided(*geometry1, *geometry2);
-    if(geometry1->immaterial)
-      return;
-  }
-  if(geometry2->collisionCallbacks && !geometry1->immaterial)
-  {
-    for(SimRobotCore2::CollisionCallback* callback : *geometry2->collisionCallbacks)
-      callback->collided(*geometry2, *geometry1);
-    if(geometry2->immaterial)
-      return;
-  }
-
-  dBodyID bodyId1 = dGeomGetBody(geomId1);
-  dBodyID bodyId2 = dGeomGetBody(geomId2);
-  ASSERT(bodyId1 || bodyId2);
-
-  float friction = 1.f;
-  if(geometry1->material && geometry2->material)
-  {
-    if(!geometry1->material->getFriction(*geometry2->material, friction))
-      friction = 1.f;
-
-    float rollingFriction;
-    if(bodyId1)
-      switch(dGeomGetClass(geomId1))
-      {
-        case dSphereClass:
-        case dCapsuleClass:
-        case dCylinderClass:
-          if(geometry1->material->getRollingFriction(*geometry2->material, rollingFriction))
-          {
-            dBodySetAngularDamping(bodyId1, 0.2f);
-            Vector3f linearVel;
-            ODETools::convertVector(dBodyGetLinearVel(bodyId1), linearVel);
-            linearVel -= linearVel.normalized(std::min(linearVel.norm(), rollingFriction * simulation->scene->stepLength));
-            dBodySetLinearVel(bodyId1, linearVel.x(), linearVel.y(), linearVel.z());
-          }
-          break;
-      }
-    if(bodyId2)
-      switch(dGeomGetClass(geomId2))
-      {
-        case dSphereClass:
-        case dCapsuleClass:
-        case dCylinderClass:
-          if(geometry2->material->getRollingFriction(*geometry1->material, rollingFriction))
-          {
-            dBodySetAngularDamping(bodyId2, 0.2f);
-            Vector3f linearVel;
-            ODETools::convertVector(dBodyGetLinearVel(bodyId2), linearVel);
-            linearVel -= linearVel.normalized(std::min(linearVel.norm(), rollingFriction * simulation->scene->stepLength));
-            dBodySetLinearVel(bodyId2, linearVel.x(), linearVel.y(), linearVel.z());
-          }
-          break;
-      }
-  }
-
-  for(dContact* cont = contact, * end = contact + collisions; cont < end; ++cont)
-  {
-    cont->surface.mode = simulation->scene->contactMode | dContactApprox1;
-    cont->surface.mu = friction;
-
-    cont->surface.soft_erp = simulation->scene->contactSoftERP;
-    cont->surface.soft_cfm = simulation->scene->contactSoftCFM;
-    cont->surface.slip1 = simulation->scene->slip1;
-    cont->surface.slip2 = simulation->scene->slip2;
-
-    dJointID c = dJointCreateContact(simulation->physicalWorld, simulation->contactGroup, cont);
-    ASSERT(bodyId1 == dGeomGetBody(cont->geom.g1));
-    ASSERT(bodyId2 == dGeomGetBody(cont->geom.g2));
-    dJointAttach(c, bodyId1, bodyId2);
-  }
-  ++simulation->collisions;
-  simulation->contactPoints += collisions;
 }
 
 void Simulation::updateFrameRate()
@@ -317,6 +203,6 @@ void Simulation::updateFrameRate()
 void Simulation::registerObjects()
 {
   scene->fullName = scene->name.c_str();
-  CoreModule::application->registerObject(*CoreModule::module, *scene, nullptr);
+  CoreModule::application->registerObject(*CoreModule::module, *scene, 0);
   scene->registerObjects();
 }

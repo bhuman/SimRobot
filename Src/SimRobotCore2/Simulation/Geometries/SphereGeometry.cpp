@@ -7,15 +7,18 @@
 #include "SphereGeometry.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include <ode/collision.h>
+#include <mujoco/mujoco.h>
 
-dGeomID SphereGeometry::createGeometry(dSpaceID space)
+mjsGeom* SphereGeometry::createGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(space);
+  Geometry::createGeometry(body);
+  mjsGeom* geom = mjs_addGeom(body, nullptr);
+  geom->type = mjGEOM_SPHERE;
+  geom->size[0] = radius;
   innerRadius = radius;
   innerRadiusSqr = innerRadius * innerRadius;
   outerRadius = radius;
-  return dCreateSphere(space, radius);
+  return geom;
 }
 
 void SphereGeometry::createPhysics(GraphicsContext& graphicsContext)

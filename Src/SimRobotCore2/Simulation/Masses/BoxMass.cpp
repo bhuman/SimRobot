@@ -5,9 +5,13 @@
  */
 
 #include "BoxMass.h"
-#include <ode/mass.h>
 
 void BoxMass::assembleMass()
 {
-  dMassSetBoxTotal(&mass, value, depth, width, height);
+  mass = value;
+  inertia[0] = value * (width*width + height*height) / 12.f;
+  inertia[1] = value * (depth*depth + height*height) / 12.f;
+  inertia[2] = value * (depth*depth + width*width) / 12.f;
+  inertia[3] = inertia[4] = inertia[5] = 0.f;
+  // dMassSetBoxTotal(&mass, value, depth, width, height);
 }

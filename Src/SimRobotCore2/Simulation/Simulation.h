@@ -8,13 +8,12 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/Appearances/ComplexAppearance.h"
-#include <ode/common.h>
-#ifdef MULTI_THREADING
-#include <ode/threading.h>
-#endif
 #include <string>
 #include <list>
 #include <unordered_map>
+#include <mujoco/mjdata.h>
+#include <mujoco/mjmodel.h>
+#include <mujoco/mjspec.h>
 
 class Scene;
 class ElementCore2;
@@ -31,14 +30,10 @@ public:
   Scene* scene = nullptr; /**< The root of the scene graph */
   std::list<ElementCore2*> elements; /**< All scene graph elements */
 
-  dWorldID physicalWorld = nullptr; /**< The physical world */
-  dSpaceID rootSpace = nullptr; /**< The root collision space */
-  dSpaceID staticSpace = nullptr; /**< The collision space for static objects */
-  dSpaceID movableSpace = nullptr; /**< The collision space for movable objects */
-#ifdef MULTI_THREADING
-  dThreadingImplementationID threading; /**< Needed for multithreaded physics. */
-  dThreadingThreadPoolID pool; /**< The thread pool for physics. */
-#endif
+  mjSpec* spec = nullptr; /**< ... */
+  mjModel* model = nullptr; /**< ... */
+  mjData* data = nullptr; /**< ... */
+  mjsBody* worldbody = nullptr;
 
   GraphicsContext graphicsContext; /**< The object that does graphics. */
   GraphicsContext::Mesh* xAxisMesh = nullptr; /**< The mesh for the x axis in object renderers. */
@@ -69,9 +64,17 @@ public:
   /**
    * Loads a file and initializes the simulation
    * @param filename The name of the file
-   * @param errors The errors that occurred during parsing.
+   * @param errors The errors that occured during parsing.
    */
   bool loadFile(const std::string& filename, std::list<std::string>& errors);
+
+  const char* getName(int type, const char* prefix, int* idptr = nullptr)
+  {
+    static int ctr = 0;
+    std::string name = std::string(prefix) + "_" + std::to_string(ctr++);
+    names.emplace_back(type, name, idptr);
+    return names.back().name.c_str();
+  }
 
   /** Executes one simulation step */
   void doSimulationStep();
@@ -84,34 +87,16 @@ public:
   void registerObjects();
 
 private:
-  dJointGroupID contactGroup = nullptr; /**< The joint group for temporary contact joints used for collision handling */
-
   /** Computes the frame rate of simulation */
   void updateFrameRate();
   unsigned int lastFrameRateComputationTime = 0;
   unsigned int lastFrameRateComputationStep = 0;
 
-  /**
-   * Static callback method for handling the collision of two geometries
-   * @param simulation The simulation
-   * @param geom1 The first geometry object for collision testing
-   * @param geom2 The second geometry object for collision testing
-   */
-  static void staticCollisionCallback(Simulation *simulation, dGeomID geom1, dGeomID geom2);
-
-  /**
-   * Static callback method for handling the collision of a static geometry with a movable space
-   * @param simulation The simulation
-   * @param geom1 The first geometry object for collision testing
-   * @param geom2 The second geometry object for collision testing
-   */
-  static void staticCollisionWithSpaceCallback(Simulation *simulation, dGeomID geom1, dGeomID geom2);
-
-  /**
-   * Static callback method for handling the collision of two movable spaces
-   * @param simulation The simulation
-   * @param geom1 The first geometry object for collision testing
-   * @param geom2 The second geometry object for collision testing
-   */
-  static void staticCollisionSpaceWithSpaceCallback(Simulation *simulation, dGeomID geom1, dGeomID geom2);
+  struct RegName
+  {
+    int type;
+    std::string name;
+    int* idptr = nullptr;
+  };
+  std::list<RegName> names;
 };

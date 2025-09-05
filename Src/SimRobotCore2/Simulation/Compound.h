@@ -31,9 +31,8 @@ private:
    * Creates a stationary ODE geometry
    * @param parentPose The pose of the group or geometry
    * @param geometry A geometry description
-   * @param callback A collision callback function attached to the geometry
    */
-  void addGeometry(const Pose3f& parentPose, Geometry& geometry, SimRobotCore2::CollisionCallback* callback);
+  void addGeometry(const Pose3f& parentPose, Geometry& geometry);
 
   /**
    * Creates resources to later draw the object in the given graphics context

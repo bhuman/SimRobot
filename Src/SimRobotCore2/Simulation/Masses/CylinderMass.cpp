@@ -5,9 +5,8 @@
  */
 
 #include "CylinderMass.h"
-#include <ode/mass.h>
 
 void CylinderMass::assembleMass()
 {
-  dMassSetCylinderTotal(&mass, value, 3, radius, height);
+  // dMassSetCylinderTotal(&mass, value, 3, radius, height);
 }

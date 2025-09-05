@@ -23,7 +23,7 @@ private:
    * @param space A space to create the geometry in
    * @param The created geometry
    */
-  dGeomID createGeometry(dSpaceID space) override;
+  mjsGeom* createGeometry(mjsBody* body) override;
 
   /**
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).

@@ -13,13 +13,14 @@
 #include "SimRobotCore2.h"
 #include "Simulation/Axis.h"
 #include "Simulation/Motors/Motor.h"
-#include <ode/objects.h>
 #include <cmath>
 
 Joint::~Joint()
 {
+  /*
   if(joint)
     dJointDestroy(joint);
+  */
 }
 
 void Joint::createPhysics(GraphicsContext& graphicsContext)

@@ -10,8 +10,7 @@
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/PhysicalObject.h"
 #include "Simulation/GraphicalObject.h"
-#include <ode/common.h>
-#include <ode/mass.h>
+#include <mujoco/mjspec.h>
 #include <list>
 
 class Geometry;
@@ -24,10 +23,10 @@ class Mass;
 class Body : public PhysicalObject, public GraphicalObject, public SimRobotCore2::Body
 {
 public:
-  dBodyID body = nullptr;
+  mjsBody* body = nullptr;
   Body* rootBody = nullptr; /**< The first movable body in a chain of bodies (might point to itself) */
-  dMass mass; /**< The mass of the body (at \c centerOfMass)*/
-  bool collideWithParent = false; /**< Check for collisions with parent bodies. */
+  int idx = -1;
+  int xxx; // TODO better name?
 
   /** Default constructor */
   Body();
@@ -71,7 +70,8 @@ private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
   Vector3f velocityInWorld; /**< A buffer used by \c getVelocity */
 
-  dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
+  // dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
+  mjtNum* q = nullptr; /**< Only root bodies (i.e. bodies with a freejoint) have this */
 
   std::list<Body*> bodyChildren; /**< List of first-degree child bodies that are connected to this body over a joint */
 

@@ -14,8 +14,7 @@
 #include "Tools/Math/Constants.h"
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
-#include <ode/collision.h>
-#include <ode/objects.h>
+#include <mujoco/mujoco.h>
 #include <QOpenGLFunctions_3_3_Core>
 
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
@@ -135,9 +134,8 @@ void SimObjectRenderer::draw()
   // If the object is neither a physical nor a graphical object, nothing happens, but in that case, nothing (except for a coordinate system) will be drawn anyway.
   if(&simObject != Simulation::simulation->scene && (physicalObject || graphicalObject))
   {
-    auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
+    const auto* modelMatrix = physicalObject ? physicalObject->modelMatrix : graphicalObject->modelMatrix;
     ASSERT(modelMatrix);
-    modelMatrix->updateMemory();
     Eigen::Map<const Matrix4f> objectInWorldMatrix(modelMatrix->getPointer());
     const Pose3f objectInWorld(RotationMatrix(objectInWorldMatrix.topLeftCorner<3, 3>()), objectInWorldMatrix.topRightCorner<3, 1>());
     if(renderFlags & showAsGlobalView)
@@ -359,59 +357,28 @@ Body* SimObjectRenderer::selectObject(const Vector3f& projectedClick)
   if(&simObject != Simulation::simulation->scene)
     return nullptr;
 
-  class Callback
-  {
-  public:
-    Body* closestBody;
-    float closestSqrDistance;
-    const Vector3f& cameraPos;
+  const Vector3f dir = projectedClick - cameraPos;
 
-    Callback(const Vector3f& cameraPos) : closestBody(0), cameraPos(cameraPos) {}
-
-    static void staticCollisionCallback(Callback* callback, dGeomID geom1, dGeomID geom2)
-    {
-      ASSERT(!dGeomIsSpace(geom1));
-      ASSERT(!dGeomIsSpace(geom2));
-      ASSERT(dGeomGetBody(geom1) || dGeomGetBody(geom2));
-      dContact contact[1];
-      if(dCollide(geom1, geom2, 1, &contact[0].geom, sizeof(dContact)) < 1)
-        return;
-
-      dGeomID geom = geom2;
-      dBodyID bodyId = dGeomGetBody(geom2);
-      if(!bodyId)
-      {
-        bodyId = dGeomGetBody(geom1);
-        geom = geom1;
-      }
-      const dReal* pos = dGeomGetPosition(geom);
-      float sqrDistance = (Vector3f(static_cast<float>(pos[0]), static_cast<float>(pos[1]), static_cast<float>(pos[2])) - callback->cameraPos).squaredNorm();
-      if(!callback->closestBody || sqrDistance < callback->closestSqrDistance)
-      {
-        callback->closestBody = static_cast<Body*>(dBodyGetData(bodyId));
-        callback->closestSqrDistance = sqrDistance;
-      }
-    }
-
-    static void staticCollisionWithSpaceCallback(Callback* callback, dGeomID geom1, dGeomID geom2)
-    {
-      ASSERT(!dGeomIsSpace(geom1));
-      ASSERT(dGeomIsSpace(geom2));
-      dSpaceCollide2(geom1, geom2, callback, reinterpret_cast<dNearCallback*>(&staticCollisionCallback));
-    }
-  };
-
-  Callback callback(cameraPos);
-  dGeomID ray = dCreateRay(Simulation::simulation->staticSpace, 10000.f);
-  Vector3f dir = projectedClick - cameraPos;
-  dGeomRaySet(ray, cameraPos.x(), cameraPos.y(), cameraPos.z(), dir.x(), dir.y(), dir.z());
-  dSpaceCollide2(ray, reinterpret_cast<dGeomID>(Simulation::simulation->movableSpace), &callback, reinterpret_cast<dNearCallback*>(&Callback::staticCollisionWithSpaceCallback));
-  dGeomDestroy(ray);
-
-  if(!callback.closestBody)
+  int geomid = -1;
+  const mjtNum origin[3] = {cameraPos.x(), cameraPos.y(), cameraPos.z()};
+  const mjtNum dir2[3] = {dir.x(), dir.y(), dir.z()};
+  const mjtNum dist = mj_ray(Simulation::simulation->model, Simulation::simulation->data, origin, dir2, nullptr, 0, -1, &geomid);
+  if(dist < mjtNum(0))
     return nullptr;
-  Body* body = callback.closestBody;
-  return body->rootBody;
+  ASSERT(geomid >= 0);
+  ASSERT(geomid < Simulation::simulation->model->ngeom);
+  const int bodyid = Simulation::simulation->model->geom_bodyid[geomid];
+  ASSERT(bodyid > 0); // 0 is worldbody, we excluded that by setting flg_static=0 in the call to mj_ray.
+  ASSERT(bodyid < Simulation::simulation->model->nbody);
+  // very ugly: We rather want a map from geom/body ID to object pointer
+  for(auto* body : Simulation::simulation->scene->bodies)
+  {
+    if(body->idx == bodyid)
+      return body->rootBody;
+  }
+  // TODO: At the moment we only find root bodies.
+  // ASSERT(false);
+  return nullptr;
 }
 
 bool SimObjectRenderer::startDrag(int x, int y, DragType type)
@@ -527,6 +494,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
   }
   else // object control
   {
+    ASSERT(dragSelection->rootBody == dragSelection);
     if(dragMode == applyDynamics)
       return true;
     Vector3f projectedClick = projectClick(x, y);
@@ -562,9 +530,10 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           const unsigned int now = System::getTime();
           const float t = std::max(1U, now - dragStartTime) * 0.001f;
           Vector3f velocity = offset / t;
-          const dReal* oldVel = dBodyGetAngularVel(dragSelection->body);
-          velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
-          dBodySetAngularVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
+          // TODO MJC:
+          // const dReal* oldVel = dBodyGetAngularVel(dragSelection->body);
+          // velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
+          // dBodySetAngularVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
           dragStartTime = now;
         }
         dragStartPos = currentPos;
@@ -578,9 +547,10 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           const unsigned int now = System::getTime();
           const float t = std::max(1U, now - dragStartTime) * 0.001f;
           Vector3f velocity = offset / t;
-          const dReal* oldVel = dBodyGetLinearVel(dragSelection->body);
-          velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
-          dBodySetLinearVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
+          // TODO MJC:
+          // const dReal* oldVel = dBodyGetLinearVel(dragSelection->body);
+          // velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
+          // dBodySetLinearVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
           dragStartTime = now;
         }
         dragStartPos = currentPos;
@@ -631,14 +601,14 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
             angle = normalize(std::atan2(newV.y(), newV.x()) - std::atan2(oldV.y(), oldV.x()));
 
           const Vector3f offset = dragPlaneVector * angle;
-          const Vector3f torque = offset * static_cast<float>(dragSelection->mass.mass) * 50.f;
-          dBodyAddTorque(dragSelection->body, torque.x(), torque.y(), torque.z());
+          const Vector3f torque = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->idx]) * 50.f;
+          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->idx * 6 + 3, torque.data(), 3);
         }
         else
         {
           const Vector3f offset = currentPos - dragStartPos;
-          const Vector3f force = offset * static_cast<float>(dragSelection->mass.mass) * 500.f;
-          dBodyAddForce(dragSelection->body, force.x(), force.y(), force.z());
+          const Vector3f force = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->idx]) * 500.f;
+          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->idx * 6, force.data(), 3);
         }
       }
     }

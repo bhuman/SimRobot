@@ -21,7 +21,6 @@
 #include "Simulation/Geometries/CapsuleGeometry.h"
 #include "Simulation/Geometries/CylinderGeometry.h"
 #include "Simulation/Geometries/SphereGeometry.h"
-#include "Simulation/Geometries/TorusGeometry.h"
 #include "Simulation/Masses/BoxMass.h"
 #include "Simulation/Masses/CapsuleMass.h"
 #include "Simulation/Masses/CylinderMass.h"
@@ -32,13 +31,11 @@
 #include "Simulation/Motors/VelocityMotor.h"
 #include "Simulation/Scene.h"
 #include "Simulation/Sensors/Accelerometer.h"
-#include "Simulation/Sensors/ApproxDistanceSensor.h"
 #include "Simulation/Sensors/Camera.h"
 #include "Simulation/Sensors/CollisionSensor.h"
 #include "Simulation/Sensors/DepthImageSensor.h"
 #include "Simulation/Sensors/Gyroscope.h"
 #include "Simulation/Sensors/ObjectSegmentedImageSensor.h"
-#include "Simulation/Sensors/SingleDistanceSensor.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/UserInput.h"
 
@@ -102,8 +99,6 @@ ParserCore2::ParserCore2()
       0, translationClass | rotationClass | materialClass, setClass | geometryClass, {}},
     {"CapsuleGeometry", geometryClass, std::bind(&ParserCore2::capsuleGeometryElement, this), nullptr, 0,
       0, translationClass | rotationClass | materialClass, setClass | geometryClass, {}},
-    {"TorusGeometry", geometryClass, std::bind(&ParserCore2::torusGeometryElement, this), nullptr, 0,
-      0, translationClass | rotationClass | materialClass, setClass | geometryClass, {}},
 
     {"Material", materialClass, std::bind(&ParserCore2::materialElement, this), nullptr, constantFlag,
       0, 0, setClass | frictionClass, {}},
@@ -164,10 +159,6 @@ ParserCore2::ParserCore2()
       0, translationClass | rotationClass, geometryClass, {}},
     {"ObjectSegmentedImageSensor", extSensorClass, std::bind(&ParserCore2::objectSegmentedImageSensorElement, this), nullptr, 0,
       0, translationClass | rotationClass, 0, {}},
-    {"SingleDistanceSensor", extSensorClass, std::bind(&ParserCore2::singleDistanceSensorElement, this), nullptr, 0,
-      0, translationClass | rotationClass, 0, {}},
-    {"ApproxDistanceSensor", extSensorClass, std::bind(&ParserCore2::approxDistanceSensorElement, this), nullptr, 0,
-      0, translationClass | rotationClass, 0, {}},
     {"DepthImageSensor", extSensorClass, std::bind(&ParserCore2::depthImageSensorElement, this), nullptr, 0,
       0, translationClass | rotationClass, 0, {}},
 
@@ -211,20 +202,19 @@ Element* ParserCore2::sceneElement()
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
   scene->cfm = getFloatMinMax("CFM", false, -1.f, 0.f, 1.f);
   scene->erp = getFloatMinMax("ERP", false, -1.f, 0.f, 1.f);
-  scene->slip1 = getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
-  if(scene->slip1 != -1.f)
-    scene->contactMode |= dContactSlip1;
-  scene->slip2 = getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
-  if(scene->slip2 != -1.f)
-    scene->contactMode |= dContactSlip2;
-
   scene->contactSoftERP = getFloatMinMax("contactSoftERP", false, -1.f, 0.f, 1.f);
+  /*
   if(scene->contactSoftERP != -1.f)
     scene->contactMode |= dContactSoftERP;
+    */
   scene->contactSoftCFM = getFloatMinMax("contactSoftCFM", false, -1.f, 0.f, 1.f);
+  /*
   if(scene->contactSoftCFM != -1.f)
     scene->contactMode |= dContactSoftCFM;
+  */
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
+  getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
+  getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
 
   ASSERT(!Simulation::simulation->scene);
   Simulation::simulation->scene = scene;
@@ -291,7 +281,6 @@ Element* ParserCore2::bodyElement()
 {
   Body* body = new Body();
   body->name = getString("name", false);
-  body->collideWithParent = getBool("collideWithParent", false, false);
   return body;
 }
 
@@ -425,16 +414,6 @@ Element* ParserCore2::capsuleGeometryElement()
   capsuleGeometry->radius = getLength("radius", true, 0.f, true);
   capsuleGeometry->height = getLength("height", true, 0.f, true);
   return capsuleGeometry;
-}
-
-Element* ParserCore2::torusGeometryElement()
-{
-  TorusGeometry* torusGeometry = new TorusGeometry();
-  getColor("color", false, torusGeometry->color);
-  torusGeometry->name = getString("name", false);
-  torusGeometry->majorRadius = getLength("majorRadius", true, 0.f, true);
-  torusGeometry->minorRadius = getLength("minorRadius", true, 0.f, true);
-  return torusGeometry;
 }
 
 Element* ParserCore2::materialElement()
@@ -720,7 +699,8 @@ Element* ParserCore2::deflectionElement()
   {
     deflection->min = getAngle("min", true, 0.f, false);
     deflection->max = getAngle("max", true, 0.f, false);
-    deflection->offset = getAngle("init", false, 0.f, false);
+    deflection->offset = getAngle("offset", false, 0.f, false);
+    deflection->init = getAngle("init", false, 0.f, false);
   }
   else if(dynamic_cast<Slider*>(axis->joint))
   {
@@ -730,7 +710,7 @@ Element* ParserCore2::deflectionElement()
   else
     ASSERT(false);
 
-  deflection->setStops = getBool("isActive", false, true);
+  getBool("isActive", false, true);
   deflection->stopCFM = getFloatMinMax("stopCFM", false, -1.f, 0.f, 1.f);
   deflection->stopERP = getFloatMinMax("stopERP", false, -1.f, 0.f, 1.f);
 
@@ -764,24 +744,23 @@ Element* ParserCore2::servoMotorElement()
   ASSERT(!axis->motor);
 
   if(dynamic_cast<Hinge*>(axis->joint))
-    servoMotor->forceController.maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
+    servoMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
   else if(dynamic_cast<Slider*>(axis->joint))
-    servoMotor->forceController.maxVelocity = getVelocity("maxVelocity", true, 0.f);
+    servoMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f);
   else
     ASSERT(false);
 
-  servoMotor->forceController.maxForce = getForce("maxForce", true, 0.f);
-  servoMotor->forceController.fudgeFactor = getFloat("fudgeFactor", false, -1.f);
-  servoMotor->forceController.minFeedbackForce = getFloat("minFeedbackForce", false, -1.f);
-  servoMotor->forceController.maxFeedbackForce = getFloat("maxFeedbackForce", false, -1.f);
-  servoMotor->forceController.maxPositionDiff = getFloat("maxPositionDiff", false, -1.f);
-  servoMotor->forceController.maxForceGrowth = getFloat("maxForceGrowth", false, -1.f);
-
+  servoMotor->maxForce = getForce("maxForce", true, 0.f);
+  getFloat("fudgeFactor", false, -1.f);
+  getFloat("minFeedbackForce", false, -1.f);
+  getFloat("maxFeedbackForce", false, -1.f);
+  getFloat("maxPositionDiff", false, -1.f);
+  getFloat("maxForceGrowth", false, -1.f);
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
 
-  servoMotor->isNaoMotor = getBool("isNaoMotor", false, 0.f);
+  getBool("isNaoMotor", false, 0.f);
 
   axis->motor = servoMotor;
   return nullptr;
@@ -860,26 +839,6 @@ Element* ParserCore2::objectSegmentedImageSensorElement()
   camera->angleX = getAngle("angleX", true, 0.f, true);
   camera->angleY = getAngle("angleY", true, 0.f, true);
   return camera;
-}
-
-Element* ParserCore2::singleDistanceSensorElement()
-{
-  SingleDistanceSensor* singleDistanceSensor = new SingleDistanceSensor();
-  singleDistanceSensor->name = getString("name", false);
-  singleDistanceSensor->min = getLength("min", false, 0.f, false);
-  singleDistanceSensor->max = getLength("max", false, 999999.f, false);
-  return singleDistanceSensor;
-}
-
-Element* ParserCore2::approxDistanceSensorElement()
-{
-  ApproxDistanceSensor* approxDistanceSensor = new ApproxDistanceSensor();
-  approxDistanceSensor->name = getString("name", false);
-  approxDistanceSensor->min = getLength("min", false, 0.f, false);
-  approxDistanceSensor->max = getLength("max", false, 999999.f, false);
-  approxDistanceSensor->angleX = getAngle("angleX", true, 0.f, true);
-  approxDistanceSensor->angleY = getAngle("angleY", true, 0.f, true);
-  return approxDistanceSensor;
 }
 
 Element* ParserCore2::depthImageSensorElement()

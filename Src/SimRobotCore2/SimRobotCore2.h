@@ -1,5 +1,5 @@
 /**
- * @file SimRobotCore2/SimRobotCore2.h
+ * @file SimRobotCore2.h
  * Declaration of an interface to the SimRobotCore2
  * @author Colin Graf
  */
@@ -616,7 +616,7 @@ namespace SimRobotCore2
     int getKind() const override {return actuatorPort;}
 
     virtual void setValue(float value) = 0;
-    virtual void setStiffness(float value) = 0;
+    virtual void setStiffness(float) {}
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**

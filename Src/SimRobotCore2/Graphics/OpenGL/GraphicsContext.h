@@ -8,16 +8,13 @@
 
 #pragma once
 
+#include "Graphics/OpenGL.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include <stack>
 #include <unordered_map>
 #include <vector>
-
-#include <qopengl.h>
-#undef near
-#undef far
 
 class Light;
 class QOffscreenSurface;
@@ -256,9 +253,6 @@ public:
      * @return A pointer to the calculated column-major 4x4 mmodel matrix.
      */
     const float* getPointer() const {return memory.data();}
-
-    /** Updates the memory for the final product. */
-    void updateMemory();
 
   private:
     Pose3f constantPart; /**< The constant part of the model matrix. */

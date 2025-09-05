@@ -5,9 +5,15 @@
  */
 
 #include "InertiaMatrixMass.h"
-#include <ode/mass.h>
 
 void InertiaMatrixMass::assembleMass()
 {
-  dMassSetParameters(&mass, value, x, y, z, ixx, iyy, izz, ixy, ixz, iyz);
+  mass = value;
+  com = Vector3f(x, y, z);
+  inertia[0] = ixx;
+  inertia[1] = iyy;
+  inertia[2] = izz;
+  inertia[3] = ixy;
+  inertia[4] = ixz;
+  inertia[5] = iyz;
 }

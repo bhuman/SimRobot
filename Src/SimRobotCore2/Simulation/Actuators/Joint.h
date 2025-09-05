@@ -9,7 +9,6 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/Actuators/Actuator.h"
-#include <ode/common.h>
 
 class Axis;
 
@@ -21,7 +20,9 @@ class Joint : public Actuator
 {
 public:
   Axis* axis = nullptr;
-  dJointID joint = nullptr;
+  const char* jointname = nullptr;
+  int jointID = -1;
+  // TODO: later, we may need an index to control it
 
   /** Destructor */
   ~Joint();

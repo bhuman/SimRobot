@@ -23,7 +23,7 @@ void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
     if(geometry)
     {
       hasGeometries = true;
-      Pose3f geomOffset(-parentBody->centerOfMass);
+      Pose3f geomOffset;
       if(translation)
         geomOffset.translate(*translation);
       if(rotation)

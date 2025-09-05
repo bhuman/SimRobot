@@ -5,9 +5,8 @@
  */
 
 #include "CapsuleMass.h"
-#include <ode/mass.h>
 
 void CapsuleMass::assembleMass()
 {
-  dMassSetCapsuleTotal(&mass, value, 3, radius, height - radius - radius);
+  // dMassSetCapsuleTotal(&mass, value, 3, radius, height - radius - radius);
 }

@@ -15,7 +15,7 @@
 #include "Simulation/Simulation.h"
 #include "Platform/Assert.h"
 #include "Tools/Math/Rotation.h"
-#include <ode/objects.h>
+#include <mujoco/mujoco.h>
 
 void Hinge::createPhysics(GraphicsContext& graphicsContext)
 {
@@ -38,37 +38,59 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   ASSERT(childBody);
   ASSERT(childBody->body);
 
-  // create joint
-  joint = dJointCreateHinge(Simulation::simulation->physicalWorld, 0);
-  dJointAttach(joint, childBody->body, parentBody ? parentBody->body : 0);
-  //set hinge joint parameter
-  dJointSetHingeAnchor(joint, poseInWorld.translation.x(), poseInWorld.translation.y(), poseInWorld.translation.z());
-  const Vector3f globalAxis = poseInWorld.rotation * Vector3f(axis->x, axis->y, axis->z);
-  dJointSetHingeAxis(joint, globalAxis.x(), globalAxis.y(), globalAxis.z());
+  // TODO: only if axis has a motor?
+  jointname = Simulation::simulation->getName(mjOBJ_JOINT, "hinge", &(jointID));
+  mjsJoint* joint = mjs_addJoint(childBody->body, nullptr);
+  mjs_setName(joint->element, jointname);
+  joint->type = mjJNT_HINGE;
+
+  const Vector3f positionInChild = childBody->poseInWorld.inverse() * poseInWorld.translation;
+  mju_f2n(joint->pos, positionInChild.data(), 3);
+  const Vector3f axisInChild = childBody->poseInWorld.inverse() * poseInWorld * Vector3f(axis->x, axis->y, axis->z);
+  mju_f2n(joint->axis, axisInChild.data(), 3);
+  joint->ref = 0.0;
+
+  joint->stiffness = 1.f;
+
+  // joint->springref = 1.f;
+
+  //joint->damping = 0.9f;
+
+  if(axis->deflection)
+  {
+    joint->limited = mjLIMITED_TRUE;
+    joint->range[0] = axis->deflection->min;
+    joint->range[1] = axis->deflection->max;
+    joint->ref = axis->deflection->offset; // TODO: is this necessary?
+  }
+
+  //Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointID]] = deflection->init;
+
+  /*
   if(axis->cfm != -1.f)
     dJointSetHingeParam(joint, dParamCFM, axis->cfm);
 
   if(axis->deflection)
   {
     const Axis::Deflection& deflection = *axis->deflection;
+    float minHingeLimit = deflection.min;
+    float maxHingeLimit = deflection.max;
+    if(minHingeLimit > maxHingeLimit)
+      minHingeLimit = maxHingeLimit;
 
-    // Only set stops if requested
-    if(deflection.setStops)
+    // A servo motor will handle the limits, so ignore them here
+    // This is incorrect if the servo motor is not strong enough.
+    if(!dynamic_cast<ServoMotor*>(axis->motor))
     {
-      float minHingeLimit = deflection.min;
-      float maxHingeLimit = deflection.max;
-      if(minHingeLimit > maxHingeLimit)
-        minHingeLimit = maxHingeLimit;
-
       dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
       dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
+      if(deflection.stopCFM != -1.f)
+        dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
+      if(deflection.stopERP != -1.f)
+        dJointSetHingeParam(joint, dParamStopERP, deflection.stopERP);
     }
-
-    if(deflection.stopCFM != -1.f)
-      dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
-    if(deflection.stopERP != -1.f)
-      dJointSetHingeParam(joint, dParamStopERP, deflection.stopERP);
   }
+   */
 
   // create motor
   if(axis->motor)

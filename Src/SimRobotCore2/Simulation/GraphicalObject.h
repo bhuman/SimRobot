@@ -12,6 +12,7 @@
 #include <list>
 
 class GraphicsContext;
+class SimObjectRenderer;
 
 /**
  * @class GraphicalObject

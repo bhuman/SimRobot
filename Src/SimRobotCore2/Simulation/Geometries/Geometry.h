@@ -9,7 +9,7 @@
 #include "SimRobotCore2.h"
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/PhysicalObject.h"
-#include <ode/common.h>
+#include <mujoco/mjspec.h>
 #include <list>
 #include <string>
 #include <unordered_map>
@@ -76,10 +76,10 @@ public:
 
   /**
    * Creates the geometry (not including \c translation and \c rotation)
-   * @param space A space to create the geometry in
+   * @param body The body to which to attach the geometry
    * @return The created geometry
    */
-  virtual dGeomID createGeometry(dSpaceID space);
+  virtual mjsGeom* createGeometry(mjsBody* body);
 
   /**
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).

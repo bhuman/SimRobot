@@ -8,10 +8,7 @@
 
 #pragma once
 
-#include "Graphics/GraphicsContext.h"
 #include "Simulation/Sensors/Sensor.h"
-#include "Tools/Math/Eigen.h"
-#include "Tools/Math/Pose3f.h"
 
 /**
  * @class ObjectSegmentedImageSensor

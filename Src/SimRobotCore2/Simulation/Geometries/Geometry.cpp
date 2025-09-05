@@ -24,7 +24,7 @@ void Geometry::addParent(Element& element)
   ::PhysicalObject::addParent(element);
 }
 
-dGeomID Geometry::createGeometry(dSpaceID)
+mjsGeom* Geometry::createGeometry(mjsBody*)
 {
   if(!created)
   {
@@ -74,7 +74,6 @@ bool Geometry::unregisterCollisionCallback(SimRobotCore2::CollisionCallback& col
 void Geometry::Material::addParent(Element& element)
 {
   Geometry* geometry = dynamic_cast<Geometry*>(&element);
-  ASSERT(geometry);
   ASSERT(!geometry->material);
   geometry->material = this;
 }

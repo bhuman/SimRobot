@@ -11,7 +11,6 @@
 #include "Simulation/Axis.h"
 #include "Simulation/Scene.h"
 #include "Simulation/Simulation.h"
-#include <ode/objects.h>
 #include <cmath>
 
 PT2Motor::PT2Motor()
@@ -24,9 +23,9 @@ PT2Motor::PT2Motor()
 
 void PT2Motor::create(Joint* joint)
 {
-  ASSERT(dJointGetType(joint->joint) == dJointTypeHinge);
+  // ASSERT(dJointGetType(joint->joint) == dJointTypeHinge);
   this->joint = positionSensor.joint = joint;
-  dJointSetHingeParam(joint->joint, dParamFMax, F);
+  // dJointSetHingeParam(joint->joint, dParamFMax, F);
 }
 
 void PT2Motor::act()
@@ -37,7 +36,7 @@ void PT2Motor::act()
     return;
 
   const float dt = Simulation::simulation->scene->stepLength;
-  const float y = static_cast<float>(dJointGetHingeAngle(joint->joint));
+  const float y = 0.f; // TODO MJC: static_cast<float>(dJointGetHingeAngle(joint->joint));
 
   ASSERT(T != 0.f);
   const float dx = dt / T * (K * lastSetpoints[0] - y - 2 * D * x);
@@ -47,7 +46,8 @@ void PT2Motor::act()
 
   lastSetpoints.pop_front();
 
-  dJointSetHingeParam(joint->joint, dParamVel, yd);
+  // TODO MJC:
+  // dJointSetHingeParam(joint->joint, dParamVel, yd);
 }
 
 void PT2Motor::setValue(float value)
@@ -77,7 +77,7 @@ bool PT2Motor::getMinAndMax(float& min, float& max) const
 
 void PT2Motor::PositionSensor::updateValue()
 {
-  data.floatValue = static_cast<float>(dJointGetHingeAngle(joint->joint));
+  data.floatValue = 0.f; // TODO MJC: static_cast<float>(dJointGetHingeAngle(joint->joint));
 }
 
 bool PT2Motor::PositionSensor::getMinAndMax(float& min, float& max) const

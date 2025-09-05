@@ -71,7 +71,6 @@ private:
   Element* sphereGeometryElement();
   Element* cylinderGeometryElement();
   Element* capsuleGeometryElement();
-  Element* torusGeometryElement();
   Element* materialElement();
   Element* frictionElement();
   Element* rollingFrictionElement();
@@ -107,8 +106,6 @@ private:
   Element* cameraElement();
   Element* collisionSensorElement();
   Element* objectSegmentedImageSensorElement();
-  Element* singleDistanceSensorElement();
-  Element* approxDistanceSensorElement();
   Element* depthImageSensorElement();
   Element* userInputElement();
 

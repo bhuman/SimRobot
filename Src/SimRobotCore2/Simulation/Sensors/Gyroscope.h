@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Simulation/Sensors/Sensor.h"
-#include "Tools/Math/Pose3f.h"
 
 class Body;
 
@@ -31,7 +30,7 @@ private:
   public:
     Body* body; /**< The body where the gyroscope is mounted on. */
     float angularVel[4]; /**< The sensor reading. */
-    Pose3f offset; /**< Offset of the sensor relative to the body. */
+    int sensorID = -1; /**< The ID within the sensor array of MuJoCo. */
 
     /** Update the sensor value. Is called when required. */
     void updateValue() override;

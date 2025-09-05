@@ -7,17 +7,22 @@
 #include "BoxGeometry.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include <ode/collision.h>
+#include <mujoco/mujoco.h>
 #include <algorithm>
 #include <cmath>
 
-dGeomID BoxGeometry::createGeometry(dSpaceID space)
+mjsGeom* BoxGeometry::createGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(space);
+  Geometry::createGeometry(body);
+  mjsGeom* geom = mjs_addGeom(body, nullptr);
+  geom->type = mjGEOM_BOX;
+  geom->size[0] = 0.5f * depth;
+  geom->size[1] = 0.5f * width;
+  geom->size[2] = 0.5f * height;
   innerRadius = std::min(std::min(depth, width), height) * 0.5f;
   innerRadiusSqr = innerRadius * innerRadius;
   outerRadius = std::sqrt(depth * depth * 0.25f + width * width * 0.25f + height * height * 0.25f);
-  return dCreateBox(space, depth, width, height);
+  return geom;
 }
 
 void BoxGeometry::createPhysics(GraphicsContext& graphicsContext)

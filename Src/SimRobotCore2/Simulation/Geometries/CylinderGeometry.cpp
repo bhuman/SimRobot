@@ -7,16 +7,20 @@
 #include "CylinderGeometry.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
-#include <ode/collision.h>
+#include <mujoco/mujoco.h>
 #include <cmath>
 
-dGeomID CylinderGeometry::createGeometry(dSpaceID space)
+mjsGeom* CylinderGeometry::createGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(space);
+  Geometry::createGeometry(body);
+  mjsGeom* geom = mjs_addGeom(body, nullptr);
+  geom->type = mjGEOM_CYLINDER;
+  geom->size[0] = radius;
+  geom->size[1] = 0.5f * height;
   innerRadius = radius;
   innerRadiusSqr = innerRadius * innerRadius;
   outerRadius = std::sqrt(height * height * 0.25f + radius * radius);
-  return dCreateCylinder(space, radius, height);
+  return geom;
 }
 
 void CylinderGeometry::createPhysics(GraphicsContext& graphicsContext)

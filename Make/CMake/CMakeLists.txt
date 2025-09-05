@@ -162,7 +162,7 @@ endif()
 
 include("../CMake/Box2D.cmake")
 include("../CMake/Eigen.cmake")
-include("../CMake/ODE.cmake")
+include("../CMake/MuJoCo.cmake")
 include("../CMake/Qt6.cmake")
 include("../CMake/SimRobot.cmake")
 include("../CMake/SimRobotCommon.cmake")

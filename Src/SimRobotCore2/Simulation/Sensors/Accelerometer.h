@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Simulation/Sensors/Sensor.h"
-#include "Tools/Math/Pose3f.h"
 
 class Body;
 
@@ -30,15 +29,8 @@ private:
   {
   public:
     Body* body; /**< The body where the accelerometer is mounted on. */
-    float linearVelInWorld[4]; /**< The linear velocity of the body where the accelerometer is mounted on. */
     float linearAcc[4]; /**< The sensor reading. */
-    Pose3f offset; /**< Offset of the sensor relative to the body. */
-
-    /** Default constructor */
-    AccelerometerSensor()
-    {
-      linearVelInWorld[0] = linearVelInWorld[1] = linearVelInWorld[2] = 0.f;
-    }
+    int sensorID = -1; /**< The ID within the sensor array of MuJoCo. */
 
     /** Update the sensor value. Is called when required. */
     void updateValue() override;
