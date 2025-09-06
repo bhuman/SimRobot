@@ -416,6 +416,7 @@ void Body::move(const float* pos, const float (*rot)[3])
   RotationMatrix targetRotation = (RotationMatrix() << rot[0][0], rot[1][0], rot[2][0],
                                    rot[0][1], rot[1][1], rot[2][1],
                                    rot[0][2], rot[1][2], rot[2][2]).finished();
+  targetRotation.transposeInPlace();
 
   mjtNum buf[9];
   mju_f2n(buf, targetRotation.data(), 9);
