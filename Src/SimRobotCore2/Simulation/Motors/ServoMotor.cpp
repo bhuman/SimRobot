@@ -52,7 +52,6 @@ void ServoMotor::create(Joint* joint)
 
 void ServoMotor::act()
 {
-  const Axis::Deflection* deflection = joint->axis->deflection;
   if(!isInitialized)
   {
     ASSERT(joint->joint->type == mjJNT_HINGE || joint->joint->type == mjJNT_SLIDE);
@@ -78,9 +77,7 @@ void ServoMotor::act()
 
 float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float vel)
 {
-  //const float deltaTime = Simulation::simulation->scene->stepLength;
   const float error = setpoint - currentPos;
-  //errorSum += i * error * deltaTime;
   const float result = p * error - d * vel;
   lastError = error;
   return result;
