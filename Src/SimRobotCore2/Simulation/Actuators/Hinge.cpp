@@ -21,13 +21,11 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
 {
   ASSERT(axis);
 
-  //
   axis->create();
 
   if(axis->deflection && axis->deflection->offset != 0.f)
-    poseInWorld.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset));
+    poseInWorld.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * -axis->deflection->offset));
 
-  //
   Joint::createPhysics(graphicsContext);
 
   // find bodies to connect

@@ -27,14 +27,9 @@ ServoMotor::ServoMotor()
 
 void ServoMotor::create(Joint* joint)
 {
-  // ASSERT(joint->joint->type == mjJNT_HINGE || joint->joint->type == mjJNT_SLIDE);
   this->joint = joint;
   positionSensor.servoMotor = this;
   velocitySensor.servoMotor = this;
-  /*
-  if(joint->joint->type == mjJNT_HINGE)
-    lastPos = 0.f; // TODO: This does not work: Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointID]];
-   */
 
   mjsActuator* actuator = mjs_addActuator(Simulation::simulation->spec, nullptr);
 
@@ -60,14 +55,8 @@ void ServoMotor::act()
   const Axis::Deflection* deflection = joint->axis->deflection;
   if(!isInitialized)
   {
+    ASSERT(joint->joint->type == mjJNT_HINGE || joint->joint->type == mjJNT_SLIDE);
     isInitialized = true;
-    if(deflection)
-    {
-      Simulation::simulation->model->jnt_range[2 * joint->jointID + 0] = deflection->min;  // unteres Limit
-      Simulation::simulation->model->jnt_range[2 * joint->jointID + 1] = deflection->max;  // oberes Limit
-      Simulation::simulation->model->jnt_limited[joint->jointID] = mjLIMITED_TRUE;       // 1 = aktiv, 0 = deaktiviert
-      //Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointID]] = deflection->init;
-    }
 
     Simulation::simulation->model->dof_damping[Simulation::simulation->model->jnt_dofadr[joint->jointID]] = 0.01f;
     Simulation::simulation->model->dof_armature[Simulation::simulation->model->jnt_dofadr[joint->jointID]] = 0.01f;
@@ -77,14 +66,7 @@ void ServoMotor::act()
   float currentPos = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointID]]);
   float currentVel = static_cast<float>(Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointID]]);
 
-  /*if (Simulation::simulation->model->jnt_type[joint->jointID] == mjJNT_HINGE)
-  {
-    const float diff = normalize(currentPos - normalize(lastPos));
-    currentPos = lastPos + diff;
-    lastPos = currentPos;
-  }*/
-
-  float setpoint = this->setpoint - (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
+  float setpoint = this->setpoint;
 
   float newVel = controller.getOutput(currentPos, setpoint, currentVel);
   if(newVel > maxForce)
@@ -131,7 +113,7 @@ bool ServoMotor::getMinAndMax(float& min, float& max) const
 
 void ServoMotor::PositionSensor::updateValue()
 {
-  data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[servoMotor->joint->jointID]]) + (servoMotor->joint->axis->deflection ? servoMotor->joint->axis->deflection->offset : 0.f);
+    data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[servoMotor->joint->jointID]]);
   if(Simulation::simulation->model->jnt_type[servoMotor->joint->jointID] == mjJNT_HINGE)
   {
     const float diff = normalize(data.floatValue - normalize(servoMotor->lastPos));

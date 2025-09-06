@@ -26,7 +26,6 @@ public:
     float stopCFM = -1.f;
     float stopERP = -1.f;
     float offset = 0.f;
-    float init = 0.f;
   };
 
   float x = 0.f;
