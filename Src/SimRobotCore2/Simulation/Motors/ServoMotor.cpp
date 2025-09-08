@@ -54,7 +54,8 @@ void ServoMotor::act()
 {
   if(!isInitialized)
   {
-    ASSERT(joint->joint->type == mjJNT_HINGE || joint->joint->type == mjJNT_SLIDE);
+    ASSERT(Simulation::simulation->model->jnt_type[joint->jointID] == mjJNT_HINGE ||
+        Simulation::simulation->model->jnt_type[joint->jointID] == mjJNT_SLIDE);
     isInitialized = true;
 
     Simulation::simulation->model->dof_damping[Simulation::simulation->model->jnt_dofadr[joint->jointID]] = 0.01f;
