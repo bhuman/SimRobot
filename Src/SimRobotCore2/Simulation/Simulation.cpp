@@ -68,11 +68,11 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
 
   spec->option.timestep = scene->stepLength;
   spec->option.apirate = scene->stepLength;
-  spec->option.integrator = 0;
+  spec->option.integrator = mjINT_EULER;
   spec->option.iterations = 50;
   spec->option.tolerance = 1e-6;
-  spec->option.solver = 2;
-  spec->option.jacobian = 2;
+  spec->option.solver = mjSOL_NEWTON;
+  spec->option.jacobian = mjJAC_AUTO;
   spec->option.gravity[0] = mjtNum(0);
   spec->option.gravity[1] = mjtNum(0);
   spec->option.gravity[2] = mjtNum(scene->gravity);
@@ -99,31 +99,40 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
    spec->option.o_solimp[4] = 2.0;
    spec->option.o_margin = 0;*/
 
-  worldbody = mjs_findBody(spec, "world");
+  worldBody = mjs_findBody(spec, "world");
 
   graphicsContext.pushModelMatrixStack();
   scene->createPhysics(graphicsContext);
   graphicsContext.popModelMatrixStack();
 
+  worldBody = nullptr;
+
   model = mj_compile(spec, nullptr);
 
   if(!model)
-  {
     errors.push_back(mjs_getError(spec));
+
+  mj_deleteSpec(spec);
+  spec = nullptr;
+
+  if(!model)
     return false;
-  }
 
   data = mj_makeData(model);
   ASSERT(data);
 
-  for(auto& n : names)
+  bodyMap.resize(model->nbody);
+  geometryMap.resize(model->ngeom);
+  for(auto& name : names)
   {
-    const int id = mj_name2id(model, n.type, n.name.c_str());
+    const int id = mj_name2id(model, name.type, name.name.c_str());
     ASSERT(id >= 0);
-    // if(n.type == mjOBJ_BODY) bodymap[id] = n.obj;
-    // if(n.type == mjOBJ_GEOM) geommap[id] = n.obj;
-    if(n.idptr)
-      *(n.idptr) = id;
+    if(name.type == mjOBJ_BODY)
+      bodyMap[id] = static_cast<Body*>(name.object);
+    else if(name.type == mjOBJ_GEOM)
+      geometryMap[id] = static_cast<Geometry*>(name.object);
+    if(name.indexPointer)
+      *(name.indexPointer) = id;
   }
 
   graphicsContext.pushModelMatrixStack();
@@ -173,15 +182,26 @@ void Simulation::doSimulationStep()
 
   std::memset(data->xfrc_applied, 0, model->nbody * 6 * sizeof(mjtNum));
 
-  collisions = contactPoints = data->ncon; // TODO MJC
-  /*
+  collisions = 0;
+  contactPoints = data->ncon;
   for(int i = 0; i < data->ncon; ++i)
   {
     const int geom1 = data->contact[i].geom[0];
     const int geom2 = data->contact[i].geom[1];
-    fprintf(stderr, "%d %d\n", geom1, geom2);
+    // Only report the first contact of each collision. (This assumes that the array is ordered.)
+    if(i && geom1 == data->contact[i - 1].geom[0] && geom2 == data->contact[i - 1].geom[1])
+      continue;
+    ++collisions;
+    if(auto* geometry1 = geometryMap[geom1], * geometry2 = geometryMap[geom2]; geometry1 && geometry2)
+    {
+      if(geometry1->collisionCallbacks)
+        for(auto* callback : *geometry1->collisionCallbacks)
+          callback->collided(*geometry1, *geometry2);
+      if(geometry2->collisionCallbacks)
+        for(auto* callback : *geometry2->collisionCallbacks)
+          callback->collided(*geometry2, *geometry1);
+    }
   }
-   */
 
   updateFrameRate();
 }

@@ -13,25 +13,12 @@
 #include "Simulation/Simulation.h"
 #include <mujoco/mujoco.h>
 
-Body::Body()
-{
-  // dMassSetZero(&mass);
-}
-
 void Body::addParent(Element& element)
 {
   ASSERT(!parent);
   parent = dynamic_cast<::PhysicalObject*>(&element);
   parent->physicalChildren.push_back(this);
   SimObject::addParent(element);
-}
-
-Body::~Body()
-{
-  /*
-  if(body)
-    dBodyDestroy(body);
-   */
 }
 
 void Body::createPhysics(GraphicsContext& graphicsContext)
@@ -47,15 +34,14 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   }
   else
   {
-    static int gxxx = 0;
-    xxx = ++gxxx;
     Simulation::simulation->scene->bodies.push_back(this);
     rootBody = this;
-    body = mjs_addBody(Simulation::simulation->worldbody, nullptr);
+    body = mjs_addBody(Simulation::simulation->worldBody, nullptr);
+    xxx = static_cast<int>(Simulation::simulation->scene->bodies.size());
     mjs_addFreeJoint(body);
   }
 
-  mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "body", &idx));
+  mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "body", &bodyIndex, this));
 
   // add masses
   for(SimObject* iter : children)
@@ -236,8 +222,8 @@ void Body::createGraphics(GraphicsContext& graphicsContext)
 void Body::updateTransformation()
 {
   // get pose from MuJoCo
-  mju_n2f(poseInWorld.translation.data(), Simulation::simulation->data->xpos + idx * 3, 3);
-  mju_n2f(poseInWorld.rotation.data(), Simulation::simulation->data->xmat + idx * 9, 9);
+  mju_n2f(poseInWorld.translation.data(), Simulation::simulation->data->xpos + bodyIndex * 3, 3);
+  mju_n2f(poseInWorld.rotation.data(), Simulation::simulation->data->xmat + bodyIndex * 9, 9);
   // from MuJoCo's row major format to column major
   poseInWorld.rotation.transposeInPlace();
 
@@ -287,14 +273,14 @@ void Body::move(const Vector3f& offset)
 {
   if(rootBody != this)
     return;
-  const mjtNum* pos = Simulation::simulation->data->xpos + idx * 3;
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int qidx = Simulation::simulation->model->jnt_qposadr[jidx];
-  Simulation::simulation->data->qpos[qidx] = pos[0] + offset.x();
-  Simulation::simulation->data->qpos[qidx + 1] = pos[1] + offset.y();
-  Simulation::simulation->data->qpos[qidx + 2] = pos[2] + offset.z();
+  const mjtNum* pos = Simulation::simulation->data->xpos + bodyIndex * 3;
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int poseIndex = Simulation::simulation->model->jnt_qposadr[jointIndex];
+  Simulation::simulation->data->qpos[poseIndex] = pos[0] + offset.x();
+  Simulation::simulation->data->qpos[poseIndex + 1] = pos[1] + offset.y();
+  Simulation::simulation->data->qpos[poseIndex + 2] = pos[2] + offset.z();
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);
@@ -307,22 +293,22 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
   if(rootBody != this)
     return;
   Pose3f comPose;
-  mju_n2f(comPose.translation.data(), Simulation::simulation->data->xpos + idx * 3, 3);
-  mju_n2f(comPose.rotation.data(), Simulation::simulation->data->xmat + idx * 9, 9);
+  mju_n2f(comPose.translation.data(), Simulation::simulation->data->xpos + bodyIndex * 3, 3);
+  mju_n2f(comPose.rotation.data(), Simulation::simulation->data->xmat + bodyIndex * 9, 9);
   comPose.rotation.transposeInPlace();
 
   comPose.translation = rotation * (comPose.translation - point) + point;
   comPose.rotation = rotation * comPose.rotation;
   comPose.rotation.transposeInPlace();
 
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int qidx = Simulation::simulation->model->jnt_qposadr[jidx];
-  mju_f2n(Simulation::simulation->data->qpos + qidx, comPose.translation.data(), 3);
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int poseIndex = Simulation::simulation->model->jnt_qposadr[jointIndex];
+  mju_f2n(Simulation::simulation->data->qpos + poseIndex, comPose.translation.data(), 3);
   mjtNum buf[9];
   mju_f2n(buf, comPose.rotation.data(), 9);
-  mju_mat2Quat(Simulation::simulation->data->qpos + qidx + 3, buf);
+  mju_mat2Quat(Simulation::simulation->data->qpos + poseIndex + 3, buf);
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);
@@ -333,15 +319,15 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
 const float* Body::getPosition() const
 {
   Pose3f& pose = const_cast<Body*>(this)->poseInWorld;
-  mju_n2f(pose.translation.data(), Simulation::simulation->data->xpos + idx * 3, 3);
+  mju_n2f(pose.translation.data(), Simulation::simulation->data->xpos + bodyIndex * 3, 3);
   return pose.translation.data();
 }
 
 bool Body::getPose(float* pos, float (*rot)[3]) const
 {
   Pose3f& pose = const_cast<Body*>(this)->poseInWorld;
-  mju_n2f(pose.translation.data(), Simulation::simulation->data->xpos + idx * 3, 3);
-  mju_n2f(pose.rotation.data(), Simulation::simulation->data->xmat + idx * 9, 9);
+  mju_n2f(pose.translation.data(), Simulation::simulation->data->xpos + bodyIndex * 3, 3);
+  mju_n2f(pose.rotation.data(), Simulation::simulation->data->xmat + bodyIndex * 9, 9);
   pose.rotation.transposeInPlace();
 
   pos[0] = pose.translation.x();
@@ -367,11 +353,11 @@ const float* Body::getVelocity() const
   // This is only possible for bodies that are connected to the worldbody via a freejoint.
   Vector3f& velocity = const_cast<Body*>(this)->velocityInWorld;
 
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int dqidx = Simulation::simulation->model->jnt_dofadr[jidx];
-  mju_n2f(velocity.data(), Simulation::simulation->data->qvel + dqidx, 3);
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int velocityIndex = Simulation::simulation->model->jnt_dofadr[jointIndex];
+  mju_n2f(velocity.data(), Simulation::simulation->data->qvel + velocityIndex, 3);
   return velocity.data();
 }
 
@@ -380,22 +366,22 @@ void Body::setVelocity(const float* velocity)
   if(rootBody != this)
     return;
   // TODO: Is this world or body coordinates?
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int dqidx = Simulation::simulation->model->jnt_dofadr[jidx];
-  mju_f2n(Simulation::simulation->data->qvel + dqidx, velocity, 3);
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int velocityIndex = Simulation::simulation->model->jnt_dofadr[jointIndex];
+  mju_f2n(Simulation::simulation->data->qvel + velocityIndex, velocity, 3);
 }
 
 void Body::move(const float* pos)
 {
   if(rootBody != this)
     return;
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int qidx = Simulation::simulation->model->jnt_qposadr[jidx];
-  mju_f2n(Simulation::simulation->data->qpos + qidx, pos, 3);
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int poseIndex = Simulation::simulation->model->jnt_qposadr[jointIndex];
+  mju_f2n(Simulation::simulation->data->qpos + poseIndex, pos, 3);
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);
@@ -405,12 +391,14 @@ void Body::move(const float* pos)
 
 void Body::move(const float* pos, const float (*rot)[3])
 {
+  if(rootBody != this)
+    return;
   // Set translation
-  ASSERT(Simulation::simulation->model->body_jntnum[idx] == 1);
-  const int jidx = Simulation::simulation->model->body_jntadr[idx];
-  ASSERT(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE);
-  const int qidx = Simulation::simulation->model->jnt_qposadr[jidx];
-  mju_f2n(Simulation::simulation->data->qpos + qidx, pos, 3);
+  ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
+  const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
+  ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+  const int poseIndex = Simulation::simulation->model->jnt_qposadr[jointIndex];
+  mju_f2n(Simulation::simulation->data->qpos + poseIndex, pos, 3);
 
   // Set rotation
   RotationMatrix targetRotation = (RotationMatrix() << rot[0][0], rot[1][0], rot[2][0],
@@ -420,7 +408,7 @@ void Body::move(const float* pos, const float (*rot)[3])
 
   mjtNum buf[9];
   mju_f2n(buf, targetRotation.data(), 9);
-  mju_mat2Quat(Simulation::simulation->data->qpos + qidx + 3, buf);
+  mju_mat2Quat(Simulation::simulation->data->qpos + poseIndex + 3, buf);
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);
@@ -430,20 +418,7 @@ void Body::move(const float* pos, const float (*rot)[3])
 
 void Body::resetDynamics()
 {
-  for(int j = 0; j < Simulation::simulation->model->body_jntnum[idx]; ++j)
-  {
-    const int jidx = Simulation::simulation->model->body_jntadr[idx];
-    const int dqidx = Simulation::simulation->model->jnt_dofadr[jidx];
-    // TODO: Is there any other chance to get number of DoFs?
-    if(Simulation::simulation->model->jnt_type[jidx] == mjJNT_FREE)
-      std::memset(Simulation::simulation->data->qvel + dqidx, 0, 6 * sizeof(mjtNum));
-    else if(Simulation::simulation->model->jnt_type[jidx] == mjJNT_HINGE)
-      std::memset(Simulation::simulation->data->qvel + dqidx, 0, 1 * sizeof(mjtNum));
-    else if(Simulation::simulation->model->jnt_type[jidx] == mjJNT_SLIDE)
-      std::memset(Simulation::simulation->data->qvel + dqidx, 0, 1 * sizeof(mjtNum));
-    else
-      ASSERT(false); // we don't support ball joints
-  }
+  mju_zero(Simulation::simulation->data->qvel + Simulation::simulation->model->body_dofadr[bodyIndex], Simulation::simulation->model->body_dofnum[bodyIndex]);
   for(Body* child : bodyChildren)
     child->resetDynamics();
 }
@@ -458,11 +433,11 @@ void Body::enablePhysics(bool enable)
     --Simulation::simulation->model->ngravcomp;
   else
     ++Simulation::simulation->model->ngravcomp;
-  Simulation::simulation->model->body_gravcomp[idx] = enable ? 0.f : 1.f;
+  Simulation::simulation->model->body_gravcomp[bodyIndex] = enable ? 0.f : 1.f;
 
   // TODO: we would rather keep the body out of the broadphase at all
   // enable/disable collisions with associated geoms
-  Simulation::simulation->model->body_contype[idx] = Simulation::simulation->model->body_conaffinity[idx] = enable ? 1 : 0;
+  Simulation::simulation->model->body_contype[bodyIndex] = Simulation::simulation->model->body_conaffinity[bodyIndex] = enable ? 1 : 0;
 
   for(Body* child : bodyChildren)
     child->enablePhysics(enable);
@@ -470,7 +445,7 @@ void Body::enablePhysics(bool enable)
 
 void Body::enableGravity(bool enable)
 {
-  Simulation::simulation->model->body_gravcomp[idx] = enable ? 0.f : 1.f; // TODO
+  Simulation::simulation->model->body_gravcomp[bodyIndex] = enable ? 0.f : 1.f; // TODO
   for(Body* child : bodyChildren)
     child->enableGravity(enable);
 }

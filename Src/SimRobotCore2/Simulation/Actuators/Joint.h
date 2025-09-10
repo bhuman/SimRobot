@@ -20,8 +20,8 @@ class Joint : public Actuator
 {
 public:
   Axis* axis = nullptr;
-  const char* jointname = nullptr;
-  int jointID = -1;
+  const char* jointName = nullptr;
+  int jointIndex = -1;
   // TODO: later, we may need an index to control it
 
   /** Destructor */

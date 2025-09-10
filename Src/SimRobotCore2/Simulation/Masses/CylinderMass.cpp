@@ -8,5 +8,8 @@
 
 void CylinderMass::assembleMass()
 {
-  // dMassSetCylinderTotal(&mass, value, 3, radius, height);
+  mass = value;
+  inertia[0] = inertia[1] = value * (0.25f * radius * radius + height * height / 12.f);
+  inertia[2] = 0.5f * value * radius * radius;
+  inertia[3] = inertia[4] = inertia[5] = 0.f;
 }

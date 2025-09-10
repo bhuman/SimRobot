@@ -45,7 +45,7 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry)
     geomPose.rotate(*geometry.rotation);
 
   // create geometry
-  mjsGeom* geom = geometry.createGeometry(Simulation::simulation->worldbody);
+  mjsGeom* geom = geometry.createGeometry(Simulation::simulation->worldBody);
   if(geom)
   {
     // dGeomSetData(geom, &geometry);

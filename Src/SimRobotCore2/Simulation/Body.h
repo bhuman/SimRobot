@@ -25,11 +25,8 @@ class Body : public PhysicalObject, public GraphicalObject, public SimRobotCore2
 public:
   mjsBody* body = nullptr;
   Body* rootBody = nullptr; /**< The first movable body in a chain of bodies (might point to itself) */
-  int idx = -1;
+  int bodyIndex = -1; /**< The index of the body in MuJoCo's data. */
   int xxx; // TODO better name?
-
-  /** Default constructor */
-  Body();
 
   /**
    * Creates resources to later draw the object in the given graphics context
@@ -71,12 +68,8 @@ private:
   Vector3f velocityInWorld; /**< A buffer used by \c getVelocity */
 
   // dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
-  mjtNum* q = nullptr; /**< Only root bodies (i.e. bodies with a freejoint) have this */
 
   std::list<Body*> bodyChildren; /**< List of first-degree child bodies that are connected to this body over a joint */
-
-  /** Destructor */
-  ~Body();
 
   /**
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).

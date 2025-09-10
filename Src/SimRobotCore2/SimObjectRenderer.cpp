@@ -360,26 +360,19 @@ Body* SimObjectRenderer::selectObject(const Vector3f& projectedClick)
 
   const Vector3f dir = projectedClick - cameraPos;
 
-  int geomid = -1;
-  const mjtNum origin[3] = {cameraPos.x(), cameraPos.y(), cameraPos.z()};
-  const mjtNum dir2[3] = {dir.x(), dir.y(), dir.z()};
-  const mjtNum dist = mj_ray(Simulation::simulation->model, Simulation::simulation->data, origin, dir2, nullptr, 0, -1, &geomid);
-  if(dist < mjtNum(0))
+  int geometryIndex = -1;
+  mjtNum origin[3], dir2[3];
+  mju_f2n(origin, cameraPos.data(), 3);
+  mju_f2n(dir2, dir.data(), 3);
+  const mjtNum dist = mj_ray(Simulation::simulation->model, Simulation::simulation->data, origin, dir2, nullptr, 0, -1, &geometryIndex);
+  if(dist < static_cast<mjtNum>(0))
     return nullptr;
-  ASSERT(geomid >= 0);
-  ASSERT(geomid < Simulation::simulation->model->ngeom);
-  const int bodyid = Simulation::simulation->model->geom_bodyid[geomid];
-  ASSERT(bodyid > 0); // 0 is worldbody, we excluded that by setting flg_static=0 in the call to mj_ray.
-  ASSERT(bodyid < Simulation::simulation->model->nbody);
-  // very ugly: We rather want a map from geom/body ID to object pointer
-  for(auto* body : Simulation::simulation->scene->bodies)
-  {
-    if(body->idx == bodyid)
-      return body->rootBody;
-  }
-  // TODO: At the moment we only find root bodies.
-  // ASSERT(false);
-  return nullptr;
+  ASSERT(geometryIndex >= 0);
+  ASSERT(geometryIndex < Simulation::simulation->model->ngeom);
+  const int bodyIndex = Simulation::simulation->model->geom_bodyid[geometryIndex];
+  ASSERT(bodyIndex > 0); // 0 is the world body, we excluded that by setting flg_static=0 in the call to mj_ray.
+  ASSERT(bodyIndex < Simulation::simulation->model->nbody);
+  return Simulation::simulation->bodyMap[bodyIndex]->rootBody;
 }
 
 bool SimObjectRenderer::startDrag(int x, int y, DragType type)
@@ -531,10 +524,13 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           const unsigned int now = System::getTime();
           const float t = std::max(1U, now - dragStartTime) * 0.001f;
           Vector3f velocity = offset / t;
-          // TODO MJC:
-          // const dReal* oldVel = dBodyGetAngularVel(dragSelection->body);
-          // velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
-          // dBodySetAngularVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
+          ASSERT(Simulation::simulation->model->body_jntnum[dragSelection->bodyIndex] == 1);
+          const int jointIndex = Simulation::simulation->model->body_jntadr[dragSelection->bodyIndex];
+          ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+          const int velocityIndex = Simulation::simulation->model->jnt_dofadr[jointIndex];
+          mjtNum* mjcVel = Simulation::simulation->data->qvel + velocityIndex + 3;
+          velocity = velocity * 0.3f + Vector3f(static_cast<float>(mjcVel[0]), static_cast<float>(mjcVel[1]), static_cast<float>(mjcVel[2])) * 0.7f;
+          mju_f2n(mjcVel, velocity.data(), 3);
           dragStartTime = now;
         }
         dragStartPos = currentPos;
@@ -548,10 +544,13 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           const unsigned int now = System::getTime();
           const float t = std::max(1U, now - dragStartTime) * 0.001f;
           Vector3f velocity = offset / t;
-          // TODO MJC:
-          // const dReal* oldVel = dBodyGetLinearVel(dragSelection->body);
-          // velocity = velocity * 0.3f + Vector3f(static_cast<float>(oldVel[0]), static_cast<float>(oldVel[1]), static_cast<float>(oldVel[2])) * 0.7f;
-          // dBodySetLinearVel(dragSelection->body, velocity.x(), velocity.y(), velocity.z());
+          ASSERT(Simulation::simulation->model->body_jntnum[dragSelection->bodyIndex] == 1);
+          const int jointIndex = Simulation::simulation->model->body_jntadr[dragSelection->bodyIndex];
+          ASSERT(Simulation::simulation->model->jnt_type[jointIndex] == mjJNT_FREE);
+          const int velocityIndex = Simulation::simulation->model->jnt_dofadr[jointIndex];
+          mjtNum* mjcVel = Simulation::simulation->data->qvel + velocityIndex;
+          velocity = velocity * 0.3f + Vector3f(static_cast<float>(mjcVel[0]), static_cast<float>(mjcVel[1]), static_cast<float>(mjcVel[2])) * 0.7f;
+          mju_f2n(mjcVel, velocity.data(), 3);
           dragStartTime = now;
         }
         dragStartPos = currentPos;
@@ -602,14 +601,14 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
             angle = normalize(std::atan2(newV.y(), newV.x()) - std::atan2(oldV.y(), oldV.x()));
 
           const Vector3f offset = dragPlaneVector * angle;
-          const Vector3f torque = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->idx]) * 50.f;
-          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->idx * 6 + 3, torque.data(), 3);
+          const Vector3f torque = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->bodyIndex]) * 50.f;
+          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->bodyIndex * 6 + 3, torque.data(), 3);
         }
         else
         {
           const Vector3f offset = currentPos - dragStartPos;
-          const Vector3f force = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->idx]) * 500.f;
-          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->idx * 6, force.data(), 3);
+          const Vector3f force = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->bodyIndex]) * 500.f;
+          mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->bodyIndex * 6, force.data(), 3);
         }
       }
     }
