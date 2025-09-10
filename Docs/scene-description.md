@@ -71,8 +71,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | CapsuleGeometry
                                | CylinderGeometry
                                | Geometry
-                               | SphereGeometry
-                               | TorusGeometry;
+                               | SphereGeometry;
     infrastructureClass        = Include
                                | Simulation;
     intSensorClass             = Accelerometer
@@ -214,11 +213,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                     {setClass | geometryClass} )?
                                  "</SphereGeometry>"
                                | "<SphereGeometry/>";
-    TorusGeometry              = "<TorusGeometry>"
-                                 ?( [translationClass] [rotationClass] [materialClass]
-                                    {setClass | geometryClass} )?
-                                 "</TorusGeometry>"
-                               | "<TorusGeometry/>";
     
     Simulation                 = "<Simulation>"
                                  ?( sceneClass
@@ -661,20 +655,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: String
       - `radius`: The radius of the sphere.
-          - **Units**: mm, cm, dm, m, km
-          - **Use**: required
-          - **Range**: (0, MAXFLOAT]
-  - `TorusGeometry`: Specifies a torus-shaped geometry.
-      - `color`: A color definition, see [this section](#color-specification)
-          - **Use**: optional
-      - `name`: The name of the geometry.
-          - **Use**: optional
-          - **Range**: String
-      - `majorRadius`: The major radius of the torus.
-          - **Units**: mm, cm, dm, m, km
-          - **Use**: required
-          - **Range**: (0, MAXFLOAT]
-      - `minorRadius`: The minor radius of the torus.
           - **Units**: mm, cm, dm, m, km
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
