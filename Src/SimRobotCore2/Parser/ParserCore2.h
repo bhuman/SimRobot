@@ -106,6 +106,7 @@ private:
   Element* cameraElement();
   Element* collisionSensorElement();
   Element* objectSegmentedImageSensorElement();
+  Element* singleDistanceSensorElement();
   Element* depthImageSensorElement();
   Element* userInputElement();
 

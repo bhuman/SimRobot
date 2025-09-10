@@ -36,6 +36,7 @@
 #include "Simulation/Sensors/DepthImageSensor.h"
 #include "Simulation/Sensors/Gyroscope.h"
 #include "Simulation/Sensors/ObjectSegmentedImageSensor.h"
+#include "Simulation/Sensors/SingleDistanceSensor.h"
 #include "Simulation/Simulation.h"
 #include "Simulation/UserInput.h"
 
@@ -158,6 +159,8 @@ ParserCore2::ParserCore2()
     {"CollisionSensor", intSensorClass, std::bind(&ParserCore2::collisionSensorElement, this), nullptr, 0,
       0, translationClass | rotationClass, geometryClass, {}},
     {"ObjectSegmentedImageSensor", extSensorClass, std::bind(&ParserCore2::objectSegmentedImageSensorElement, this), nullptr, 0,
+      0, translationClass | rotationClass, 0, {}},
+    {"SingleDistanceSensor", extSensorClass, std::bind(&ParserCore2::singleDistanceSensorElement, this), nullptr, 0,
       0, translationClass | rotationClass, 0, {}},
     {"DepthImageSensor", extSensorClass, std::bind(&ParserCore2::depthImageSensorElement, this), nullptr, 0,
       0, translationClass | rotationClass, 0, {}},
@@ -838,6 +841,15 @@ Element* ParserCore2::objectSegmentedImageSensorElement()
   camera->angleX = getAngle("angleX", true, 0.f, true);
   camera->angleY = getAngle("angleY", true, 0.f, true);
   return camera;
+}
+
+Element* ParserCore2::singleDistanceSensorElement()
+{
+  SingleDistanceSensor* singleDistanceSensor = new SingleDistanceSensor();
+  singleDistanceSensor->name = getString("name", false);
+  singleDistanceSensor->min = getLength("min", false, 0.f, false);
+  singleDistanceSensor->max = getLength("max", false, 999999.f, false);
+  return singleDistanceSensor;
 }
 
 Element* ParserCore2::depthImageSensorElement()
