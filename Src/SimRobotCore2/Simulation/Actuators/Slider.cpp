@@ -60,7 +60,6 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
     joint->limited = mjLIMITED_TRUE;
     joint->range[0] = axis->deflection->min;
     joint->range[1] = axis->deflection->max;
-    joint->ref = axis->deflection->offset; // TODO: is this necessary?
   }
 
   /*

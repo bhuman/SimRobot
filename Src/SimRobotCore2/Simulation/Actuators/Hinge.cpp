@@ -24,7 +24,7 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   axis->create();
 
   if(axis->deflection && axis->deflection->offset != 0.f)
-    poseInWorld.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * -axis->deflection->offset));
+    poseInWorld.rotate(Rotation::AngleAxis::unpack(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset));
 
   Joint::createPhysics(graphicsContext);
 
@@ -59,36 +59,8 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
     joint->limited = mjLIMITED_TRUE;
     joint->range[0] = axis->deflection->min;
     joint->range[1] = axis->deflection->max;
-    joint->ref = axis->deflection->offset; // TODO: is this necessary?
+    joint->ref = axis->deflection->offset;
   }
-
-  //Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointID]] = deflection->init;
-
-  /*
-  if(axis->cfm != -1.f)
-    dJointSetHingeParam(joint, dParamCFM, axis->cfm);
-
-  if(axis->deflection)
-  {
-    const Axis::Deflection& deflection = *axis->deflection;
-    float minHingeLimit = deflection.min;
-    float maxHingeLimit = deflection.max;
-    if(minHingeLimit > maxHingeLimit)
-      minHingeLimit = maxHingeLimit;
-
-    // A servo motor will handle the limits, so ignore them here
-    // This is incorrect if the servo motor is not strong enough.
-    if(!dynamic_cast<ServoMotor*>(axis->motor))
-    {
-      dJointSetHingeParam(joint, dParamLoStop, minHingeLimit - deflection.offset);
-      dJointSetHingeParam(joint, dParamHiStop, maxHingeLimit - deflection.offset);
-      if(deflection.stopCFM != -1.f)
-        dJointSetHingeParam(joint, dParamStopCFM, deflection.stopCFM);
-      if(deflection.stopERP != -1.f)
-        dJointSetHingeParam(joint, dParamStopERP, deflection.stopERP);
-    }
-  }
-   */
 
   // create motor
   if(axis->motor)

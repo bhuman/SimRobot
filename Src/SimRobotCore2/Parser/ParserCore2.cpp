@@ -702,7 +702,7 @@ Element* ParserCore2::deflectionElement()
   {
     deflection->min = getAngle("min", true, 0.f, false);
     deflection->max = getAngle("max", true, 0.f, false);
-    deflection->offset = getAngle("offset", false, 0.f, false);
+    deflection->offset = getAngle("init", false, 0.f, false);
   }
   else if(dynamic_cast<Slider*>(axis->joint))
   {

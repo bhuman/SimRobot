@@ -52,19 +52,12 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   }
 
   // set position
-  if(parentBody)
   {
-    const Pose3f poseInParentBody = parentBody->poseInWorld.inverse() * poseInWorld;
+    Pose3f poseInParentBody = parentBody ? parentBody->poseInWorld.inverse() * poseInWorld : poseInWorld;
     mju_f2n(body->pos, poseInParentBody.translation.data(), 3);
     mjtNum buf[9];
-    mju_f2n(buf, poseInParentBody.rotation.transpose().data(), 9);
-    mju_mat2Quat(body->quat, buf);
-  }
-  else
-  {
-    mju_f2n(body->pos, poseInWorld.translation.data(), 3);
-    mjtNum buf[9];
-    mju_f2n(buf, poseInWorld.rotation.transpose().data(), 9);
+    poseInParentBody.rotation.transposeInPlace();
+    mju_f2n(buf, poseInParentBody.rotation.data(), 9);
     mju_mat2Quat(body->quat, buf);
   }
 
