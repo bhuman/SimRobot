@@ -46,7 +46,6 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   mju_f2n(joint->pos, positionInChild.data(), 3);
   const Vector3f axisInChild = childBody->poseInWorld.inverse() * poseInWorld * Vector3f(axis->x, axis->y, axis->z);
   mju_f2n(joint->axis, axisInChild.data(), 3);
-  joint->ref = 0.0;
 
   joint->stiffness = 1.f;
 

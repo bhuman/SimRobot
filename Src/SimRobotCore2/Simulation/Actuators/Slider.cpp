@@ -20,10 +20,8 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
 {
   ASSERT(axis);
 
-  //
   axis->create();
 
-  //
   Joint::createPhysics(graphicsContext);
 
   // find bodies to connect
@@ -39,27 +37,18 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
   mjs_setName(joint->element, jointName);
   joint->type = mjJNT_SLIDE;
 
-  // I hope this is correct.
   const Vector3f positionInChild = childBody->poseInWorld.inverse() * poseInWorld.translation;
-  joint->pos[0] = positionInChild.x();
-  joint->pos[1] = positionInChild.y();
-  joint->pos[2] = positionInChild.z();
-
+  mju_f2n(joint->pos, positionInChild.data(), 3);
   // TODO: maybe we also need to set the orientation?
-
-  // This is in local coordinates now. (TODO: of parent or child body?)
   const Vector3f axisInChild = childBody->poseInWorld.inverse() * poseInWorld * Vector3f(axis->x, axis->y, axis->z);
-  joint->axis[0] = axisInChild.x();
-  joint->axis[1] = axisInChild.y();
-  joint->axis[2] = axisInChild.z();
-
-  joint->ref = 0.0;
+  mju_f2n(joint->axis, axisInChild.data(), 3);
 
   if(axis->deflection)
   {
     joint->limited = mjLIMITED_TRUE;
     joint->range[0] = axis->deflection->min;
     joint->range[1] = axis->deflection->max;
+    ASSERT(axis->deflection->offset == 0.f);
   }
 
   /*
