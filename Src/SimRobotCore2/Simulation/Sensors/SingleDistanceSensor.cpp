@@ -9,7 +9,6 @@
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
 #include <mujoco/mujoco.h>
-#include <cmath>
 
 SingleDistanceSensor::SingleDistanceSensor()
 {

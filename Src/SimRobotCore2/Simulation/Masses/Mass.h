@@ -6,8 +6,10 @@
 
 #pragma once
 
+#include "SimRobotCore2.h"
 #include "Simulation/SimObject.h"
 #include "Simulation/PhysicalObject.h"
+#include "Tools/Math/Eigen.h"
 
 /**
  * @class Mass

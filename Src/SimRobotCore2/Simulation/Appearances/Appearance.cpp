@@ -7,8 +7,8 @@
 #include "Appearance.h"
 #include "CoreModule.h"
 #include "Platform/Assert.h"
-#include "Simulation/Scene.h"
 #include "Tools/OpenGLTools.h"
+#include <cstring>
 
 Appearance::Surface::Surface()
 {

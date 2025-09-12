@@ -8,12 +8,12 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Simulation/Appearances/ComplexAppearance.h"
-#include <string>
-#include <list>
-#include <unordered_map>
 #include <mujoco/mjdata.h>
 #include <mujoco/mjmodel.h>
 #include <mujoco/mjspec.h>
+#include <string>
+#include <list>
+#include <unordered_map>
 
 class Body;
 class Geometry;
@@ -68,7 +68,7 @@ public:
   /**
    * Loads a file and initializes the simulation
    * @param filename The name of the file
-   * @param errors The errors that occured during parsing.
+   * @param errors The errors that occurred during parsing.
    */
   bool loadFile(const std::string& filename, std::list<std::string>& errors);
 

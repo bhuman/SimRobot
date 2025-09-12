@@ -27,7 +27,7 @@ private:
    */
   class CollisionSensorPort : public Sensor::Port, public SimRobotCore2::CollisionCallback
   {
-    unsigned int lastCollisionStep = 0xffffffff; /**< The simulation step in which the last collision occured. */
+    unsigned int lastCollisionStep = 0xffffffff; /**< The simulation step in which the last collision occurred. */
 
     /** Update the sensor value. Is called when required. */
     void updateValue() override;

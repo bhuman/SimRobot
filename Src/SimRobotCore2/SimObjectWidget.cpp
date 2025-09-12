@@ -320,7 +320,7 @@ QMenu* SimObjectWidget::createEditMenu() const
 
 QMenu* SimObjectWidget::createUserMenu() const
 {
-  QMenu* menu = new QMenu(tr(&object == Simulation::simulation->scene ? "S&cene" : "&Object"));
+  QMenu* menu = new QMenu(tr(&object == Simulation::simulation->scene ? "S&cene" : "&Object")); // cspell:disable-line
 
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
@@ -411,7 +411,7 @@ QMenu* SimObjectWidget::createUserMenu() const
         const_cast<SimObjectWidget*>(this)->objectRenderer.setRenderFlags(flags | flag);
       });
     };
-    addOriginAction("S&cene", Qt::Key_C, SimRobotCore2::Renderer::showAsGlobalView);
+    addOriginAction("S&cene", Qt::Key_C, SimRobotCore2::Renderer::showAsGlobalView); // cspell:disable-line
     addOriginAction("&Object Position", Qt::Key_O, SimRobotCore2::Renderer::showAsGlobalOrientation);
     addOriginAction("Object &Pose", Qt::Key_P, SimRobotCore2::Renderer::RenderFlags(0));
   }

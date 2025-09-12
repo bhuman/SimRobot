@@ -32,7 +32,7 @@ public:
 private:
   /**
    * @class PositionSensor
-   * A angle sensor interface
+   * An angle sensor interface
    */
   class PositionSensor : public Sensor::Port
   {

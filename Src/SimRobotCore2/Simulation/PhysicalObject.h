@@ -14,7 +14,6 @@
 
 class Body;
 class GraphicsContext;
-class SimObjectRenderer;
 
 /**
  * @class PhysicalObject

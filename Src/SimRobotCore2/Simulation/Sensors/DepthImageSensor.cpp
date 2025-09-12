@@ -9,17 +9,19 @@
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
+#include "Tools/Math/Constants.h"
 #include "Tools/OpenGLTools.h"
 #include <algorithm>
+#include <cmath>
 
 DepthImageSensor::DepthImageSensor()
 {
   sensor.depthImageSensor = this;
   sensor.sensorType = SimRobotCore2::SensorPort::floatArraySensor;
   sensor.unit = "m";
-  sensor.imageBuffer = 0;
-  sensor.renderBuffer = 0;
-  sensor.lut = 0;
+  sensor.imageBuffer = nullptr;
+  sensor.renderBuffer = nullptr;
+  sensor.lut = nullptr;
 }
 
 DepthImageSensor::~DepthImageSensor()
@@ -43,8 +45,8 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
   {
     ASSERT(imageHeight == 1);
 
-    sensor.numOfBuffers = static_cast<unsigned int>(ceil(angleX / (float(M_PI) * 2.0f / 3.0f)));
-    sensor.bufferWidth = static_cast<unsigned int>(ceil(float(imageWidth) / float(sensor.numOfBuffers)));
+    sensor.numOfBuffers = static_cast<unsigned int>(std::ceil(angleX / (pi * 2.0f / 3.0f)));
+    sensor.bufferWidth = static_cast<unsigned int>(std::ceil(static_cast<float>(imageWidth) / static_cast<float>(sensor.numOfBuffers)));
     sensor.lut = new float*[sensor.bufferWidth];
     sensor.renderAngleX = angleX * sensor.bufferWidth / imageWidth;
 
