@@ -53,8 +53,9 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry)
     // set pose
     mju_f2n(geom->pos, geomPose.translation.data(), 3);
     mjtNum buf[9];
-    mju_f2n(buf, geomPose.rotation.transpose().data(), 9);
+    mju_f2n(buf, geomPose.rotation.data(), 9);
     mju_mat2Quat(geom->quat, buf);
+    mju_negQuat(geom->quat, geom->quat); // column major -> row major
   }
 
   // handle nested geometries

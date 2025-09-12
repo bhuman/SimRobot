@@ -53,12 +53,12 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
 
   // set position
   {
-    Pose3f poseInParentBody = parentBody ? parentBody->poseInWorld.inverse() * poseInWorld : poseInWorld;
+    const Pose3f poseInParentBody = parentBody ? parentBody->poseInWorld.inverse() * poseInWorld : poseInWorld;
     mju_f2n(body->pos, poseInParentBody.translation.data(), 3);
     mjtNum buf[9];
-    poseInParentBody.rotation.transposeInPlace();
     mju_f2n(buf, poseInParentBody.rotation.data(), 9);
     mju_mat2Quat(body->quat, buf);
+    mju_negQuat(body->quat, body->quat); // column major -> row major
   }
 
   // add geometries
@@ -120,8 +120,9 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
     // set offset
     mju_f2n(geom->pos, offset.translation.data(), 3);
     mjtNum buf[9];
-    mju_f2n(buf, offset.rotation.transpose().data(), 9); // convert Eigen's column major data to MuJoCo's row major data
+    mju_f2n(buf, offset.rotation.data(), 9);
     mju_mat2Quat(geom->quat, buf);
+    mju_negQuat(geom->quat, geom->quat); // column major -> row major
 
     if(geometry.material && !geometry.material->frictions.empty())
       geom->friction[0] = geometry.material->frictions.begin()->second;
@@ -292,7 +293,6 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
 
   comPose.translation = rotation * (comPose.translation - point) + point;
   comPose.rotation = rotation * comPose.rotation;
-  comPose.rotation.transposeInPlace();
 
   ASSERT(Simulation::simulation->model->body_jntnum[bodyIndex] == 1);
   const int jointIndex = Simulation::simulation->model->body_jntadr[bodyIndex];
@@ -302,6 +302,7 @@ void Body::rotate(const RotationMatrix& rotation, const Vector3f& point)
   mjtNum buf[9];
   mju_f2n(buf, comPose.rotation.data(), 9);
   mju_mat2Quat(Simulation::simulation->data->qpos + poseIndex + 3, buf);
+  mju_negQuat(Simulation::simulation->data->qpos + poseIndex + 3, Simulation::simulation->data->qpos + poseIndex + 3);
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);
@@ -394,14 +395,12 @@ void Body::move(const float* pos, const float (*rot)[3])
   mju_f2n(Simulation::simulation->data->qpos + poseIndex, pos, 3);
 
   // Set rotation
-  RotationMatrix targetRotation = (RotationMatrix() << rot[0][0], rot[1][0], rot[2][0],
-                                   rot[0][1], rot[1][1], rot[2][1],
-                                   rot[0][2], rot[1][2], rot[2][2]).finished();
-  targetRotation.transposeInPlace();
-
   mjtNum buf[9];
-  mju_f2n(buf, targetRotation.data(), 9);
+  mju_f2n(buf, rot[0], 3);
+  mju_f2n(buf + 3, rot[1], 3);
+  mju_f2n(buf + 6, rot[2], 3);
   mju_mat2Quat(Simulation::simulation->data->qpos + poseIndex + 3, buf);
+  mju_negQuat(Simulation::simulation->data->qpos + poseIndex + 3, Simulation::simulation->data->qpos + poseIndex + 3);
 
   // Unfortunately it seems that forward kinematics have to be done for the entire model again.
   mj_kinematics(Simulation::simulation->model, Simulation::simulation->data);

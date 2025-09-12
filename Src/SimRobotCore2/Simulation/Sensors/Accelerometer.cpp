@@ -33,10 +33,13 @@ void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
   mjs_setName(site->element, siteName);
   if(translation)
     mju_f2n(site->pos, translation->data(), 3);
-  /*
   if(rotation)
-    site->quat = ...;
-     */
+  {
+    mjtNum buf[9];
+    mju_f2n(buf, rotation->data(), 9);
+    mju_mat2Quat(site->quat, buf);
+    mju_negQuat(site->quat, site->quat); // column major -> row major
+  }
 
   mjsSensor* sensor = mjs_addSensor(Simulation::simulation->spec);
   mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "Accelerometer", &(this->sensor.sensorIndex)));

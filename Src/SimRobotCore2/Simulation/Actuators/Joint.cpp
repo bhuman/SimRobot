@@ -15,14 +15,6 @@
 #include "Simulation/Motors/Motor.h"
 #include <cmath>
 
-Joint::~Joint()
-{
-  /*
-  if(joint)
-    dJointDestroy(joint);
-  */
-}
-
 void Joint::createPhysics(GraphicsContext& graphicsContext)
 {
   Actuator::createPhysics(graphicsContext);
