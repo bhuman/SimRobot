@@ -61,7 +61,7 @@ private:
   void create(Joint* joint) override;
 
   /** Called before computing a simulation step to update the joint */
-   void act() override;
+  void act() override;
 
   /** Registers this object at SimRobot's GUI */
   void registerObjects() override;

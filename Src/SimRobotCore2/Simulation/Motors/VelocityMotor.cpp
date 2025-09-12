@@ -13,6 +13,7 @@
 #include "Simulation/Scene.h"
 #include "Simulation/Simulation.h"
 #include "Tools/Math.h"
+#include <mujoco/mujoco.h>
 #include <cmath>
 
 VelocityMotor::VelocityMotor()
@@ -28,27 +29,40 @@ VelocityMotor::VelocityMotor()
 
 void VelocityMotor::create(Joint* joint)
 {
-  // ASSERT(dJointGetType(joint->joint) == dJointTypeHinge || dJointGetType(joint->joint) == dJointTypeSlider);
   this->joint = positionSensor.joint = velocitySensor.joint = joint;
-  /*
+  positionSensor.lastPos = joint->axis->deflection ? joint->axis->deflection->offset : 0.f;
   velocitySensor.maxVelocity = maxVelocity;
-  if(dJointGetType(joint->joint) == dJointTypeHinge)
-  {
-    dJointSetHingeParam(joint->joint, dParamFMax, maxForce);
-    positionSensor.lastPos = static_cast<float>(dJointGetHingeAngle(joint->joint));
-  }
-  else
-    dJointSetSliderParam(joint->joint, dParamFMax, maxForce);
-  */
+
+  mjsActuator* actuator = mjs_addActuator(Simulation::simulation->spec, nullptr);
+
+  // This actually configures a P-controller for velocity.
+  static const float gain = 0.2f;
+  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "velocity", &ctrlIndex));
+  actuator->gaintype = mjGAIN_FIXED;
+  actuator->gainprm[0] = gain;
+  actuator->biastype = mjBIAS_AFFINE;
+  actuator->biasprm[0] = 0;
+  actuator->biasprm[1] = 0;
+  actuator->biasprm[2] = -gain;
+  actuator->dyntype = mjDYN_NONE;
+  actuator->trntype = mjTRN_JOINT;
+  actuator->gear[0] = 1.f;
+  mjs_setString(actuator->target, joint->jointName);
+
+  actuator->ctrllimited = mjLIMITED_TRUE;
+  actuator->ctrlrange[0] = -maxVelocity;
+  actuator->ctrlrange[1] = maxVelocity;
+
+  actuator->forcelimited = mjLIMITED_TRUE;
+  actuator->forcerange[0] = -maxForce;
+  actuator->forcerange[1] = maxForce;
 }
 
 void VelocityMotor::act()
 {
-  /*
-  if(dJointGetType(joint->joint) == dJointTypeHinge)
-    positionSensor.lastPos += normalize(static_cast<float>(dJointGetHingeAngle(joint->joint)) - normalize(positionSensor.lastPos));
-  dJointSetHingeParam(joint->joint, dParamVel, setpoint);
-  */
+  if(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE)
+    positionSensor.lastPos += normalize(static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]) - normalize(positionSensor.lastPos));
+  Simulation::simulation->data->ctrl[ctrlIndex] = setpoint;
 }
 
 void VelocityMotor::setValue(float value)
@@ -70,14 +84,9 @@ bool VelocityMotor::getMinAndMax(float& min, float& max) const
 
 void VelocityMotor::PositionSensor::updateValue()
 {
-  /*
-  data.floatValue = (dJointGetType(joint->joint) == dJointTypeHinge
-                     ? static_cast<float>(dJointGetHingeAngle(joint->joint))
-                     : static_cast<float>(dJointGetSliderPosition(joint->joint))) + (joint->axis->deflection ? joint->axis->deflection->offset : 0.f);
-  if(dJointGetType(joint->joint) == dJointTypeHinge)
+  data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
+  if(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE)
     data.floatValue = lastPos + normalize(data.floatValue - normalize(lastPos));
-   */
-  data.floatValue = 0.f;
 }
 
 bool VelocityMotor::PositionSensor::getMinAndMax(float& min, float& max) const
@@ -94,12 +103,7 @@ bool VelocityMotor::PositionSensor::getMinAndMax(float& min, float& max) const
 
 void VelocityMotor::VelocitySensor::updateValue()
 {
-  /*
-  data.floatValue = dJointGetType(joint->joint) == dJointTypeHinge
-                    ? static_cast<float>(dJointGetHingeParam(joint->joint, dParamVel))
-                    : static_cast<float>(dJointGetSliderParam(joint->joint, dParamVel));
-  */
-  data.floatValue = 0.f;
+  data.floatValue = static_cast<float>(Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]]);
 }
 
 bool VelocityMotor::VelocitySensor::getMinAndMax(float& min, float& max) const
@@ -111,7 +115,7 @@ bool VelocityMotor::VelocitySensor::getMinAndMax(float& min, float& max) const
 
 void VelocityMotor::registerObjects()
 {
-  if(true /* dJointGetType(joint->joint) == dJointTypeHinge */) // TODO MJC
+  if(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE)
   {
     positionSensor.unit = QString::fromUtf8("°");
     velocitySensor.unit = unit = QString::fromUtf8("°/s");

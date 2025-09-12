@@ -28,17 +28,15 @@ ServoMotor::ServoMotor()
 void ServoMotor::create(Joint* joint)
 {
   this->joint = joint;
-  positionSensor.servoMotor = this;
-  velocitySensor.servoMotor = this;
+  positionSensor.servoMotor = velocitySensor.servoMotor = this;
+  lastPos = joint->axis->deflection ? joint->axis->deflection->offset : 0.f;
 
   mjsActuator* actuator = mjs_addActuator(Simulation::simulation->spec, nullptr);
 
-  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "servo", &(ctrlID)));
+  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "servo", &ctrlIndex));
   actuator->gaintype = mjGAIN_FIXED;
   actuator->gainprm[0] = 1.f;
-  actuator->dynprm[0] = 1.0;
   actuator->biastype = mjBIAS_NONE;
-  actuator->biasprm[0] = 0;
   actuator->dyntype = mjDYN_NONE;
   actuator->trntype = mjTRN_JOINT;
   actuator->gear[0] = 1.f;
@@ -73,7 +71,7 @@ void ServoMotor::act()
     newVel = maxForce;
   if(newVel < -maxForce)
     newVel = -maxForce;
-  Simulation::simulation->data->ctrl[ctrlID] = newVel;
+  Simulation::simulation->data->ctrl[ctrlIndex] = newVel;
 }
 
 float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float vel)

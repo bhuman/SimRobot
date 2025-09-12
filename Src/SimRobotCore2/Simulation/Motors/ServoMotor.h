@@ -51,7 +51,7 @@ public:
 private:
   /**
    * @class PositionSensor
-   * A angle sensor interface
+   * A position sensor interface
    */
   class PositionSensor : public Sensor::Port
   {
@@ -65,24 +65,21 @@ private:
 
 
   /**
-   * @class PositionSensor
-   * A angle sensor interface
+   * @class VelocitySensor
+   * A velocity sensor interface
    */
   class VelocitySensor : public Sensor::Port
   {
   public:
-      ServoMotor* servoMotor;
+    ServoMotor* servoMotor;
 
-      //API
-      void updateValue() override;
-      bool getMinAndMax(float& min, float& max) const override;
+    //API
+    void updateValue() override;
+    bool getMinAndMax(float& min, float& max) const override;
   } velocitySensor;
 
   /** Last position of an angular hinge. */
   float lastPos = 0;
-
-  /** ... */
-  int ctrlID = -1;
 
   /**
    * Initializes the motor

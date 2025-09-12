@@ -121,6 +121,8 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   data = mj_makeData(model);
   ASSERT(data);
 
+  mj_forward(model, data);
+
   bodyMap.resize(model->nbody);
   geometryMap.resize(model->ngeom);
   for(auto& name : names)

@@ -30,7 +30,7 @@ private:
   public:
     Body* body; /**< The body where the gyroscope is mounted on. */
     float angularVel[4]; /**< The sensor reading. */
-    int sensorID = -1; /**< The ID within the sensor array of MuJoCo. */
+    int sensorIndex = -1; /**< The index of the sensor within MuJoCo's data. */
 
     /** Update the sensor value. Is called when required. */
     void updateValue() override;

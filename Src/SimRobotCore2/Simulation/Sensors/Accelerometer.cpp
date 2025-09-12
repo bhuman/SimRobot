@@ -27,10 +27,10 @@ void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
-  const char* sitename = Simulation::simulation->getName(mjOBJ_SITE, "site");
+  const char* siteName = Simulation::simulation->getName(mjOBJ_SITE, "site");
 
   mjsSite* site = mjs_addSite(sensor.body->body, nullptr);
-  mjs_setName(site->element, sitename);
+  mjs_setName(site->element, siteName);
   if(translation)
     mju_f2n(site->pos, translation->data(), 3);
   /*
@@ -39,10 +39,10 @@ void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
      */
 
   mjsSensor* sensor = mjs_addSensor(Simulation::simulation->spec);
-  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "accelerometer", &(this->sensor.sensorID)));
+  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "accelerometer", &(this->sensor.sensorIndex)));
   sensor->type = mjSENS_ACCELEROMETER;
   sensor->objtype = mjOBJ_SITE;
-  mjs_setString(sensor->objname, sitename);
+  mjs_setString(sensor->objname, siteName);
 }
 
 void Accelerometer::addParent(Element& element)
@@ -62,6 +62,6 @@ void Accelerometer::registerObjects()
 
 void Accelerometer::AccelerometerSensor::updateValue()
 {
-  ASSERT(Simulation::simulation->model->sensor_dim[sensorID] == 3);
-  mju_n2f(linearAcc, Simulation::simulation->data->sensordata + Simulation::simulation->model->sensor_adr[sensorID], 3);
+  ASSERT(Simulation::simulation->model->sensor_dim[sensorIndex] == 3);
+  mju_n2f(linearAcc, Simulation::simulation->data->sensordata + Simulation::simulation->model->sensor_adr[sensorIndex], 3);
 }

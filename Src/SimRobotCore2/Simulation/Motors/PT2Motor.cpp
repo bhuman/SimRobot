@@ -36,7 +36,7 @@ void PT2Motor::act()
     return;
 
   const float dt = Simulation::simulation->scene->stepLength;
-  const float y = 0.f; // TODO MJC: static_cast<float>(dJointGetHingeAngle(joint->joint));
+  const float y = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
 
   ASSERT(T != 0.f);
   const float dx = dt / T * (K * lastSetpoints[0] - y - 2 * D * x);
@@ -77,7 +77,7 @@ bool PT2Motor::getMinAndMax(float& min, float& max) const
 
 void PT2Motor::PositionSensor::updateValue()
 {
-  data.floatValue = 0.f; // TODO MJC: static_cast<float>(dJointGetHingeAngle(joint->joint));
+  data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
 }
 
 bool PT2Motor::PositionSensor::getMinAndMax(float& min, float& max) const

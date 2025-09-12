@@ -30,4 +30,5 @@ public:
 
 protected:
   Joint* joint = nullptr; /**< The joint controlled by this motor */
+  int ctrlIndex = -1; /**< The index of this motor in the ctrl array. */
 };
