@@ -37,7 +37,7 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   ASSERT(childBody->body);
 
   // TODO: only if axis has a motor?
-  jointName = Simulation::simulation->getName(mjOBJ_JOINT, "hinge", &jointIndex);
+  jointName = Simulation::simulation->getName(mjOBJ_JOINT, "Hinge", &jointIndex);
   mjsJoint* joint = mjs_addJoint(childBody->body, nullptr);
   mjs_setName(joint->element, jointName);
   joint->type = mjJNT_HINGE;

@@ -41,7 +41,7 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
     mjs_addFreeJoint(body);
   }
 
-  mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "body", &bodyIndex, this));
+  mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "Body", &bodyIndex, this));
 
   // add masses
   for(SimObject* iter : children)

@@ -26,7 +26,7 @@ void Gyroscope::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
-  const char* siteName = Simulation::simulation->getName(mjOBJ_SITE, "site");
+  const char* siteName = Simulation::simulation->getName(mjOBJ_SITE, "Gyroscope");
 
   mjsSite* site = mjs_addSite(sensor.body->body, nullptr);
   mjs_setName(site->element, siteName);
@@ -38,7 +38,7 @@ void Gyroscope::createPhysics(GraphicsContext& graphicsContext)
    */
 
   mjsSensor* sensor = mjs_addSensor(Simulation::simulation->spec);
-  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "gyroscope", &(this->sensor.sensorIndex)));
+  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "Gyroscope", &(this->sensor.sensorIndex)));
   sensor->type = mjSENS_GYRO;
   sensor->objtype = mjOBJ_SITE;
   mjs_setString(sensor->objname, siteName);

@@ -14,6 +14,7 @@ mjsGeom* CapsuleGeometry::createGeometry(mjsBody* body)
 {
   Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
+  mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "CapsuleGeometry", nullptr, this));
   geom->type = mjGEOM_CAPSULE;
   geom->size[0] = radius;
   geom->size[1] = 0.5f * height - radius;

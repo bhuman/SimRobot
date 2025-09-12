@@ -33,7 +33,7 @@ void ServoMotor::create(Joint* joint)
 
   mjsActuator* actuator = mjs_addActuator(Simulation::simulation->spec, nullptr);
 
-  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "servo", &ctrlIndex));
+  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "ServoMotor", &ctrlIndex));
   actuator->gaintype = mjGAIN_FIXED;
   actuator->gainprm[0] = 1.f;
   actuator->biastype = mjBIAS_NONE;

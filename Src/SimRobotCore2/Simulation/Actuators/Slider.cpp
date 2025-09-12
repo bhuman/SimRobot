@@ -34,7 +34,7 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
   ASSERT(childBody);
   ASSERT(childBody->body);
 
-  jointName = Simulation::simulation->getName(mjOBJ_JOINT, "slider", &jointIndex);
+  jointName = Simulation::simulation->getName(mjOBJ_JOINT, "Slider", &jointIndex);
   mjsJoint* joint = mjs_addJoint(childBody->body, nullptr);
   mjs_setName(joint->element, jointName);
   joint->type = mjJNT_SLIDE;

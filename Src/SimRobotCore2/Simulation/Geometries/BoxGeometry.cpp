@@ -15,6 +15,7 @@ mjsGeom* BoxGeometry::createGeometry(mjsBody* body)
 {
   Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
+  mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "BoxGeometry", nullptr, this));
   geom->type = mjGEOM_BOX;
   geom->size[0] = 0.5f * depth;
   geom->size[1] = 0.5f * width;

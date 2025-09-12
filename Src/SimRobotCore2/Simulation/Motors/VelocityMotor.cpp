@@ -37,7 +37,7 @@ void VelocityMotor::create(Joint* joint)
 
   // This actually configures a P-controller for velocity.
   static const float gain = 0.2f;
-  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "velocity", &ctrlIndex));
+  mjs_setName(actuator->element, Simulation::simulation->getName(mjOBJ_ACTUATOR, "VelocityMotor", &ctrlIndex));
   actuator->gaintype = mjGAIN_FIXED;
   actuator->gainprm[0] = gain;
   actuator->biastype = mjBIAS_AFFINE;

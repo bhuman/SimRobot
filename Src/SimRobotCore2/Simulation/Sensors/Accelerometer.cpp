@@ -27,7 +27,7 @@ void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
-  const char* siteName = Simulation::simulation->getName(mjOBJ_SITE, "site");
+  const char* siteName = Simulation::simulation->getName(mjOBJ_SITE, "Accelerometer");
 
   mjsSite* site = mjs_addSite(sensor.body->body, nullptr);
   mjs_setName(site->element, siteName);
@@ -39,7 +39,7 @@ void Accelerometer::createPhysics(GraphicsContext& graphicsContext)
      */
 
   mjsSensor* sensor = mjs_addSensor(Simulation::simulation->spec);
-  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "accelerometer", &(this->sensor.sensorIndex)));
+  mjs_setName(sensor->element, Simulation::simulation->getName(mjOBJ_SENSOR, "Accelerometer", &(this->sensor.sensorIndex)));
   sensor->type = mjSENS_ACCELEROMETER;
   sensor->objtype = mjOBJ_SITE;
   mjs_setString(sensor->objname, siteName);

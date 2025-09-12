@@ -13,6 +13,7 @@ mjsGeom* SphereGeometry::createGeometry(mjsBody* body)
 {
   Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
+  mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "SphereGeometry", nullptr, this));
   geom->type = mjGEOM_SPHERE;
   geom->size[0] = radius;
   innerRadius = radius;
