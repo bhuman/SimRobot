@@ -36,7 +36,6 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   ASSERT(childBody);
   ASSERT(childBody->body);
 
-  // TODO: only if axis has a motor?
   jointName = Simulation::simulation->getName(mjOBJ_JOINT, "Hinge", &jointIndex);
   mjsJoint* joint = mjs_addJoint(childBody->body, nullptr);
   mjs_setName(joint->element, jointName);
@@ -46,10 +45,6 @@ void Hinge::createPhysics(GraphicsContext& graphicsContext)
   mju_f2n(joint->pos, positionInChild.data(), 3);
   const Vector3f axisInChild = childBody->poseInWorld.rotation.inverse() * poseInWorld.rotation * Vector3f(axis->x, axis->y, axis->z);
   mju_f2n(joint->axis, axisInChild.data(), 3);
-
-  joint->stiffness = 1.f;
-
-  // joint->springref = 1.f;
 
   //joint->damping = 0.9f;
 
