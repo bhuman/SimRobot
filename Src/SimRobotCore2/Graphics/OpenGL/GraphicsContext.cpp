@@ -949,6 +949,8 @@ GraphicsContext::Texture::~Texture()
 
 void GraphicsContext::ModelMatrix::updateMemory()
 {
+  if(!variablePart)
+    return;
   const Pose3f result = *variablePart * constantPart;
   memory.topLeftCorner<3, 3>() = result.rotation;
   memory.topRightCorner<3, 1>() = result.translation;
