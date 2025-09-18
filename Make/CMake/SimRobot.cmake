@@ -26,12 +26,16 @@ if(MACOS)
       "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtWidgets.framework"
       "${CONTROLLER_FRAMEWORKS}")
 
+  set(SIMROBOT_DYLIBS
+      "${SIMROBOT_PREFIX}/Util/MuJoCo/${PLATFORM}/lib/libmujoco.3.3.5.dylib"
+      "${CONTROLLER_DYLIBS}")
+
   set(SIMROBOT_PLUGIN_COCOA "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/platforms/libqcocoa.dylib")
   set(SIMROBOT_PLUGIN_JPEG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/libqjpeg.dylib")
   set(SIMROBOT_PLUGIN_MACSTYLE "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/styles/libqmacstyle.dylib")
   set(SIMROBOT_PLUGINS "${SIMROBOT_PLUGIN_COCOA}" "${SIMROBOT_PLUGIN_JPEG}" "${SIMROBOT_PLUGIN_MACSTYLE}")
 
-  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}" "${CONTROLLER_DYLIBS}")
+  list(APPEND SIMROBOT_SOURCES "${SIMROBOT_FRAMEWORKS}" "${SIMROBOT_PLUGINS}" "${SIMROBOT_DYLIBS}")
 
   set_source_files_properties(${SIMROBOT_ICONS} PROPERTIES
       MACOSX_PACKAGE_LOCATION Resources)
@@ -39,7 +43,7 @@ if(MACOS)
       MACOSX_PACKAGE_LOCATION Frameworks
       XCODE_EXPLICIT_FILE_TYPE wrapper.framework
       XCODE_FILE_ATTRIBUTES "CodeSignOnCopy;RemoveHeadersOnCopy")
-  set_source_files_properties(${CONTROLLER_DYLIBS} PROPERTIES
+  set_source_files_properties(${SIMROBOT_DYLIBS} PROPERTIES
       MACOSX_PACKAGE_LOCATION lib
       XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
   set_source_files_properties(${SIMROBOT_PLUGIN_COCOA} PROPERTIES
@@ -52,7 +56,7 @@ if(MACOS)
       MACOSX_PACKAGE_LOCATION PlugIns/styles
       XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
 
-  source_group("Libs" FILES ${SIMROBOT_FRAMEWORKS} ${SIMROBOT_PLUGINS} ${CONTROLLER_DYLIBS})
+  source_group("Libs" FILES ${SIMROBOT_FRAMEWORKS} ${SIMROBOT_PLUGINS} ${SIMROBOT_DYLIBS})
 endif()
 
 add_executable(SimRobot WIN32 MACOSX_BUNDLE "${SIMROBOT_SOURCES}")
