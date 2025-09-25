@@ -36,7 +36,6 @@ public:
     float getOutput(float currentPos, float setpoint, float vel);
 
   private:
-    float errorSum = 0.f;
     float lastError = 0.f;
   };
 
