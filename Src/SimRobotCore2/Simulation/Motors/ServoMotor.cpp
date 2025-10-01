@@ -46,6 +46,9 @@ void ServoMotor::create(Joint* joint)
   actuator->ctrllimited = mjLIMITED_TRUE;
   actuator->ctrlrange[0] = -maxForce;
   actuator->ctrlrange[1] = maxForce;
+
+  targetSize = std::max(1u, static_cast<unsigned>(std::ceil(delay / Simulation::simulation->scene->stepLength)));
+  target = new NextTargets[targetSize];
 }
 
 void ServoMotor::act()
@@ -53,18 +56,38 @@ void ServoMotor::act()
   if(!isInitialized)
   {
     ASSERT(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE ||
-        Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_SLIDE);
+           Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_SLIDE);
     isInitialized = true;
 
     Simulation::simulation->model->dof_damping[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.01f;
     Simulation::simulation->model->dof_armature[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.01f;
     Simulation::simulation->model->dof_frictionloss[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.0f;
+    for(unsigned i = 0; i < targetSize; i++)
+      target[i] = { static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]), static_cast<float>(Simulation::simulation->simulatedTime) };
   }
 
+  target[index] = { this->setpoint, static_cast<float>(Simulation::simulation->simulatedTime + delay) };
+
+  unsigned searchIndex = index;
+  while(true)
+  {
+    if(target[searchIndex].executionTimestamp >= Simulation::simulation->simulatedTime &&
+       target[searchIndex].executionTimestamp > lastExecutedSetpoint.executionTimestamp)
+      lastExecutedSetpoint = target[searchIndex];
+    searchIndex++;
+    if(searchIndex > targetSize)
+      searchIndex = 0;
+    if(searchIndex == index)
+      break;
+  }
+
+  index++;
+  if(index >= targetSize)
+    index = 0;
+
+  float setpoint = lastExecutedSetpoint.setPoint;
   const float currentPos = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
   const float currentVel = static_cast<float>(Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]]);
-
-  float setpoint = this->setpoint;
 
   float newVel = controller.getOutput(currentPos, setpoint, currentVel);
   if(newVel > maxForce)

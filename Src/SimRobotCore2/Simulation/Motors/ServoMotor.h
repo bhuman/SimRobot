@@ -43,6 +43,7 @@ public:
   float maxVelocity = 0.f;
   float power = 0.f;
   float maxForce = 0.f;
+  float delay = 1;
   bool isInitialized = false;
 
   /** Default constructor */
@@ -63,7 +64,6 @@ private:
     bool getMinAndMax(float& min, float& max) const override;
   } positionSensor;
 
-
   /**
    * @class VelocitySensor
    * A velocity sensor interface
@@ -80,6 +80,17 @@ private:
 
   /** Last position of an angular hinge. */
   float lastPos = 0;
+
+  struct NextTargets
+  {
+    float setPoint = 0.f;
+    float executionTimestamp = 0.f;
+  };
+
+  NextTargets* target;
+  unsigned targetSize = 1;
+  unsigned index = 0;
+  NextTargets lastExecutedSetpoint;
 
   /**
    * Initializes the motor

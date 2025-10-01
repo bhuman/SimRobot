@@ -756,6 +756,7 @@ Element* ParserCore2::servoMotorElement()
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
+  servoMotor->delay = getFloatPositive("delay", false, 0.f);
 
   axis->motor = servoMotor;
   return nullptr;
