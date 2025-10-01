@@ -981,6 +981,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
+      - `delay`: The delay of the commands being executed (in seconds)
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
   - `VelocityMotor`: Instantiates a velocity-controlled motor.
       - `maxVelocity`: The maximum velocity of this motor.
           - **Units**: radian/s, degree/s
