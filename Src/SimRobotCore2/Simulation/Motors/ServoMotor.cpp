@@ -47,7 +47,7 @@ void ServoMotor::create(Joint* joint)
   actuator->ctrlrange[0] = -maxForce;
   actuator->ctrlrange[1] = maxForce;
 
-  targetSize = std::max(1u, static_cast<unsigned>(std::ceil(delay / Simulation::simulation->scene->stepLength)));
+  targetSize = 1u + static_cast<unsigned>(std::ceil(delay / Simulation::simulation->scene->stepLength));
   target = new NextTargets[targetSize];
 }
 
@@ -71,7 +71,7 @@ void ServoMotor::act()
   unsigned searchIndex = index;
   while(true)
   {
-    if(target[searchIndex].executionTimestamp >= Simulation::simulation->simulatedTime &&
+    if(Simulation::simulation->simulatedTime >= target[searchIndex].executionTimestamp &&
        target[searchIndex].executionTimestamp > lastExecutedSetpoint.executionTimestamp)
       lastExecutedSetpoint = target[searchIndex];
     searchIndex++;
