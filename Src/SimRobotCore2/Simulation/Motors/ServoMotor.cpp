@@ -71,7 +71,7 @@ void ServoMotor::act()
     newVel = maxForce;
   if(newVel < -maxForce)
     newVel = -maxForce;
-  Simulation::simulation->data->ctrl[ctrlIndex] = newVel;
+  Simulation::simulation->data->ctrl[ctrlIndex] = newVel * power;
 }
 
 float ServoMotor::Controller::getOutput(float currentPos, float setpoint, float vel)
@@ -93,6 +93,15 @@ void ServoMotor::setValue(float value)
     else if(setpoint < deflection->min)
       setpoint = deflection->min;
   }
+}
+
+void ServoMotor::setStiffness(float stiffness)
+{
+  power = stiffness / 100.f;
+  if(power > 1.f)
+    power = 1.f;
+  else if(power < 0.f)
+    power = 0.f;
 }
 
 bool ServoMotor::getMinAndMax(float& min, float& max) const

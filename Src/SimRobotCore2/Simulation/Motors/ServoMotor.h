@@ -41,6 +41,7 @@ public:
 
   Controller controller; /**< A PID controller that controls the motor */
   float maxVelocity = 0.f;
+  float power = 0.f;
   float maxForce = 0.f;
   bool isInitialized = false;
 
@@ -94,5 +95,6 @@ private:
 
   // actuator API
   void setValue(float value) override;
+  void setStiffness(float stiffness) override;
   bool getMinAndMax(float& min, float& max) const override;
 };
