@@ -41,7 +41,7 @@ public:
 
   Controller controller; /**< A PID controller that controls the motor */
   float maxVelocity = 0.f;
-  float power = 0.f;
+  float stiffness = 0.f;
   float maxForce = 0.f;
   float delay = 1;
   bool isInitialized = false;
