@@ -209,12 +209,12 @@ Element* ParserCore2::sceneElement()
   /*
   if(scene->contactSoftERP != -1.f)
     scene->contactMode |= dContactSoftERP;
-    */
+     */
   scene->contactSoftCFM = getFloatMinMax("contactSoftCFM", false, -1.f, 0.f, 1.f);
   /*
   if(scene->contactSoftCFM != -1.f)
     scene->contactMode |= dContactSoftCFM;
-  */
+   */
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
   getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
   getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
@@ -753,16 +753,9 @@ Element* ParserCore2::servoMotorElement()
     ASSERT(false);
 
   servoMotor->maxForce = getForce("maxForce", true, 0.f);
-  getFloat("fudgeFactor", false, -1.f);
-  getFloat("minFeedbackForce", false, -1.f);
-  getFloat("maxFeedbackForce", false, -1.f);
-  getFloat("maxPositionDiff", false, -1.f);
-  getFloat("maxForceGrowth", false, -1.f);
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
-
-  getBool("isNaoMotor", false, 0.f);
 
   axis->motor = servoMotor;
   return nullptr;
