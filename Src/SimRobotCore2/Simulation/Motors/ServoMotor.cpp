@@ -66,6 +66,15 @@ void ServoMotor::act()
       target[i] = { static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]), static_cast<float>(Simulation::simulation->simulatedTime) };
   }
 
+  // For puppets just overwrite the values
+  if(isPuppet)
+  {
+    mju_f2n(&Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]], &this->setpoint, 1);
+    const float zero = 0.f;
+    mju_f2n(&Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]], &zero, 1);
+    return;
+  }
+
   target[index] = { this->setpoint, static_cast<float>(Simulation::simulation->simulatedTime + delay) };
 
   unsigned searchIndex = index;
@@ -125,6 +134,11 @@ void ServoMotor::setStiffness(float stiffness)
     this->stiffness = 1.f;
   else if(this->stiffness < 0.f)
     this->stiffness = 0.f;
+}
+
+void ServoMotor::setPuppetState(bool isPuppet)
+{
+  this->isPuppet = isPuppet;
 }
 
 bool ServoMotor::getMinAndMax(float& min, float& max) const

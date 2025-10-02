@@ -92,6 +92,8 @@ private:
   unsigned index = 0;
   NextTargets lastExecutedSetpoint;
 
+  bool isPuppet = false;
+
   /**
    * Initializes the motor
    * @param joint The joint that is controlled by this motor
@@ -107,5 +109,6 @@ private:
   // actuator API
   void setValue(float value) override;
   void setStiffness(float stiffness) override;
+  void setPuppetState(bool isPuppet) override;
   bool getMinAndMax(float& min, float& max) const override;
 };

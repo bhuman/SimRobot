@@ -617,6 +617,7 @@ namespace SimRobotCore2
 
     virtual void setValue(float value) = 0;
     virtual void setStiffness(float) {}
+    virtual void setPuppetState(bool) {};
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**
