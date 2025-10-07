@@ -77,28 +77,6 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   spec->option.gravity[1] = mjtNum(0);
   spec->option.gravity[2] = mjtNum(scene->gravity);
 
-  /*spec->option.enableflags |= mjENBL_OVERRIDE;
-
-  // 2. Reibung (o_friction) setzen:
-  spec->option.o_friction[0] = 1.0;     // sliding
-  spec->option.o_friction[1] = 1.0;   // torsional
-  spec->option.o_friction[2] = 0.005;  // rolling
-  // Für volle Kompatibilität:
-  spec->option.o_friction[3] = 0.0001;
-  spec->option.o_friction[4] = 0.0001;
-   */
-  // 3. solref setzen (Timeconst, Damping):
-  /* spec->option.o_solref[0] = 0.02;
-   spec->option.o_solref[1] = 1.0;
-
-   // 4. solimp setzen (Impedance-Koeffizienten):
-   spec->option.o_solimp[0] = 0.9;
-   spec->option.o_solimp[1] = 0.95;
-   spec->option.o_solimp[2] = 0.001;
-   spec->option.o_solimp[3] = 0.5;
-   spec->option.o_solimp[4] = 2.0;
-   spec->option.o_margin = 0;*/
-
   worldBody = mjs_findBody(spec, "world");
 
   graphicsContext.pushModelMatrixStack();

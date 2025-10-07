@@ -30,15 +30,8 @@ public:
   float color[4]; /**< The background (clear color) */
   float stepLength; /**< The length of a simulation step */
   float gravity; /**< The gravity in the simulated world */
-  float erp; /**< ODE's erp parameter */
-  float cfm; /**< ODE's cfm parameter */
-  int contactMode = 0; /**< The default contact mode for contacts between bodies */
-  float contactSoftERP;
-  float contactSoftCFM;
-  bool useQuickSolver = false; /**< Whether to use ODE's quick solver */
-  int quickSolverIterations = -1; /**< The iteration count for ODE's quick solver */
-  int quickSolverSkip; /**< Controls how often the normal solver will be used instead of the quick solver */
-  bool detectBodyCollisions; /**< Whether to detect collision between different bodies */
+  int contactMode = 0; /**< The default contact mode for contacts between bodies. TODO unused */
+  bool detectBodyCollisions; /**< Whether to detect collision between different bodies. TODO unused */
 
   SimRobotCore2::Controller3DDrawingManager* drawingManager = nullptr; /**< The manager for 3D controller drawings */
   std::list<Body*> bodies; /**< List of bodies without a parent body */

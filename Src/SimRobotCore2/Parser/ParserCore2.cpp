@@ -203,18 +203,6 @@ Element* ParserCore2::sceneElement()
   getColor("color", false, scene->color);
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
-  scene->cfm = getFloatMinMax("CFM", false, -1.f, 0.f, 1.f);
-  scene->erp = getFloatMinMax("ERP", false, -1.f, 0.f, 1.f);
-  scene->contactSoftERP = getFloatMinMax("contactSoftERP", false, -1.f, 0.f, 1.f);
-  /*
-  if(scene->contactSoftERP != -1.f)
-    scene->contactMode |= dContactSoftERP;
-     */
-  scene->contactSoftCFM = getFloatMinMax("contactSoftCFM", false, -1.f, 0.f, 1.f);
-  /*
-  if(scene->contactSoftCFM != -1.f)
-    scene->contactMode |= dContactSoftCFM;
-   */
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
   getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
   getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
@@ -228,9 +216,6 @@ Element* ParserCore2::quickSolverElement()
 {
   Scene* scene = dynamic_cast<Scene*>(element);
   ASSERT(scene);
-  scene->useQuickSolver = true;
-  scene->quickSolverIterations = getInteger("iterations", false, -1, true);
-  scene->quickSolverSkip = getInteger("skip", false, 1, true);
   return nullptr;
 }
 
