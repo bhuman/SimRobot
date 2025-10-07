@@ -459,28 +459,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
 ### extSensorClass
 
-  - `ApproxDistanceSensor`: Instantiates a sensor that measures the distance in an area in front of it.
-      - `name`: The name of the sensor.
-          - **Use**: optional
-          - **Range**: String
-      - `min`: The minimum distance this sensor can measure.
-          - **Units**: mm, cm, dm, m, km
-          - **Default**: 0
-          - **Use**: optional
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `max`: The maximum distance this sensor can measure.
-          - **Units**: mm, cm, dm, m, km
-          - **Default**: 999999
-          - **Use**: optional
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `angleX`: The maximum angle in x-direction the ray of the sensor can spread.
-          - **Units**: degree, radian
-          - **Use**: required
-          - **Range**: (0, MAXFLOAT]
-      - `angleY`: The maximum angle in y-direction the ray of the sensor can spread.
-          - **Units**: degree, radian
-          - **Use**: required
-          - **Range**: (0, MAXFLOAT]
   - `Camera`: Instantiates a color image camera.
       - `name`: The name of the sensor.
           - **Use**: optional
