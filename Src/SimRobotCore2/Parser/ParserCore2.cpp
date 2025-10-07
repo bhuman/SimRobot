@@ -212,7 +212,7 @@ Element* ParserCore2::sceneElement()
 
 Element* ParserCore2::quickSolverElement()
 {
-  Scene* scene = dynamic_cast<Scene*>(element);
+  [[maybe_unused]] Scene* scene = dynamic_cast<Scene*>(element);
   ASSERT(scene);
   return nullptr;
 }
