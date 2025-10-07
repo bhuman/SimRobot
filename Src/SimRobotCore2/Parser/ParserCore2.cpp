@@ -204,8 +204,6 @@ Element* ParserCore2::sceneElement()
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
-  getFloatMinMax("slip1", false, -1.f, 0.f, 1.f);
-  getFloatMinMax("slip2", false, -1.f, 0.f, 1.f);
 
   ASSERT(!Simulation::simulation->scene);
   Simulation::simulation->scene = scene;
