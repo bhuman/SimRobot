@@ -455,14 +455,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `stopCFM`: The cfm (constant force mixing) value of the limits.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
-      - `stopERP`: The erp (error reducing parameter) value of the limits.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
 
 
 ### extSensorClass

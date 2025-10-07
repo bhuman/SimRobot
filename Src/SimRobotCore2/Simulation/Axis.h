@@ -23,8 +23,6 @@ public:
   public:
     float min = 0.f;
     float max = 0.f;
-    float stopCFM = -1.f;
-    float stopERP = -1.f;
     float offset = 0.f;
   };
 

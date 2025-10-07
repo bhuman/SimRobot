@@ -50,34 +50,6 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
     ASSERT(axis->deflection->offset == 0.f);
   }
 
-  /*
-  if(axis->cfm != -1.f)
-    dJointSetSliderParam(joint, dParamCFM, axis->cfm);
-
-  if(axis->deflection)
-  {
-    const Axis::Deflection& deflection = *axis->deflection;
-    float minSliderLimit = deflection.min;
-    float maxSliderLimit = deflection.max;
-    if(minSliderLimit > maxSliderLimit)
-      minSliderLimit = maxSliderLimit;
-    //Set physical limits to higher values (+10%) to avoid strange Slider effects.
-    //Otherwise, sometimes the motor exceeds the limits.
-    if(dynamic_cast<ServoMotor*>(axis->motor))
-    {
-      const float internalTolerance = (maxSliderLimit - minSliderLimit) * 0.1f;
-      minSliderLimit -= internalTolerance;
-      maxSliderLimit += internalTolerance;
-    }
-    dJointSetSliderParam(joint, dParamLoStop, minSliderLimit);
-    dJointSetSliderParam(joint, dParamHiStop, maxSliderLimit);
-    if(deflection.stopCFM != -1.f)
-      dJointSetSliderParam(joint, dParamStopCFM, deflection.stopCFM);
-    if(deflection.stopERP != -1.f)
-      dJointSetSliderParam(joint, dParamStopERP, deflection.stopERP);
-  }
-  */
-
   // create motor
   if(axis->motor)
     axis->motor->create(this);
