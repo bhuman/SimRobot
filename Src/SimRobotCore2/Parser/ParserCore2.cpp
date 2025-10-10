@@ -682,6 +682,7 @@ Element* ParserCore2::deflectionElement()
   {
     deflection->min = getLength("min", true, 0.f, false);
     deflection->max = getLength("max", true, 0.f, false);
+    deflection->offset = getFloat("init", false, 0.f);
   }
   else
     ASSERT(false);

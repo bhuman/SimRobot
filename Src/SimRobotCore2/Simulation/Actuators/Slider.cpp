@@ -22,6 +22,9 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
 
   axis->create();
 
+  if(axis->deflection && axis->deflection->offset != 0.f)
+    poseInWorld.translate(Vector3f(axis->x, axis->y, axis->z) * axis->deflection->offset);
+
   Joint::createPhysics(graphicsContext);
 
   // find bodies to connect
@@ -47,7 +50,7 @@ void Slider::createPhysics(GraphicsContext& graphicsContext)
     joint->limited = mjLIMITED_TRUE;
     joint->range[0] = axis->deflection->min;
     joint->range[1] = axis->deflection->max;
-    ASSERT(axis->deflection->offset == 0.f);
+    joint->ref = axis->deflection->offset;
   }
 
   // create motor
