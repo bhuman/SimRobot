@@ -58,8 +58,6 @@ ParserCore2::ParserCore2()
 
     {"Scene", sceneClass, std::bind(&ParserCore2::sceneElement, this), nullptr, 0,
       0, solverClass, setClass | bodyClass | compoundClass | lightClass | userInputClass, {}},
-    {"QuickSolver", solverClass, std::bind(&ParserCore2::quickSolverElement, this), nullptr, 0,
-      0, 0, 0, {}},
     {"DirLight", lightClass, std::bind(&ParserCore2::dirLightElement, this), nullptr, 0,
       0, 0, 0, {}},
     {"PointLight", lightClass, std::bind(&ParserCore2::pointLightElement, this), nullptr, 0,
@@ -208,13 +206,6 @@ Element* ParserCore2::sceneElement()
   ASSERT(!Simulation::simulation->scene);
   Simulation::simulation->scene = scene;
   return scene;
-}
-
-Element* ParserCore2::quickSolverElement()
-{
-  [[maybe_unused]] Scene* scene = dynamic_cast<Scene*>(element);
-  ASSERT(scene);
-  return nullptr;
 }
 
 Element* ParserCore2::dirLightElement()
