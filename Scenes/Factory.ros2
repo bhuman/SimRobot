@@ -46,7 +46,7 @@
     </Compound>
 
     <!-- The "machine" -->
-    <Body name="Machine">
+    <Compound name="Machine">
       <BoxAppearance width="1.6" depth="0.1" height="0.05">
         <Translation x="0.15" z="0.5"/>
         <Surface ref="metal"/>
@@ -90,12 +90,12 @@
         <Translation y="0.62" z="0.5"/>
       </BoxGeometry>
       <BoxAppearance width="1.6" depth="0.4" height="0.05">
-        <Translation z="0.14"/>
+        <Translation z="0.15"/>
         <Rotation y="-35degree"/>
         <Surface ref="metal"/>
       </BoxAppearance>
       <BoxGeometry width="1.6" depth="0.4" height="0.05">
-        <Translation z="0.14"/>
+        <Translation z="0.15"/>
         <Rotation y="-35degree"/>
       </BoxGeometry>
       <BoxAppearance width="0.1" depth="0.4" height="0.7">
@@ -112,77 +112,76 @@
       <BoxGeometry width="0.4" depth="0.4" height="0.1">
         <Translation y="-1.05" z="0.65"/>
       </BoxGeometry>
-      <BoxMass value="10000kg" width="10" depth="10" height="10"/>
-        <Hinge name="trapDoor1Hinge">
-          <Translation y="-0.4" z="0.5"/>
-          <Axis x="1.0">
-            <Deflection min="-90.0degree" max="1.0degree"/>
-            <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
-          </Axis>
-          <Body name="trapDoor1">
-            <Translation y="0.1"/>
-            <BoxAppearance width="0.15" depth="0.15" height="0.05">
-              <Surface ref="green"/>
-            </BoxAppearance>
-            <BoxGeometry width="0.15" depth="0.15" height="0.05">
-              <Material ref="Wood"/>
-            </BoxGeometry>
-            <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
-            <CollisionSensor name="trapDoor1Sensor"/>
-          </Body>
-        </Hinge>
-        <Hinge name="trapDoor2Hinge">
-          <Translation y="-0.09" z="0.5"/>
-          <Axis x="1.0">
-            <Deflection min="-90.0degree" max="1.0degree"/>
-            <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
-          </Axis>
-          <Body name="trapDoor2">
-            <Translation y="0.1"/>
-            <BoxAppearance width="0.15" depth="0.15" height="0.05">
-              <Surface ref="red"/>
-            </BoxAppearance>
-            <BoxGeometry width="0.15" depth="0.15" height="0.05">
-              <Material ref="Wood"/>
-            </BoxGeometry>
-            <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
-            <CollisionSensor name="trapDoor2Sensor"/>
-          </Body>
-        </Hinge>
-        <Hinge name="trapDoor3Hinge">
-          <Translation y="0.22" z="0.5"/>
-          <Axis x="1.0">
-            <Deflection min="-90.0degree" max="1.0degree"/>
-            <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
-          </Axis>
-          <Body name="trapDoor3">
-            <Translation y="0.1"/>
-            <BoxAppearance width="0.15" depth="0.15" height="0.05">
-              <Surface ref="yellow"/>
-            </BoxAppearance>
-            <BoxGeometry width="0.15" depth="0.15" height="0.05">
-              <Material ref="Wood"/>
-            </BoxGeometry>
-            <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
-            <CollisionSensor name="trapDoor3Sensor"/>
-          </Body>
-        </Hinge>
-        <Slider name="sliderJoint">
-          <Translation y="-0.8" z="0.3"/>
-          <Axis y="1.0">
-            <Deflection min="0.01" max="10.4" init="0.02"/>
-            <ServoMotor name="MixMotor" maxVelocity="1.0" maxForce="10.0" p="150" d="20"/>
-          </Axis>
-          <Body name="SlideBox">
-            <Translation x="0.0" y="0.1" z="0.27"/>
-            <BoxAppearance width="0.04" depth="0.2" height="0.08">
-              <Surface ref="orange"/>
-            </BoxAppearance>
-            <BoxGeometry width="0.04" depth="0.2" height="0.08"/>
-            <BoxMass value="1kg" width="0.04" depth="0.2" height="0.08"/>
-          </Body>
-        </Slider>
-    </Body>
+      <Hinge name="trapDoor1Hinge">
+        <Translation y="-0.4" z="0.5"/>
+        <Axis x="1.0">
+          <Deflection min="-90.0degree" max="1.0degree"/>
+          <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
+        </Axis>
+        <Body name="trapDoor1">
+          <Translation y="0.1"/>
+          <BoxAppearance width="0.15" depth="0.15" height="0.05">
+            <Surface ref="green"/>
+          </BoxAppearance>
+          <BoxGeometry width="0.15" depth="0.15" height="0.05">
+            <Material ref="Wood"/>
+          </BoxGeometry>
+          <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
+          <CollisionSensor name="trapDoor1Sensor"/>
+        </Body>
+      </Hinge>
+      <Hinge name="trapDoor2Hinge">
+        <Translation y="-0.09" z="0.5"/>
+        <Axis x="1.0">
+          <Deflection min="-90.0degree" max="1.0degree"/>
+          <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
+        </Axis>
+        <Body name="trapDoor2">
+          <Translation y="0.1"/>
+          <BoxAppearance width="0.15" depth="0.15" height="0.05">
+            <Surface ref="red"/>
+          </BoxAppearance>
+          <BoxGeometry width="0.15" depth="0.15" height="0.05">
+            <Material ref="Wood"/>
+          </BoxGeometry>
+          <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
+          <CollisionSensor name="trapDoor2Sensor"/>
+        </Body>
+      </Hinge>
+      <Hinge name="trapDoor3Hinge">
+        <Translation y="0.22" z="0.5"/>
+        <Axis x="1.0">
+          <Deflection min="-90.0degree" max="1.0degree"/>
+          <ServoMotor name="td1motor" maxVelocity="60.0" maxForce="10.0" p="300" d="2"/>
+        </Axis>
+        <Body name="trapDoor3">
+          <Translation y="0.1"/>
+          <BoxAppearance width="0.15" depth="0.15" height="0.05">
+            <Surface ref="yellow"/>
+          </BoxAppearance>
+          <BoxGeometry width="0.15" depth="0.15" height="0.05">
+            <Material ref="Wood"/>
+          </BoxGeometry>
+          <BoxMass value="1kg" width="0.15" depth="0.15" height="0.05"/>
+          <CollisionSensor name="trapDoor3Sensor"/>
+        </Body>
+      </Hinge>
+      <Slider name="sliderJoint">
+        <Translation y="-0.8" z="0.3"/>
+        <Axis y="1.0">
+          <Deflection min="-0.01" max="10.4"/>
+          <ServoMotor name="MixMotor" maxVelocity="1.0" maxForce="10.0" p="150" d="20"/>
+        </Axis>
+        <Body name="SlideBox">
+          <Translation x="0.0" y="0.1" z="0.27"/>
+          <BoxAppearance width="0.04" depth="0.2" height="0.08">
+            <Surface ref="orange"/>
+          </BoxAppearance>
+          <BoxGeometry width="0.04" depth="0.2" height="0.08"/>
+          <BoxMass value="1kg" width="0.04" depth="0.2" height="0.08"/>
+        </Body>
+      </Slider>
+    </Compound>
 
     <!--The three movable blocks-->
     <Body name="Box1">
@@ -197,7 +196,7 @@
     </Body>
 
     <Body name="Box2">
-      <Translation y="-0.6" z="0.8"/>
+      <Translation y="-0.6" z="1.0"/>
       <BoxAppearance depth="0.1" width="0.1" height="0.04">
         <Surface ref="green"/>
       </BoxAppearance>

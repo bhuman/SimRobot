@@ -23,10 +23,10 @@ class Mass;
 class Body : public PhysicalObject, public GraphicalObject, public SimRobotCore2::Body
 {
 public:
-  mjsBody* body = nullptr;
+  mjsBody* body = nullptr; /**< The MuJoCo specification of this body. Only valid during \c createPhysics. */
   Body* rootBody = nullptr; /**< The first movable body in a chain of bodies (might point to itself) */
   int bodyIndex = -1; /**< The index of the body in MuJoCo's data. */
-  int xxx; // TODO better name?
+  int collisionGroup = 0; /**< The collision group of this body (one per root body). */
 
   /**
    * Creates resources to later draw the object in the given graphics context

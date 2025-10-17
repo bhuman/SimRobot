@@ -7,6 +7,7 @@
 #include "Body.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
+#include "Simulation/Actuators/Joint.h"
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Masses/Mass.h"
 #include "Simulation/Scene.h"
@@ -35,10 +36,15 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   else
   {
     Simulation::simulation->scene->bodies.push_back(this);
-    rootBody = this;
+    collisionGroup = static_cast<int>(Simulation::simulation->scene->bodies.size());
     body = mjs_addBody(Simulation::simulation->worldBody, nullptr);
-    xxx = static_cast<int>(Simulation::simulation->scene->bodies.size());
-    mjs_addFreeJoint(body);
+    if(!dynamic_cast<Joint*>(parent))
+    {
+      mjs_addFreeJoint(body);
+      rootBody = this;
+    }
+    else
+      rootBody = nullptr;
   }
 
   mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "Body", &bodyIndex, this));
@@ -102,19 +108,11 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
   if(geometry.rotation)
     offset.rotate(*geometry.rotation);
 
-  // create space if required
-  // TODO: MJC doesn't work with spaces, but we still need collision group to enable/disable physics
-  /*
-  if(!rootBody->bodySpace)
-    rootBody->bodySpace = dHashSpaceCreate(Simulation::simulation->movableSpace);
-   */
-
   // create and attach geometry
-  mjsGeom* geom = geometry.createGeometry(body); // in rootBody->bodySpace
+  mjsGeom* geom = geometry.createGeometry(body);
   if(geom)
   {
-    // dGeomSetData(geom, &geometry);
-    geom->contype = (1 << rootBody->xxx);
+    geom->contype = (1 << (rootBody ? rootBody : this)->collisionGroup);
     geom->conaffinity = ~geom->contype;
 
     // set offset
@@ -157,7 +155,7 @@ void Body::addMass(Mass& mass)
       rotate mass; -> rotate tensor of inertia and center of mass
     if(mass.translation)
       mju_f2n(body->ipos, mass.translation->data(), 3); // by moving the inertia frame, no adjustment to the tensor of inertia is needed
-     */
+    */
     mju_addTo3(body->ipos, body->pos);
   }
   /*
@@ -418,9 +416,6 @@ void Body::resetDynamics()
 void Body::enablePhysics(bool enable)
 {
   // enable/disable dynamics
-  // TODO MJC:
-  // enable ? dBodyEnable(body) : dBodyDisable(body);
-  // It's rather unfriendly to
   if(enable)
     --Simulation::simulation->model->ngravcomp;
   else

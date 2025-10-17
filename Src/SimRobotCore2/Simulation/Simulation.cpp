@@ -64,7 +64,8 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   ASSERT(spec);
 
   spec->compiler.degree = 0;
-  spec->compiler.inertiafromgeom = mjINERTIAFROMGEOM_AUTO;
+  spec->compiler.inertiafromgeom = mjINERTIAFROMGEOM_FALSE;
+  spec->compiler.saveinertial = 1;
 
   spec->option.timestep = scene->stepLength;
   spec->option.apirate = scene->stepLength;
@@ -99,7 +100,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   data = mj_makeData(model);
   ASSERT(data);
 
-  mj_forward(model, data);
+  mj_kinematics(model, data);
 
   bodyMap.resize(model->nbody);
   geometryMap.resize(model->ngeom);
