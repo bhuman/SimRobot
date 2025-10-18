@@ -34,5 +34,7 @@
 	<string>True</string>
 	<key>NSPrincipleClass</key>
 	<string>NSApplication</string>
+	<key>UIDesignRequiresCompatibility</key>
+	<true/>
 </dict>
 </plist>

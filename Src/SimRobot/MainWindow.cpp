@@ -693,7 +693,7 @@ void MainWindow::updateMenuAndToolBar()
                                    "border-bottom: 1px solid " + pressed.name(QColor::HexArgb) + ";"
                                    "background-color: " + title.name(QColor::HexArgb) + "}"
                          "QToolBar::separator {background-color: transparent; width: 12px}"
-                         "QToolButton {background-color: transparent; padding: 3px 8px 3px 8px; border-width: 0px; border-radius: 4px}"
+                         "QToolButton {background-color: transparent; padding: 3px 2px 3px 4px; border-width: 0px; border-radius: 12px}"
                          "QToolButton::menu-button {background-color: transparent}"
                          "QToolButton::menu-indicator {width: 0px}"
                          "QToolButton:checked {background-color: " + pressed.name(QColor::HexArgb) + "}"
