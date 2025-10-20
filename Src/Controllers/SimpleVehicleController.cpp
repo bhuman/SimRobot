@@ -13,7 +13,7 @@
  */
 #define _USE_MATH_DEFINES // for C++
 
-#include <SimRobotCore2.h>
+#include <SimRobotCore3.h>
 #include <QString>
 #include <QVector>
 #include <QList>
@@ -27,11 +27,11 @@ class SimpleVehicleController : public SimRobot::Module
 {
 private:
   SimRobot::Application&   simRobot;            /**< Reference to the SimRobot application */
-  SimRobotCore2::ActuatorPort* frontLeftWheel;  /**< Access to front left wheel */
-  SimRobotCore2::ActuatorPort* frontRightWheel; /**< Access to front right wheel */
-  SimRobotCore2::ActuatorPort* backLeftWheel;   /**< Access to back left wheel */
-  SimRobotCore2::ActuatorPort* backRightWheel;  /**< Access to back right wheel */
-  SimRobotCore2::SensorPort*   distanceSensor;  /**< Access to distance sensor */
+  SimRobotCore3::ActuatorPort* frontLeftWheel;  /**< Access to front left wheel */
+  SimRobotCore3::ActuatorPort* frontRightWheel; /**< Access to front right wheel */
+  SimRobotCore3::ActuatorPort* backLeftWheel;   /**< Access to back left wheel */
+  SimRobotCore3::ActuatorPort* backRightWheel;  /**< Access to back right wheel */
+  SimRobotCore3::SensorPort*   distanceSensor;  /**< Access to distance sensor */
   bool ballFound;                               /**< Flag for behavior */
   float angleToBall;                            /**< Angle for behavior */
   float distanceToBall;                         /**< Distance for behavior */
@@ -51,19 +51,19 @@ public:
   bool compile() override
   {
     // Get all necessary actuator and sensor objects
-    SimRobotCore2::Object* vehicleObj = static_cast<SimRobotCore2::Object*>(simRobot.resolveObject("SimpleVehicle.car", SimRobotCore2::body));
+    SimRobotCore3::Object* vehicleObj = static_cast<SimRobotCore3::Object*>(simRobot.resolveObject("SimpleVehicle.car", SimRobotCore3::body));
     QVector<QString> parts;
     parts.resize(1);
     parts[0] = "frontLeft.velocity";
-    frontLeftWheel = static_cast<SimRobotCore2::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore2::actuatorPort));
+    frontLeftWheel = static_cast<SimRobotCore3::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore3::actuatorPort));
     parts[0] = "frontRight.velocity";
-    frontRightWheel = static_cast<SimRobotCore2::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore2::actuatorPort));
+    frontRightWheel = static_cast<SimRobotCore3::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore3::actuatorPort));
     parts[0] = "backLeft.velocity";
-    backLeftWheel = static_cast<SimRobotCore2::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore2::actuatorPort));
+    backLeftWheel = static_cast<SimRobotCore3::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore3::actuatorPort));
     parts[0] = "backRight.velocity";
-    backRightWheel = static_cast<SimRobotCore2::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore2::actuatorPort));
+    backRightWheel = static_cast<SimRobotCore3::ActuatorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore3::actuatorPort));
     parts[0] = "image";
-    distanceSensor = static_cast<SimRobotCore2::SensorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore2::sensorPort));
+    distanceSensor = static_cast<SimRobotCore3::SensorPort*>(simRobot.resolveObject(parts, vehicleObj, SimRobotCore3::sensorPort));
 
     // Init behavior member
     vehicleState = SEARCH_FOR_BALL;
