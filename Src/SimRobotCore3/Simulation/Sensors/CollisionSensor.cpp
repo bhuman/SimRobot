@@ -1,0 +1,91 @@
+/**
+ * @file Simulation/Sensors/CollisionSensor.cpp
+ * Implementation of class CollisionSensor
+ * @author Colin Graf
+ */
+
+#include "CollisionSensor.h"
+#include "CoreModule.h"
+#include "Simulation/Body.h"
+#include "Simulation/Geometries/Geometry.h"
+
+CollisionSensor::CollisionSensor()
+{
+  sensor.sensorType = SimRobotCore3::SensorPort::boolSensor;
+}
+
+void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
+{
+  // add geometries
+  for(auto iter = physicalDrawings.begin(), end = physicalDrawings.end(); iter != end; ++iter)
+  {
+    Geometry* geometry = dynamic_cast<Geometry*>(*iter);
+    if(geometry)
+    {
+      hasGeometries = true;
+      Pose3f geomOffset;
+      if(translation)
+        geomOffset.translate(*translation);
+      if(rotation)
+        geomOffset.rotate(*rotation);
+      parentBody->addGeometry(geomOffset, *geometry);
+      for(++iter; iter != end; ++iter) // avoid constructing geomOffset again
+      {
+        geometry = dynamic_cast<Geometry*>(*iter);
+        if(geometry)
+          parentBody->addGeometry(geomOffset, *geometry);
+      }
+      break;
+    }
+  }
+
+  // register collision callback function
+  if(hasGeometries)
+    registerCollisionCallback(physicalDrawings, true);
+  else // in case the sensor has no geometries use the geometries of the body to which the sensor is attached
+    registerCollisionCallback(parentBody->physicalDrawings, false);
+
+  Sensor::createPhysics(graphicsContext);
+}
+
+void CollisionSensor::registerCollisionCallback(std::list< ::PhysicalObject*>& geometries, bool setNotCollidable)
+{
+  for(::PhysicalObject* i : geometries)
+  {
+    Geometry* geometry = dynamic_cast<Geometry*>(i);
+    if(geometry && !geometry->immaterial)
+    {
+      if(setNotCollidable)
+        geometry->immaterial = true;
+      geometry->registerCollisionCallback(sensor);
+      registerCollisionCallback(geometry->physicalDrawings, setNotCollidable);
+    }
+  }
+}
+
+void CollisionSensor::registerObjects()
+{
+  sensor.fullName = fullName + ".contact";
+  CoreModule::application->registerObject(*CoreModule::module, sensor, this);
+
+  Sensor::registerObjects();
+}
+
+void CollisionSensor::CollisionSensorPort::updateValue()
+{
+  data.boolValue = lastCollisionStep == Simulation::simulation->simulationStep;
+}
+
+void CollisionSensor::CollisionSensorPort::collided(SimRobotCore3::Geometry&, SimRobotCore3::Geometry&)
+{
+  lastCollisionStep = Simulation::simulation->simulationStep;
+}
+
+void CollisionSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+{
+  if(flags & SimRobotCore3::Renderer::showSensors)
+    for(const ::PhysicalObject* drawing : (hasGeometries ? physicalDrawings : parentBody->physicalDrawings))
+      drawing->drawPhysics(graphicsContext, SimRobotCore3::Renderer::showPhysics);
+
+  Sensor::drawPhysics(graphicsContext, flags);
+}

@@ -75,7 +75,7 @@ target_link_libraries(SimRobot PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Svg Q
 if(MACOS)
   target_link_libraries(SimRobot PRIVATE ${APP_KIT_FRAMEWORK})
 endif()
-add_dependencies(SimRobot SimRobotCore2 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
+add_dependencies(SimRobot SimRobotCore3 SimRobotCore2D SimRobotEditor ${SIMROBOT_CONTROLLERS})
 
 target_link_libraries(SimRobot PRIVATE Flags::Default)
 

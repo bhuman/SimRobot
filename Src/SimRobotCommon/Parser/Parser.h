@@ -1,7 +1,7 @@
 /**
  * @file Parser.h
  *
- * This file declares a class that parses .ros2(d) scene description files.
+ * This file declares a class that parses .ros3/.ros2d scene description files.
  *
  * @author Colin Graf
  * @author Arne Hasselbring
@@ -21,7 +21,7 @@ class Element;
 
 /**
  * @class Parser
- * A parser for .ros2(d) files.
+ * A parser for .ros3/.ros2d files.
  */
 class Parser : protected Reader
 {
@@ -30,7 +30,7 @@ public:
   ~Parser();
 
   /**
-   * Parses a .ros2(d) file into the scene graph.
+   * Parses a .ros3/.ros2d file into the scene graph.
    * @param fileName The name of the file to parse.
    * @param errors A list which is filled with messages about errors during parsing.
    * @return Whether the file was parsed successfully.
@@ -213,7 +213,7 @@ private:
   void parseMacroElement(ElementData& elementData);
 
   std::list<std::string>* errors = nullptr; /**< List of error messages that occurred during parsing. */
-  std::string parseRootDir; /**< The directory in which the main .ros2(d) file is stored. */
+  std::string parseRootDir; /**< The directory in which the main .ros3/.ros2d file is stored. */
   std::string includeFile; /**< A file to be included. */
   Location includeFileLocation; /**< The location of the path to the included file in the including file. */
 

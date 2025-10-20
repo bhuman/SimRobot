@@ -151,8 +151,8 @@ SimRobot::Widget* FileEditorObject::createWidget()
 EditorWidget::EditorWidget(FileEditorObject* editorObject, const QString& fileContent) :
   editorObject(editorObject)
 {
-  if(editorObject->filePath.endsWith(".ros2") || editorObject->filePath.endsWith(".ros2d") ||
-     editorObject->filePath.endsWith(".rsi2") || editorObject->filePath.endsWith(".rsi2d"))
+  if(editorObject->filePath.endsWith(".ros3") || editorObject->filePath.endsWith(".ros2d") ||
+     editorObject->filePath.endsWith(".rsi3") || editorObject->filePath.endsWith(".rsi2d"))
     highlighter = new SyntaxHighlighter(document(), this);
   setFrameStyle(QFrame::NoFrame);
 

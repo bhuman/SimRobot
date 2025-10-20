@@ -1,7 +1,7 @@
 /**
  * @file Parser.cpp
  *
- * This file implements a class that parses .ros2(d) scene description files.
+ * This file implements a class that parses .ros3/.ros2d scene description files.
  *
  * @author Colin Graf
  * @author Arne Hasselbring

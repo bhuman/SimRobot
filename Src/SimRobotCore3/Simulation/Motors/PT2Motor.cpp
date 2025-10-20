@@ -1,0 +1,103 @@
+/**
+ * @file Simulation/Motors/PT2Motor.cpp
+ * Implementation of class PT2Motor
+ * @author Thomas Muender
+ */
+
+#include "PT2Motor.h"
+#include "CoreModule.h"
+#include "Platform/Assert.h"
+#include "Simulation/Actuators/Joint.h"
+#include "Simulation/Axis.h"
+#include "Simulation/Scene.h"
+#include "Simulation/Simulation.h"
+#include <cmath>
+
+PT2Motor::PT2Motor()
+{
+  Simulation::simulation->scene->actuators.push_back(this);
+
+  positionSensor.sensorType = SimRobotCore3::SensorPort::floatSensor;
+  positionSensor.dimensions.push_back(1);
+}
+
+void PT2Motor::create(Joint* joint)
+{
+  // ASSERT(dJointGetType(joint->joint) == dJointTypeHinge);
+  this->joint = positionSensor.joint = joint;
+  // dJointSetHingeParam(joint->joint, dParamFMax, F);
+}
+
+void PT2Motor::act()
+{
+  lastSetpoints.push_back(this->setpoint);
+
+  if(lastSetpoints.size() < 3)
+    return;
+
+  const float dt = Simulation::simulation->scene->stepLength;
+  const float y = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
+
+  ASSERT(T != 0.f);
+  const float dx = dt / T * (K * lastSetpoints[0] - y - 2 * D * x);
+  x += dx;
+  const float yd = std::fmin(x / T, V); //convert x to velocity and limit it
+  x = yd * T; //convert limited velocity back to x to limit x as well
+
+  lastSetpoints.pop_front();
+
+  // TODO MJC:
+  // dJointSetHingeParam(joint->joint, dParamVel, yd);
+}
+
+void PT2Motor::setValue(float value)
+{
+  setpoint = value;
+  const Axis::Deflection* deflection = joint->axis->deflection;
+  if(deflection)
+  {
+    if(setpoint > deflection->max)
+      setpoint = deflection->max;
+    else if(setpoint < deflection->min)
+      setpoint = deflection->min;
+  }
+}
+
+bool PT2Motor::getMinAndMax(float& min, float& max) const
+{
+  const Axis::Deflection* deflection = joint->axis->deflection;
+  if(deflection)
+  {
+    min = deflection->min;
+    max = deflection->max;
+    return true;
+  }
+  return false;
+}
+
+void PT2Motor::PositionSensor::updateValue()
+{
+  data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
+}
+
+bool PT2Motor::PositionSensor::getMinAndMax(float& min, float& max) const
+{
+  const Axis::Deflection* deflection = joint->axis->deflection;
+  if(deflection)
+  {
+    min = deflection->min;
+    max = deflection->max;
+    return true;
+  }
+  return false;
+}
+
+void PT2Motor::registerObjects()
+{
+  positionSensor.unit = unit = QString::fromUtf8("°");
+  positionSensor.fullName = joint->fullName + ".position";
+  fullName = joint->fullName + ".position";
+
+  CoreModule::application->registerObject(*CoreModule::module, positionSensor, joint);
+  CoreModule::application->registerObject(*CoreModule::module, *this, joint);
+}
