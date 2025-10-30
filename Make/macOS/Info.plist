@@ -7,7 +7,7 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>ros2</string>
+				<string>ros3</string>
 				<string>ros2d</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
