@@ -207,9 +207,6 @@ MainWindow::MainWindow(int, char* argv[]) :
   menuBar()->addMenu(helpMenu);
 
 #ifdef MACOS
-  QPalette pal = palette();
-  pal.setBrush(QPalette::Window, QBrush(QColor(0, 0, 0, 0)));
-  setPalette(pal);
   connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::applicationStateChanged);
 #else
   updateMenuAndToolBar();
