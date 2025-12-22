@@ -140,8 +140,8 @@ void ServoMotor::setStiffness(float stiffness)
   this->stiffness = stiffness / 100.f;
   if(this->stiffness > 1.f)
     this->stiffness = 1.f;
-  else if(this->stiffness < 0.f)
-    this->stiffness = 0.f;
+  else if(this->stiffness < 0.05f)
+    this->stiffness = 0.05f;
 }
 
 void ServoMotor::setPuppetState(bool isPuppet)
