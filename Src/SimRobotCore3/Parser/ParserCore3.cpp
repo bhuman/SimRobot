@@ -57,7 +57,7 @@ ParserCore3::ParserCore3()
       0, 0, 0, {}},
 
     {"Scene", sceneClass, std::bind(&ParserCore3::sceneElement, this), nullptr, 0,
-      0, solverClass, setClass | bodyClass | compoundClass | lightClass | userInputClass, {}},
+      0, 0, setClass | bodyClass | compoundClass | lightClass | userInputClass, {}},
     {"DirLight", lightClass, std::bind(&ParserCore3::dirLightElement, this), nullptr, 0,
       0, 0, 0, {}},
     {"PointLight", lightClass, std::bind(&ParserCore3::pointLightElement, this), nullptr, 0,
@@ -100,10 +100,6 @@ ParserCore3::ParserCore3()
       0, translationClass | rotationClass | materialClass, setClass | geometryClass, {}},
 
     {"Material", materialClass, std::bind(&ParserCore3::materialElement, this), nullptr, constantFlag,
-      0, 0, setClass | frictionClass, {}},
-    {"Friction", frictionClass, std::bind(&ParserCore3::frictionElement, this), nullptr, constantFlag,
-      0, 0, 0, {}},
-    {"RollingFriction", frictionClass, std::bind(&ParserCore3::rollingFrictionElement, this), nullptr, constantFlag,
       0, 0, 0, {}},
 
     {"Appearance", appearanceClass, std::bind(&ParserCore3::appearanceElement, this), nullptr, 0,
@@ -396,28 +392,9 @@ Element* ParserCore3::capsuleGeometryElement()
 Element* ParserCore3::materialElement()
 {
   Geometry::Material* material = new Geometry::Material();
-  material->name = getString("name", false);
+  material->friction = getFloatPositive("friction", false, 0.f);
+  material->rollingFriction = getFloatPositive("rollingFriction", false, 0.f);
   return material;
-}
-
-Element* ParserCore3::frictionElement()
-{
-  Geometry::Material* material = dynamic_cast<Geometry::Material*>(element);
-  ASSERT(material);
-  const std::string& otherMaterial = getString("material", true);
-  float friction = getFloatPositive("value", true, 1.f);
-  material->frictions[otherMaterial] = friction;
-  return nullptr;
-}
-
-Element* ParserCore3::rollingFrictionElement()
-{
-  Geometry::Material* material = dynamic_cast<Geometry::Material*>(element);
-  ASSERT(material);
-  const std::string& otherMaterial = getString("material", true);
-  float rollingFriction = getFloatPositive("value", true, 1.f);
-  material->rollingFrictions[otherMaterial] = rollingFriction;
-  return nullptr;
 }
 
 Element* ParserCore3::appearanceElement()
@@ -682,7 +659,7 @@ Element* ParserCore3::deflectionElement()
   {
     deflection->min = getLength("min", true, 0.f, false);
     deflection->max = getLength("max", true, 0.f, false);
-    deflection->offset = getFloat("init", false, 0.f);
+    deflection->offset = getLength("init", false, 0.f, false);
   }
   else
     ASSERT(false);

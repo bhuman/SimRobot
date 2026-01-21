@@ -319,16 +319,14 @@ bool SimObjectRenderer::intersectRayAndPlane(const Vector3f& point, const Vector
                                              const Vector3f& plane, const Vector3f& n,
                                              Vector3f& intersection) const
 {
-  Vector3f p = plane - point;
-  float denominator = n.dot(v);
+  const float denominator = n.dot(v);
   if(denominator == 0.f)
     return false;
-  float r = n.dot(p) / denominator;
+  const Vector3f p = plane - point;
+  const float r = n.dot(p) / denominator;
   if(r < 0.f)
     return false;
-  intersection = v;
-  intersection *= r;
-  intersection += point;
+  intersection = point + r * v;
   return true;
 }
 
@@ -381,7 +379,7 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
     return true;
 
   // look if the user clicked on an object
-  dragSelection = 0;
+  dragSelection = nullptr;
   if(&simObject == Simulation::simulation->scene)
   {
     Vector3f projectedClick = projectClick(x, y);
@@ -393,7 +391,7 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
       if(type == dragRotate || type == dragNormalObject)
         dragPlaneVector = dragSelection->poseInWorld.rotation * dragPlaneVector;
       if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, dragStartPos))
-        dragSelection = 0;
+        dragSelection = nullptr;
       else
       {
         static_cast<SimRobotCore3::Body*>(dragSelection)->enablePhysics(false);

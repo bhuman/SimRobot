@@ -38,18 +38,16 @@ private:
     axisClass           = (1 << 10),
     motorClass          = (1 << 11),
     deflectionClass     = (1 << 12),
-    solverClass         = (1 << 13),
-    surfaceClass        = (1 << 14),
-    primitiveGroupClass = (1 << 15),
-    verticesClass       = (1 << 16),
-    normalsClass        = (1 << 17),
-    texCoordsClass      = (1 << 18),
-    intSensorClass      = (1 << 19),
-    extSensorClass      = (1 << 20),
-    materialClass       = (1 << 21),
-    frictionClass       = (1 << 22),
-    lightClass          = (1 << 23),
-    userInputClass      = (1 << 24),
+    surfaceClass        = (1 << 13),
+    primitiveGroupClass = (1 << 14),
+    verticesClass       = (1 << 15),
+    normalsClass        = (1 << 16),
+    texCoordsClass      = (1 << 17),
+    intSensorClass      = (1 << 18),
+    extSensorClass      = (1 << 19),
+    materialClass       = (1 << 20),
+    lightClass          = (1 << 21),
+    userInputClass      = (1 << 22),
   };
 
   bool getColor(const char* key, bool required, float* colors);
@@ -72,8 +70,6 @@ private:
   Element* cylinderGeometryElement();
   Element* capsuleGeometryElement();
   Element* materialElement();
-  Element* frictionElement();
-  Element* rollingFrictionElement();
   Element* appearanceElement();
   Element* boxAppearanceElement();
   Element* sphereAppearanceElement();
@@ -96,7 +92,6 @@ private:
   Element* PT2MotorElement();
   Element* servoMotorElement();
   Element* velocityMotorElement();
-  Element* quickSolverElement();
   Element* dirLightElement();
   Element* pointLightElement();
   Element* spotLightElement();

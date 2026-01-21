@@ -9,7 +9,6 @@
 #include "Simulation/Geometries/Geometry.h"
 #include "Simulation/Simulation.h"
 #include "Tools/OpenGLTools.h"
-#include <mujoco/mujoco.h>
 
 void Compound::addParent(Element& element)
 {
@@ -45,18 +44,7 @@ void Compound::addGeometry(const Pose3f& parentPose, Geometry& geometry)
     geomPose.rotate(*geometry.rotation);
 
   // create geometry
-  mjsGeom* geom = geometry.createGeometry(Simulation::simulation->worldBody);
-  if(geom)
-  {
-    // dGeomSetData(geom, &geometry);
-
-    // set pose
-    mju_f2n(geom->pos, geomPose.translation.data(), 3);
-    mjtNum buf[9];
-    mju_f2n(buf, geomPose.rotation.data(), 9);
-    mju_mat2Quat(geom->quat, buf);
-    mju_negQuat(geom->quat, geom->quat); // column major -> row major
-  }
+  geometry.createGeometry(Simulation::simulation->worldBody, 0, geomPose);
 
   // handle nested geometries
   for(::PhysicalObject* iter : geometry.physicalDrawings)

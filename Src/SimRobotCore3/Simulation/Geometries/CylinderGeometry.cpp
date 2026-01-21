@@ -10,9 +10,8 @@
 #include <mujoco/mujoco.h>
 #include <cmath>
 
-mjsGeom* CylinderGeometry::createGeometry(mjsBody* body)
+mjsGeom* CylinderGeometry::assembleGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
   mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "CylinderGeometry", nullptr, this));
   geom->type = mjGEOM_CYLINDER;

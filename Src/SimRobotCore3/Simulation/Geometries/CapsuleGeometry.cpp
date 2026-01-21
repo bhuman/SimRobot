@@ -10,9 +10,8 @@
 #include <mujoco/mujoco.h>
 #include <algorithm>
 
-mjsGeom* CapsuleGeometry::createGeometry(mjsBody* body)
+mjsGeom* CapsuleGeometry::assembleGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
   mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "CapsuleGeometry", nullptr, this));
   geom->type = mjGEOM_CAPSULE;

@@ -26,7 +26,6 @@ public:
   mjsBody* body = nullptr; /**< The MuJoCo specification of this body. Only valid during \c createPhysics. */
   Body* rootBody = nullptr; /**< The first movable body in a chain of bodies (might point to itself) */
   int bodyIndex = -1; /**< The index of the body in MuJoCo's data. */
-  int collisionGroup = 0; /**< The collision group of this body (one per root body). */
 
   /**
    * Creates resources to later draw the object in the given graphics context
@@ -67,7 +66,7 @@ private:
   Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
   Vector3f velocityInWorld; /**< A buffer used by \c getVelocity */
 
-  // dSpaceID bodySpace = nullptr; /**< The collision space for a connected group of movable objects */
+  int collisionGroup = 0; /**< The collision group of this body (one per root body). Compounds belong to collision group 0. */
 
   std::list<Body*> bodyChildren; /**< List of first-degree child bodies that are connected to this body over a joint */
 
@@ -83,8 +82,9 @@ private:
    * Creates a ODE geometry and attaches it to the body
    * @param parentOffset the base geometry offset from the center of mass of the body
    * @param geometry A geometry description
+   * @param immaterial Whether the geometry collides or just tests for collision
    */
-  void addGeometry(const Pose3f& parentOffset, Geometry& geometry);
+  void addGeometry(const Pose3f& parentOffset, Geometry& geometry, bool immaterial = false);
 
   /**
    * Adds a mass to the mass of the body
@@ -110,7 +110,6 @@ private:
    */
   void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept) override;
 
-  friend class Accelerometer;
   friend class CollisionSensor;
 
   GraphicsContext::ModelMatrix* comModelMatrix = nullptr; /**< The model matrix of the CoM sphere drawing */

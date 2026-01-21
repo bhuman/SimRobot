@@ -30,21 +30,25 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   if(parentBody)
   {
     parentBody->bodyChildren.push_back(this);
-    rootBody = parentBody->rootBody;
     body = mjs_addBody(parentBody->body, nullptr);
+    rootBody = parentBody->rootBody;
+    collisionGroup = rootBody->collisionGroup;
   }
   else
   {
     Simulation::simulation->scene->bodies.push_back(this);
-    collisionGroup = static_cast<int>(Simulation::simulation->scene->bodies.size());
     body = mjs_addBody(Simulation::simulation->worldBody, nullptr);
     if(!dynamic_cast<Joint*>(parent))
     {
       mjs_addFreeJoint(body);
       rootBody = this;
+      collisionGroup = Simulation::simulation->scene->detectBodyCollisions ? Simulation::simulation->nextCollisionGroup++ : 1;
     }
     else
+    {
       rootBody = nullptr;
+      collisionGroup = 0; // belongs to the static world, doesn't collide with it
+    }
   }
 
   mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "Body", &bodyIndex, this));
@@ -99,7 +103,7 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.popModelMatrixStack();
 }
 
-void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
+void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry, bool immaterial)
 {
   // compute geometry offset
   Pose3f offset = parentOffset;
@@ -109,35 +113,14 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry)
     offset.rotate(*geometry.rotation);
 
   // create and attach geometry
-  mjsGeom* geom = geometry.createGeometry(body);
-  if(geom)
-  {
-    geom->contype = (1 << (rootBody ? rootBody : this)->collisionGroup);
-    geom->conaffinity = ~geom->contype;
-
-    // set offset
-    mju_f2n(geom->pos, offset.translation.data(), 3);
-    mjtNum buf[9];
-    mju_f2n(buf, offset.rotation.data(), 9);
-    mju_mat2Quat(geom->quat, buf);
-    mju_negQuat(geom->quat, geom->quat); // column major -> row major
-
-    if(geometry.material && !geometry.material->frictions.empty())
-      geom->friction[0] = geometry.material->frictions.begin()->second;
-    if(geometry.material && !geometry.material->rollingFrictions.empty())
-    {
-      geom->friction[1] = geometry.material->rollingFrictions.begin()->second;
-      geom->friction[2] = geom->friction[1] * 0.01f;
-      geom->condim = 6;
-    }
-  }
+  geometry.createGeometry(body, collisionGroup, offset, immaterial);
 
   // handle nested geometries
   for(::PhysicalObject* iter : geometry.physicalDrawings)
   {
     Geometry* geometry = dynamic_cast<Geometry*>(iter);
     ASSERT(geometry);
-    addGeometry(offset, *geometry);
+    addGeometry(offset, *geometry, immaterial);
   }
 }
 
@@ -422,7 +405,6 @@ void Body::enablePhysics(bool enable)
     ++Simulation::simulation->model->ngravcomp;
   Simulation::simulation->model->body_gravcomp[bodyIndex] = enable ? 0.f : 1.f;
 
-  // TODO: we would rather keep the body out of the broadphase at all
   // enable/disable collisions with associated geoms
   Simulation::simulation->model->body_contype[bodyIndex] = Simulation::simulation->model->body_conaffinity[bodyIndex] = enable ? 1 : 0;
 

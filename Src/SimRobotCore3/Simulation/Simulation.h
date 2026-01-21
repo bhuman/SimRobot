@@ -32,6 +32,7 @@ public:
   Scene* scene = nullptr; /**< The root of the scene graph */
   std::list<ElementCore3*> elements; /**< All scene graph elements */
 
+  int nextCollisionGroup = 1; /**< The collision group that the next root body is assigned. */
   mjSpec* spec = nullptr; /**< The model specification that is built from the scene description. Only valid during \c createPhysics. */
   mjsBody* worldBody = nullptr; /**< The world (root) body in the model specification. Only valid during \c createPhysics. */
   mjModel* model = nullptr; /**< The MuJoCo model that is compiled from the model specification. Only valid after \c createPhysics. */

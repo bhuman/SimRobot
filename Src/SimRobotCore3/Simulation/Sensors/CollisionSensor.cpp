@@ -28,12 +28,12 @@ void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
         geomOffset.translate(*translation);
       if(rotation)
         geomOffset.rotate(*rotation);
-      parentBody->addGeometry(geomOffset, *geometry);
+      parentBody->addGeometry(geomOffset, *geometry, true);
       for(++iter; iter != end; ++iter) // avoid constructing geomOffset again
       {
         geometry = dynamic_cast<Geometry*>(*iter);
         if(geometry)
-          parentBody->addGeometry(geomOffset, *geometry);
+          parentBody->addGeometry(geomOffset, *geometry, true);
       }
       break;
     }
@@ -41,24 +41,22 @@ void CollisionSensor::createPhysics(GraphicsContext& graphicsContext)
 
   // register collision callback function
   if(hasGeometries)
-    registerCollisionCallback(physicalDrawings, true);
+    registerCollisionCallback(physicalDrawings);
   else // in case the sensor has no geometries use the geometries of the body to which the sensor is attached
-    registerCollisionCallback(parentBody->physicalDrawings, false);
+    registerCollisionCallback(parentBody->physicalDrawings);
 
   Sensor::createPhysics(graphicsContext);
 }
 
-void CollisionSensor::registerCollisionCallback(std::list< ::PhysicalObject*>& geometries, bool setNotCollidable)
+void CollisionSensor::registerCollisionCallback(std::list<::PhysicalObject*>& geometries)
 {
   for(::PhysicalObject* i : geometries)
   {
     Geometry* geometry = dynamic_cast<Geometry*>(i);
-    if(geometry && !geometry->immaterial)
+    if(geometry)
     {
-      if(setNotCollidable)
-        geometry->immaterial = true;
       geometry->registerCollisionCallback(sensor);
-      registerCollisionCallback(geometry->physicalDrawings, setNotCollidable);
+      registerCollisionCallback(geometry->physicalDrawings);
     }
   }
 }

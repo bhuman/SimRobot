@@ -20,10 +20,10 @@ public:
 private:
   /**
    * Creates the geometry (not including \c translation and \c rotation)
-   * @param space A space to create the geometry in
+   * @param body The body to which to attach the geometry
    * @param The created geometry
    */
-  mjsGeom* createGeometry(mjsBody* body) override;
+  mjsGeom* assembleGeometry(mjsBody* body) override;
 
   /**
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).

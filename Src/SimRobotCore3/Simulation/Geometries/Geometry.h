@@ -28,30 +28,10 @@ public:
   class Material : public ElementCore3
   {
   public:
-    std::string name; /**< The name of the material */
-    std::unordered_map<std::string, float> frictions; /**< The friction of the material on another material */
-    std::unordered_map<std::string, float> rollingFrictions; /**< The rolling friction of the material on another material */
-
-    /**
-     * Looks up the friction on another material
-     * @param other The other material
-     * @param friction The friction on the other material
-     * @return Whether there is a friction specified or not
-     */
-    bool getFriction(const Material& other, float& friction) const;
-
-    /**
-     * Looks up the rolling friction on another material
-     * @param other The other material
-     * @param rollingFriction The rolling friction on the other material
-     * @return Whether there is a rolling friction specified or not
-     */
-    bool getRollingFriction(const Material& other, float& rollingFriction) const;
+    float friction = 0.f; /**< The friction of the material */
+    float rollingFriction = 0.f; /**< The rolling friction of the material */
 
   private:
-    mutable std::unordered_map<const Material*, float> materialToFriction; /**< A pointer map to speed up friction lookups */
-    mutable std::unordered_map<const Material*, float> materialToRollingFriction; /**< A pointer map to speed up rolling friction lookups */
-
     /**
      * Registers an element as parent
      * @param element The element to register
@@ -59,7 +39,6 @@ public:
     void addParent(Element& element) override;
   };
 
-  bool immaterial = false; /**< Whether this geometry will not be used to generate contact points when it collides with another geometry */
   float innerRadius; /**< The radius of a sphere that is enclosed by the geometry. This radius is used for implementing a fuzzy but fast distance sensor */
   float innerRadiusSqr; /**< precomputed square of \c innerRadius */
   float outerRadius; /**< The radius of a sphere that covers the geometry. */
@@ -75,13 +54,6 @@ public:
   ~Geometry();
 
   /**
-   * Creates the geometry (not including \c translation and \c rotation)
-   * @param body The body to which to attach the geometry
-   * @return The created geometry
-   */
-  virtual mjsGeom* createGeometry(mjsBody* body);
-
-  /**
    * Creates the physical objects used by the OpenDynamicsEngine (ODE).
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
@@ -89,7 +61,27 @@ public:
    */
   void createPhysics(GraphicsContext& graphicsContext) override;
 
+  /**
+   * Creates the geometry and adds it to a body at the given offset
+   * @param body The body to which to attach the geometry
+   * @param offset Offset of the geometry's frame relative to the body's frame.
+   * @param collisionGroup The collision group to which the geometry belongs. Geometries within a group don't collide
+   * @param immaterial Whether the geometry collides or just tests for collision
+   */
+  void createGeometry(mjsBody* body, int collisionGroup, const Pose3f& offset, bool immaterial = false);
+
   GraphicsContext::Surface* surface = nullptr; /**< The surface of this geometry drawing */
+
+protected:
+  /**
+   * Creates the geometry (not including \c translation and \c rotation)
+   * @param body The body to which to attach the geometry
+   * @return The created geometry
+   */
+  virtual mjsGeom* assembleGeometry([[maybe_unused]] mjsBody* body)
+  {
+    return nullptr;
+  }
 
 private:
   bool created = false;

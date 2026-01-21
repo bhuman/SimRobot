@@ -11,9 +11,8 @@
 #include <algorithm>
 #include <cmath>
 
-mjsGeom* BoxGeometry::createGeometry(mjsBody* body)
+mjsGeom* BoxGeometry::assembleGeometry(mjsBody* body)
 {
-  Geometry::createGeometry(body);
   mjsGeom* geom = mjs_addGeom(body, nullptr);
   mjs_setName(geom->element, Simulation::simulation->getName(mjOBJ_GEOM, "BoxGeometry", nullptr, this));
   geom->type = mjGEOM_BOX;

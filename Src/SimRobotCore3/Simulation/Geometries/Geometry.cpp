@@ -7,6 +7,7 @@
 #include "Geometry.h"
 #include "Platform/Assert.h"
 #include "Tools/OpenGLTools.h"
+#include <mujoco/mujoco.h>
 
 Geometry::Geometry()
 {
@@ -24,14 +25,54 @@ void Geometry::addParent(Element& element)
   ::PhysicalObject::addParent(element);
 }
 
-mjsGeom* Geometry::createGeometry(mjsBody*)
+void Geometry::createGeometry(mjsBody* body, int collisionGroup, const Pose3f& offset, bool immaterial)
 {
   if(!created)
   {
     OpenGLTools::convertTransformation(rotation, translation, poseInParent);
     created = true;
   }
-  return nullptr;
+
+  mjsGeom* geom = assembleGeometry(body);
+  if(geom)
+  {
+    ASSERT(collisionGroup < 32);
+    geom->contype = 1 << collisionGroup;
+    geom->conaffinity = ~geom->contype;
+
+    // set offset
+    mju_f2n(geom->pos, offset.translation.data(), 3);
+    mjtNum buf[9];
+    mju_f2n(buf, offset.rotation.data(), 9);
+    mju_mat2Quat(geom->quat, buf);
+    mju_negQuat(geom->quat, geom->quat); // column major -> row major
+
+    geom->condim = 3;
+    geom->friction[0] = 1.f;
+    geom->friction[1] = 0.f;
+    geom->friction[2] = 0.f;
+
+    if(material)
+    {
+      geom->priority = 1;
+      if(material->friction > 0.f)
+        geom->friction[0] = material->friction;
+      else
+      {
+        geom->friction[0] = 0.f;
+        geom->condim = 1;
+      }
+      if(material->rollingFriction > 0.f)
+      {
+        geom->friction[1] = material->rollingFriction;
+        geom->friction[2] = material->rollingFriction;
+        geom->condim = 6;
+      }
+    }
+
+    if(immaterial)
+      geom->gap = std::numeric_limits<decltype(geom->gap)>::max();
+  }
 }
 
 void Geometry::createPhysics(GraphicsContext& graphicsContext)
@@ -77,72 +118,4 @@ void Geometry::Material::addParent(Element& element)
   ASSERT(geometry);
   ASSERT(!geometry->material);
   geometry->material = this;
-}
-
-bool Geometry::Material::getFriction(const Material& other, float& friction) const
-{
-  {
-    const auto iter = materialToFriction.find(&other);
-    if(iter != materialToFriction.end())
-    {
-      friction = iter->second;
-      return friction >= 0.f;
-    }
-  }
-
-  friction = 0.f;
-  int frictionValues = 0;
-
-  {
-    const auto iter = frictions.find(other.name);
-    if(iter != frictions.end())
-    {
-      friction += iter->second;
-      ++frictionValues;
-    }
-  }
-
-  {
-    const auto iter = other.frictions.find(name);
-    if(iter != other.frictions.end())
-    {
-      friction += iter->second;
-      ++frictionValues;
-    }
-  }
-
-  const bool frictionDefined = frictionValues > 0;
-  if(frictionDefined)
-    friction /= static_cast<float>(frictionValues);
-  else
-    friction = -1.f;
-
-  materialToFriction[&other] = friction;
-  return frictionDefined;
-}
-
-bool Geometry::Material::getRollingFriction(const Material& other, float& rollingFriction) const
-{
-  {
-    const auto iter = materialToRollingFriction.find(&other);
-    if(iter != materialToRollingFriction.end())
-    {
-      rollingFriction = iter->second;
-      return rollingFriction >= 0.f;
-    }
-  }
-
-  {
-    const auto iter = rollingFrictions.find(other.name);
-    if(iter != rollingFrictions.end())
-    {
-      rollingFriction = iter->second;
-      materialToRollingFriction[&other] = rollingFriction;
-      return true;
-    }
-  }
-
-  rollingFriction = -1.f;
-  materialToRollingFriction[&other] = rollingFriction;
-  return false;
 }

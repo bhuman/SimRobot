@@ -57,9 +57,8 @@ private:
   /**
    * Registers the sensor collision callback function to a list of geometries and subordinate geometries
    * @param geometries The list of geometries
-   * @param setNotCollidable Whether the geometries will be immaterialized
    */
-  void registerCollisionCallback(std::list<::PhysicalObject*>& geometries, bool setNotCollidable);
+  void registerCollisionCallback(std::list<::PhysicalObject*>& geometries);
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI. */
   void registerObjects() override;

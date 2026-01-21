@@ -65,8 +65,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | DepthImageSensor
                                | ObjectSegmentedImageSensor
                                | SingleDistanceSensor;
-    frictionClass              = Friction
-                               | RollingFriction;
     geometryClass              = BoxGeometry
                                | CapsuleGeometry
                                | CylinderGeometry
@@ -98,7 +96,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     rotationClass              = Rotation;
     sceneClass                 = Scene;
     setClass                   = Set;
-    solverClass                = QuickSolver;
     surfaceClass               = Surface;
     texCoordsClass             = TexCoords;
     translationClass           = Translation;
@@ -182,11 +179,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                  ?( [translationClass] [rotationClass] )?
                                  "</SingleDistanceSensor>"
                                | "<SingleDistanceSensor/>";
-    
-    Friction                   = "<Friction>" "</Friction>"
-                               | "<Friction/>";
-    RollingFriction            = "<RollingFriction>" "</RollingFriction>"
-                               | "<RollingFriction/>";
     
     BoxGeometry                = "<BoxGeometry>"
                                  ?( [translationClass] [rotationClass] [materialClass]
@@ -291,9 +283,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                  "</SphereMass>"
                                | "<SphereMass/>";
     
-    Material                   = "<Material>"
-                                 ?( {setClass | frictionClass} )?
-                                 "</Material>"
+    Material                   = "<Material>" "</Material>"
                                | "<Material/>";
     
     PT2Motor                   = "<PT2Motor>" "</PT2Motor>"
@@ -315,17 +305,13 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | "<Rotation>";
     
     Scene                      = "<Scene>"
-                                 ?( [solverClass]
-                                    {setClass | bodyClass | compoundClass 
+                                 ?( {setClass | bodyClass | compoundClass
                                     | lightClass | userInputClass} )?
                                  "</Scene>"
                                | "<Scene/>";
     
     Set                        = "<Set>" "</Set>"
                                | "<Set/>";
-    
-    QuickSolver                = "<QuickSolver>" "</QuickSolver>"
-                               | "<QuickSolver/>";
     
     Surface                    = "<Surface>" "</Surface>"
                                | "<Surface/>";
@@ -542,24 +528,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 999999
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-
-
-### frictionClass
-
-  - `Friction`: Specifies the friction between this material and another material.
-      - `material`: The other material the friction belongs to.
-          - **Use**: required
-          - **Range**: String
-      - `value`: The value of the friction.
-          - **Use**: required
-          - **Range**: [0, MAXFLOAT]
-  - `RollingFriction`: Specifies the rolling friction of a material.
-      - `material`: The other material the rolling friction belongs to.
-          - **Use**: required
-          - **Range**: String
-      - `value`: The value of the rolling friction.
-          - **Use**: required
-          - **Range**: [0, MAXFLOAT]
 
 
 ### geometryClass
@@ -907,9 +875,14 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 ### materialClass
 
   - `Material`: Specifies the physical properties of a material.
-      - `name`: The name of the material.
+      - `friction`: Specifies the friction of a material.
           - **Use**: optional
-          - **Range**: String
+          - **Default**: 0
+          - **Range**: [0, MAXFLOAT]
+      - `rollingFriction`: Specifies the rolling friction of a material.
+          - **Use**: optional
+          - **Default**: 0
+          - **Range**: [0, MAXFLOAT]
 
 
 ### motorClass
@@ -1004,34 +977,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Units**: $\frac{\textrm{mm}}{\textrm{s}^2}$, $\frac{\textrm{m}}{\textrm{s}^2}$
           - **Default**: -9.80665 $\frac{\textrm{m}}{\textrm{s}^2}$
           - **Use**: optional
-      - `CFM`: Sets the ODE cfm (constraint force mixing) value.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
-      - `ERP`: Sets the ODE erp (error reducing parameter) value.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
-      - `contactSoftERP`: Sets another erp value for colliding surfaces.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
-      - `contactSoftCFM`: Sets another cfm value for colliding surfaces.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
       - `bodyCollisions`: Whether collisions between different bodies should be detected.
           - **Default**: true
           - **Use**: optional
           - **Range**: true, false
-      - `slip1`: Sets the ODE dContactSlip1 value (force-dependent-slip (FDS) in friction direction 1).
-          - **Default:**: 0
-          - **Use**: optional
-          - **Range**: [-MAXFLOAT,MAXFLOAT]
-      - `slip2`: Sets the ODE dContactSlip2 value (force-dependent-slip (FDS) in friction direction 2).
-          - **Default:**: 0
-          - **Use**: optional
-          - **Range**: [-MAXFLOAT,MAXFLOAT]
 
 
 ### setClass
@@ -1043,19 +992,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The value the placeholder is set to.
           - **Use**: required
           - **Range**: String
-
-
-### solverClass
-
-  - `QuickSolver`: Requires that the simulation uses ODE's QuickStep method.
-      - `iterations`: The number of iterations that the QuickStep method performs per step.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: (0, MAXINTEGER]
-      - `skip`: Controls how often the normal solver is used instead of QuickStep.
-          - **Default**: 1
-          - **Use**: optional
-          - **Range**: (0, MAXINTEGER]
 
 
 ### surfaceClass
