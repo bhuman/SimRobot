@@ -2,7 +2,7 @@
 <qresource>
   <file>Icons/icons8-3d-model-50.png</file>
   <file>Icons/icons8-camera-50.png</file>
-  <file>Icons/icons8-coordinate-system-50.png</file>
+  <file>Icons/icons8-drag-and-drop-50.png</file>
   <file>Icons/icons8-orthogonal-view-50.png</file>
 </qresource>
 </RCC>

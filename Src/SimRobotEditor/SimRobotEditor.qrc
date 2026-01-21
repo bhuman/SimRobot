@@ -2,5 +2,6 @@
 <qresource>
   <file>Icons/icons8-document-50.png</file>
   <file>Icons/icons8-documents-50.png</file>
+  <file>Icons/icons8-fail-50.png</file>
 </qresource>
 </RCC>

@@ -318,7 +318,9 @@ void EditorWidget::updateEditMenu(QMenu* menu, bool aboutToShow) const
   connect(action, &QAction::triggered, this, &EditorWidget::paste);
   connect(this, &EditorWidget::pasteAvailable, action, &QAction::setEnabled);
 
-  action = menu->addAction(tr("&Delete"));
+  icon = QIcon(":/Icons/icons8-fail-50.png");
+  icon.setIsMask(true);
+  action = menu->addAction(icon, tr("&Delete"));
   action->setShortcut(QKeySequence(QKeySequence::Delete));
   action->setStatusTip(tr("Delete the currently selected content"));
   action->setEnabled(canCopy);

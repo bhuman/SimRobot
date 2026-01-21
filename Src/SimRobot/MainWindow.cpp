@@ -114,7 +114,9 @@ MainWindow::MainWindow(int, char* argv[]) :
   fileOpenAct->setStatusTip(tr("Open an existing scene file"));
   connect(fileOpenAct, &QAction::triggered, this, &MainWindow::open);
 
-  fileCloseAct = new QAction(tr("&Close"), this);
+  QIcon fileCloseIcon(":/Icons/icons8-delete-view-50.png");
+  fileCloseIcon.setIsMask(true);
+  fileCloseAct = new QAction(fileCloseIcon, tr("&Close"), this);
   fileCloseAct->setStatusTip(tr("Close the scene"));
   fileCloseAct->setEnabled(false);
   connect(fileCloseAct, &QAction::triggered, this, &MainWindow::closeFile);

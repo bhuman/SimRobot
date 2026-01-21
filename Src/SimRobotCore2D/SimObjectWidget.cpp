@@ -68,7 +68,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* const subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* const action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-coordinate-system-50.png");
+    QIcon icon(":/Icons/icons8-drag-and-drop-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select the drag and drop dynamics mode"));

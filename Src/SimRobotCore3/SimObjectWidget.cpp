@@ -325,7 +325,7 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Drag and Drop"));
     QAction* action = subMenu->menuAction();
-    QIcon icon(":/Icons/icons8-coordinate-system-50.png");
+    QIcon icon(":/Icons/icons8-drag-and-drop-50.png");
     icon.setIsMask(true);
     action->setIcon(icon);
     action->setStatusTip(tr("Select the drag and drop dynamics mode and plane along which operations are performed"));
@@ -397,6 +397,10 @@ QMenu* SimObjectWidget::createUserMenu() const
   {
     QMenu* subMenu = menu->addMenu(tr("&Origin"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
+    QAction* action = subMenu->menuAction();
+    QIcon icon(":/Icons/icons8-collect-50.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     auto addOriginAction = [this, subMenu, actionGroup](const char* label, Qt::Key key, SimRobotCore3::Renderer::RenderFlags flag)
     {
       auto* action = subMenu->addAction(tr(label));
@@ -446,6 +450,9 @@ QMenu* SimObjectWidget::createUserMenu() const
     QMenu* subMenu = menu->addMenu(tr("&Physics Rendering"));
     QActionGroup* actionGroup = new QActionGroup(subMenu);
     QAction* action = subMenu->menuAction();
+    QIcon icon(":/Icons/icons8-orthogonal-view-50.png");
+    icon.setIsMask(true);
+    action->setIcon(icon);
     action->setStatusTip(tr("Select different shading techniques for displaying the physical representation of objects"));
     auto addShadingAction = [this, subMenu, actionGroup](const char* label, SimRobotCore3::Renderer::ShadeMode shading)
     {
@@ -528,7 +535,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   menu->addSeparator();
 
-  addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore3::Renderer::showCoordinateSystem);
+  addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore3::Renderer::showCoordinateSystem, ":/Icons/icons8-coordinate-system-50.png");
   addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore3::Renderer::showSensors, ":/Icons/icons8-speed-50.png");
 
   menu->addSeparator();
