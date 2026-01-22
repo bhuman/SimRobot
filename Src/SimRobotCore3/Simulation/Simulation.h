@@ -105,6 +105,9 @@ private:
   unsigned int lastFrameRateComputationTime = 0;
   unsigned int lastFrameRateComputationStep = 0;
 
+  static void mjError(const char*);
+  static void mjWarning(const char*);
+
   struct RegisteredName
   {
     int type = -1; /**< The MuJoCo object type. */

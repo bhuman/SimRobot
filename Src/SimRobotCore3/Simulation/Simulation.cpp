@@ -24,6 +24,8 @@ Simulation::Simulation()
 {
   ASSERT(!simulation);
   simulation = this;
+  mju_user_error = &Simulation::mjError;
+  mju_user_warning = &Simulation::mjWarning;
 }
 
 Simulation::~Simulation()
@@ -36,6 +38,8 @@ Simulation::~Simulation()
   if(model)
     mj_deleteModel(model);
 
+  mju_user_error = nullptr;
+  mju_user_warning = nullptr;
   ASSERT(simulation == this);
   simulation = nullptr;
 }
@@ -199,6 +203,16 @@ void Simulation::updateFrameRate()
     lastFrameRateComputationTime = currentTime;
     lastFrameRateComputationStep = simulationStep;
   }
+}
+
+void Simulation::mjError(const char* message)
+{
+  fprintf(stderr, "MuJoCo error: %s\n", message);
+}
+
+void Simulation::mjWarning(const char* message)
+{
+  fprintf(stderr, "MuJoCo warning: %s\n", message);
 }
 
 void Simulation::registerObjects()
