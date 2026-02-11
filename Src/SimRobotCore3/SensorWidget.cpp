@@ -24,7 +24,7 @@ SensorWidget::SensorWidget(SimRobotCore3::SensorPort* sensor) : pen(QColor::from
   setFocusPolicy(Qt::StrongFocus);
 
   sensorDimensions = sensor->getDimensions();
-  sensorType = sensor->getSensorType();;
+  sensorType = sensor->getSensorType();
 }
 
 void SensorWidget::paintEvent(QPaintEvent*)
