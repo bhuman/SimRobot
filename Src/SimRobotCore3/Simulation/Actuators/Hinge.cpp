@@ -1,8 +1,8 @@
 /**
  * @file Simulation/Actuators/Hinge.cpp
  * Implementation of class Hinge
- * @author <A href="mailto:tlaue@uni-bremen.de">Tim Laue</A>
- * @author <A href="mailto:kspiess@informatik.uni-bremen.de">Kai Spiess</A>
+ * @author Tim Laue
+ * @author Kai Spiess
  * @author Colin Graf
  */
 
