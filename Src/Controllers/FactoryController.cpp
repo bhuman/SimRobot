@@ -12,7 +12,7 @@
  * - Slider joint
  * - Hinge joint
  *
- * @author <A href="mailto:Tim.Laue@dfki.de">Tim Laue</A>
+ * @author Tim Laue
  * @author Kai Spiess
  */
 #define _USE_MATH_DEFINES // for C++
