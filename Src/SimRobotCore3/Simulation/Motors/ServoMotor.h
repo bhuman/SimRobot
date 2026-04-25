@@ -45,6 +45,8 @@ public:
   float maxForce = 0.f;
   float delay = 1;
   bool isInitialized = false;
+  float velocityLowPassFactor = 1.f;
+  float currentAngularVelocity = 0.f;
 
   /** Default constructor */
   ServoMotor();

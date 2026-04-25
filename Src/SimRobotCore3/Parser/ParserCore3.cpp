@@ -707,6 +707,7 @@ Element* ParserCore3::servoMotorElement()
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
   servoMotor->delay = getFloatPositive("delay", false, 0.f);
+  servoMotor->velocityLowPassFactor = getFloatMinMax("velocityLowPassFactor", false, 1.f, 0.f, 1.f);
 
   axis->motor = servoMotor;
   return nullptr;

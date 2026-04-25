@@ -96,7 +96,8 @@ void ServoMotor::act()
 
   float setpoint = lastExecutedSetpoint.setPoint;
   float currentPos = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);
-  const float currentVel = static_cast<float>(Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]]);
+  currentAngularVelocity = static_cast<float>(Simulation::simulation->data->qvel[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]]) * velocityLowPassFactor
+                           + currentAngularVelocity * (1.f - velocityLowPassFactor);
 
   if(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE)
   {
@@ -104,7 +105,7 @@ void ServoMotor::act()
     currentPos = lastPos + diff;
   }
 
-  float newVel = controller.getOutput(currentPos, setpoint, currentVel);
+  float newVel = controller.getOutput(currentPos, setpoint, currentAngularVelocity);
   if(newVel > maxForce)
     newVel = maxForce;
   if(newVel < -maxForce)
