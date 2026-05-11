@@ -118,10 +118,10 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
                              m & Qt::ShiftModifier
                              ? (m & Qt::ControlModifier
                                 ? SimObjectRenderer::dragRotateWorld
-                                : SimObjectRenderer::dragRotate)
+                                : SimObjectRenderer::dragRotateObject)
                              : (m & Qt::ControlModifier
-                                ? SimObjectRenderer::dragNormalObject
-                                : SimObjectRenderer::dragNormal)))
+                                ? SimObjectRenderer::dragTranslateObject
+                                : SimObjectRenderer::dragTranslateWorld)))
   {
     event->accept();
     update();
@@ -136,7 +136,7 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
   {
     const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
     const QPointF position = event->position();
-    if(objectRenderer.startDrag(static_cast<int>(position.x()), static_cast<int>(position.y()), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotate) : (m & Qt::ControlModifier ? SimObjectRenderer::dragNormalObject : SimObjectRenderer::dragNormal)))
+    if(objectRenderer.startDrag(static_cast<int>(position.x()), static_cast<int>(position.y()), m & Qt::ShiftModifier ? (m & Qt::ControlModifier ? SimObjectRenderer::dragRotateWorld : SimObjectRenderer::dragRotateObject) : (m & Qt::ControlModifier ? SimObjectRenderer::dragTranslateObject : SimObjectRenderer::dragTranslateWorld)))
     {
       event->accept();
       update();

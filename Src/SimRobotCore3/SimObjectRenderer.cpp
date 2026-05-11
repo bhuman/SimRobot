@@ -77,7 +77,7 @@ void SimObjectRenderer::draw()
   if(dragging && dragSelection)
   {
     Pose3f& dragPlanePose = Simulation::simulation->dragPlanePose;
-    if(dragType == dragRotate || dragType == dragNormalObject)
+    if(dragType == dragRotateObject || dragType == dragTranslateObject)
       dragPlanePose = dragSelection->poseInParent;
     else
       dragPlanePose = Pose3f(dragSelection->poseInParent.translation);
@@ -382,13 +382,13 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
   dragSelection = nullptr;
   if(&simObject == Simulation::simulation->scene)
   {
-    Vector3f projectedClick = projectClick(x, y);
+    const Vector3f projectedClick = projectClick(x, y);
     dragSelection = selectObject(projectedClick);
 
     if(dragSelection)
     {
       calcDragPlaneVector();
-      if(type == dragRotate || type == dragNormalObject)
+      if(type == dragRotateObject || type == dragTranslateObject)
         dragPlaneVector = dragSelection->poseInWorld.rotation * dragPlaneVector;
       if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, dragStartPos))
         dragSelection = nullptr;
@@ -433,9 +433,9 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
 
   if(!dragSelection) // camera control
   {
-    if(dragType == dragRotate || dragType == dragRotateWorld)
+    if(dragType == dragRotateObject || dragType == dragRotateWorld)
     {
-      Vector3f v = (dragType == dragRotate ? cameraPos : interCameraPos) - cameraTarget;
+      Vector3f v = (dragType == dragRotateObject ? cameraPos : interCameraPos) - cameraTarget;
       const RotationMatrix rotateY = RotationMatrix::aroundY((y - dragStartPos.y()) * -0.01f);
       const RotationMatrix rotateZ = RotationMatrix::aroundZ((x - dragStartPos.x()) * -0.01f);
       const float hypoLength = std::sqrt(v.x() * v.x() + v.y() * v.y());
@@ -451,7 +451,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
       v3.z() = v2.z();
       v = rotateZ * v3;
       interCameraPos = cameraTarget + v;
-      if(dragType == dragRotate)
+      if(dragType == dragRotateObject)
         cameraPos = cameraTarget + v;
       else
       {
@@ -466,7 +466,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
         cameraPos = cameraTarget + Vector3f(std::sin(angleY) * std::cos(angleZ), std::sin(angleY) * std::sin(angleZ), std::cos(angleY)).normalize(v.norm());
       }
     }
-    else // if(dragType == dragNormal)
+    else // if(dragType == dragTranslate)
     {
       Vector3f start;
       Vector3f end;
@@ -493,7 +493,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
     Vector3f currentPos;
     if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
     {
-      if(dragType == dragRotate || dragType == dragRotateWorld)
+      if(dragType == dragRotateObject || dragType == dragRotateWorld)
       {
         Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
         Vector3f newV = currentPos - dragSelection->poseInWorld.translation;
@@ -578,7 +578,7 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
       Vector3f currentPos;
       if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
       {
-        if(dragType == dragRotate || dragType == dragRotateWorld)
+        if(dragType == dragRotateObject || dragType == dragRotateWorld)
         {
           Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
           Vector3f newV = currentPos - dragSelection->poseInWorld.translation;

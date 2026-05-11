@@ -86,9 +86,9 @@ namespace SimRobotCore3
     /** The kind of drag and drop to initiate */
     enum DragType
     {
-      dragNormal, /**< drag for moving objects along the axis of the scene or for rotating the camera */
-      dragNormalObject, /**< drag for moving object along their axis */
-      dragRotate, /**< drag for rotating objects relative to their orientation */
+      dragTranslateWorld, /**< drag for moving objects along the axis of the scene or for rotating the camera */
+      dragTranslateObject, /**< drag for moving object along their axis */
+      dragRotateObject, /**< drag for rotating objects relative to their orientation */
       dragRotateWorld, /**< drag for rotating objects around the axis of the scene */
     };
 
