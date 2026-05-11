@@ -37,7 +37,7 @@ void Scene::createGraphics(GraphicsContext& graphicsContext)
 
   graphicsContext.setClearColor(Simulation::simulation->scene->color);
 
-  const float color[4] = {0.2f, 0.2f, 0.2f, 1.f};
+  const float color[3] = {0.4f, 0.4f, 0.4f};
   graphicsContext.setGlobalAmbientLight(color);
   for(Light* light : lights)
     graphicsContext.addLight(light);

@@ -40,7 +40,7 @@ In the following code example, the color of NAO's jersey is set by a `Set` eleme
          ⫶
     </ComplexAppearance>
        ⫶
-    <Surface name="nao-red" diffuseColor="rgb(100%, 0%, 0%)" ambientColor="rgb(20%, 12%, 12%)"/>
+    <Surface name="nao-red" albedo="rgb(100%, 0%, 0%)"/>
        ⫶
 
 
@@ -526,7 +526,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 ### geometryClass
 
   - `BoxGeometry`: Specifies a box-shaped geometry.
-      - `color`: A color definition, see [this section](#color-specification)
+      - `color`: An RGBA color definition, see [this section](#color-specification).
+          - **Default**: #ccccccff
           - **Use**: optional
       - `name`: The name of the geometry.
           - **Use**: optional
@@ -544,7 +545,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
   - `CapsuleGeometry`: Specifies a capsule-shaped geometry.
-      - `color`: A color definition, see [this section](#color-specification)
+      - `color`: An RGBA color definition, see [this section](#color-specification).
+          - **Default**: #ccccccff
           - **Use**: optional
       - `name`: The name of the geometry.
           - **Use**: optional
@@ -558,7 +560,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
   - `CylinderGeometry`: Specifies a cylinder-shaped geometry.
-      - `color`: A color definition, see [this section](#color-specification)
+      - `color`: An RGBA color definition, see [this section](#color-specification).
+          - **Default**: #ccccccff
           - **Use**: optional
       - `name`: The name of the geometry.
           - **Use**: optional
@@ -576,7 +579,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: String
   - `SphereGeometry`: Specifies a sphere-shaped geometry.
-      - `color`: A color definition, see [this section](#color-specification)
+      - `color`: An RGBA color definition, see [this section](#color-specification).
+          - **Default**: #ccccccff
           - **Use**: optional
       - `name`: The name of the geometry.
           - **Use**: optional
@@ -627,13 +631,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 ### lightClass
 
   - `DirLight`: Specifies a directional light source.
-      - `diffuseColor`: Diffuse color definition, see [this section](#color-specification).
-          - **Default**: #ffffff
-          - **Use**: optional
-      - `ambientColor`: Ambient color definition, see [this section](#color-specification).
-          - **Default**: #000000
-          - **Use**: optional
-      - `specularColor`: Specular color definition, see [this section](#color-specification).
+      - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
       - `x`: The x direction of the light.
@@ -649,13 +647,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: [-1, 1]
   - `PointLight`: Specifies a point light source.
-      - `diffuseColor`: Diffuse color definition, see [this section](#color-specification).
-          - **Default**: #ffffff
-          - **Use**: optional
-      - `ambientColor`: Ambient color definition, see [this section](#color-specification).
-          - **Default**: #000000
-          - **Use**: optional
-      - `specularColor`: Specular color definition, see [this section](#color-specification).
+      - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
       - `x`: The x coordinate of the light source.
@@ -686,13 +678,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: [0, MAXFLOAT]
   - `SpotLight`: Specifies a spot light source.
-      - `diffuseColor`: Diffuse color definition, see [this section](#color-specification).
-          - **Default**: #ffffff
-          - **Use**: optional
-      - `ambientColor`: Ambient color definition, see [this section](#color-specification).
-          - **Default**: #000000
-          - **Use**: optional
-      - `specularColor`: Specular color definition, see [this section](#color-specification).
+      - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
       - `x`: The x coordinate of the light source.
@@ -941,8 +927,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `controller`: The name of the controller library (without platform-specific prefixes/suffixes such as *lib*, *.so*, *.dylib*, *.dll*).
           - **Use**: optional
           - **Range**: String
-      - `color`: The background color of the scene, see [this section](#color-specification).
-          - **Default**: #000000
+      - `color`: The RGBA background color of the scene, see [this section](#color-specification).
+          - **Default**: #000000ff
           - **Use**: optional
       - `stepLength`: The duration of each simulation step.
           - **Units**: s
@@ -973,22 +959,25 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 ### surfaceClass
 
   - `Surface`: Specifies the visual properties of a material.
-      - `diffuseColor`: The diffuse color, see [this section](#color-specification).
+      - `albedo`: The RGB albedo, see [this section](#color-specification).
           - **Use**: required
-      - `ambientColor`: The ambient color, see [this section](#color-specification).
-          - **Default**: #000000
+      - `alpha`: The alpha value, from 0 (transparent) to 1 (opaque).
+          - **Default**: 1
           - **Use**: optional
-      - `specularColor`: The specular color, see [this section](#color-specification).
-          - **Default**: #000000
-          - **Use**: optional
-      - `emissionColor`: The color of the emitted light, see [this section](#color-specification).
-          - **Default**: #000000
-          - **Use**: optional
-      - `shininess`: The shininess value.
+          - **Range**: [0, 1]
+      - `metallic`: Whether the surface is metallic, from 0 (dielectric, scattering) to 1 (metallic, no scattering).
           - **Default**: 0
           - **Use**: optional
-          - **Range**: [0, 128]
-      - `diffuseTexture`: The path to a texture.
+          - **Range**: [0, 1]
+      - `roughness`: The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering).
+          - **Default**: 0.5
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `ambient`: The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `texture`: The path to a texture that modulates the albedo / alpha values.
           - **Use**: optional
           - **Range**: String
 

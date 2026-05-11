@@ -12,25 +12,7 @@
 
 Appearance::Surface::Surface()
 {
-  diffuseColor[0] = 0.8f;
-  diffuseColor[1] = 0.8f;
-  diffuseColor[2] = 0.8f;
-  diffuseColor[3] = 1.0f;
-
-  ambientColor[0] = 0.2f;
-  ambientColor[1] = 0.2f;
-  ambientColor[2] = 0.2f;
-  ambientColor[3] = 1.0f;
-
-  specularColor[0] = 0.0f;
-  specularColor[1] = 0.0f;
-  specularColor[2] = 0.0f;
-  specularColor[3] = 1.0f;
-
-  emissionColor[0] = 0.0f;
-  emissionColor[1] = 0.0f;
-  emissionColor[2] = 0.0f;
-  emissionColor[3] = 1.0f;
+  albedo[0] = albedo[1] = albedo[2] = 1.f;
 }
 
 void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
@@ -38,17 +20,13 @@ void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
   if(surface)
     return;
 
-  if(!diffuseTexture.empty())
+  if(!texturePath.empty())
   {
     ASSERT(!texture);
-    texture = graphicsContext.requestTexture(diffuseTexture);
+    texture = graphicsContext.requestTexture(texturePath);
   }
 
-  static_assert(sizeof(diffuseColor) == sizeof(ambientColor), "diffuseColor and ambientColor must have the same size");
-  if(!hasAmbientColor)
-    std::memcpy(ambientColor, diffuseColor, sizeof(diffuseColor));
-
-  surface = graphicsContext.requestSurface(diffuseColor, ambientColor, specularColor, emissionColor, shininess, texture);
+  surface = graphicsContext.requestSurface(albedo, alpha, metallic, roughness, ambient, texture);
 }
 
 void Appearance::createGraphics(GraphicsContext& graphicsContext)

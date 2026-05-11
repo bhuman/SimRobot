@@ -50,7 +50,7 @@ private:
     userInputClass      = (1 << 22),
   };
 
-  bool getColor(const char* key, bool required, float* colors);
+  bool getColor(const char* key, bool required, float* colors, bool withAlpha);
 
   Element* sceneElement();
   Element* setElement();

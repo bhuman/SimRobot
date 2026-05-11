@@ -18,9 +18,7 @@
 class Light : public ElementCore3
 {
 public:
-  float diffuseColor[4];
-  float ambientColor[4];
-  float specularColor[4];
+  float color[3];
 
   /** Default constructor */
   Light();

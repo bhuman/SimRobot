@@ -185,13 +185,13 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
   pyramidChain = graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::lineList);
 
   ASSERT(!surface);
-  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
-  surface = graphicsContext.requestSurface(color, color);
+  static const float color[] = {0.f, 0.f, 0.5f};
+  surface = graphicsContext.requestSurface(color);
 }
 
 void DepthImageSensor::addParent(Element& element)
 {
-  sensor.physicalObject = dynamic_cast< ::PhysicalObject*>(&element);
+  sensor.physicalObject = dynamic_cast<::PhysicalObject*>(&element);
   ASSERT(sensor.physicalObject);
   Sensor::addParent(element);
 }

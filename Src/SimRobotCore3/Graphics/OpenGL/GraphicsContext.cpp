@@ -16,15 +16,16 @@
 #include <QOpenGLFunctions_3_3_Core>
 #include <cstddef>
 
-// The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights.
+// The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights
+// and https://learnopengl.com/PBR/Lighting.
 
 static const char* vertexShaderSourceCode = R"glsl(
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
+layout(location = 0) in vec3 inPosInModel;
+layout(location = 1) in vec3 inNormalInModel;
 layout(location = 2) in vec2 inTexCoords;
 
-out vec3 FragPos;
-NORMAL_QUALIFIER out vec3 Normal;
+out vec3 FragPosInWorld;
+NORMAL_QUALIFIER out vec3 NormalInWorld;
 out vec2 TexCoords;
 
 uniform mat4 cameraPV;
@@ -32,39 +33,35 @@ uniform mat4 modelMatrix;
 
 void main()
 {
-  FragPos = vec3(modelMatrix * vec4(inPosition, 1.0));
-  Normal = mat3(modelMatrix) * inNormal;
+  FragPosInWorld = vec3(modelMatrix * vec4(inPosInModel, 1.0));
+  NormalInWorld = mat3(modelMatrix) * inNormalInModel;
   TexCoords = inTexCoords;
-  gl_Position = cameraPV * vec4(FragPos, 1.0);
+  gl_Position = cameraPV * vec4(FragPosInWorld, 1.0);
 }
 )glsl";
 
 static const char* depthOnlyVertexShaderSourceCode = R"glsl(
-layout(location = 0) in vec3 inPosition;
+layout(location = 0) in vec3 inPosInModel;
 
 uniform mat4 cameraPV;
 uniform mat4 modelMatrix;
 
 void main()
 {
-  gl_Position = cameraPV * modelMatrix * vec4(inPosition, 1.0);
+  gl_Position = cameraPV * modelMatrix * vec4(inPosInModel, 1.0);
 }
 )glsl";
 
 static const char* fragmentShaderSourceCode = R"glsl(
 struct DirLight
 {
-  vec4 diffuseColor;
-  vec4 ambientColor;
-  vec4 specularColor;
+  vec3 color;
   vec3 direction;
 };
 
 struct PointLight
 {
-  vec4 diffuseColor;
-  vec4 ambientColor;
-  vec4 specularColor;
+  vec3 color;
   vec3 position;
   float constantAttenuation;
   float linearAttenuation;
@@ -73,9 +70,7 @@ struct PointLight
 
 struct SpotLight
 {
-  vec4 diffuseColor;
-  vec4 ambientColor;
-  vec4 specularColor;
+  vec3 color;
   vec3 position;
   float constantAttenuation;
   float linearAttenuation;
@@ -86,22 +81,22 @@ struct SpotLight
 
 struct Surface
 {
-  vec4 diffuseColor;
-  vec4 ambientColor;
-  vec4 specularColor;
-  vec4 emissionColor;
-  float shininess;
+  vec3 albedo;
+  float alpha;
+  float metallic;
+  float roughness;
+  float ambient;
   bool hasTexture;
 };
 
-in vec3 FragPos;
-NORMAL_QUALIFIER in vec3 Normal;
+in vec3 FragPosInWorld;
+NORMAL_QUALIFIER in vec3 NormalInWorld;
 in vec2 TexCoords;
 
 uniform vec3 cameraPos;
 uniform uint surfaceIndex;
 #ifdef WITH_TEXTURES
-uniform sampler2D diffuseTexture;
+uniform sampler2D albedoTexture;
 #endif
 layout (std140) uniform Surfaces
 {
@@ -110,43 +105,88 @@ layout (std140) uniform Surfaces
 
 out vec4 FragColor;
 
-void calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+const float PI = 3.14159265359;
+
+float distributionTrowbridgeReitz(in vec3 normal, in vec3 halfDir, in float roughness)
+{
+  float alpha = roughness * roughness;
+  float alphaSqr = alpha * alpha;
+  float cosTheta = max(dot(normal, halfDir), 0.0);
+  float denominator = cosTheta * cosTheta * (alphaSqr - 1.0) + 1.0;
+  return alphaSqr / (PI * denominator * denominator);
+}
+
+float geometrySchlickGGX(in float cosTheta, in float roughness)
+{
+  float r = roughness + 1.0;
+  float k = r * r / 8.0;
+  return cosTheta / (cosTheta * (1.0 - k) + k);
+}
+
+float geometrySmith(in vec3 normal, in float cosView, in float cosLight, in float roughness)
+{
+  return geometrySchlickGGX(cosView, roughness) * geometrySchlickGGX(cosLight, roughness);
+}
+
+vec3 fresnelSchlick(in float cosTheta, in vec3 F0)
+{
+  return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+{
+  vec3 halfDir = normalize(viewDir + lightDir);
+  float cosView = max(dot(normal, viewDir), 0.0);
+  float cosLight = max(dot(normal, lightDir), 0.0);
+
+  float NDF = distributionTrowbridgeReitz(normal, halfDir, surfaces[surfaceIndex].roughness);
+  float G = geometrySmith(normal, cosView, cosLight, surfaces[surfaceIndex].roughness);
+  vec3 F = fresnelSchlick(clamp(dot(halfDir, viewDir), 0.0, 1.0), F0);
+
+  vec3 numerator = NDF * G * F;
+  float denominator = 4.0 * cosView * cosLight + 0.0001;
+  vec3 specular = numerator / denominator;
+
+  vec3 kS = F;
+  vec3 kD = (vec3(1.0) - kS) * (1.0 - surfaces[surfaceIndex].metallic);
+
+  return kD * albedo / PI + specular;
+}
+
+void calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
+{
+  float cosTheta = max(dot(normal, lightDir), 0.0);
+  Lo += calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta;
+}
+
+void calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
 {
   vec3 lightDir = normalize(-light.direction);
-  float diff = max(dot(normal, lightDir), 0.0);
-  vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
-  diffuse += light.diffuseColor * diff;
-  ambient += light.ambientColor;
-  specular += light.specularColor * spec;
+  vec3 irradiance = light.color;
+
+  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
 }
 
-void calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+void calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
 {
   vec3 lightDir = normalize(light.position - pos);
-  float diff = max(dot(normal, lightDir), 0.0);
-  vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
-  diffuse += light.diffuseColor * diff * attenuation;
-  ambient += light.ambientColor * attenuation;
-  specular += light.specularColor * spec * attenuation;
+  vec3 irradiance = light.color * attenuation;
+
+  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
 }
 
-void calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, inout vec4 diffuse, inout vec4 ambient, inout vec4 specular)
+void calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
 {
   vec3 lightDir = normalize(light.position - pos);
-  float diff = max(dot(normal, lightDir), 0.0);
-  vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), surfaces[surfaceIndex].shininess);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
-  float theta = dot(lightDir, normalize(-light.direction));
-  float intensity = clamp((theta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
-  diffuse += light.diffuseColor * diff * attenuation * intensity;
-  ambient += light.ambientColor * attenuation * intensity;
-  specular += light.specularColor * spec * attenuation * intensity;
+  float cosTheta = dot(lightDir, normalize(-light.direction));
+  float intensity = clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
+  vec3 irradiance = light.color * attenuation * intensity;
+
+  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
 }
 
 #ifdef WITH_LIGHTING
@@ -157,22 +197,35 @@ void main()
 {
   vec4 color;
 #ifdef WITH_LIGHTING
-  vec3 normalizedNormal = normalize(Normal);
-  vec3 viewDir = normalize(cameraPos - FragPos);
-  vec4 diffuse = vec4(0.0);
-  vec4 ambient = GLOBAL_AMBIENT_LIGHT;
-  vec4 specular = vec4(0.0);
-  CALCULATE_LIGHTS
-  color = surfaces[surfaceIndex].emissionColor + ambient * surfaces[surfaceIndex].ambientColor + diffuse * surfaces[surfaceIndex].diffuseColor + specular * surfaces[surfaceIndex].specularColor;
-  color = clamp(color, 0.0, 1.0);
-#else
-  color = surfaces[surfaceIndex].diffuseColor;
-#endif
+  vec3 normalizedNormal = normalize(NormalInWorld);
+  vec3 viewDir = normalize(cameraPos - FragPosInWorld);
+
+  vec3 albedo = surfaces[surfaceIndex].albedo;
+  color.a = surfaces[surfaceIndex].alpha;
 #ifdef WITH_TEXTURES
   if (surfaces[surfaceIndex].hasTexture)
   {
-    color = color * texture(diffuseTexture, TexCoords);
+    vec4 modulation = texture(albedoTexture, TexCoords);
+    albedo = albedo * modulation.rgb;
+    color.a = color.a * modulation.a;
   }
+#endif
+  albedo = pow(albedo, vec3(2.2)); // convert from sRGB to linear
+  vec3 F0 = vec3(0.04);
+  F0 = mix(F0, albedo, surfaces[surfaceIndex].metallic);
+
+  vec3 Lo = vec3(0.0);
+  CALCULATE_LIGHTS
+  vec3 ambient = GLOBAL_AMBIENT_LIGHT * albedo * surfaces[surfaceIndex].ambient;
+  color.rgb = ambient + Lo;
+  color.rgb = color.rgb / (color.rgb + vec3(1.0)); // Reinhard tone mapping
+  color.rgb = pow(color.rgb, vec3(1.0 / 2.2)); // convert from linear to sRGB
+#else
+  color = vec4(surfaces[surfaceIndex].albedo, surfaces[surfaceIndex].alpha);
+#ifdef WITH_TEXTURES
+  if (surfaces[surfaceIndex].hasTexture)
+    color = color * texture(albedoTexture, TexCoords);
+#endif
 #endif
   if (color.a < 0.01)
   {
@@ -388,9 +441,9 @@ void GraphicsContext::createGraphics()
     f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
-      static constexpr std::size_t verbatimPart = offsetof(Surface, shininess) - offsetof(Surface, diffuseColor) + sizeof(Surface::shininess);
+      static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
       unsigned char buf[Surface::memorySize];
-      std::memcpy(buf, &surfaces[i]->diffuseColor, verbatimPart);
+      std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
       *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
       f->glBufferSubData(GL_UNIFORM_BUFFER, i * Surface::memorySize, Surface::memorySize, buf);
     }
@@ -500,15 +553,14 @@ GraphicsContext::Texture* GraphicsContext::requestTexture(const std::string& fil
   return texture->data ? texture : nullptr;
 }
 
-GraphicsContext::Surface* GraphicsContext::requestSurface(const float* diffuseColor, const float* ambientColor, const float* specularColor, const float* emissionColor, float shininess, const Texture* texture)
+GraphicsContext::Surface* GraphicsContext::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture)
 {
   auto* surface = new Surface;
-  static const float defaultColor[4] = {0.f, 0.f, 0.f, 1.f};
-  std::memcpy(surface->diffuseColor, diffuseColor, sizeof(surface->diffuseColor));
-  std::memcpy(surface->ambientColor, ambientColor, sizeof(surface->ambientColor));
-  std::memcpy(surface->specularColor, specularColor ? specularColor : defaultColor, sizeof(surface->specularColor));
-  std::memcpy(surface->emissionColor, emissionColor ? emissionColor : defaultColor, sizeof(surface->emissionColor));
-  surface->shininess = shininess;
+  std::memcpy(surface->albedo, albedo, sizeof(surface->albedo));
+  surface->alpha = alpha;
+  surface->metallic = metallic;
+  surface->roughness = roughness;
+  surface->ambient = ambient;
   surface->texture = texture;
   surfaces.push_back(surface);
   return surface;
@@ -516,7 +568,7 @@ GraphicsContext::Surface* GraphicsContext::requestSurface(const float* diffuseCo
 
 void GraphicsContext::setGlobalAmbientLight(const float* color)
 {
-  globalAmbientLight = "vec4(" + std::to_string(color[0]) + ", " + std::to_string(color[1]) + ", " + std::to_string(color[2]) + ", " + std::to_string(color[3]) + ")";
+  globalAmbientLight = "vec3(" + std::to_string(color[0]) + ", " + std::to_string(color[1]) + ", " + std::to_string(color[2]) + ")";
 }
 
 void GraphicsContext::addLight(const Light* light)
@@ -524,18 +576,18 @@ void GraphicsContext::addLight(const Light* light)
   ASSERT(lightDeclarations.size() == lightCalculations.size());
   if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
-    lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec4(" + std::to_string(dirLight->diffuseColor[0]) + ", " + std::to_string(dirLight->diffuseColor[1]) + ", " + std::to_string(dirLight->diffuseColor[2]) + ", " + std::to_string(dirLight->diffuseColor[3]) + "), vec4(" + std::to_string(dirLight->ambientColor[0]) + ", " + std::to_string(dirLight->ambientColor[1]) + ", " + std::to_string(dirLight->ambientColor[2]) + ", " + std::to_string(dirLight->ambientColor[3]) + "), vec4(" + std::to_string(dirLight->specularColor[0]) + ", " + std::to_string(dirLight->specularColor[1]) + ", " + std::to_string(dirLight->specularColor[2]) + ", " + std::to_string(dirLight->specularColor[3]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
-    lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, diffuse, ambient, specular);");
+    lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec3(" + std::to_string(dirLight->color[0]) + ", " + std::to_string(dirLight->color[1]) + ", " + std::to_string(dirLight->color[2]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
+    lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0, Lo);");
   }
   else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
   {
-    lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec4(" + std::to_string(spotLight->diffuseColor[0]) + ", " + std::to_string(spotLight->diffuseColor[1]) + ", " + std::to_string(spotLight->diffuseColor[2]) + ", " + std::to_string(spotLight->diffuseColor[3]) + "), vec4(" + std::to_string(spotLight->ambientColor[0]) + ", " + std::to_string(spotLight->ambientColor[1]) + ", " + std::to_string(spotLight->ambientColor[2]) + ", " + std::to_string(spotLight->ambientColor[3]) + "), vec4(" + std::to_string(spotLight->specularColor[0]) + ", " + std::to_string(spotLight->specularColor[1]) + ", " + std::to_string(spotLight->specularColor[2]) + ", " + std::to_string(spotLight->specularColor[3]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
-    lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, normalizedNormal, viewDir, diffuse, ambient, specular);");
+    lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec3(" + std::to_string(spotLight->color[0]) + ", " + std::to_string(spotLight->color[1]) + ", " + std::to_string(spotLight->color[2]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
+    lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, Lo);");
   }
   else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
   {
-    lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec4(" + std::to_string(pointLight->diffuseColor[0]) + ", " + std::to_string(pointLight->diffuseColor[1]) + ", " + std::to_string(pointLight->diffuseColor[2]) + ", " + std::to_string(pointLight->diffuseColor[3]) + "), vec4(" + std::to_string(pointLight->ambientColor[0]) + ", " + std::to_string(pointLight->ambientColor[1]) + ", " + std::to_string(pointLight->ambientColor[2]) + ", " + std::to_string(pointLight->ambientColor[3]) + "), vec4(" + std::to_string(pointLight->specularColor[0]) + ", " + std::to_string(pointLight->specularColor[1]) + ", " + std::to_string(pointLight->specularColor[2]) + ", " + std::to_string(pointLight->specularColor[3]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
-    lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPos, normalizedNormal, viewDir, diffuse, ambient, specular);");
+    lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec3(" + std::to_string(pointLight->color[0]) + ", " + std::to_string(pointLight->color[1]) + ", " + std::to_string(pointLight->color[2]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
+    lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, Lo);");
   }
 }
 
@@ -715,6 +767,8 @@ void GraphicsContext::finishRendering()
 bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
 {
   ASSERT(offscreenContext && offscreenSurface);
+  ASSERT(width > 0 && height > 0);
+
   offscreenContext->makeCurrent(offscreenSurface);
 
   // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
@@ -766,7 +820,7 @@ void GraphicsContext::setSurface(const Surface* surface)
     f->glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
   if(shader->surfaceIndexLocation >= 0)
     f->glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
-  const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->diffuseColor[3] < 1.f);
+  const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->alpha < 1.f);
   if(newBlendState && !data->blendEnabled)
   {
     f->glEnable(GL_BLEND);

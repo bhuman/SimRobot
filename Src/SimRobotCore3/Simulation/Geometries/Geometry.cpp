@@ -85,7 +85,7 @@ void Geometry::createPhysics(GraphicsContext& graphicsContext)
   graphicsContext.popModelMatrix();
 
   ASSERT(!surface);
-  surface = graphicsContext.requestSurface(color, color);
+  surface = graphicsContext.requestSurface(color, color[3]);
 }
 
 void Geometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const

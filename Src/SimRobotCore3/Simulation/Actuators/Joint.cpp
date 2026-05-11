@@ -26,8 +26,8 @@ void Joint::createPhysics(GraphicsContext& graphicsContext)
   sphere = Primitives::createSphere(graphicsContext, 0.002f, 10, 10, false);
 
   ASSERT(!surface);
-  const float color[] = {std::abs(axis->x), std::abs(axis->y), std::abs(axis->z), 1.f};
-  surface = graphicsContext.requestSurface(color, color);
+  const float color[] = {std::abs(axis->x), std::abs(axis->y), std::abs(axis->z)};
+  surface = graphicsContext.requestSurface(color);
 }
 
 void Joint::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const

@@ -164,13 +164,18 @@ ParserCore3::ParserCore3()
     elementInfos[element.name] = &element;
 }
 
-bool ParserCore3::getColor(const char* key, bool required, float* colors)
+bool ParserCore3::getColor(const char* key, bool required, float* colors, bool withAlpha)
 {
   static const float f1_255 = 1.f / 255.f;
   unsigned char colorsUC[4];
   if(!Parser::getColor(key, required, colorsUC))
     return false;
-  for(std::size_t i = 0; i < 4; ++i)
+  if(!withAlpha && colorsUC[3] != 255)
+  {
+    handleError("Color has alpha", attributes->find(key)->second.valueLocation);
+    return false;
+  }
+  for(std::size_t i = 0; i < (withAlpha ? 4 : 3); ++i)
     colors[i] = static_cast<float>(colorsUC[i]) * f1_255;
   return true;
 }
@@ -191,7 +196,7 @@ Element* ParserCore3::sceneElement()
   Scene* scene = new Scene();
   scene->name = getString("name", false);
   scene->controller = getString("controller", false);
-  getColor("color", false, scene->color);
+  getColor("color", false, scene->color, true);
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
   scene->gravity = getAcceleration("gravity", false, -9.80665f);
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
@@ -204,9 +209,7 @@ Element* ParserCore3::sceneElement()
 Element* ParserCore3::dirLightElement()
 {
   DirLight* light = new DirLight();
-  getColor("diffuseColor", false, light->diffuseColor);
-  getColor("ambientColor", false, light->ambientColor);
-  getColor("specularColor", false, light->specularColor);
+  getColor("color", false, light->color, false);
   light->direction[0] = getFloatMinMax("x", false, light->direction[0], -1.f, 1.f);
   light->direction[1] = getFloatMinMax("y", false, light->direction[1], -1.f, 1.f);
   light->direction[2] = getFloatMinMax("z", false, light->direction[2], -1.f, 1.f);
@@ -216,9 +219,7 @@ Element* ParserCore3::dirLightElement()
 Element* ParserCore3::pointLightElement()
 {
   PointLight* light = new PointLight();
-  getColor("diffuseColor", false, light->diffuseColor);
-  getColor("ambientColor", false, light->ambientColor);
-  getColor("specularColor", false, light->specularColor);
+  getColor("color", false, light->color, false);
   light->position[0] = getLength("x", false, light->position[0], false);
   light->position[1] = getLength("y", false, light->position[1], false);
   light->position[2] = getLength("z", false, light->position[2], false);
@@ -231,9 +232,7 @@ Element* ParserCore3::pointLightElement()
 Element* ParserCore3::spotLightElement()
 {
   SpotLight* light = new SpotLight();
-  getColor("diffuseColor", false, light->diffuseColor);
-  getColor("ambientColor", false, light->ambientColor);
-  getColor("specularColor", false, light->specularColor);
+  getColor("color", false, light->color, false);
   light->position[0] = getLength("x", false, light->position[0], false);
   light->position[1] = getLength("y", false, light->position[1], false);
   light->position[2] = getLength("z", false, light->position[2], false);
@@ -349,7 +348,7 @@ Element* ParserCore3::geometryElement()
 Element* ParserCore3::boxGeometryElement()
 {
   BoxGeometry* boxGeometry = new BoxGeometry();
-  getColor("color", false, boxGeometry->color);
+  getColor("color", false, boxGeometry->color, true);
   boxGeometry->name = getString("name", false);
   boxGeometry->width = getLength("width", true, 0.f, true);
   boxGeometry->height = getLength("height", true, 0.f, true);
@@ -360,7 +359,7 @@ Element* ParserCore3::boxGeometryElement()
 Element* ParserCore3::sphereGeometryElement()
 {
   SphereGeometry* sphereGeometry = new SphereGeometry();
-  getColor("color", false, sphereGeometry->color);
+  getColor("color", false, sphereGeometry->color, true);
   sphereGeometry->name = getString("name", false);
   sphereGeometry->radius = getLength("radius", true, 0.f, true);
   return sphereGeometry;
@@ -369,7 +368,7 @@ Element* ParserCore3::sphereGeometryElement()
 Element* ParserCore3::cylinderGeometryElement()
 {
   CylinderGeometry* cylinderGeometry = new CylinderGeometry();
-  getColor("color", false, cylinderGeometry->color);
+  getColor("color", false, cylinderGeometry->color, true);
   cylinderGeometry->name = getString("name", false);
   cylinderGeometry->radius = getLength("radius", true, 0.f, true);
   cylinderGeometry->height = getLength("height", true, 0.f, true);
@@ -379,7 +378,7 @@ Element* ParserCore3::cylinderGeometryElement()
 Element* ParserCore3::capsuleGeometryElement()
 {
   CapsuleGeometry* capsuleGeometry = new CapsuleGeometry();
-  getColor("color", false, capsuleGeometry->color);
+  getColor("color", false, capsuleGeometry->color, true);
   capsuleGeometry->name = getString("name", false);
   capsuleGeometry->radius = getLength("radius", true, 0.f, true);
   capsuleGeometry->height = getLength("height", true, 0.f, true);
@@ -715,12 +714,12 @@ Element* ParserCore3::velocityMotorElement()
 Element* ParserCore3::surfaceElement()
 {
   Appearance::Surface* surface = new Appearance::Surface();
-  getColor("diffuseColor", true, surface->diffuseColor);
-  surface->hasAmbientColor = getColor("ambientColor", false, surface->ambientColor);
-  getColor("specularColor", false, surface->specularColor);
-  getColor("emissionColor", false, surface->emissionColor);
-  surface->shininess = getFloatMinMax("shininess", false, surface->shininess, 0.f, 128.f);
-  surface->diffuseTexture = getString("diffuseTexture", false);
+  getColor("albedo", true, surface->albedo, false);
+  surface->alpha = getFloatMinMax("alpha", false, surface->alpha, 0.f, 1.f);
+  surface->metallic = getFloatMinMax("metallic", false, surface->metallic, 0.f, 1.f);
+  surface->roughness = getFloatMinMax("roughness", false, surface->roughness, 0.f, 1.f);
+  surface->ambient = getFloatMinMax("ambient", false, surface->ambient, 0.f, 1.f);
+  surface->texturePath = getString("texture", false);
   return surface;
 }
 

@@ -41,7 +41,8 @@ public:
   /** Default constructor */
   Scene()
   {
-    color[0] = color[1] = color[2] = color[3] = 0.f;
+    color[0] = color[1] = color[2] = 0.f;
+    color[3] = 1.f;
   }
 
   /** Updates the transformation of movable objects */

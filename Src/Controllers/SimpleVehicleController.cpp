@@ -1,7 +1,7 @@
 /**
  * @file SimpleVehicleController
  *
- * Controller for the demo specified in SimpleVehicle.ros2.
+ * Controller for the demo specified in SimpleVehicle.ros3.
  * A simplistic car is equipped with a laser range finder,
  * searches a ball and drives towards it.
  *

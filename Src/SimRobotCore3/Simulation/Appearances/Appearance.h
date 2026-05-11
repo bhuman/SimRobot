@@ -22,14 +22,13 @@ public:
   class Surface : public ElementCore3
   {
   public:
-
-    float diffuseColor[4];
-    bool hasAmbientColor = false;
-    float ambientColor[4];
-    float specularColor[4];
-    float emissionColor[4];
-    float shininess = 1.f;
-    std::string diffuseTexture;
+    // See \c GraphicsContext::requestSurface
+    float albedo[3];
+    float alpha = 1.f;
+    float metallic = 0.f;
+    float roughness = 0.5f;
+    float ambient = 1.f;
+    std::string texturePath;
     GraphicsContext::Texture* texture = nullptr;
     GraphicsContext::Surface* surface = nullptr;
 

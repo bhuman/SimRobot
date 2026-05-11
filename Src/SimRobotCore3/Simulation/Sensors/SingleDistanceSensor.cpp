@@ -31,8 +31,8 @@ void SingleDistanceSensor::createPhysics(GraphicsContext& graphicsContext)
   ray = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(max, 0.f, 0.f));
 
   ASSERT(!surface);
-  static const float color[] = {0.5f, 0.f, 0.f, 1.f};
-  surface = graphicsContext.requestSurface(color, color);
+  static const float color[] = {0.5f, 0.f, 0.f};
+  surface = graphicsContext.requestSurface(color);
 }
 
 void SingleDistanceSensor::registerObjects()

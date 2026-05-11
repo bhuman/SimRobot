@@ -1,7 +1,7 @@
 /**
  * @file FactoryController
  *
- * Controller for the simple factory demo specified in Factory.ros2.
+ * Controller for the simple factory demo specified in Factory.ros3.
  * Three distance sensors determine the height of a box. Afterwards,
  * the boxes is pushed to the right trap door which senses contact to
  * a box, opens, and lets the box pass.

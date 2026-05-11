@@ -221,16 +221,16 @@ public:
   struct Surface final
   {
   private:
-    float diffuseColor[4]; /**< The RGBA color of the diffuse component. */
-    float ambientColor[4]; /**< The RGBA color of the ambient component.  */
-    float specularColor[4]; /**< The RGBA color of the specular component. */
-    float emissionColor[4]; /**< The RGBA color that is emitted by the surface regardless of light sources. */
-    float shininess = 1.f; /**< Shininess of the surface (for the specular component). */
+    float albedo[3]; /**< The albedo (RGB). */
+    float alpha = 1.f; /**< The alpha value, from 0 (transparent) to 1 (opaque). */
+    float metallic = 0.f; /**< Whether the surface is metallic, from 0 (dielectric, scattering) to 1 (metallic, no scattering). */
+    float roughness = 0.5f; /**< The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering). */
+    float ambient = 1.f; /**< The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting). */
     const Texture* texture = nullptr; /**< The texture of the surface. */
 
     std::size_t index = 0; /**< The index of this surface in the UBO. */
 
-    static constexpr std::size_t memorySize = 80; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
+    static constexpr std::size_t memorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
 
     friend class GraphicsContext;
   };
@@ -330,19 +330,19 @@ public:
 
   /**
    * Requests a surface with the given properties.
-   * @param diffuseColor The diffuse color (RGBA).
-   * @param ambientColor The ambient color (RGBA).
-   * @param specularColor The specular color (RGBA). May be \c nullptr.
-   * @param emissionColor The emission color (RGBA). May be \c nullptr.
-   * @param shininess The shininess of the surface (for the specular component).
+   * @param albedo The albedo (RGB).
+   * @param alpha The alpha value, from 0 (transparent) to 1 (opaque).
+   * @param metallic Whether the surface is metallic, from 0 (dielectric, scattering) to 1 (metallic, no scattering).
+   * @param roughness The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering).
+   * @param ambient The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting).
    * @param texture The texture of the surface. May be \c nullptr.
    * @return The new surface. The graphics context retains ownership of the object.
    */
-  Surface* requestSurface(const float* diffuseColor, const float* ambientColor, const float* specularColor = nullptr, const float* emissionColor = nullptr, float shininess = 1.f, const Texture* texture = nullptr);
+  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr);
 
   /**
    * Sets the color of the global ambient light.
-   * @param color Pointer to a four-element (RGBA) color.
+   * @param color Pointer to a three-element (RGB) color.
    */
   void setGlobalAmbientLight(const float* color);
 

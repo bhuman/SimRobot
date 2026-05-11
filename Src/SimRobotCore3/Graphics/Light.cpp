@@ -13,10 +13,7 @@
 
 Light::Light()
 {
-  diffuseColor[0] = diffuseColor[1] = diffuseColor[2] = diffuseColor[3] = 1.f;
-  ambientColor[0] = ambientColor[1] = ambientColor[2] = 0.f;
-  ambientColor[3] = 1.f;
-  specularColor[0] = specularColor[1] = specularColor[2] = specularColor[3] = 1.f;
+  color[0] = color[1] = color[2] = 1.f;
 }
 
 void Light::addParent(Element& element)

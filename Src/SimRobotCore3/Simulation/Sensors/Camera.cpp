@@ -47,13 +47,13 @@ void Camera::createPhysics(GraphicsContext& graphicsContext)
   pyramid = Primitives::createPyramid(graphicsContext, std::tan(angleX * 0.5f) * 2.f, std::tan(angleY * 0.5f) * 2.f, 1.f);
 
   ASSERT(!surface);
-  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
-  surface = graphicsContext.requestSurface(color, color);
+  static const float color[] = {0.f, 0.f, 0.5f};
+  surface = graphicsContext.requestSurface(color);
 }
 
 void Camera::addParent(Element& element)
 {
-  sensor.physicalObject = dynamic_cast< ::PhysicalObject*>(&element);
+  sensor.physicalObject = dynamic_cast<::PhysicalObject*>(&element);
   ASSERT(sensor.physicalObject);
   Sensor::addParent(element);
 }

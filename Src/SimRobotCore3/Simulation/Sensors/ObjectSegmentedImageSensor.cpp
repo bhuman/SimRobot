@@ -16,24 +16,24 @@
 #include <cmath>
 
 static constexpr std::size_t numOfBodySurfaces = 16;
-static float surfaceColors[numOfBodySurfaces][4] =
+static float surfaceColors[numOfBodySurfaces][3] =
 {
-  {1.0f, 0.0f, 0.0f, 1.0f}, // red,
-  {0.0f, 0.0f, 1.0f, 1.0f}, // blue,
-  {0.0f, 0.5f, 0.0f, 1.0f}, // green,
-  {1.0f, 1.0f, 0.0f, 1.0f}, // yellow,
-  {0.5f, .12f, .12f, 1.0f}, // brown,
-  {1.0f, .37f, .73f, 1.0f}, // pink,
-  {0.5f, 0.0f, 0.5f, 1.0f}, // purple,
-  {0.0f, 0.0f, 0.5f, 1.0f}, // navy,
-  {.54f, .17f, .89f, 1.0f}, // blue violet
-  {0.0f, .75f, 1.0f, 1.0f}, // deep sky blue,
-  {0.5f, 0.5f, 0.0f, 1.0f}, // olive,
-  {0.0f, 1.0f, 0.0f, 1.0f}, // lime,
-  {.13f, .70f, .67f, 1.0f}, // light sea green,
-  {.82f, .41f, .12f, 1.0f}, // chocolate,
-  {1.0f, .65f, 0.0f, 1.0f}, // orange,
-  {1.0f, .55f, 0.0f, 1.0f}  // dark orange,
+  {1.0f, 0.0f, 0.0f}, // red,
+  {0.0f, 0.0f, 1.0f}, // blue,
+  {0.0f, 0.5f, 0.0f}, // green,
+  {1.0f, 1.0f, 0.0f}, // yellow,
+  {0.5f, .12f, .12f}, // brown,
+  {1.0f, .37f, .73f}, // pink,
+  {0.5f, 0.0f, 0.5f}, // purple,
+  {0.0f, 0.0f, 0.5f}, // navy,
+  {.54f, .17f, .89f}, // blue violet
+  {0.0f, .75f, 1.0f}, // deep sky blue,
+  {0.5f, 0.5f, 0.0f}, // olive,
+  {0.0f, 1.0f, 0.0f}, // lime,
+  {.13f, .70f, .67f}, // light sea green,
+  {.82f, .41f, .12f}, // chocolate,
+  {1.0f, .65f, 0.0f}, // orange,
+  {1.0f, .55f, 0.0f}  // dark orange,
 };
 
 ObjectSegmentedImageSensor::ObjectSegmentedImageSensor() :
@@ -71,20 +71,20 @@ void ObjectSegmentedImageSensor::createPhysics(GraphicsContext& graphicsContext)
   {
     surfaces.reserve(numOfBodySurfaces);
     for(std::size_t i = 0; i < numOfBodySurfaces; ++i)
-      surfaces.push_back(graphicsContext.requestSurface(surfaceColors[i], surfaceColors[i]));
+      surfaces.push_back(graphicsContext.requestSurface(surfaceColors[i]));
   }
 
   ASSERT(!pyramid);
   pyramid = Primitives::createPyramid(graphicsContext, std::tan(angleX * 0.5f) * 2.f, std::tan(angleY * 0.5f) * 2.f, 1.f);
 
   ASSERT(!surface);
-  static const float color[] = {0.f, 0.f, 0.5f, 1.f};
-  surface = graphicsContext.requestSurface(color, color);
+  static const float color[] = {0.f, 0.f, 0.5f};
+  surface = graphicsContext.requestSurface(color);
 }
 
 void ObjectSegmentedImageSensor::addParent(Element& element)
 {
-  sensor.physicalObject = dynamic_cast< ::PhysicalObject*>(&element);
+  sensor.physicalObject = dynamic_cast<::PhysicalObject*>(&element);
   ASSERT(sensor.physicalObject);
   Sensor::addParent(element);
 }
