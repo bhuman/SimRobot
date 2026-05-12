@@ -46,7 +46,7 @@ In the following code example, the color of NAO's jersey is set by a `Set` eleme
 
 ## Grammar
 
-Scene decription files are encoded in XML. Since document type definitions or XML schema are hard to read, the format description is split into two parts. In this section, the relations between different tags are describe in a EBNF-ish grammar. However, the attributes of the tags are missing, i.e. a terminal symbol such as `"<Deflection>"` or `<Deflection/>` can actually have a number of attributes that are described later in the [next section](#attributes).
+Scene decription files are encoded in XML. Since document type definitions or XML schemas are hard to read, the format description is split into two parts. In this section, the relations between different tags are described in an EBNF-ish grammar. However, the attributes of the tags are missing, i.e. a terminal symbol such as `"<Deflection>"` or `<Deflection/>` can actually have a number of attributes that are described later in the [next section](#attributes).
 
 In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the following EBNF grammar uses the fourth one `?(...)?` that defines that the sequence of the grammar symbols in between is arbitrary. This reflects the fact that XML usually does not enforce a certain order for subtags. The start symbol of the grammar is `Simulation`.
 
@@ -406,10 +406,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `cfm`: The cfm (constraint force mixing) value for this axis.
-          - **Default**: -1
-          - **Use**: optional
-          - **Range**: [0, 1]
 
 
 ### bodyClass

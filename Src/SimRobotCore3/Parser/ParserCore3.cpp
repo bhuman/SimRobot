@@ -635,7 +635,6 @@ Element* ParserCore3::axisElement()
   axis->x = getFloat("x", false, 0.f);
   axis->y = getFloat("y", false, 0.f);
   axis->z = getFloat("z", false, 0.f);
-  axis->cfm = getFloatMinMax("cfm", false, -1.f, 0.f, 1.f);
   Joint* joint = dynamic_cast<Joint*>(element);
   ASSERT(joint);
   axis->joint = joint;
