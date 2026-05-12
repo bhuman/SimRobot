@@ -81,12 +81,6 @@ SimRobot::Application* MainWindow::application;
 #define PATH_SEPARATOR "/"
 #endif
 
-#ifdef MACOS
-#define TIMER_DELAY 1
-#else
-#define TIMER_DELAY 0
-#endif
-
 MainWindow::MainWindow(int, char* argv[]) :
   appPath(getAppPath(argv[0])),
   appString(QString("SimRobot" PATH_SEPARATOR "%1").arg(getAppLocationSum(appPath))),
@@ -1162,7 +1156,7 @@ void MainWindow::simStart()
     running = true;
     simStartAct->setChecked(true);
     if(!timerId)
-      timerId = startTimer(TIMER_DELAY);
+      timerId = startTimer(0);
   }
 }
 
@@ -1171,7 +1165,7 @@ void MainWindow::simStep()
   if(running)
     simStart(); // stop
   if(!timerId)
-    timerId = startTimer(TIMER_DELAY);
+    timerId = startTimer(0);
 }
 
 void MainWindow::simStop()
