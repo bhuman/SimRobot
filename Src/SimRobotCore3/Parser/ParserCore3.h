@@ -89,7 +89,6 @@ private:
   Element* sliderElement();
   Element* axisElement();
   Element* deflectionElement();
-  Element* PT2MotorElement();
   Element* servoMotorElement();
   Element* velocityMotorElement();
   Element* dirLightElement();

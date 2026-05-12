@@ -87,8 +87,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | Mass
                                | SphereMass;
     materialClass              = Material;
-    motorClass                 = PT2Motor
-                               | ServoMotor
+    motorClass                 = ServoMotor
                                | VelocityMotor;
     normalsClass               = Normals;
     primitiveGroupClass        = Quads
@@ -286,8 +285,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     Material                   = "<Material>" "</Material>"
                                | "<Material/>";
     
-    PT2Motor                   = "<PT2Motor>" "</PT2Motor>"
-                               | "<PT2Motor/>";
     ServoMotor                 = "<ServoMotor>" "</ServoMotor>"
                                | "<ServoMotor/>";
     VelocityMotor              = "<VelocityMotor>" "</VelocityMotor>"
@@ -883,23 +880,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
 ### motorClass
 
-  - `PT2Motor`: Instantiates a motor using the PT2 model.
-      - `T`: The time constant of the system.
-          - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `D`: The damping constant of the system.
-          - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `K`: The steady state gain of the system.
-          - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `V`: The maximum velocity of this motor.
-          - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `F`: The maximum force of this motor.
-          - **Units**: N
-          - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
   - `ServoMotor`: Instantiates a position-controlled servo motor.
       - `maxVelocity`: The maximum velocity of this motor.
           - **Units**: radian/s, degree/s

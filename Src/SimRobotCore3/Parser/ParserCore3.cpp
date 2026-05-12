@@ -26,7 +26,6 @@
 #include "Simulation/Masses/CylinderMass.h"
 #include "Simulation/Masses/InertiaMatrixMass.h"
 #include "Simulation/Masses/SphereMass.h"
-#include "Simulation/Motors/PT2Motor.h"
 #include "Simulation/Motors/ServoMotor.h"
 #include "Simulation/Motors/VelocityMotor.h"
 #include "Simulation/Scene.h"
@@ -136,8 +135,6 @@ ParserCore3::ParserCore3()
     {"Axis", axisClass, std::bind(&ParserCore3::axisElement, this), nullptr, 0,
       0, motorClass | deflectionClass, setClass, {}},
     {"Deflection", deflectionClass, std::bind(&ParserCore3::deflectionElement, this), nullptr, 0,
-      0, 0, 0, {}},
-    {"PT2Motor", motorClass, std::bind(&ParserCore3::PT2MotorElement, this), nullptr, 0,
       0, 0, 0, {}},
     {"ServoMotor", motorClass, std::bind(&ParserCore3::servoMotorElement, this), nullptr, 0,
       0, 0, 0, {}},
@@ -667,23 +664,6 @@ Element* ParserCore3::deflectionElement()
 
   ASSERT(!axis->deflection);
   axis->deflection = deflection;
-  return nullptr;
-}
-
-Element* ParserCore3::PT2MotorElement()
-{
-  PT2Motor* pt2motor = new PT2Motor();
-  Axis* axis = dynamic_cast<Axis*>(element);
-  ASSERT(axis);
-  ASSERT(!axis->motor);
-
-  pt2motor->T = getFloat("T", true, 0.f);
-  pt2motor->D = getFloat("D", true, 0.f);
-  pt2motor->K = getFloat("K", true, 0.f);
-  pt2motor->V = getFloat("V", true, 0.f);
-  pt2motor->F = getForce("F", true, 0.f);
-
-  axis->motor = pt2motor;
   return nullptr;
 }
 
