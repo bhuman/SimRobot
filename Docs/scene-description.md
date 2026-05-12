@@ -634,6 +634,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
+      - `intensity`: The intensity of the light source. This correlates with the amount of light that it emits, but has no physical unit.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
       - `x`: The x direction of the light.
           - **Default**: 0
           - **Use**: optional
@@ -650,6 +654,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
+      - `intensity`: The intensity of the light source. This correlates with the amount of light that it emits, but has no physical unit.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
       - `x`: The x coordinate of the light source.
           - **Units**: mm, cm, dm, m, km
           - **Default**: 0m
@@ -681,6 +689,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `color`: RGB color definition, see [this section](#color-specification).
           - **Default**: #ffffff
           - **Use**: optional
+      - `intensity`: The intensity of the light source. This correlates with the amount of light that it emits, but has no physical unit.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
       - `x`: The x coordinate of the light source.
           - **Units**: mm, cm, dm, m, km
           - **Default**: 0m

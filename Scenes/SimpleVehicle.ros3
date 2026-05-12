@@ -5,7 +5,7 @@
   <Surface name="orange" albedo="rgb(100%, 60%, 0%)" roughness="0.3"/>
 
   <Scene name="SimpleVehicle" controller="SimpleVehicle" stepLength="0.01" color="rgb(80%, 80%, 80%)">
-    <PointLight z="8m" color="rgb(100%, 100%, 100%)"/>
+    <PointLight z="8m" intensity="10"/>
 
     <Compound name="Ground">
       <Translation z="-0.1"/>

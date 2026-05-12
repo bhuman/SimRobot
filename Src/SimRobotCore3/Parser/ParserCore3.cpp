@@ -210,6 +210,10 @@ Element* ParserCore3::dirLightElement()
 {
   DirLight* light = new DirLight();
   getColor("color", false, light->color, false);
+  const float intensity = getFloatPositive("intensity", false, 1.f);
+  light->color[0] *= intensity;
+  light->color[1] *= intensity;
+  light->color[2] *= intensity;
   light->direction[0] = getFloatMinMax("x", false, light->direction[0], -1.f, 1.f);
   light->direction[1] = getFloatMinMax("y", false, light->direction[1], -1.f, 1.f);
   light->direction[2] = getFloatMinMax("z", false, light->direction[2], -1.f, 1.f);
@@ -220,6 +224,10 @@ Element* ParserCore3::pointLightElement()
 {
   PointLight* light = new PointLight();
   getColor("color", false, light->color, false);
+  const float intensity = getFloatPositive("intensity", false, 1.f);
+  light->color[0] *= intensity;
+  light->color[1] *= intensity;
+  light->color[2] *= intensity;
   light->position[0] = getLength("x", false, light->position[0], false);
   light->position[1] = getLength("y", false, light->position[1], false);
   light->position[2] = getLength("z", false, light->position[2], false);
@@ -233,6 +241,10 @@ Element* ParserCore3::spotLightElement()
 {
   SpotLight* light = new SpotLight();
   getColor("color", false, light->color, false);
+  const float intensity = getFloatPositive("intensity", false, 1.f);
+  light->color[0] *= intensity;
+  light->color[1] *= intensity;
+  light->color[2] *= intensity;
   light->position[0] = getLength("x", false, light->position[0], false);
   light->position[1] = getLength("y", false, light->position[1], false);
   light->position[2] = getLength("z", false, light->position[2], false);
