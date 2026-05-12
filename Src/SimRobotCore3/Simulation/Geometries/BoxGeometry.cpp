@@ -29,14 +29,6 @@ void BoxGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
   Geometry::createPhysics(graphicsContext);
 
-  ASSERT(!box);
-  box = Primitives::createBox(graphicsContext, width, height, depth);
-}
-
-void BoxGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
-{
-  if(flags & SimRobotCore3::Renderer::showPhysics)
-    graphicsContext.draw(box, modelMatrix, surface);
-
-  Geometry::drawPhysics(graphicsContext, flags);
+  ASSERT(!mesh);
+  mesh = Primitives::createBox(graphicsContext, width, height, depth);
 }

@@ -27,14 +27,6 @@ void CapsuleGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
   Geometry::createPhysics(graphicsContext);
 
-  ASSERT(!capsule);
-  capsule = Primitives::createCapsule(graphicsContext, radius, height, 16, 17);
-}
-
-void CapsuleGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
-{
-  if(flags & SimRobotCore3::Renderer::showPhysics)
-    graphicsContext.draw(capsule, modelMatrix, surface);
-
-  Geometry::drawPhysics(graphicsContext, flags);
+  ASSERT(!mesh);
+  mesh = Primitives::createCapsule(graphicsContext, radius, height, 16, 17);
 }

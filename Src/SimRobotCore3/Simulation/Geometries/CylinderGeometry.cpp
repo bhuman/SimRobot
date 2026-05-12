@@ -27,14 +27,6 @@ void CylinderGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
   Geometry::createPhysics(graphicsContext);
 
-  ASSERT(!cylinder);
-  cylinder = Primitives::createCylinder(graphicsContext, radius, height, 16);
-}
-
-void CylinderGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
-{
-  if(flags & SimRobotCore3::Renderer::showPhysics)
-    graphicsContext.draw(cylinder, modelMatrix, surface);
-
-  Geometry::drawPhysics(graphicsContext, flags);
+  ASSERT(!mesh);
+  mesh = Primitives::createCylinder(graphicsContext, radius, height, 16);
 }

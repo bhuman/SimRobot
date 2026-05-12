@@ -33,13 +33,4 @@ private:
    * @param graphicsContext The graphics context to create resources in
    */
   void createPhysics(GraphicsContext& graphicsContext) override;
-
-  /**
-   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
-   * @param graphicsContext The graphics context to draw the object to
-   * @param flags Flags to enable or disable certain features
-   */
-  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
-
-  GraphicsContext::Mesh* capsule = nullptr; /**< The capsule mesh */
 };

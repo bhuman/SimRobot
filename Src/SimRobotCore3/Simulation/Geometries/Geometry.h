@@ -62,6 +62,13 @@ public:
   void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
+   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * @param graphicsContext The graphics context to draw the object to
+   * @param flags Flags to enable or disable certain features
+   */
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+
+  /**
    * Creates the geometry and adds it to a body at the given offset
    * @param body The body to which to attach the geometry
    * @param offset Offset of the geometry's frame relative to the body's frame.
@@ -71,6 +78,7 @@ public:
   void createGeometry(mjsBody* body, int collisionGroup, const Pose3f& offset, bool immaterial = false);
 
   GraphicsContext::Surface* surface = nullptr; /**< The surface of this geometry drawing */
+  GraphicsContext::Mesh* mesh = nullptr; /**< The mesh of this geometry drawing */
 
 protected:
   /**

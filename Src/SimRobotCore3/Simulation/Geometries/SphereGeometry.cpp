@@ -25,14 +25,6 @@ void SphereGeometry::createPhysics(GraphicsContext& graphicsContext)
 {
   Geometry::createPhysics(graphicsContext);
 
-  ASSERT(!sphere);
-  sphere = Primitives::createSphere(graphicsContext, radius, 16, 16, false);
-}
-
-void SphereGeometry::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
-{
-  if(flags & SimRobotCore3::Renderer::showPhysics)
-    graphicsContext.draw(sphere, modelMatrix, surface);
-
-  Geometry::drawPhysics(graphicsContext, flags);
+  ASSERT(!mesh);
+  mesh = Primitives::createSphere(graphicsContext, radius, 16, 16, false);
 }
