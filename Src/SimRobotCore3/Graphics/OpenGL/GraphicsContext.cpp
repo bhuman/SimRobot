@@ -9,6 +9,7 @@
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
 #include "Platform/Assert.h"
+#include "Simulation/Simulation.h"
 #include <QImage>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>

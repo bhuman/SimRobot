@@ -7,6 +7,7 @@
 #include "BoxGeometry.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
+#include "Simulation/Simulation.h"
 #include <mujoco/mujoco.h>
 #include <algorithm>
 #include <cmath>

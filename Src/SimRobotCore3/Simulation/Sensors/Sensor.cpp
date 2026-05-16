@@ -7,6 +7,7 @@
 #include "Sensor.h"
 #include "CoreModule.h"
 #include "Graphics/GraphicsContext.h"
+#include "Platform/Assert.h"
 #include "SensorWidget.h"
 #include "Simulation/Simulation.h"
 #include "Tools/OpenGLTools.h"
