@@ -1,5 +1,8 @@
 if(LINUX)
   find_package(Qt6 COMPONENTS Concurrent Core Gui OpenGL OpenGLWidgets Svg SvgWidgets Widgets REQUIRED)
+  if(Qt6_VERSION VERSION_GREATER_EQUAL "6.7.0")
+    find_package(Qt6 COMPONENTS GuiPrivate REQUIRED)
+  endif()
 elseif(WINDOWS)
   add_library(Qt6::Concurrent SHARED IMPORTED)
   set_target_properties(Qt6::Concurrent PROPERTIES

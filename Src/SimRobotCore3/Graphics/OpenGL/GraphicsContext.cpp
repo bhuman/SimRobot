@@ -6,6 +6,8 @@
  * @author Arne Hasselbring
  */
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
+
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
 #include "Platform/Assert.h"
@@ -1019,3 +1021,5 @@ void GraphicsContext::ModelMatrix::updateMemory()
   memory.topLeftCorner<3, 3>() = result.rotation;
   memory.topRightCorner<3, 1>() = result.translation;
 }
+
+#endif

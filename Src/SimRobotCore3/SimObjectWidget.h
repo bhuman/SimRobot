@@ -6,10 +6,13 @@
 
 #pragma once
 
-#include <QOpenGLWidget>
-
-#include "SimRobotCore3.h"
 #include "SimObjectRenderer.h"
+#include "SimRobot.h"
+#ifdef SIMROBOTCORE3_USE_QRHI
+#include <QRhiWidget>
+#else
+#include <QOpenGLWidget>
+#endif
 
 class SimObject;
 class Simulation;
@@ -18,7 +21,13 @@ class Simulation;
  * @class SimObjectWidget
  * A class that implements the 3D-view for simulated objects
  */
-class SimObjectWidget : public QOpenGLWidget, public SimRobot::Widget
+class SimObjectWidget :
+#ifdef SIMROBOTCORE3_USE_QRHI
+  public QRhiWidget,
+#else
+  public QOpenGLWidget,
+#endif
+  public SimRobot::Widget
 {
   Q_OBJECT
 
@@ -44,9 +53,14 @@ private:
   QMenu* createEditMenu() const override;
   QMenu* createUserMenu() const override;
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+  void initialize(QRhiCommandBuffer* commandBuffer) override;
+  void render(QRhiCommandBuffer* commandBuffer) override;
+#else
   void initializeGL() override;
   void paintGL() override;
   void resizeGL(int width, int height) override;
+#endif
   void mouseMoveEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;

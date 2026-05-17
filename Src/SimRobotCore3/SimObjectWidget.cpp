@@ -19,16 +19,29 @@
 #include "Simulation/Simulation.h"
 #include "Simulation/Scene.h"
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+#include <rhi/qrhi.h>
+#else
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#endif
 
-SimObjectWidget::SimObjectWidget(SimObject& simObject) : QOpenGLWidget(),
+SimObjectWidget::SimObjectWidget(SimObject& simObject) :
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget(),
+#else
+  QOpenGLWidget(),
+#endif
   object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
   wKey(false), aKey(false), sKey(false), dKey(false)
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  setApi(QRhiWidget::Api::OpenGL);
+#else
   QSurfaceFormat format = Simulation::simulation->graphicsContext.getOffscreenContext()->format();
   format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
   setFormat(format);
+#endif
 
   setFocusPolicy(Qt::StrongFocus);
   grabGesture(Qt::PinchGesture);
@@ -88,10 +101,26 @@ SimObjectWidget::~SimObjectWidget()
 
   settings->endGroup();
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+  objectRenderer.destroy(rhi()->nativeHandles());
+#else
   makeCurrent();
   objectRenderer.destroy();
+#endif
 }
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+void SimObjectWidget::initialize(QRhiCommandBuffer*)
+{
+  // TODO: call init()
+  objectRenderer.resize(fovY, width(), height());
+}
+
+void SimObjectWidget::render(QRhiCommandBuffer*)
+{
+}
+
+#else
 void SimObjectWidget::initializeGL()
 {
   objectRenderer.init();
@@ -106,10 +135,15 @@ void SimObjectWidget::resizeGL(int width, int height)
 {
   objectRenderer.resize(fovY, width, height);
 }
+#endif
 
 void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::mouseMoveEvent(event);
+#else
   QOpenGLWidget::mouseMoveEvent(event);
+#endif
 
   const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
   const QPointF position = event->position();
@@ -130,7 +164,11 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 
 void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::mousePressEvent(event);
+#else
   QOpenGLWidget::mousePressEvent(event);
+#endif
 
   if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
@@ -146,7 +184,11 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::mouseReleaseEvent(event);
+#else
   QOpenGLWidget::mouseReleaseEvent(event);
+#endif
 
   const QPointF position = event->position();
   if(objectRenderer.releaseDrag(static_cast<int>(position.x()), static_cast<int>(position.y())))
@@ -158,7 +200,11 @@ void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::mouseDoubleClickEvent(event);
+#else
   QOpenGLWidget::mouseDoubleClickEvent(event);
+#endif
 
   if(event->button() == Qt::LeftButton)
   {
@@ -172,7 +218,11 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
+#ifdef SIMROBOTCORE3_USE_QRHI
+    QRhiWidget::keyPressEvent(event);
+#else
     QOpenGLWidget::keyPressEvent(event);
+#endif
     return;
   }
 
@@ -217,7 +267,11 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
       break;
 
     default:
+#ifdef SIMROBOTCORE3_USE_QRHI
+      QRhiWidget::keyPressEvent(event);
+#else
       QOpenGLWidget::keyPressEvent(event);
+#endif
       break;
   }
 }
@@ -226,7 +280,11 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
+#ifdef SIMROBOTCORE3_USE_QRHI
+    QRhiWidget::keyReleaseEvent(event);
+#else
     QOpenGLWidget::keyReleaseEvent(event);
+#endif
     return;
   }
 
@@ -260,7 +318,11 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
       break;
 
     default:
+#ifdef SIMROBOTCORE3_USE_QRHI
+      QRhiWidget::keyReleaseEvent(event);
+#else
       QOpenGLWidget::keyReleaseEvent(event);
+#endif
       break;
   }
 }
@@ -283,7 +345,11 @@ bool SimObjectWidget::event(QEvent* event)
       return true;
     }
   }
+#ifdef SIMROBOTCORE3_USE_QRHI
+  return QRhiWidget::event(event);
+#else
   return QOpenGLWidget::event(event);
+#endif
 }
 
 void SimObjectWidget::wheelEvent(QWheelEvent* event)
@@ -297,12 +363,20 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
     event->accept();
     return;
   }
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::wheelEvent(event);
+#else
   QOpenGLWidget::wheelEvent(event);
+#endif
 }
 
 void SimObjectWidget::update()
 {
+#ifdef SIMROBOTCORE3_USE_QRHI
+  QRhiWidget::update();
+#else
   QOpenGLWidget::update();
+#endif
 }
 
 QMenu* SimObjectWidget::createEditMenu() const
@@ -577,15 +651,21 @@ void SimObjectWidget::exportAsImage(int width, int height)
   {
     unsigned int winWidth, winHeight;
     objectRenderer.getSize(winWidth, winHeight);
-    makeCurrent();
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+#warning "Implement exportAsImage for QRhiWidget."
+#else
     // render object using a temporary framebuffer
+    makeCurrent();
     QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
     framebuffer.bind();
     objectRenderer.resize(fovY, width, height);
+    Simulation::simulation->graphicsContext.getOpenGLFunctions()->glViewport(0, 0, width, height);
     objectRenderer.draw();
     image = framebuffer.toImage();
     framebuffer.release();
+    doneCurrent();
+#endif
 
     objectRenderer.resize(fovY, winWidth, winHeight);
   }
@@ -631,7 +711,6 @@ void SimObjectWidget::setFovY(int fovY)
   unsigned int width, height;
   this->fovY = fovY;
   objectRenderer.getSize(width, height);
-  makeCurrent();
   objectRenderer.resize(fovY, width, height);
   update();
 }

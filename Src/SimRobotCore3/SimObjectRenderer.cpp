@@ -5,6 +5,7 @@
  */
 
 #include "SimObjectRenderer.h"
+#include "CoreModule.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
 #include "Simulation/Body.h"
@@ -41,7 +42,11 @@ void SimObjectRenderer::updateCameraTransformation()
   OpenGLTools::computeCameraTransformation(cameraPos, cameraTarget, cameraUpVector, cameraTransformation);
 }
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+void SimObjectRenderer::init(const QRhiNativeHandles* nativeHandles)
+#else
 void SimObjectRenderer::init()
+#endif
 {
   ASSERT(!initialized);
   Simulation::simulation->graphicsContext.createGraphics();
@@ -54,7 +59,11 @@ void SimObjectRenderer::init()
   calcDragPlaneVector();
 }
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+void SimObjectRenderer::destroy(const QRhiNativeHandles* nativeHandles)
+#else
 void SimObjectRenderer::destroy()
+#endif
 {
   if(initialized)
   {
@@ -69,7 +78,11 @@ void SimObjectRenderer::destroy()
   }
 }
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
+#else
 void SimObjectRenderer::draw()
+#endif
 {
   // make sure transformations of movable bodies are up-to-date
   Simulation::simulation->scene->updateTransformations();
@@ -267,9 +280,6 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   this->height = height;
 
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
-
-  // This is needed for the exportAsImage function of the SimObjectWidget.
-  Simulation::simulation->graphicsContext.getOpenGLFunctions()->glViewport(0, 0, width, height);
 }
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const

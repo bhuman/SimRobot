@@ -10,6 +10,10 @@
 #include <QList>
 #include <QStringList>
 
+#ifdef SIMROBOTCORE3_USE_QRHI
+class QRhiNativeHandles;
+#endif
+
 namespace SimRobotCore3
 {
   class Renderer;
@@ -111,14 +115,26 @@ namespace SimRobotCore3
     /** Virtual destructor */
     virtual ~Renderer() = default;
 
-    /** Initializes the currently selected OpenGL context. */
-    virtual void init() = 0;
+    /** Initializes the currently selected OpenGL context or the given RHI. */
+    virtual void init(
+#ifdef SIMROBOTCORE3_USE_QRHI
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
 
-    /** Removes the renderer from the currently selected OpenGL context. */
-    virtual void destroy() = 0;
+    /** Removes the renderer from the currently selected OpenGL context or the given RHI. */
+    virtual void destroy(
+#ifdef SIMROBOTCORE3_USE_QRHI
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
 
-    /** Draws the scene object on the currently selected OpenGL context. */
-    virtual void draw() = 0;
+    /** Draws the scene object on the currently selected OpenGL context or the given RHI. */
+    virtual void draw(
+#ifdef SIMROBOTCORE3_USE_QRHI
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
 
     /**
      * Sets the size of the currently selected OpenGL renderer device. Call this once at the beginning to initialize the size.

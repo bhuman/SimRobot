@@ -8,6 +8,7 @@
 
 #include "SimRobotCore3.h"
 #include "Tools/Math/Eigen.h"
+#include "Tools/Math/Pose3f.h"
 
 class SimObject;
 class Body;
@@ -72,9 +73,15 @@ private:
 
 public:
   // API
+#ifdef SIMROBOTCORE3_USE_QRHI
+  void init(const QRhiNativeHandles* nativeHandles) override;
+  void destroy(const QRhiNativeHandles* nativeHandles) override;
+  void draw(const QRhiNativeHandles* nativeHandles) override;
+#else
   void init() override;
   void destroy() override;
   void draw() override;
+#endif
   void resize(float fovY, unsigned int width, unsigned int height) override;
   void getSize(unsigned int& width, unsigned int& height) const override;
   void setSurfaceShadeMode(ShadeMode shadeMode) override {surfaceShadeMode = shadeMode;}
