@@ -1,49 +1,15 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QFONT_H
 #define QFONT_H
 
+#include <QtCore/qcompare.h>
+#include <QtCore/qendian.h>
+#include <QtCore/qshareddata.h>
 #include <QtGui/qtguiglobal.h>
 #include <QtGui/qwindowdefs.h>
 #include <QtCore/qstring.h>
-#include <QtCore/qsharedpointer.h>
 
 
 QT_BEGIN_NAMESPACE
@@ -70,18 +36,20 @@ public:
     Q_ENUM(StyleHint)
 
     enum StyleStrategy {
-        PreferDefault       = 0x0001,
-        PreferBitmap        = 0x0002,
-        PreferDevice        = 0x0004,
-        PreferOutline       = 0x0008,
-        ForceOutline        = 0x0010,
-        PreferMatch         = 0x0020,
-        PreferQuality       = 0x0040,
-        PreferAntialias     = 0x0080,
-        NoAntialias         = 0x0100,
-        NoSubpixelAntialias = 0x0800,
-        PreferNoShaping     = 0x1000,
-        NoFontMerging       = 0x8000
+        PreferDefault           = 0x0001,
+        PreferBitmap            = 0x0002,
+        PreferDevice            = 0x0004,
+        PreferOutline           = 0x0008,
+        ForceOutline            = 0x0010,
+        PreferMatch             = 0x0020,
+        PreferQuality           = 0x0040,
+        PreferAntialias         = 0x0080,
+        NoAntialias             = 0x0100,
+        NoSubpixelAntialias     = 0x0800,
+        PreferNoShaping         = 0x1000,
+        ContextFontMerging      = 0x2000,
+        PreferTypoLineMetrics   = 0x4000,
+        NoFontMerging           = 0x8000
     };
     Q_ENUM(StyleStrategy)
 
@@ -162,7 +130,9 @@ public:
         HintingPreferenceResolved   = 0x8000,
         StyleNameResolved           = 0x10000,
         FamiliesResolved            = 0x20000,
-        AllPropertiesResolved       = 0x3ffff
+        FeaturesResolved            = 0x40000,
+        VariableAxesResolved        = 0x80000,
+        AllPropertiesResolved       = 0xfffff
     };
     Q_ENUM(ResolveProperties)
 
@@ -241,6 +211,75 @@ public:
 
     void setHintingPreference(HintingPreference hintingPreference);
     HintingPreference hintingPreference() const;
+
+    struct Tag
+    {
+        constexpr Tag() = default;
+
+        template <size_t N>
+        constexpr Q_IMPLICIT Tag(const char (&str)[N]) noexcept
+            :  m_value((quint32(str[0]) << 24) | (quint32(str[1]) << 16)
+                     | (quint32(str[2]) << 8) | quint32(str[3]))
+        {
+            static_assert(N == 5, "The tag name must be exactly 4 characters long!");
+        }
+
+        constexpr bool isValid() const noexcept { return m_value != 0; }
+        constexpr quint32 value() const noexcept { return m_value; }
+
+        QByteArray toString() const
+        {
+            const char data[] = {
+                char((m_value & 0xff000000) >> 24),
+                char((m_value & 0x00ff0000) >> 16),
+                char((m_value & 0x0000ff00) >> 8),
+                char((m_value & 0x000000ff)) };
+            return QByteArray(data, sizeof(data));
+        }
+
+        static constexpr std::optional<Tag> fromValue(quint32 value) noexcept
+        {
+            Tag maybeTag;
+            maybeTag.m_value = value;
+            return maybeTag.isValid() ? std::optional<Tag>(maybeTag) : std::nullopt;
+        }
+        Q_GUI_EXPORT static std::optional<Tag> fromString(QAnyStringView view) noexcept;
+
+#ifndef QT_NO_DATASTREAM
+        friend Q_GUI_EXPORT QDataStream &operator<<(QDataStream &, Tag);
+        friend Q_GUI_EXPORT QDataStream &operator>>(QDataStream &, Tag &);
+#endif
+
+#ifndef QT_NO_DEBUG_STREAM
+        friend Q_GUI_EXPORT QDebug operator<<(QDebug debug, Tag tag);
+#endif
+
+        friend constexpr size_t qHash(Tag key, size_t seed = 0) noexcept
+        { return qHash(key.value(), seed); }
+
+    private:
+        friend constexpr bool comparesEqual(const Tag &lhs, const Tag &rhs) noexcept
+        { return lhs.m_value == rhs.m_value; }
+        friend constexpr Qt::strong_ordering compareThreeWay(const Tag &lhs, const Tag &rhs) noexcept
+        { return Qt::compareThreeWay(lhs.m_value, rhs.m_value); }
+        Q_DECLARE_STRONGLY_ORDERED_LITERAL_TYPE(QFont::Tag)
+
+        quint32 m_value = 0;
+    };
+
+    void setFeature(Tag tag, quint32 value);
+    void unsetFeature(Tag tag);
+    quint32 featureValue(Tag tag) const;
+    bool isFeatureSet(Tag tag) const;
+    QList<Tag> featureTags() const;
+    void clearFeatures();
+
+    void setVariableAxis(Tag tag, float value);
+    void unsetVariableAxis(Tag tag);
+    bool isVariableAxisSet(Tag tag) const;
+    float variableAxisValue(Tag tag) const;
+    void clearVariableAxes();
+    QList<Tag> variableAxisTags() const;
 
     // dupicated from QFontInfo
     bool exactMatch() const;

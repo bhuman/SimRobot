@@ -1,48 +1,13 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
-#include <QtCore/qglobal.h>
+// Copyright (C) 2021 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QGLOBALSTATIC_H
 #define QGLOBALSTATIC_H
 
+#include <QtCore/qassert.h>
 #include <QtCore/qatomic.h>
+#include <QtCore/qtclasshelpermacros.h>
 
 #include <atomic>           // for bootstrapped (no thread) builds
 #include <type_traits>
@@ -63,7 +28,7 @@ template <typename QGS> union Holder
     using PlainType = std::remove_cv_t<Type>;
 
     static constexpr bool ConstructionIsNoexcept = noexcept(QGS::innerFunction(nullptr));
-    static inline QBasicAtomicInteger<qint8> guard = { QtGlobalStatic::Uninitialized };
+    Q_CONSTINIT static inline QBasicAtomicInteger<qint8> guard = { QtGlobalStatic::Uninitialized };
 
     // union's sole member
     PlainType storage;
@@ -76,9 +41,19 @@ template <typename QGS> union Holder
 
     ~Holder()
     {
+        // TSAN does not support atomic_thread_fence and GCC complains:
+        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97868
+        // https://github.com/google/sanitizers/issues/1352
+        // QTBUG-134415
+QT_WARNING_PUSH
+#if defined(Q_CC_GNU_ONLY) && Q_CC_GNU >= 1100
+QT_WARNING_DISABLE_GCC("-Wtsan")
+#endif
+        // import changes to *pointer() by other threads before running ~PlainType():
+        std::atomic_thread_fence(std::memory_order_acquire);
+QT_WARNING_POP
         pointer()->~PlainType();
-        std::atomic_thread_fence(std::memory_order_acquire); // avoid mixing stores to guard and *pointer()
-        guard.storeRelaxed(QtGlobalStatic::Destroyed);
+        guard.storeRelease(QtGlobalStatic::Destroyed);
     }
 
     PlainType *pointer() noexcept
@@ -110,13 +85,13 @@ template <typename Holder> struct QGlobalStatic
     }
     Type *operator->()
     {
-        Q_ASSERT_X(!isDestroyed(), "Q_GLOBAL_STATIC",
+        Q_ASSERT_X(!isDestroyed(), Q_FUNC_INFO,
                    "The global static was used after being destroyed");
         return instance();
     }
     Type &operator*()
     {
-        Q_ASSERT_X(!isDestroyed(), "Q_GLOBAL_STATIC",
+        Q_ASSERT_X(!isDestroyed(), Q_FUNC_INFO,
                    "The global static was used after being destroyed");
         return *instance();
     }
@@ -144,7 +119,7 @@ protected:
             new (pointer) QGS_Type ARGS;                                    \
         }                                                                   \
     }; }                                                                    \
-    static QGlobalStatic<QtGlobalStatic::Holder<Q_QGS_ ## NAME>> NAME;      \
+    Q_CONSTINIT static QGlobalStatic<QtGlobalStatic::Holder<Q_QGS_ ## NAME>> NAME; \
     QT_WARNING_POP
     /**/
 

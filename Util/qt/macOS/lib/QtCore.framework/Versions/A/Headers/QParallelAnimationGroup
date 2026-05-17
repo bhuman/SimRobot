@@ -1,1 +1,1 @@
-#include "qparallelanimationgroup.h"
+#include <QtCore/qparallelanimationgroup.h> // IWYU pragma: export

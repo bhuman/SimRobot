@@ -1,1 +1,1 @@
-#include "qopengldebug.h"
+#include <QtOpenGL/qopengldebug.h> // IWYU pragma: export

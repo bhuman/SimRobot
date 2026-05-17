@@ -1,1 +1,1 @@
-#include "qpdfwriter.h"
+#include <QtGui/qpdfwriter.h> // IWYU pragma: export

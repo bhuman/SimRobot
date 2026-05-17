@@ -1,46 +1,11 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSHAREDMEMORY_H
 #define QSHAREDMEMORY_H
 
-#include <QtCore/qglobal.h>
+#include <QtCore/qtipccommon.h>
 #ifndef QT_NO_QOBJECT
 # include <QtCore/qobject.h>
 #else
@@ -48,21 +13,16 @@
 # include <QtCore/qscopedpointer.h>
 # include <QtCore/qstring.h>
 #endif
+
 QT_BEGIN_NAMESPACE
 
-
-#ifndef QT_NO_SHAREDMEMORY
+#if QT_CONFIG(sharedmemory)
 
 class QSharedMemoryPrivate;
 
-class Q_CORE_EXPORT QSharedMemory
-#ifndef QT_NO_QOBJECT
-    : public QObject
-#endif
+class Q_CORE_EXPORT QSharedMemory : public QObject
 {
-#ifndef QT_NO_QOBJECT
     Q_OBJECT
-#endif
     Q_DECLARE_PRIVATE(QSharedMemory)
 
 public:
@@ -71,6 +31,7 @@ public:
         ReadOnly,
         ReadWrite
     };
+    Q_ENUM(AccessMode)
 
     enum SharedMemoryError
     {
@@ -84,24 +45,24 @@ public:
         OutOfResources,
         UnknownError
     };
+    Q_ENUM(SharedMemoryError)
 
-#ifndef QT_NO_QOBJECT
     QSharedMemory(QObject *parent = nullptr);
-    QSharedMemory(const QString &key, QObject *parent = nullptr);
-#else
-    QSharedMemory();
-    QSharedMemory(const QString &key);
-    static QString tr(const char * str)
-    {
-        return QString::fromLatin1(str);
-    }
-#endif
+    QSharedMemory(const QNativeIpcKey &key, QObject *parent = nullptr);
     ~QSharedMemory();
 
+    QSharedMemory(const QString &key, QObject *parent = nullptr);
     void setKey(const QString &key);
     QString key() const;
-    void setNativeKey(const QString &key);
+
+    void setNativeKey(const QNativeIpcKey &key);
+    void setNativeKey(const QString &key, QNativeIpcKey::Type type = QNativeIpcKey::legacyDefaultTypeForOs())
+    { setNativeKey({ key, type }); }
     QString nativeKey() const;
+    QNativeIpcKey nativeIpcKey() const;
+#if QT_CORE_REMOVED_SINCE(6, 5)
+    void setNativeKey(const QString &key);
+#endif
 
     bool create(qsizetype size, AccessMode mode = ReadWrite);
     qsizetype size() const;
@@ -114,7 +75,7 @@ public:
     const void* constData() const;
     const void *data() const;
 
-#ifndef QT_NO_SYSTEMSEMAPHORE
+#if QT_CONFIG(systemsemaphore)
     bool lock();
     bool unlock();
 #endif
@@ -122,16 +83,18 @@ public:
     SharedMemoryError error() const;
     QString errorString() const;
 
+    Q_DECL_CONST_FUNCTION static bool isKeyTypeSupported(QNativeIpcKey::Type type);
+    static QNativeIpcKey platformSafeKey(const QString &key,
+            QNativeIpcKey::Type type = QNativeIpcKey::DefaultTypeForOs);
+    static QNativeIpcKey legacyNativeKey(const QString &key,
+            QNativeIpcKey::Type type = QNativeIpcKey::legacyDefaultTypeForOs());
+
 private:
     Q_DISABLE_COPY(QSharedMemory)
-#ifdef QT_NO_QOBJECT
-    QScopedPointer<QSharedMemoryPrivate> d_ptr;
-#endif
 };
 
-#endif // QT_NO_SHAREDMEMORY
+#endif // QT_CONFIG(sharedmemory)
 
 QT_END_NAMESPACE
 
 #endif // QSHAREDMEMORY_H
-

@@ -1,1 +1,1 @@
-#include "qstandarditemmodel.h"
+#include <QtGui/qstandarditemmodel.h> // IWYU pragma: export

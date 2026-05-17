@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QAPPLICATION_H
 #define QAPPLICATION_H
@@ -102,7 +67,7 @@ public:
     static void setFont(const QFont &, const char* className = nullptr);
 
 #if QT_DEPRECATED_SINCE(6,0)
-    QT_DEPRECATED_VERSION_X_6_0("Use the QFontMetricsF constructor instead.")
+    QT_DEPRECATED_VERSION_X_6_0("Use QFontMetricsF(qApp->font()) instead.")
     static QFontMetrics fontMetrics();
 #endif
 
@@ -114,7 +79,11 @@ public:
     static QWidget *focusWidget();
 
     static QWidget *activeWindow();
+
+#if QT_DEPRECATED_SINCE(6, 5)
+    QT_DEPRECATED_VERSION_X_6_5("Use QWidget::activateWindow() instead.")
     static void setActiveWindow(QWidget* act);
+#endif
 
     static QWidget *widgetAt(const QPoint &p);
     static inline QWidget *widgetAt(int x, int y) { return widgetAt(QPoint(x, y)); }
@@ -161,18 +130,21 @@ Q_SIGNALS:
 
 public:
     QString styleSheet() const;
+    bool autoSipEnabled() const;
 public Q_SLOTS:
 #ifndef QT_NO_STYLE_STYLESHEET
     void setStyleSheet(const QString& sheet);
 #endif
     void setAutoSipEnabled(const bool enabled);
-    bool autoSipEnabled() const;
     static void closeAllWindows();
     static void aboutQt();
 
 protected:
     bool event(QEvent *) override;
+#  if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
+    QT_DEPRECATED_VERSION_X_6_10("This feature will be removed in Qt 7")
     bool compressEvent(QEvent *, QObject *receiver, QPostEventList *) override;
+#  endif
 
 private:
     Q_DISABLE_COPY(QApplication)

@@ -1,1 +1,1 @@
-#include "qimagewriter.h"
+#include <QtGui/qimagewriter.h> // IWYU pragma: export

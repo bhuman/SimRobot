@@ -1,1 +1,1 @@
-#include "qiterable.h"
+#include <QtCore/qiterable.h> // IWYU pragma: export

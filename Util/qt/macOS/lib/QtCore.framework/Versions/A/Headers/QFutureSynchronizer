@@ -1,1 +1,1 @@
-#include "qfuturesynchronizer.h"
+#include <QtCore/qfuturesynchronizer.h> // IWYU pragma: export

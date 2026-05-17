@@ -1,1 +1,1 @@
-#include "qabstracttextdocumentlayout.h"
+#include <QtGui/qabstracttextdocumentlayout.h> // IWYU pragma: export

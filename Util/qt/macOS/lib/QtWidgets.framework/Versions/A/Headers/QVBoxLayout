@@ -1,1 +1,1 @@
-#include "qboxlayout.h"
+#include <QtWidgets/qboxlayout.h> // IWYU pragma: export

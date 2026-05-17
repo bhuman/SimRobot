@@ -1,1 +1,1 @@
-#include "qglobal.h"
+#include <QtCore/qglobal.h> // IWYU pragma: export

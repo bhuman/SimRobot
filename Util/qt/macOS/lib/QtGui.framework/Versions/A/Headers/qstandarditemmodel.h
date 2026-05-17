@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSTANDARDITEMMODEL_H
 #define QSTANDARDITEMMODEL_H
@@ -110,7 +75,7 @@ public:
     inline void setFont(const QFont &font);
 
     inline Qt::Alignment textAlignment() const {
-        return Qt::Alignment(qvariant_cast<int>(data(Qt::TextAlignmentRole)));
+        return qvariant_cast<Qt::Alignment>(data(Qt::TextAlignmentRole));
     }
     inline void setTextAlignment(Qt::Alignment textAlignment);
 
@@ -143,43 +108,43 @@ public:
     void setFlags(Qt::ItemFlags flags);
 
     inline bool isEnabled() const {
-        return (flags() & Qt::ItemIsEnabled) != 0;
+        return bool(flags() & Qt::ItemIsEnabled);
     }
     void setEnabled(bool enabled);
 
     inline bool isEditable() const {
-        return (flags() & Qt::ItemIsEditable) != 0;
+        return bool(flags() & Qt::ItemIsEditable);
     }
     void setEditable(bool editable);
 
     inline bool isSelectable() const {
-        return (flags() & Qt::ItemIsSelectable) != 0;
+        return bool(flags() & Qt::ItemIsSelectable);
     }
     void setSelectable(bool selectable);
 
     inline bool isCheckable() const {
-        return (flags() & Qt::ItemIsUserCheckable) != 0;
+        return bool(flags() & Qt::ItemIsUserCheckable);
     }
     void setCheckable(bool checkable);
 
     inline bool isAutoTristate() const {
-        return (flags() & Qt::ItemIsAutoTristate) != 0;
+        return bool(flags() & Qt::ItemIsAutoTristate);
     }
     void setAutoTristate(bool tristate);
 
     inline bool isUserTristate() const {
-        return (flags() & Qt::ItemIsUserTristate) != 0;
+        return bool(flags() & Qt::ItemIsUserTristate);
     }
     void setUserTristate(bool tristate);
 
 #if QT_CONFIG(draganddrop)
     inline bool isDragEnabled() const {
-        return (flags() & Qt::ItemIsDragEnabled) != 0;
+        return bool(flags() & Qt::ItemIsDragEnabled);
     }
     void setDragEnabled(bool dragEnabled);
 
     inline bool isDropEnabled() const {
-        return (flags() & Qt::ItemIsDropEnabled) != 0;
+        return bool(flags() & Qt::ItemIsDropEnabled);
     }
     void setDropEnabled(bool dropEnabled);
 #endif // QT_CONFIG(draganddrop)
@@ -274,7 +239,7 @@ inline void QStandardItem::setFont(const QFont &afont)
 { setData(afont, Qt::FontRole); }
 
 inline void QStandardItem::setTextAlignment(Qt::Alignment atextAlignment)
-{ setData(int(atextAlignment), Qt::TextAlignmentRole); }
+{ setData(QVariant::fromValue(atextAlignment), Qt::TextAlignmentRole); }
 
 inline void QStandardItem::setBackground(const QBrush &abrush)
 { setData(abrush, Qt::BackgroundRole); }

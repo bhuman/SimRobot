@@ -1,1 +1,1 @@
-#include "qidentityproxymodel.h"
+#include <QtCore/qidentityproxymodel.h> // IWYU pragma: export

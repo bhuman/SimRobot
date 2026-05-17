@@ -1,1 +1,1 @@
-#include "qabstractitemdelegate.h"
+#include <QtWidgets/qabstractitemdelegate.h> // IWYU pragma: export

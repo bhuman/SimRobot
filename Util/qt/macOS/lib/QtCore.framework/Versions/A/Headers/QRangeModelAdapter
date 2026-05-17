@@ -1,0 +1,1 @@
+#include <QtCore/qrangemodeladapter.h> // IWYU pragma: export

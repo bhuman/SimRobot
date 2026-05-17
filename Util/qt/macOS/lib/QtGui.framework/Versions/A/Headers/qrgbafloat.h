@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QRGBAFLOAT_H
 #define QRGBAFLOAT_H
@@ -55,7 +19,13 @@ class alignas(sizeof(F) * 4) QRgbaFloat
     static_assert(std::is_same<F, qfloat16>::value || std::is_same<F, float>::value);
 public:
     using Type = F;
+#if defined(__AVX512FP16__) && QFLOAT16_IS_NATIVE
+    // AVX512FP16 has multiplication instructions
+    using FastType = F;
+#else
+    // use FP32 for multiplications
     using FastType = float;
+#endif
     F r;
     F g;
     F b;
@@ -64,21 +34,23 @@ public:
     static constexpr
     QRgbaFloat fromRgba64(quint16 red, quint16 green, quint16 blue, quint16 alpha)
     {
+        constexpr FastType scale = FastType(1.0f / 65535.0f);
         return QRgbaFloat{
-            red   * (1.0f / 65535.0f),
-            green * (1.0f / 65535.0f),
-            blue  * (1.0f / 65535.0f),
-            alpha * (1.0f / 65535.0f) };
+            F(red    * scale),
+            F(green  * scale),
+            F(blue   * scale),
+            F(alpha  * scale) };
     }
 
     static constexpr
     QRgbaFloat fromRgba(quint8 red, quint8 green, quint8 blue, quint8 alpha)
     {
+        constexpr FastType scale = FastType(1.0f / 255.0f);
         return QRgbaFloat{
-            red   * (1.0f / 255.0f),
-            green * (1.0f / 255.0f),
-            blue  * (1.0f / 255.0f),
-            alpha * (1.0f / 255.0f) };
+            F(red    * scale),
+            F(green  * scale),
+            F(blue   * scale),
+            F(alpha  * scale) };
     }
     static constexpr
     QRgbaFloat fromArgb32(uint rgb)
@@ -86,49 +58,63 @@ public:
         return fromRgba(quint8(rgb >> 16), quint8(rgb >> 8), quint8(rgb), quint8(rgb >> 24));
     }
 
-    constexpr bool isOpaque() const { return a >= 1.0f; }
-    constexpr bool isTransparent() const { return a <= 0.0f; }
+    constexpr bool isOpaque() const { return a >= FastType(1.0f); }
+    constexpr bool isTransparent() const { return a <= FastType(0.0f); }
 
-    constexpr FastType red()   const { return r; }
-    constexpr FastType green() const { return g; }
-    constexpr FastType blue()  const { return b; }
-    constexpr FastType alpha() const { return a; }
-    void setRed(FastType _red)     { r = _red; }
-    void setGreen(FastType _green) { g = _green; }
-    void setBlue(FastType _blue)   { b = _blue; }
-    void setAlpha(FastType _alpha) { a = _alpha; }
+    constexpr float red()   const { return r; }
+    constexpr float green() const { return g; }
+    constexpr float blue()  const { return b; }
+    constexpr float alpha() const { return a; }
+    void setRed(float _red)     { r = F(_red); }
+    void setGreen(float _green) { g = F(_green); }
+    void setBlue(float _blue)   { b = F(_blue); }
+    void setAlpha(float _alpha) { a = F(_alpha); }
 
-    constexpr FastType redNormalized()   const { return std::clamp(static_cast<FastType>(r), 0.0f, 1.0f); }
-    constexpr FastType greenNormalized() const { return std::clamp(static_cast<FastType>(g), 0.0f, 1.0f); }
-    constexpr FastType blueNormalized()  const { return std::clamp(static_cast<FastType>(b), 0.0f, 1.0f); }
-    constexpr FastType alphaNormalized() const { return std::clamp(static_cast<FastType>(a), 0.0f, 1.0f); }
+    constexpr float redNormalized()   const { return clamp01(r); }
+    constexpr float greenNormalized() const { return clamp01(g); }
+    constexpr float blueNormalized()  const { return clamp01(b); }
+    constexpr float alphaNormalized() const { return clamp01(a); }
 
-    constexpr quint8 red8()   const { return std::lround(redNormalized()   * 255.0f); }
-    constexpr quint8 green8() const { return std::lround(greenNormalized() * 255.0f); }
-    constexpr quint8 blue8()  const { return std::lround(blueNormalized()  * 255.0f); }
-    constexpr quint8 alpha8() const { return std::lround(alphaNormalized() * 255.0f); }
+    constexpr quint8 red8()   const { return qRound(redNormalized()   * FastType(255.0f)); }
+    constexpr quint8 green8() const { return qRound(greenNormalized() * FastType(255.0f)); }
+    constexpr quint8 blue8()  const { return qRound(blueNormalized()  * FastType(255.0f)); }
+    constexpr quint8 alpha8() const { return qRound(alphaNormalized() * FastType(255.0f)); }
     constexpr uint toArgb32() const
     {
        return uint((alpha8() << 24) | (red8() << 16) | (green8() << 8) | blue8());
     }
 
-    constexpr quint16 red16()   const { return std::lround(redNormalized()   * 65535.0f); }
-    constexpr quint16 green16() const { return std::lround(greenNormalized() * 65535.0f); }
-    constexpr quint16 blue16()  const { return std::lround(blueNormalized()  * 65535.0f); }
-    constexpr quint16 alpha16() const { return std::lround(alphaNormalized() * 65535.0f); }
+    constexpr quint16 red16()   const { return qRound(redNormalized()   * FastType(65535.0f)); }
+    constexpr quint16 green16() const { return qRound(greenNormalized() * FastType(65535.0f)); }
+    constexpr quint16 blue16()  const { return qRound(blueNormalized()  * FastType(65535.0f)); }
+    constexpr quint16 alpha16() const { return qRound(alphaNormalized() * FastType(65535.0f)); }
 
-    constexpr Q_ALWAYS_INLINE QRgbaFloat premultiplied() const
+    Q_ALWAYS_INLINE constexpr QRgbaFloat premultiplied() const
     {
         return QRgbaFloat{r * a, g * a, b * a, a};
     }
-    constexpr Q_ALWAYS_INLINE QRgbaFloat unpremultiplied() const
+    Q_ALWAYS_INLINE constexpr QRgbaFloat unpremultiplied() const
     {
-        if (a <= 0.0f)
-            return QRgbaFloat{0.0f, 0.0f, 0.0f, 0.0f};
-        if (a >= 1.0f)
+        if (a <= F{0.0f})
+            return QRgbaFloat{};    // default-initialization: zeroes
+        if (a >= F{1.0f})
             return *this;
-        const FastType ia = 1.0f / a;
-        return QRgbaFloat{r * ia, g * ia, b * ia, a};
+        const FastType ia = FastType(1.0f) / FastType(a);
+        return QRgbaFloat{F(r * ia), F(g * ia), F(b * ia), F(a)};
+    }
+    constexpr bool operator==(QRgbaFloat f) const
+    {
+        return r == f.r && g == f.g && b == f.b && a == f.a;
+    }
+    constexpr bool operator!=(QRgbaFloat f) const
+    {
+        return !(*this == f);
+    }
+
+private:
+    constexpr static FastType clamp01(Type f)
+    {
+        return std::clamp(FastType(f), FastType(0.0f), FastType(1.0f));
     }
 };
 

@@ -1,1 +1,1 @@
-#include "qbuttongroup.h"
+#include <QtWidgets/qbuttongroup.h> // IWYU pragma: export

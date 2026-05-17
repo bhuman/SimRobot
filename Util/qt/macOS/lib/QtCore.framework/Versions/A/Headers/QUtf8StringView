@@ -1,1 +1,1 @@
-#include "qutf8stringview.h"
+#include <QtCore/qutf8stringview.h> // IWYU pragma: export

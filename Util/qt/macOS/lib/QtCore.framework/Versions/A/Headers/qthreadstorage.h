@@ -1,51 +1,31 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTHREADSTORAGE_H
 #define QTHREADSTORAGE_H
 
 #include <QtCore/qglobal.h>
 
-#if QT_CONFIG(thread)
+#if !QT_CONFIG(thread)
+#include <memory>
+#endif
 
 QT_BEGIN_NAMESPACE
 
+#if QT_CONFIG(thread)
+
+template <bool ShouldWarn> struct QThreadStorageTraits
+{
+    static constexpr void warnAboutTrivial() {}
+};
+template <> struct QThreadStorageTraits<true>
+{
+#ifndef Q_NO_THREAD_STORAGE_TRIVIAL_WARNING
+    Q_DECL_DEPRECATED_X("QThreadStorage used with a trivial non-pointer type; consider using thread_local")
+#endif
+    static constexpr void warnAboutTrivial() noexcept {}
+};
 
 class Q_CORE_EXPORT QThreadStorageData
 {
@@ -56,12 +36,8 @@ public:
     void** get() const;
     void** set(void* p);
 
-    static void finish(void**);
     int id;
 };
-
-#if !defined(QT_MOC_CPP)
-// MOC_SKIP_BEGIN
 
 // pointer specialization
 template <typename T>
@@ -119,14 +95,12 @@ inline
 void qThreadStorage_deleteData(void *d, T *)
 { delete static_cast<T *>(d); }
 
-
-// MOC_SKIP_END
-#endif
-
 template <class T>
 class QThreadStorage
 {
 private:
+    using Trait = QThreadStorageTraits<std::is_trivially_default_constructible_v<T> &&
+                                       std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>>;
     QThreadStorageData d;
 
     Q_DISABLE_COPY(QThreadStorage)
@@ -135,7 +109,7 @@ private:
     { qThreadStorage_deleteData(x, reinterpret_cast<T*>(0)); }
 
 public:
-    inline QThreadStorage() : d(deleteData) { }
+    inline QThreadStorage() : d(deleteData) { Trait::warnAboutTrivial(); }
     inline ~QThreadStorage() { }
 
     inline bool hasLocalData() const
@@ -150,24 +124,16 @@ public:
     { qThreadStorage_setLocalData(d, &t); }
 };
 
-QT_END_NAMESPACE
-
 #else // !QT_CONFIG(thread)
 
-#include <QtCore/qscopedpointer.h>
-
-#include <type_traits>
-
-QT_BEGIN_NAMESPACE
-
 template <typename T, typename U>
-inline bool qThreadStorage_hasLocalData(const QScopedPointer<T, U> &data)
+inline bool qThreadStorage_hasLocalData(const std::unique_ptr<T, U> &data)
 {
     return !!data;
 }
 
 template <typename T, typename U>
-inline bool qThreadStorage_hasLocalData(const QScopedPointer<T*, U> &data)
+inline bool qThreadStorage_hasLocalData(const std::unique_ptr<T*, U> &data)
 {
     return !!data ? *data != nullptr : false;
 }
@@ -191,14 +157,14 @@ class QThreadStorage
 private:
     struct ScopedPointerThreadStorageDeleter
     {
-        static inline void cleanup(T *t)
+        void operator()(T *t) const noexcept
         {
             if (t == nullptr)
                 return;
             qThreadStorage_deleteLocalData(t);
         }
     };
-    QScopedPointer<T, ScopedPointerThreadStorageDeleter> data;
+    std::unique_ptr<T, ScopedPointerThreadStorageDeleter> data;
 
 public:
     QThreadStorage() = default;
@@ -229,8 +195,8 @@ public:
     }
 };
 
-QT_END_NAMESPACE
-
 #endif // QT_CONFIG(thread)
+
+QT_END_NAMESPACE
 
 #endif // QTHREADSTORAGE_H

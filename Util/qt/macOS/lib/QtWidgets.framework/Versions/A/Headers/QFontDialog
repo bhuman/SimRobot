@@ -1,1 +1,1 @@
-#include "qfontdialog.h"
+#include <QtWidgets/qfontdialog.h> // IWYU pragma: export

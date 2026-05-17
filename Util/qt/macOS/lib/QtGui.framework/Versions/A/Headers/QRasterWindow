@@ -1,1 +1,1 @@
-#include "qrasterwindow.h"
+#include <QtGui/qrasterwindow.h> // IWYU pragma: export

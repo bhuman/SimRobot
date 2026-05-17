@@ -1,1 +1,1 @@
-#include "qopenglfunctions_4_0_compatibility.h"
+#include <QtOpenGL/qopenglfunctions_4_0_compatibility.h> // IWYU pragma: export

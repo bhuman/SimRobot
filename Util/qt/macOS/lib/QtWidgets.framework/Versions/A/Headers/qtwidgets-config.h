@@ -1,3 +1,6 @@
+#ifndef QT_FEATURES_Widgets_src_widgets_qtwidgets_config_h_H
+#define QT_FEATURES_Widgets_src_widgets_qtwidgets_config_h_H
+
 #define QT_FEATURE_style_stylesheet 1
 
 #define QT_FEATURE_itemviews 1
@@ -142,3 +145,5 @@
 
 #define QT_FEATURE_undoview 1
 
+
+#endif // QT_FEATURES_Widgets_src_widgets_qtwidgets_config_h_H

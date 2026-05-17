@@ -1,1 +1,1 @@
-#include "qopenglpixeltransferoptions.h"
+#include <QtOpenGL/qopenglpixeltransferoptions.h> // IWYU pragma: export

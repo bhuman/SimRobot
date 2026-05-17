@@ -1,1 +1,1 @@
-#include "qpointer.h"
+#include <QtCore/qpointer.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qbytearrayview.h"
+#include <QtCore/qbytearrayview.h> // IWYU pragma: export

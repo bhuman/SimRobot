@@ -1,1 +1,1 @@
-#include "qvariant.h"
+#include <QtCore/qvariantmap.h> // IWYU pragma: export

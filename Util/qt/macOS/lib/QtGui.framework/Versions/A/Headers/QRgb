@@ -1,1 +1,1 @@
-#include "qrgb.h"
+#include <QtGui/qrgb.h> // IWYU pragma: export

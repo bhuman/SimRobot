@@ -1,61 +1,12 @@
-/****************************************************************************
-**
-** Copyright (C) 2011 Thiago Macieira <thiago@kde.org>
-** Copyright (C) 2018 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
-#include <QtCore/qglobal.h>
+// Copyright (C) 2011 Thiago Macieira <thiago@kde.org>
+// Copyright (C) 2018 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QBASICATOMIC_H
 #define QBASICATOMIC_H
 
-#if defined(QT_BOOTSTRAPPED)
-#  include <QtCore/qatomic_bootstrap.h>
-
-// If C++11 atomics are supported, use them!
-// Note that constexpr support is sometimes disabled in QNX or INTEGRITY builds,
-// but their libraries have <atomic>.
-#elif defined(Q_COMPILER_ATOMICS)
-#  include <QtCore/qatomic_cxx11.h>
-
-// No fallback
-#else
-#  error "Qt requires C++11 support"
-#endif
+#include <QtCore/qatomic_cxx11.h>
 
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_MSVC(4522)
@@ -69,10 +20,6 @@ QT_END_NAMESPACE
 #pragma qt_sync_stop_processing
 #endif
 
-// New atomics
-
-#define QT_BASIC_ATOMIC_HAS_CONSTRUCTORS
-
 template <typename T>
 class QBasicAtomicInteger
 {
@@ -80,7 +27,7 @@ public:
     typedef T Type;
     typedef QAtomicOps<T> Ops;
     // static check that this is a valid integer
-    static_assert(QTypeInfo<T>::isIntegral, "template parameter is not an integral type");
+    static_assert(std::is_integral_v<T>, "template parameter is not an integral type");
     static_assert(QAtomicOpsSupport<sizeof(T)>::IsSupported, "template parameter is an integral of a size not supported on this platform");
 
     typename Ops::Type _q_value;
@@ -99,6 +46,7 @@ public:
     static constexpr bool isReferenceCountingWaitFree() noexcept { return Ops::isReferenceCountingWaitFree(); }
 
     bool ref() noexcept { return Ops::ref(_q_value); }
+    void refRelaxed() noexcept { Ops::fetchAndAddRelaxed(_q_value, 1); }
     bool deref() noexcept { return Ops::deref(_q_value); }
 
     static constexpr bool isTestAndSetNative() noexcept { return Ops::isTestAndSetNative(); }
@@ -203,13 +151,11 @@ public:
     { return fetchAndXorOrdered(v) ^ v; }
 
 
-#ifdef QT_BASIC_ATOMIC_HAS_CONSTRUCTORS
     QBasicAtomicInteger() = default;
     constexpr QBasicAtomicInteger(T value) noexcept : _q_value(value) {}
     QBasicAtomicInteger(const QBasicAtomicInteger &) = delete;
     QBasicAtomicInteger &operator=(const QBasicAtomicInteger &) = delete;
     QBasicAtomicInteger &operator=(const QBasicAtomicInteger &) volatile = delete;
-#endif
 };
 typedef QBasicAtomicInteger<int> QBasicAtomicInt;
 
@@ -300,13 +246,11 @@ public:
     Type operator-=(qptrdiff valueToSub) noexcept
     { return fetchAndSubOrdered(valueToSub) - valueToSub; }
 
-#ifdef QT_BASIC_ATOMIC_HAS_CONSTRUCTORS
     QBasicAtomicPointer() = default;
     constexpr QBasicAtomicPointer(Type value) noexcept : _q_value(value) {}
     QBasicAtomicPointer(const QBasicAtomicPointer &) = delete;
     QBasicAtomicPointer &operator=(const QBasicAtomicPointer &) = delete;
     QBasicAtomicPointer &operator=(const QBasicAtomicPointer &) volatile = delete;
-#endif
 };
 
 #ifndef Q_BASIC_ATOMIC_INITIALIZER

@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QMATRIX4X4_H
 #define QMATRIX4X4_H
@@ -43,7 +7,6 @@
 #include <QtGui/qtguiglobal.h>
 #include <QtGui/qvector3d.h>
 #include <QtGui/qvector4d.h>
-#include <QtGui/qquaternion.h>
 #include <QtGui/qgenericmatrix.h>
 #include <QtCore/qrect.h>
 
@@ -51,6 +14,9 @@ class tst_QMatrixNxN;
 
 QT_BEGIN_NAMESPACE
 
+#ifndef QT_NO_QUATERNION
+class QQuaternion;
+#endif
 
 #ifndef QT_NO_MATRIX4X4
 
@@ -129,7 +95,7 @@ public:
     friend QMatrix4x4 operator*(const QMatrix4x4& matrix, float factor);
     friend Q_GUI_EXPORT QMatrix4x4 operator/(const QMatrix4x4& matrix, float divisor);
 
-    friend Q_GUI_EXPORT bool qFuzzyCompare(const QMatrix4x4& m1, const QMatrix4x4& m2);
+    friend Q_GUI_EXPORT bool qFuzzyCompare(const QMatrix4x4& m1, const QMatrix4x4& m2) noexcept;
 
 #ifndef QT_NO_VECTOR3D
     void scale(const QVector3D& vector);
@@ -190,7 +156,13 @@ public:
     friend Q_GUI_EXPORT QDebug operator<<(QDebug dbg, const QMatrix4x4 &m);
 #endif
 
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
+    void projectedRotate(float angle, float x, float y, float z, float distanceToPlane);
+    // ### Qt7: Remove
     void projectedRotate(float angle, float x, float y, float z);
+#else
+    void projectedRotate(float angle, float x, float y, float z, float distanceToPlane = 1024.0);
+#endif
 
     // When matrices are multiplied, the flag bits are or-ed together.
     // Note that the ordering of the bit values matters. (ident < t < s < r2d < r < p)
@@ -434,7 +406,7 @@ inline QMatrix4x4& QMatrix4x4::operator*=(const QMatrix4x4& o)
     const QMatrix4x4 other = o; // prevent aliasing when &o == this ### Qt 6: take o by value
     flagBits |= other.flagBits;
 
-    if (flagBits < Rotation2D) {
+    if (flagBits.toInt() < Rotation2D) {
         m[3][0] += m[0][0] * other.m[3][0];
         m[3][1] += m[1][1] * other.m[3][1];
         m[3][2] += m[2][2] * other.m[3][2];
@@ -592,6 +564,7 @@ inline bool QMatrix4x4::operator!=(const QMatrix4x4& other) const
 
 inline QMatrix4x4 operator+(const QMatrix4x4& m1, const QMatrix4x4& m2)
 {
+    Q_DECL_UNINITIALIZED
     QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = m1.m[0][0] + m2.m[0][0];
     m.m[0][1] = m1.m[0][1] + m2.m[0][1];
@@ -614,6 +587,7 @@ inline QMatrix4x4 operator+(const QMatrix4x4& m1, const QMatrix4x4& m2)
 
 inline QMatrix4x4 operator-(const QMatrix4x4& m1, const QMatrix4x4& m2)
 {
+    Q_DECL_UNINITIALIZED
     QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = m1.m[0][0] - m2.m[0][0];
     m.m[0][1] = m1.m[0][1] - m2.m[0][1];
@@ -636,21 +610,34 @@ inline QMatrix4x4 operator-(const QMatrix4x4& m1, const QMatrix4x4& m2)
 
 inline QMatrix4x4 operator*(const QMatrix4x4& m1, const QMatrix4x4& m2)
 {
+    Q_DECL_UNINITIALIZED
+    QMatrix4x4 m(Qt::Uninitialized);
     QMatrix4x4::Flags flagBits = m1.flagBits | m2.flagBits;
-    if (flagBits < QMatrix4x4::Rotation2D) {
-        QMatrix4x4 m = m1;
-        m.m[3][0] += m.m[0][0] * m2.m[3][0];
-        m.m[3][1] += m.m[1][1] * m2.m[3][1];
-        m.m[3][2] += m.m[2][2] * m2.m[3][2];
+    if (flagBits.toInt() < QMatrix4x4::Rotation2D) {
+        // Scale | Translation
+        m.m[0][0] = m1.m[0][0] * m2.m[0][0];
+        m.m[0][1] = 0.0f;
+        m.m[0][2] = 0.0f;
+        m.m[0][3] = 0.0f;
 
-        m.m[0][0] *= m2.m[0][0];
-        m.m[1][1] *= m2.m[1][1];
-        m.m[2][2] *= m2.m[2][2];
+        m.m[1][0] = 0.0f;
+        m.m[1][1] = m1.m[1][1] * m2.m[1][1];
+        m.m[1][2] = 0.0f;
+        m.m[1][3] = 0.0f;
+
+        m.m[2][0] = 0.0f;
+        m.m[2][1] = 0.0f;
+        m.m[2][2] = m1.m[2][2] * m2.m[2][2];
+        m.m[2][3] = 0.0f;
+
+        m.m[3][0] = m1.m[3][0] + m1.m[0][0] * m2.m[3][0];
+        m.m[3][1] = m1.m[3][1] + m1.m[1][1] * m2.m[3][1];
+        m.m[3][2] = m1.m[3][2] + m1.m[2][2] * m2.m[3][2];
+        m.m[3][3] = 1.0f;
         m.flagBits = flagBits;
         return m;
     }
 
-    QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = m1.m[0][0] * m2.m[0][0]
               + m1.m[1][0] * m2.m[0][1]
               + m1.m[2][0] * m2.m[0][2]
@@ -871,6 +858,7 @@ inline QPointF operator*(const QMatrix4x4& matrix, const QPointF& point)
 
 inline QMatrix4x4 operator-(const QMatrix4x4& matrix)
 {
+    Q_DECL_UNINITIALIZED
     QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = -matrix.m[0][0];
     m.m[0][1] = -matrix.m[0][1];
@@ -893,6 +881,7 @@ inline QMatrix4x4 operator-(const QMatrix4x4& matrix)
 
 inline QMatrix4x4 operator*(float factor, const QMatrix4x4& matrix)
 {
+    Q_DECL_UNINITIALIZED
     QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = matrix.m[0][0] * factor;
     m.m[0][1] = matrix.m[0][1] * factor;
@@ -915,6 +904,7 @@ inline QMatrix4x4 operator*(float factor, const QMatrix4x4& matrix)
 
 inline QMatrix4x4 operator*(const QMatrix4x4& matrix, float factor)
 {
+    Q_DECL_UNINITIALIZED
     QMatrix4x4 m(Qt::Uninitialized);
     m.m[0][0] = matrix.m[0][0] * factor;
     m.m[0][1] = matrix.m[0][1] * factor;
@@ -943,11 +933,11 @@ inline QPoint QMatrix4x4::map(const QPoint& point) const
     yin = point.y();
     if (flagBits == QMatrix4x4::Identity) {
         return point;
-    } else if (flagBits < QMatrix4x4::Rotation2D) {
+    } else if (flagBits.toInt() < QMatrix4x4::Rotation2D) {
         // Translation | Scale
         return QPoint(qRound(xin * m[0][0] + m[3][0]),
                       qRound(yin * m[1][1] + m[3][1]));
-    } else if (flagBits < QMatrix4x4::Perspective) {
+    } else if (flagBits.toInt() < QMatrix4x4::Perspective) {
         return QPoint(qRound(xin * m[0][0] + yin * m[1][0] + m[3][0]),
                       qRound(xin * m[0][1] + yin * m[1][1] + m[3][1]));
     } else {
@@ -975,11 +965,11 @@ inline QPointF QMatrix4x4::map(const QPointF& point) const
     yin = point.y();
     if (flagBits == QMatrix4x4::Identity) {
         return point;
-    } else if (flagBits < QMatrix4x4::Rotation2D) {
+    } else if (flagBits.toInt() < QMatrix4x4::Rotation2D) {
         // Translation | Scale
         return QPointF(xin * qreal(m[0][0]) + qreal(m[3][0]),
                        yin * qreal(m[1][1]) + qreal(m[3][1]));
-    } else if (flagBits < QMatrix4x4::Perspective) {
+    } else if (flagBits.toInt() < QMatrix4x4::Perspective) {
         return QPointF(xin * qreal(m[0][0]) + yin * qreal(m[1][0]) +
                        qreal(m[3][0]),
                        xin * qreal(m[0][1]) + yin * qreal(m[1][1]) +
@@ -1009,12 +999,12 @@ inline QVector3D QMatrix4x4::map(const QVector3D& point) const
     float x, y, z, w;
     if (flagBits == QMatrix4x4::Identity) {
         return point;
-    } else if (flagBits < QMatrix4x4::Rotation2D) {
+    } else if (flagBits.toInt() < QMatrix4x4::Rotation2D) {
         // Translation | Scale
         return QVector3D(point.x() * m[0][0] + m[3][0],
                          point.y() * m[1][1] + m[3][1],
                          point.z() * m[2][2] + m[3][2]);
-    } else if (flagBits < QMatrix4x4::Rotation) {
+    } else if (flagBits.toInt() < QMatrix4x4::Rotation) {
         // Translation | Scale | Rotation2D
         return QVector3D(point.x() * m[0][0] + point.y() * m[1][0] + m[3][0],
                          point.x() * m[0][1] + point.y() * m[1][1] + m[3][1],
@@ -1045,10 +1035,10 @@ inline QVector3D QMatrix4x4::map(const QVector3D& point) const
 
 inline QVector3D QMatrix4x4::mapVector(const QVector3D& vector) const
 {
-    if (flagBits < Scale) {
+    if (flagBits.toInt() < Scale) {
         // Translation
         return vector;
-    } else if (flagBits < Rotation2D) {
+    } else if (flagBits.toInt() < Rotation2D) {
         // Translation | Scale
         return QVector3D(vector.x() * m[0][0],
                          vector.y() * m[1][1],

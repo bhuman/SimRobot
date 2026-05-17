@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QICON_H
 #define QICON_H
@@ -54,15 +18,177 @@ class QPainter;
 
 class Q_GUI_EXPORT QIcon
 {
+    Q_GADGET
+    Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
 public:
     enum Mode { Normal, Disabled, Active, Selected };
+    Q_ENUM(Mode);
     enum State { On, Off };
+    Q_ENUM(State);
+
+    enum class ThemeIcon {
+        AddressBookNew,
+        ApplicationExit,
+        AppointmentNew,
+        CallStart,
+        CallStop,
+        ContactNew,
+        DocumentNew,
+        DocumentOpen,
+        DocumentOpenRecent,
+        DocumentPageSetup,
+        DocumentPrint,
+        DocumentPrintPreview,
+        DocumentProperties,
+        DocumentRevert,
+        DocumentSave,
+        DocumentSaveAs,
+        DocumentSend,
+        EditClear,
+        EditCopy,
+        EditCut,
+        EditDelete,
+        EditFind,
+        EditPaste,
+        EditRedo,
+        EditSelectAll,
+        EditUndo,
+        FolderNew,
+        FormatIndentLess,
+        FormatIndentMore,
+        FormatJustifyCenter,
+        FormatJustifyFill,
+        FormatJustifyLeft,
+        FormatJustifyRight,
+        FormatTextDirectionLtr,
+        FormatTextDirectionRtl,
+        FormatTextBold,
+        FormatTextItalic,
+        FormatTextUnderline,
+        FormatTextStrikethrough,
+        GoDown,
+        GoHome,
+        GoNext,
+        GoPrevious,
+        GoUp,
+        HelpAbout,
+        HelpFaq,
+        InsertImage,
+        InsertLink,
+        InsertText,
+        ListAdd,
+        ListRemove,
+        MailForward,
+        MailMarkImportant,
+        MailMarkRead,
+        MailMarkUnread,
+        MailMessageNew,
+        MailReplyAll,
+        MailReplySender,
+        MailSend,
+        MediaEject,
+        MediaPlaybackPause,
+        MediaPlaybackStart,
+        MediaPlaybackStop,
+        MediaRecord,
+        MediaSeekBackward,
+        MediaSeekForward,
+        MediaSkipBackward,
+        MediaSkipForward,
+        ObjectRotateLeft,
+        ObjectRotateRight,
+        ProcessStop,
+        SystemLockScreen,
+        SystemLogOut,
+        SystemSearch,
+        SystemReboot,
+        SystemShutdown,
+        ToolsCheckSpelling,
+        ViewFullscreen,
+        ViewRefresh,
+        ViewRestore,
+        WindowClose,
+        WindowNew,
+        ZoomFitBest,
+        ZoomIn,
+        ZoomOut,
+
+        AudioCard,
+        AudioInputMicrophone,
+        Battery,
+        CameraPhoto,
+        CameraVideo,
+        CameraWeb,
+        Computer,
+        DriveHarddisk,
+        DriveOptical,
+        InputGaming,
+        InputKeyboard,
+        InputMouse,
+        InputTablet,
+        MediaFlash,
+        MediaOptical,
+        MediaTape,
+        MultimediaPlayer,
+        NetworkWired,
+        NetworkWireless,
+        Phone,
+        Printer,
+        Scanner,
+        VideoDisplay,
+
+        AppointmentMissed,
+        AppointmentSoon,
+        AudioVolumeHigh,
+        AudioVolumeLow,
+        AudioVolumeMedium,
+        AudioVolumeMuted,
+        BatteryCaution,
+        BatteryLow,
+        DialogError,
+        DialogInformation,
+        DialogPassword,
+        DialogQuestion,
+        DialogWarning,
+        FolderDragAccept,
+        FolderOpen,
+        FolderVisiting,
+        ImageLoading,
+        ImageMissing,
+        MailAttachment,
+        MailUnread,
+        MailRead,
+        MailReplied,
+        MediaPlaylistRepeat,
+        MediaPlaylistShuffle,
+        NetworkOffline,
+        PrinterPrinting,
+        SecurityHigh,
+        SecurityLow,
+        SoftwareUpdateAvailable,
+        SoftwareUpdateUrgent,
+        SyncError,
+        SyncSynchronizing,
+        UserAvailable,
+        UserOffline,
+        WeatherClear,
+        WeatherClearNight,
+        WeatherFewClouds,
+        WeatherFewCloudsNight,
+        WeatherFog,
+        WeatherShowers,
+        WeatherSnow,
+        WeatherStorm,
+
+        NThemeIcons
+    };
+    Q_ENUM(ThemeIcon);
 
     QIcon() noexcept;
     QIcon(const QPixmap &pixmap);
     QIcon(const QIcon &other);
     QIcon(QIcon &&other) noexcept
-        : d(qExchange(other.d, nullptr))
+        : d(std::exchange(other.d, nullptr))
     {}
     explicit QIcon(const QString &fileName); // file or resource name
     explicit QIcon(QIconEngine *engine);
@@ -117,6 +243,10 @@ public:
     static QIcon fromTheme(const QString &name, const QIcon &fallback);
     static bool hasThemeIcon(const QString &name);
 
+    static QIcon fromTheme(ThemeIcon icon);
+    static QIcon fromTheme(ThemeIcon icon, const QIcon &fallback);
+    static bool hasThemeIcon(ThemeIcon icon);
+
     static QStringList themeSearchPaths();
     static void setThemeSearchPaths(const QStringList &searchpath);
 
@@ -129,14 +259,14 @@ public:
     static QString fallbackThemeName();
     static void setFallbackThemeName(const QString &name);
 
-    Q_DUMMY_COMPARISON_OPERATOR(QIcon)
-
 private:
     QIconPrivate *d;
 #if !defined(QT_NO_DATASTREAM)
     friend Q_GUI_EXPORT QDataStream &operator<<(QDataStream &, const QIcon &);
     friend Q_GUI_EXPORT QDataStream &operator>>(QDataStream &, QIcon &);
 #endif
+
+    friend class QIconPrivate;
 
 public:
     typedef QIconPrivate * DataPtr;

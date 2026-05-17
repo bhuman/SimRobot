@@ -1,1 +1,1 @@
-#include "qabstractitemview.h"
+#include <QtWidgets/qabstractitemview.h> // IWYU pragma: export

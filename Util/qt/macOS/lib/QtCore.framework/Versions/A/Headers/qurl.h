@@ -1,51 +1,16 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2016 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2016 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QURL_H
 #define QURL_H
 
 #include <QtCore/qbytearray.h>
+#include <QtCore/qcompare.h>
 #include <QtCore/qobjectdefs.h>
 #include <QtCore/qstring.h>
 #include <QtCore/qlist.h>
-#include <QtCore/qpair.h>
 #include <QtCore/qglobal.h>
 
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
@@ -179,8 +144,8 @@ public:
 #endif
 
     QUrl();
-    QUrl(const QUrl &copy);
-    QUrl &operator =(const QUrl &copy);
+    QUrl(const QUrl &copy) noexcept;
+    QUrl &operator =(const QUrl &copy) noexcept;
 #ifdef QT_NO_URL_CAST_FROM_STRING
     explicit QUrl(const QString &url, ParsingMode mode = TolerantMode);
 #else
@@ -201,7 +166,10 @@ public:
     [[nodiscard]] QUrl adjusted(FormattingOptions options) const;
 
     QByteArray toEncoded(FormattingOptions options = FullyEncoded) const;
+#if QT_CORE_REMOVED_SINCE(6, 7)
     static QUrl fromEncoded(const QByteArray &url, ParsingMode mode = TolerantMode);
+#endif
+    static QUrl fromEncoded(QByteArrayView input, ParsingMode mode = TolerantMode);
 
     enum UserInputResolutionOption {
         DefaultResolution,
@@ -264,9 +232,11 @@ public:
     void detach();
     bool isDetached() const;
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool operator <(const QUrl &url) const;
     bool operator ==(const QUrl &url) const;
     bool operator !=(const QUrl &url) const;
+#endif
 
     bool matches(const QUrl &url, FormattingOptions options) const;
 
@@ -302,6 +272,13 @@ public:
     friend Q_CORE_EXPORT size_t qHash(const QUrl &url, size_t seed) noexcept;
 
 private:
+    friend Q_CORE_EXPORT bool comparesEqual(const QUrl &lhs, const QUrl &rhs);
+    friend Q_CORE_EXPORT Qt::weak_ordering
+    compareThreeWay(const QUrl &lhs, const QUrl &rhs);
+    Q_DECLARE_WEAKLY_ORDERED_NON_NOEXCEPT(QUrl)
+
+    void detachToClear();
+
     QUrlPrivate *d;
     friend class QUrlQuery;
 

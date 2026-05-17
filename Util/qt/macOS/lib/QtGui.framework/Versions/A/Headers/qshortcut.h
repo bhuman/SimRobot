@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2019 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2019 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QSHORTCUT_H
 #define QSHORTCUT_H
@@ -68,7 +32,7 @@ public:
                        const char *member = nullptr, const char *ambiguousMember = nullptr,
                        Qt::ShortcutContext context = Qt::WindowShortcut);
 
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     template<typename Functor>
     QShortcut(const QKeySequence &key, QObject *parent,
               Functor functor,
@@ -107,6 +71,7 @@ public:
               const QObject *context2, FunctorAmbiguous functorAmbiguous,
               Qt::ShortcutContext shortcutContext = Qt::WindowShortcut);
 #else
+#ifndef QT_NO_CONTEXTLESS_CONNECT
     template<typename Func1>
     QShortcut(const QKeySequence &key, QObject *parent,
               Func1 slot1,
@@ -115,6 +80,7 @@ public:
     {
         connect(this, &QShortcut::activated, std::move(slot1));
     }
+#endif
     template<class Obj1, typename Func1>
     QShortcut(const QKeySequence &key, QObject *parent,
               const Obj1 *object1, Func1 slot1,
@@ -206,17 +172,18 @@ public:
     bool autoRepeat() const;
 
 #if QT_DEPRECATED_SINCE(6,0)
-    Q_DECL_DEPRECATED int id() const;
+    QT_DEPRECATED_VERSION_6_0 int id() const;
 #endif
 
     void setWhatsThis(const QString &text);
     QString whatsThis() const;
 
 #if QT_DEPRECATED_SINCE(6,0)
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     QWidget *parentWidget() const;
 #else
     template<typename T = QWidget*>
+    QT_DEPRECATED_VERSION_X_6_0("Use parent() and qobject_cast instead")
     inline T parentWidget() const
     { return static_cast<T>(QObject::parent()); }
 #endif

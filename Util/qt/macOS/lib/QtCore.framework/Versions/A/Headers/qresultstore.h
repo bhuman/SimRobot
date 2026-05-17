@@ -1,47 +1,11 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTCORE_RESULTSTORE_H
 #define QTCORE_RESULTSTORE_H
 
 #include <QtCore/qmap.h>
-#include <QtCore/qdebug.h>
 
 #include <utility>
 
@@ -83,12 +47,21 @@ public:
     ResultIteratorBase operator++();
     int batchSize() const;
     void batchedAdvance();
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool operator==(const ResultIteratorBase &other) const;
     bool operator!=(const ResultIteratorBase &other) const;
+#endif
     bool isVector() const;
     bool canIncrementVectorIndex() const;
     bool isValid() const;
 
+private:
+    friend bool comparesEqual(const ResultIteratorBase &lhs,
+                              const ResultIteratorBase &rhs)
+    {
+        return (lhs.mapIterator == rhs.mapIterator && lhs.m_vectorIndex == rhs.m_vectorIndex);
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE_NON_NOEXCEPT(ResultIteratorBase)
 protected:
     QMap<int, ResultItem>::const_iterator mapIterator;
     int m_vectorIndex;
@@ -108,7 +81,7 @@ public:
     template <typename T>
     T *pointer()
     {
-        const T *p = qAsConst(*this).pointer<T>();
+        const T *p = std::as_const(*this).pointer<T>();
         return const_cast<T *>(p);
     }
 
@@ -136,8 +109,16 @@ public:
     ResultIteratorBase resultAt(int index) const;
     bool contains(int index) const;
     int count() const;
-    // ### Qt 7: 'virtual' isn't required, can be removed
+    // ### Qt 7: 'virtual' isn't required, can be removed, along with renaming
+    // the class to ResultStore and changing the members below to be private.
+    QT_WARNING_PUSH
+#if defined(Q_CC_CLANG)
+#  if __has_warning("-Wunnecessary-virtual-specifier")
+    QT_WARNING_DISABLE_CLANG("-Wunnecessary-virtual-specifier")
+#  endif
+#endif
     virtual ~ResultStoreBase();
+    QT_WARNING_POP
 
 protected:
     int insertResultItem(int index, ResultItem &resultItem);
@@ -170,6 +151,14 @@ protected:
     }
 
 public:
+    template <typename T, typename...Args>
+    int emplaceResult(int index, Args&&...args)
+    {
+        if (containsValidResultItem(index)) // reject if already present
+            return -1;
+        return addResult(index, static_cast<void *>(new T(std::forward<Args>(args)...)));
+    }
+
     template <typename T>
     int addResult(int index, const T *result)
     {
@@ -185,10 +174,9 @@ public:
     template <typename T>
     int moveResult(int index, T &&result)
     {
-        if (containsValidResultItem(index)) // reject if already present
-            return -1;
+        static_assert(!std::is_reference_v<T>, "trying to move from an lvalue!");
 
-        return addResult(index, static_cast<void *>(new T(std::move_if_noexcept(result))));
+        return emplaceResult<std::remove_cv_t<T>>(index, std::forward<T>(result));
     }
 
     template<typename T>
@@ -200,23 +188,23 @@ public:
         if (containsValidResultItem(index)) // reject if already present
             return -1;
 
-        return addResults(index, new QList<T>(*results), results->count(), results->count());
+        return addResults(index, new QList<T>(*results), results->size(), results->size());
     }
 
     template<typename T>
     int addResults(int index, const QList<T> *results, int totalCount)
     {
         // reject if results are empty, and nothing is filtered away
-        if ((m_filterMode == false || results->count() == totalCount) && results->empty())
+        if ((m_filterMode == false || results->size() == totalCount) && results->empty())
             return -1;
 
         if (containsValidResultItem(index)) // reject if already present
             return -1;
 
-        if (m_filterMode == true && results->count() != totalCount && 0 == results->count())
+        if (m_filterMode == true && results->size() != totalCount && 0 == results->size())
             return addResults(index, nullptr, 0, totalCount);
 
-        return addResults(index, new QList<T>(*results), results->count(), totalCount);
+        return addResults(index, new QList<T>(*results), results->size(), totalCount);
     }
 
     int addCanceledResult(int index)

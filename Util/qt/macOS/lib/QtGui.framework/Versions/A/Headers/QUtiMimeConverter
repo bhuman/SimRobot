@@ -1,0 +1,1 @@
+#include <QtGui/qutimimeconverter.h> // IWYU pragma: export

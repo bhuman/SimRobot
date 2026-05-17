@@ -1,1 +1,1 @@
-#include "qelapsedtimer.h"
+#include <QtCore/qelapsedtimer.h> // IWYU pragma: export

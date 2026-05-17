@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QOPENGL_H
 #define QOPENGL_H
@@ -44,9 +8,19 @@
 
 #ifndef QT_NO_OPENGL
 
-// Windows always needs this to ensure that APIENTRY gets defined
+// On Windows we need to ensure that APIENTRY and WINGDIAPI are defined before
+// we can include gl.h. But we do not want to include <windows.h> in this public
+// Qt header, as it pollutes the global namespace with macros.
 #if defined(Q_OS_WIN)
-# include <QtCore/qt_windows.h>
+# ifndef APIENTRY
+#  define APIENTRY __stdcall
+#  define Q_UNDEF_APIENTRY
+# endif // APIENTRY
+# ifndef WINGDIAPI
+#  define WINGDIAPI __declspec(dllimport)
+#  define Q_UNDEF_WINGDIAPI
+# endif // WINGDIAPI
+# define QT_APIENTRY __stdcall
 #endif
 
 // Note: Apple is a "controlled platform" for OpenGL ABI so we
@@ -164,11 +138,11 @@ typedef char GLchar;
 
 // OS X 10.6 doesn't define these which are needed below
 // OS X 10.7 and later define them in gl3.h
-#ifndef APIENTRY
-#define APIENTRY
+#ifndef QT_APIENTRY
+#define QT_APIENTRY
 #endif
-#ifndef APIENTRYP
-#define APIENTRYP APIENTRY *
+#ifndef QT_APIENTRYP
+#define QT_APIENTRYP QT_APIENTRY *
 #endif
 #ifndef GLAPI
 #define GLAPI extern
@@ -267,15 +241,15 @@ struct _cl_event;
 #endif
 
 #ifndef GL_ARB_debug_output
-typedef void (APIENTRY *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const GLvoid *userParam);
+typedef void (QT_APIENTRY *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const GLvoid *userParam);
 #endif
 
 #ifndef GL_AMD_debug_output
-typedef void (APIENTRY *GLDEBUGPROCAMD)(GLuint id,GLenum category,GLenum severity,GLsizei length,const GLchar *message,GLvoid *userParam);
+typedef void (QT_APIENTRY *GLDEBUGPROCAMD)(GLuint id,GLenum category,GLenum severity,GLsizei length,const GLchar *message,GLvoid *userParam);
 #endif
 
 #ifndef GL_KHR_debug
-typedef void (APIENTRY *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const GLvoid *userParam);
+typedef void (QT_APIENTRY *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const GLvoid *userParam);
 #endif
 
 #ifndef GL_NV_vdpau_interop
@@ -292,8 +266,8 @@ typedef ptrdiff_t qopengl_GLintptr;
 typedef ptrdiff_t qopengl_GLsizeiptr;
 
 
-#if defined(APIENTRY) && !defined(QOPENGLF_APIENTRY)
-#   define QOPENGLF_APIENTRY APIENTRY
+#if defined(QT_APIENTRY) && !defined(QOPENGLF_APIENTRY)
+#   define QOPENGLF_APIENTRY QT_APIENTRY
 #endif
 
 # ifndef QOPENGLF_APIENTRYP
@@ -306,6 +280,15 @@ typedef ptrdiff_t qopengl_GLsizeiptr;
 # endif
 
 QT_END_NAMESPACE
+
+#ifdef Q_UNDEF_WINGDIAPI
+# undef WINGDIAPI
+# undef Q_UNDEF_WINGDIAPI
+#endif
+#ifdef Q_UNDEF_APIENTRY
+# undef APIENTRY
+# undef Q_UNDEF_APIENTRY
+#endif
 
 #endif // QT_NO_OPENGL
 

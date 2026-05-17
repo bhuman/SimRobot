@@ -1,52 +1,19 @@
-/****************************************************************************
-**
-** Copyright (C) 2019 The Qt Company Ltd.
-** Copyright (C) 2019 Olivier Goffart <ogoffart@woboq.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2019 The Qt Company Ltd.
+// Copyright (C) 2019 Olivier Goffart <ogoffart@woboq.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTMETAMACROS_H
 #define QTMETAMACROS_H
 
 #include <QtCore/qglobal.h>
+#include <QtCore/qtclasshelpermacros.h>
 
 QT_BEGIN_NAMESPACE
 
 #ifndef Q_MOC_OUTPUT_REVISION
-#define Q_MOC_OUTPUT_REVISION 68
+// This number should be in sync with moc's outputrevision.h
+#define Q_MOC_OUTPUT_REVISION 69
 #endif
 
 // The following macros can be defined by tools that understand Qt
@@ -101,19 +68,19 @@ QT_BEGIN_NAMESPACE
 #define Q_ENUM_IMPL(ENUM) \
     friend constexpr const QMetaObject *qt_getEnumMetaObject(ENUM) noexcept { return &staticMetaObject; } \
     friend constexpr const char *qt_getEnumName(ENUM) noexcept { return #ENUM; }
-#define Q_ENUM(x) Q_ENUMS(x) Q_ENUM_IMPL(x)
-#define Q_FLAG(x) Q_FLAGS(x) Q_ENUM_IMPL(x)
+#define Q_ENUM(x) QT_ANNOTATE_CLASS(qt_enums, x) Q_ENUM_IMPL(x)
+#define Q_FLAG(x) QT_ANNOTATE_CLASS(qt_enums, x) Q_ENUM_IMPL(x)
 #define Q_ENUM_NS_IMPL(ENUM) \
     inline constexpr const QMetaObject *qt_getEnumMetaObject(ENUM) noexcept { return &staticMetaObject; } \
     inline constexpr const char *qt_getEnumName(ENUM) noexcept { return #ENUM; }
-#define Q_ENUM_NS(x) Q_ENUMS(x) Q_ENUM_NS_IMPL(x)
-#define Q_FLAG_NS(x) Q_FLAGS(x) Q_ENUM_NS_IMPL(x)
+#define Q_ENUM_NS(x) QT_ANNOTATE_CLASS(qt_enums, x) Q_ENUM_NS_IMPL(x)
+#define Q_FLAG_NS(x) QT_ANNOTATE_CLASS(qt_enums, x) Q_ENUM_NS_IMPL(x)
 #define Q_SCRIPTABLE QT_ANNOTATE_FUNCTION(qt_scriptable)
 #define Q_INVOKABLE  QT_ANNOTATE_FUNCTION(qt_invokable)
 #define Q_SIGNAL QT_ANNOTATE_FUNCTION(qt_signal)
 #define Q_SLOT QT_ANNOTATE_FUNCTION(qt_slot)
 #define Q_MOC_INCLUDE(...) QT_ANNOTATE_CLASS(qt_moc_include, __VA_ARGS__)
-#endif // QT_NO_META_MACROS
+#endif // !QT_NO_META_MACROS
 
 #ifndef QT_NO_TRANSLATION
 // full set of tr functions
@@ -125,15 +92,8 @@ QT_BEGIN_NAMESPACE
 # define QT_TR_FUNCTIONS
 #endif
 
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
 #define QT_TR_FUNCTIONS
-#endif
-
-#if defined(Q_CC_INTEL)
-// Cannot redefine the visibility of a method in an exported class
-# define Q_DECL_HIDDEN_STATIC_METACALL
-#else
-# define Q_DECL_HIDDEN_STATIC_METACALL Q_DECL_HIDDEN
 #endif
 
 #if defined(Q_CC_CLANG)
@@ -142,17 +102,33 @@ QT_BEGIN_NAMESPACE
 #  elif Q_CC_CLANG >= 306
 #    define Q_OBJECT_NO_OVERRIDE_WARNING    QT_WARNING_DISABLE_CLANG("-Winconsistent-missing-override")
 #  endif
-#elif defined(Q_CC_GNU) && !defined(Q_CC_INTEL) && Q_CC_GNU >= 501
+#elif defined(Q_CC_GNU) && Q_CC_GNU >= 501
 #  define Q_OBJECT_NO_OVERRIDE_WARNING      QT_WARNING_DISABLE_GCC("-Wsuggest-override")
+#elif defined(Q_CC_MSVC)
+#  define Q_OBJECT_NO_OVERRIDE_WARNING      QT_WARNING_DISABLE_MSVC(26433)
 #else
 #  define Q_OBJECT_NO_OVERRIDE_WARNING
 #endif
 
-#if defined(Q_CC_GNU) && !defined(Q_CC_INTEL) && Q_CC_GNU >= 600
+#if defined(Q_CC_GNU) && Q_CC_GNU >= 600
 #  define Q_OBJECT_NO_ATTRIBUTES_WARNING    QT_WARNING_DISABLE_GCC("-Wattributes")
 #else
 #  define Q_OBJECT_NO_ATTRIBUTES_WARNING
 #endif
+
+#define QT_META_OBJECT_VARS \
+    template <typename> static constexpr auto qt_create_metaobjectdata();       \
+    template <typename MetaObjectTagType> static constexpr inline auto          \
+    qt_staticMetaObjectContent = qt_create_metaobjectdata<MetaObjectTagType>(); \
+    template <typename MetaObjectTagType> static constexpr inline auto          \
+    qt_staticMetaObjectStaticContent = qt_staticMetaObjectContent<MetaObjectTagType>.staticData;\
+    template <typename MetaObjectTagType> static constexpr inline auto          \
+    qt_staticMetaObjectRelocatingContent = qt_staticMetaObjectContent<MetaObjectTagType>.relocatingData;
+
+#define QT_OBJECT_GADGET_COMMON  \
+    QT_META_OBJECT_VARS \
+    Q_OBJECT_NO_ATTRIBUTES_WARNING \
+    Q_DECL_HIDDEN static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **);
 
 /* qmake ignore Q_OBJECT */
 #define Q_OBJECT \
@@ -165,10 +141,9 @@ public: \
     virtual int qt_metacall(QMetaObject::Call, int, void **); \
     QT_TR_FUNCTIONS \
 private: \
-    Q_OBJECT_NO_ATTRIBUTES_WARNING \
-    Q_DECL_HIDDEN_STATIC_METACALL static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **); \
+    QT_OBJECT_GADGET_COMMON \
+    QT_DEFINE_TAG_STRUCT(QPrivateSignal); \
     QT_WARNING_POP \
-    struct QPrivateSignal {}; \
     QT_ANNOTATE_CLASS(qt_qobject, "")
 
 /* qmake ignore Q_OBJECT */
@@ -183,8 +158,7 @@ public: \
     typedef void QtGadgetHelper; \
 private: \
     QT_WARNING_PUSH \
-    Q_OBJECT_NO_ATTRIBUTES_WARNING \
-    Q_DECL_HIDDEN_STATIC_METACALL static void qt_static_metacall(QObject *, QMetaObject::Call, int, void **); \
+    QT_OBJECT_GADGET_COMMON \
     QT_WARNING_POP \
     QT_ANNOTATE_CLASS(qt_qgadget, "") \
     /*end*/
@@ -195,6 +169,7 @@ private: \
     /* qmake ignore Q_NAMESPACE_EXPORT */
 #define Q_NAMESPACE_EXPORT(...) \
     extern __VA_ARGS__ const QMetaObject staticMetaObject; \
+    template <typename> static constexpr auto qt_create_metaobjectdata(); \
     QT_ANNOTATE_CLASS(qt_qnamespace, "") \
     /*end*/
 
@@ -202,7 +177,7 @@ private: \
 #define Q_NAMESPACE Q_NAMESPACE_EXPORT() \
     /*end*/
 
-#endif // QT_NO_META_MACROS
+#endif // !QT_NO_META_MACROS
 
 #else // Q_MOC_RUN
 #define slots slots
@@ -213,16 +188,14 @@ private: \
 #define Q_INTERFACES(x) Q_INTERFACES(x)
 #define Q_PROPERTY(text) Q_PROPERTY(text)
 #define Q_PRIVATE_PROPERTY(d, text) Q_PRIVATE_PROPERTY(d, text)
-#define Q_PRIVATE_QPROPERTY(accessor, type, name, setter, ...) Q_PRIVATE_QPROPERTY(accessor, type, name, setter, __VA_ARGS__)
-#define Q_PRIVATE_QPROPERTIES_BEGIN
-#define Q_PRIVATE_QPROPERTY_IMPL(name)
-#define Q_PRIVATE_QPROPERTIES_END
 #define Q_REVISION(...) Q_REVISION(__VA_ARGS__)
 #define Q_OVERRIDE(text) Q_OVERRIDE(text)
 #define Q_ENUMS(x) Q_ENUMS(x)
 #define Q_FLAGS(x) Q_FLAGS(x)
 #define Q_ENUM(x) Q_ENUM(x)
-#define Q_FLAGS(x) Q_FLAGS(x)
+#define Q_FLAG(x) Q_FLAG(x)
+#define Q_ENUM_NS(x) Q_ENUM_NS(x)
+#define Q_FLAG_NS(x) Q_FLAG_NS(x)
  /* qmake ignore Q_OBJECT */
 #define Q_OBJECT Q_OBJECT
  /* qmake ignore Q_OBJECT */

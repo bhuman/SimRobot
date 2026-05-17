@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFILEDIALOG_H
 #define QFILEDIALOG_H
@@ -249,8 +214,20 @@ public:
                                        const QStringList &supportedSchemes = QStringList());
 
     static void getOpenFileContent(const QString &nameFilter,
+                                   const std::function<void(const QString &, const QByteArray &)> &fileContentsReady,
+                                   QWidget *parent= nullptr);
+
+    static void saveFileContent(const QByteArray &fileContent,
+                                const QString &fileNameHint,
+                                QWidget *parent = nullptr);
+
+#if QT_WIDGETS_REMOVED_SINCE(6, 7)
+    static void getOpenFileContent(const QString &nameFilter,
                                    const std::function<void(const QString &, const QByteArray &)> &fileContentsReady);
-    static void saveFileContent(const QByteArray &fileContent, const QString &fileNameHint = QString());
+    static void saveFileContent(const QByteArray &fileContent,
+                                const QString &fileNameHint = QString());
+#endif
+
 
 protected:
     QFileDialog(const QFileDialogArgs &args);
@@ -262,36 +239,6 @@ private:
     Q_DECLARE_PRIVATE(QFileDialog)
     Q_DISABLE_COPY(QFileDialog)
 
-    Q_PRIVATE_SLOT(d_func(), void _q_pathChanged(const QString &))
-
-    Q_PRIVATE_SLOT(d_func(), void _q_navigateBackward())
-    Q_PRIVATE_SLOT(d_func(), void _q_navigateForward())
-    Q_PRIVATE_SLOT(d_func(), void _q_navigateToParent())
-    Q_PRIVATE_SLOT(d_func(), void _q_createDirectory())
-    Q_PRIVATE_SLOT(d_func(), void _q_showListView())
-    Q_PRIVATE_SLOT(d_func(), void _q_showDetailsView())
-    Q_PRIVATE_SLOT(d_func(), void _q_showContextMenu(const QPoint &))
-    Q_PRIVATE_SLOT(d_func(), void _q_renameCurrent())
-    Q_PRIVATE_SLOT(d_func(), void _q_deleteCurrent())
-    Q_PRIVATE_SLOT(d_func(), void _q_showHidden())
-    Q_PRIVATE_SLOT(d_func(), void _q_updateOkButton())
-    Q_PRIVATE_SLOT(d_func(), void _q_currentChanged(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_enterDirectory(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitUrlSelected(const QUrl &))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitUrlsSelected(const QList<QUrl> &))
-    Q_PRIVATE_SLOT(d_func(), void _q_nativeCurrentChanged(const QUrl &))
-    Q_PRIVATE_SLOT(d_func(), void _q_nativeEnterDirectory(const QUrl&))
-    Q_PRIVATE_SLOT(d_func(), void _q_goToDirectory(const QString &path))
-    Q_PRIVATE_SLOT(d_func(), void _q_useNameFilter(int index))
-    Q_PRIVATE_SLOT(d_func(), void _q_selectionChanged())
-    Q_PRIVATE_SLOT(d_func(), void _q_goToUrl(const QUrl &url))
-    Q_PRIVATE_SLOT(d_func(), void _q_goHome())
-    Q_PRIVATE_SLOT(d_func(), void _q_showHeader(QAction *))
-    Q_PRIVATE_SLOT(d_func(), void _q_autoCompleteFileName(const QString &text))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsInserted(const QModelIndex & parent))
-    Q_PRIVATE_SLOT(d_func(), void _q_fileRenamed(const QString &path,
-                                                 const QString &oldName,
-                                                 const QString &newName))
     friend class QPlatformDialogHelper;
 };
 

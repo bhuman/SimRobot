@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSTYLE_H
 #define QSTYLE_H
@@ -122,7 +87,9 @@ public:
         State_Children =            0x00080000,
         State_Item =                0x00100000,
         State_Sibling =             0x00200000,
-        State_Editing =             0x00400000,
+#if QT_DEPRECATED_SINCE(6, 11)
+        State_Editing Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 5") =  0x00400000,
+#endif
         State_KeyboardFocusChange = 0x00800000,
 #ifdef QT_KEYPAD_NAVIGATION
         State_HasEditFocus =        0x01000000,
@@ -500,11 +467,13 @@ public:
         PM_ExclusiveIndicatorWidth,
         PM_ExclusiveIndicatorHeight,
 
-        PM_DialogButtonsSeparator,
-        PM_DialogButtonsButtonWidth,
-        PM_DialogButtonsButtonHeight,
+#if QT_DEPRECATED_SINCE(6, 8)
+        PM_DialogButtonsSeparator Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 4"),
+        PM_DialogButtonsButtonWidth Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 4"),
+        PM_DialogButtonsButtonHeight Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 4"),
+#endif
 
-        PM_MdiSubWindowFrameWidth,
+        PM_MdiSubWindowFrameWidth = 44,
         PM_MdiSubWindowMinimizedWidth,
 
         PM_HeaderMargin,
@@ -636,6 +605,7 @@ public:
         SH_ScrollView_FrameOnlyAroundContents,
         SH_MenuBar_AltKeyNavigation,
         SH_ComboBox_ListMouseTracking,
+        SH_ComboBox_ListMouseTracking_Current = SH_ComboBox_ListMouseTracking,
         SH_Menu_MouseTracking,
         SH_MenuBar_MouseTracking,
         SH_ItemView_ChangeHighlightOnFocus,
@@ -738,6 +708,7 @@ public:
         SH_TabBar_AllowWheelScrolling,
         SH_Table_AlwaysDrawLeftTopGridLines,
         SH_SpinBox_SelectOnStep,
+        SH_ComboBox_ListMouseTracking_Active,
         // Add new style hint values here
 
         SH_CustomBase = 0xf0000000
@@ -827,6 +798,7 @@ public:
         SP_DialogIgnoreButton,
         SP_RestoreDefaultsButton,
         SP_TabCloseButton,
+        NStandardPixmap, // assertion value for sync with QPlatformTheme::StandardPixmap
         // do not add any values below/greater than this
         SP_CustomBase = 0xf0000000
     };
@@ -873,6 +845,7 @@ private:
     friend class QProxyStyle;
     friend class QProxyStylePrivate;
     friend class QStyleFactory;
+    friend class QStyleSheetProxySaver;
     void setProxy(QStyle *style);
 };
 

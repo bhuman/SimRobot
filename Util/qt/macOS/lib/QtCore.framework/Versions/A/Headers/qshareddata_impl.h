@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #if 0
 #pragma qt_sync_skip_header_check
@@ -45,6 +10,7 @@
 #ifndef QSHAREDDATA_IMPL_H
 #define QSHAREDDATA_IMPL_H
 
+#include <QtCore/qcompare.h>
 #include <QtCore/qglobal.h>
 #include <QtCore/qshareddata.h>
 
@@ -55,7 +21,7 @@ namespace QtPrivate {
 template <typename T>
 class QExplicitlySharedDataPointerV2
 {
-    T *d;
+    Qt::totally_ordered_wrapper<T *> d;
 
 public:
     constexpr QExplicitlySharedDataPointerV2() noexcept : d(nullptr) {}
@@ -87,7 +53,7 @@ public:
     }
 
     QExplicitlySharedDataPointerV2(QExplicitlySharedDataPointerV2 &&other) noexcept
-        : d(qExchange(other.d, nullptr))
+        : d(std::exchange(other.d, nullptr))
     {
     }
 
@@ -101,14 +67,14 @@ public:
     ~QExplicitlySharedDataPointerV2()
     {
         if (d && !d->ref.deref())
-            delete d;
+            delete d.get();
     }
 
     void detach()
     {
         if (!d) {
             // should this codepath be here on in all user's detach()?
-            d = new T;
+            d.reset(new T);
             d->ref.ref();
         } else if (d->ref.loadRelaxed() != 1) {
             // TODO: qAtomicDetach here...?
@@ -120,15 +86,15 @@ public:
     void reset(T *t = nullptr) noexcept
     {
         if (d && !d->ref.deref())
-            delete d;
-        d = t;
+            delete d.get();
+        d.reset(t);
         if (d)
             d->ref.ref();
     }
 
     constexpr T *take() noexcept
     {
-        return qExchange(d, nullptr);
+        return std::exchange(d, nullptr).get();
     }
 
     bool isShared() const noexcept
@@ -142,27 +108,33 @@ public:
     }
 
     // important change from QExplicitlySharedDataPointer: deep const
-    constexpr T &operator*() { return *d; }
-    constexpr T *operator->() { return d; }
-    constexpr const T &operator*() const { return *d; }
-    constexpr const T *operator->() const { return d; }
+    constexpr T &operator*() { return *(d.get()); }
+    constexpr T *operator->() { return d.get(); }
+    constexpr const T &operator*() const { return *(d.get()); }
+    constexpr const T *operator->() const { return d.get(); }
 
-    constexpr T *data() noexcept { return d; }
-    constexpr const T *data() const noexcept { return d; }
+    constexpr T *data() noexcept { return d.get(); }
+    constexpr const T *data() const noexcept { return d.get(); }
 
-    constexpr explicit operator bool() const noexcept { return d; }
+    constexpr explicit operator bool() const noexcept { return d.get(); }
 
-    constexpr friend bool operator==(const QExplicitlySharedDataPointerV2 &lhs,
-                                     const QExplicitlySharedDataPointerV2 &rhs) noexcept
-    {
-        return lhs.d == rhs.d;
-    }
+private:
+    constexpr friend bool comparesEqual(const QExplicitlySharedDataPointerV2 &lhs,
+                                        const QExplicitlySharedDataPointerV2 &rhs) noexcept
+    { return lhs.d == rhs.d; }
+    constexpr friend Qt::strong_ordering
+    compareThreeWay(const QExplicitlySharedDataPointerV2 &lhs,
+                    const QExplicitlySharedDataPointerV2 &rhs) noexcept
+    { return Qt::compareThreeWay(lhs.d, rhs.d); }
+    Q_DECLARE_STRONGLY_ORDERED_LITERAL_TYPE(QExplicitlySharedDataPointerV2)
 
-    constexpr friend bool operator!=(const QExplicitlySharedDataPointerV2 &lhs,
-                                     const QExplicitlySharedDataPointerV2 &rhs) noexcept
-    {
-        return lhs.d != rhs.d;
-    }
+    constexpr friend bool
+    comparesEqual(const QExplicitlySharedDataPointerV2 &lhs, std::nullptr_t) noexcept
+    { return lhs.d == nullptr; }
+    constexpr friend Qt::strong_ordering
+    compareThreeWay(const QExplicitlySharedDataPointerV2 &lhs, std::nullptr_t) noexcept
+    { return Qt::compareThreeWay(lhs.d, nullptr); }
+    Q_DECLARE_STRONGLY_ORDERED_LITERAL_TYPE(QExplicitlySharedDataPointerV2, std::nullptr_t)
 };
 
 template <typename T>

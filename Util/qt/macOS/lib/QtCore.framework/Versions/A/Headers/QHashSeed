@@ -1,1 +1,1 @@
-#include "qhashfunctions.h"
+#include <QtCore/qhashfunctions.h> // IWYU pragma: export

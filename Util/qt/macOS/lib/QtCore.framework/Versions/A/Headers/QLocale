@@ -1,1 +1,1 @@
-#include "qlocale.h"
+#include <QtCore/qlocale.h> // IWYU pragma: export

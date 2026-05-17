@@ -1,218 +1,39 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:data-parser
+
+#if 0
+// keep existing syncqt header working after the move of the class
+// into qstringconverter_base
+#pragma qt_class(QStringConverter)
+#endif
 
 #ifndef QSTRINGCONVERTER_H
 #define QSTRINGCONVERTER_H
 
+#include <QtCore/qstringconverter_base.h>
 #include <QtCore/qstring.h>
-#if defined(QT_USE_FAST_OPERATOR_PLUS) || defined(QT_USE_QSTRINGBUILDER)
 #include <QtCore/qstringbuilder.h>
-#endif
-
-#include <optional>
-
-#include <cstring>
 
 QT_BEGIN_NAMESPACE
-
-// work around a compiler bug in GCC 7
-#if (defined(Q_CC_GNU) && __GNUC__ == 7) || defined(Q_QDOC)
-#define QSTRINGCONVERTER_CONSTEXPR
-#else
-#define QSTRINGCONVERTER_CONSTEXPR constexpr
-#endif
-
-class QStringConverterBase
-{
-public:
-    enum class Flag {
-        Default = 0,
-        Stateless = 0x1,
-        ConvertInvalidToNull = 0x2,
-        WriteBom = 0x4,
-        ConvertInitialBom = 0x8
-    };
-    Q_DECLARE_FLAGS(Flags, Flag)
-
-    struct State {
-        constexpr State(Flags f = Flag::Default)
-            : flags(f), state_data{0, 0, 0, 0} {}
-        ~State() { clear(); }
-        State(State &&other)
-            : flags(other.flags),
-              remainingChars(other.remainingChars),
-              invalidChars(other.invalidChars),
-              state_data{other.state_data[0], other.state_data[1],
-                         other.state_data[2], other.state_data[3]},
-              clearFn(other.clearFn)
-        { other.clearFn = nullptr; }
-        State &operator=(State &&other)
-        {
-            clear();
-            flags = other.flags;
-            remainingChars = other.remainingChars;
-            invalidChars = other.invalidChars;
-            std::memmove(state_data, other.state_data, sizeof state_data); // self-assignment-safe
-            clearFn = other.clearFn;
-            other.clearFn = nullptr;
-            return *this;
-        }
-        Q_CORE_EXPORT void clear();
-
-        Flags flags;
-        int internalState = 0;
-        qsizetype remainingChars = 0;
-        qsizetype invalidChars = 0;
-
-        union {
-            uint state_data[4];
-            void *d[2];
-        };
-        using ClearDataFn = void (*)(State *);
-        ClearDataFn clearFn = nullptr;
-    private:
-        Q_DISABLE_COPY(State)
-    };
-};
-Q_DECLARE_OPERATORS_FOR_FLAGS(QStringConverterBase::Flags)
-
-class QStringConverter : public QStringConverterBase
-{
-public:
-
-    enum Encoding {
-        Utf8,
-        Utf16,
-        Utf16LE,
-        Utf16BE,
-        Utf32,
-        Utf32LE,
-        Utf32BE,
-        Latin1,
-        System,
-        LastEncoding = System
-    };
-#ifdef Q_QDOC
-    // document the flags here
-    enum class Flag {
-        Default = 0,
-        Stateless = 0x1,
-        ConvertInvalidToNull = 0x2,
-        WriteBom = 0x4,
-        ConvertInitialBom = 0x8
-    };
-    Q_DECLARE_FLAGS(Flags, Flag)
-#endif
-
-protected:
-
-    struct Interface
-    {
-        using DecoderFn = QChar * (*)(QChar *out, QByteArrayView in, State *state);
-        using LengthFn = qsizetype (*)(qsizetype inLength);
-        using EncoderFn = char * (*)(char *out, QStringView in, State *state);
-        const char *name = nullptr;
-        DecoderFn toUtf16 = nullptr;
-        LengthFn toUtf16Len = nullptr;
-        EncoderFn fromUtf16 = nullptr;
-        LengthFn fromUtf16Len = nullptr;
-    };
-
-    QSTRINGCONVERTER_CONSTEXPR QStringConverter()
-        : iface(nullptr)
-    {}
-    QSTRINGCONVERTER_CONSTEXPR QStringConverter(Encoding encoding, Flags f)
-        : iface(&encodingInterfaces[int(encoding)]), state(f)
-    {}
-    QSTRINGCONVERTER_CONSTEXPR QStringConverter(const Interface *i)
-        : iface(i)
-    {}
-    Q_CORE_EXPORT QStringConverter(const char *name, Flags f);
-
-
-public:
-    bool isValid() const { return iface != nullptr; }
-
-    void resetState()
-    {
-        state.clear();
-    }
-    bool hasError() const { return state.invalidChars != 0; }
-
-    const char *name() const
-    { return isValid() ? iface->name : nullptr; }
-
-    Q_CORE_EXPORT static std::optional<Encoding> encodingForName(const char *name);
-    Q_CORE_EXPORT static const char *nameForEncoding(Encoding e);
-    Q_CORE_EXPORT static std::optional<Encoding> encodingForData(QByteArrayView data, char16_t expectedFirstCharacter = 0);
-    Q_CORE_EXPORT static std::optional<Encoding> encodingForHtml(QByteArrayView data);
-
-protected:
-    const Interface *iface;
-    State state;
-private:
-    Q_CORE_EXPORT static const Interface encodingInterfaces[Encoding::LastEncoding + 1];
-};
 
 class QStringEncoder : public QStringConverter
 {
 protected:
-    QSTRINGCONVERTER_CONSTEXPR QStringEncoder(const Interface *i)
+    constexpr explicit QStringEncoder(const Interface *i) noexcept
         : QStringConverter(i)
     {}
 public:
-    QSTRINGCONVERTER_CONSTEXPR QStringEncoder()
+    constexpr QStringEncoder() noexcept
         : QStringConverter()
     {}
-    QSTRINGCONVERTER_CONSTEXPR QStringEncoder(Encoding encoding, Flags flags = Flag::Default)
+    constexpr explicit QStringEncoder(Encoding encoding, Flags flags = Flag::Default)
         : QStringConverter(encoding, flags)
     {}
-    QStringEncoder(const char *name, Flags flags = Flag::Default)
+    explicit QStringEncoder(QAnyStringView name, Flags flags = Flag::Default)
         : QStringConverter(name, flags)
     {}
 
-#if defined(Q_QDOC)
-    QByteArray operator()(const QString &in);
-    QByteArray operator()(QStringView in);
-    QByteArray encode(const QString &in);
-    QByteArray encode(QStringView in);
-#else
     template<typename T>
     struct DecodedData
     {
@@ -230,14 +51,30 @@ public:
     { return DecodedData<const QString &>{this, str}; }
     DecodedData<QStringView> encode(QStringView in)
     { return DecodedData<QStringView>{this, in}; }
-#endif
 
     qsizetype requiredSpace(qsizetype inputLength) const
-    { return iface->fromUtf16Len(inputLength); }
+    { return iface ? iface->fromUtf16Len(inputLength) : 0; }
     char *appendToBuffer(char *out, QStringView in)
-    { return iface->fromUtf16(out, in, &state); }
+    {
+        if (!iface) {
+            state.invalidChars = 1;
+            return out;
+        }
+        return iface->fromUtf16(out, in, &state);
+    }
+
+    using FinalizeResult = FinalizeResultChar<char>;
+    [[nodiscard]] Q_CORE_EXPORT FinalizeResult finalize(char *out, qsizetype maxlen);
+    [[nodiscard]] FinalizeResult finalize() { return finalize(nullptr, 0); }
+
 private:
-    QByteArray encodeAsByteArray(QStringView in)
+    QByteArray invalidateAndReturnNull()
+    {
+        // ensure that hasError returns true
+        state.invalidChars = 1;
+        return QByteArray();
+    }
+    QByteArray encodeAsByteArrayImpl(QStringView in)
     {
         QByteArray result(iface->fromUtf16Len(in.size()), Qt::Uninitialized);
         char *out = result.data();
@@ -245,32 +82,29 @@ private:
         result.truncate(out - result.constData());
         return result;
     }
-
+    QByteArray encodeAsByteArray(QStringView in)
+    {
+        return iface ? encodeAsByteArrayImpl(in) : invalidateAndReturnNull();
+    }
 };
 
 class QStringDecoder : public QStringConverter
 {
 protected:
-    QSTRINGCONVERTER_CONSTEXPR QStringDecoder(const Interface *i)
+    constexpr explicit QStringDecoder(const Interface *i) noexcept
         : QStringConverter(i)
     {}
 public:
-    QSTRINGCONVERTER_CONSTEXPR QStringDecoder(Encoding encoding, Flags flags = Flag::Default)
+    constexpr explicit QStringDecoder(Encoding encoding, Flags flags = Flag::Default)
         : QStringConverter(encoding, flags)
     {}
-    QSTRINGCONVERTER_CONSTEXPR QStringDecoder()
+    constexpr QStringDecoder() noexcept
         : QStringConverter()
     {}
-    QStringDecoder(const char *name, Flags f = Flag::Default)
+    explicit QStringDecoder(QAnyStringView name, Flags f = Flag::Default)
         : QStringConverter(name, f)
     {}
 
-#if defined(Q_QDOC)
-    QString operator()(const QByteArray &ba);
-    QString operator()(QByteArrayView ba);
-    QString decode(const QByteArray &ba);
-    QString decode(QByteArrayView ba);
-#else
     template<typename T>
     struct EncodedData
     {
@@ -288,19 +122,53 @@ public:
     { return EncodedData<const QByteArray &>{this, ba}; }
     EncodedData<QByteArrayView> decode(QByteArrayView ba)
     { return EncodedData<QByteArrayView>{this, ba}; }
-#endif
 
     qsizetype requiredSpace(qsizetype inputLength) const
-    { return iface->toUtf16Len(inputLength); }
+    { return iface ? iface->toUtf16Len(inputLength) : 0; }
     QChar *appendToBuffer(QChar *out, QByteArrayView ba)
-    { return iface->toUtf16(out, ba, &state); }
+    {
+        if (!iface) {
+            state.invalidChars = 1;
+            return out;
+        }
+        return iface->toUtf16(out, ba, &state);
+    }
+    char16_t *appendToBuffer(char16_t *out, QByteArrayView ba)
+    { return reinterpret_cast<char16_t *>(appendToBuffer(reinterpret_cast<QChar *>(out), ba)); }
+
+
+    using FinalizeResult = FinalizeResultChar<char16_t>;
+    using FinalizeResultQChar = FinalizeResultChar<QChar>;
+    [[nodiscard]] FinalizeResultQChar finalize(QChar *out, qsizetype maxlen)
+    {
+        auto r = finalize(reinterpret_cast<char16_t *>(out), maxlen);
+        return {reinterpret_cast<QChar *>(r.next), r.invalidChars, r.error};
+    }
+    [[nodiscard]] Q_CORE_EXPORT FinalizeResult finalize(char16_t *out, qsizetype maxlen);
+    [[nodiscard]] FinalizeResult finalize()
+    {
+        return finalize(static_cast<char16_t *>(nullptr), 0);
+    }
+
+    Q_CORE_EXPORT static QStringDecoder decoderForHtml(QByteArrayView data);
+
 private:
-    QString decodeAsString(QByteArrayView in)
+    QString invalidateAndReturnNull()
+    {
+        // ensure that hasError returns true
+        state.invalidChars = 1;
+        return QString();
+    }
+    QString decodeAsStringImpl(QByteArrayView in)
     {
         QString result(iface->toUtf16Len(in.size()), Qt::Uninitialized);
         const QChar *out = iface->toUtf16(result.data(), in, &state);
         result.truncate(out - result.constData());
         return result;
+    }
+    QString decodeAsString(QByteArrayView in)
+    {
+        return iface ? decodeAsStringImpl(in) : invalidateAndReturnNull();
     }
 };
 
@@ -357,8 +225,66 @@ QByteArray &operator+=(QByteArray &a, const QStringEncoder::DecodedData<T> &b)
 }
 #endif
 
-QT_END_NAMESPACE
+template <typename InputIterator>
+void QString::assign_helper_char8(InputIterator first, InputIterator last)
+{
+    static_assert(!QString::is_contiguous_iterator_v<InputIterator>,
+        "Internal error: Should have been handed over to the QAnyStringView overload."
+    );
 
-#undef QSTRINGCONVERTER_CONSTEXPR
+    using ValueType = typename std::iterator_traits<InputIterator>::value_type;
+    constexpr bool IsFwdIt = std::is_convertible_v<
+        typename std::iterator_traits<InputIterator>::iterator_category,
+        std::forward_iterator_tag
+    >;
+
+    resize(0);
+    // In case of not being shared, there is the possibility of having free space at begin
+    // even after the resize to zero.
+    if (const auto offset = d.freeSpaceAtBegin())
+        d.setBegin(d.begin() - offset);
+
+    if constexpr (IsFwdIt)
+        reserve(static_cast<qsizetype>(std::distance(first, last)));
+
+    auto toUtf16 = QStringDecoder(QStringDecoder::Utf8);
+    auto availableCapacity = d.constAllocatedCapacity();
+    auto *dst = d.data();
+    auto *dend = d.data() + availableCapacity;
+
+    while (true) {
+        if (first == last) {                                    // ran out of input elements
+            Q_ASSERT(!std::less<>{}(dend, dst));
+            d.size = dst - d.begin();
+            return;
+        }
+        const ValueType next = *first; // decays proxies, if any
+        const auto chunk = QUtf8StringView(&next, 1);
+        // UTF-8 characters can have a maximum size of 4 bytes and may result in a surrogate
+        // pair of UTF-16 code units. In the input-iterator case, we don't know the size
+        // and would need to always reserve space for 2 code units. To keep our promise
+        // of 'not allocating if it fits', we have to pre-check this condition.
+        //          We know that it fits in the forward-iterator case.
+        if constexpr (!IsFwdIt) {
+            constexpr qsizetype Pair = 2;
+            char16_t buf[Pair];
+            const qptrdiff n = toUtf16.appendToBuffer(buf, chunk) - buf;
+            if (dend - dst < n) {                               // ran out of allocated memory
+                const auto offset = dst - d.begin();
+                reallocData(d.constAllocatedCapacity() + Pair, QArrayData::Grow);
+                // update the pointers since we've re-allocated
+                availableCapacity = d.constAllocatedCapacity();
+                dst = d.data() + offset;
+                dend = d.data() + availableCapacity;
+            }
+            dst = std::copy_n(buf, n, dst);
+        } else {                                                // take the fast path
+            dst = toUtf16.appendToBuffer(dst, chunk);
+        }
+        ++first;
+    }
+}
+
+QT_END_NAMESPACE
 
 #endif

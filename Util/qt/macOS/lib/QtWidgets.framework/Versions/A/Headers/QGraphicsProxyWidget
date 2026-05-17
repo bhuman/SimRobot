@@ -1,1 +1,1 @@
-#include "qgraphicsproxywidget.h"
+#include <QtWidgets/qgraphicsproxywidget.h> // IWYU pragma: export

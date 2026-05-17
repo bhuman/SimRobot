@@ -1,1 +1,1 @@
-#include "qcheckbox.h"
+#include <QtWidgets/qcheckbox.h> // IWYU pragma: export

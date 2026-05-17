@@ -1,1 +1,1 @@
-#include "qdrag.h"
+#include <QtGui/qdrag.h> // IWYU pragma: export

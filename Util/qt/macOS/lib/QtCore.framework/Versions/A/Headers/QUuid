@@ -1,1 +1,1 @@
-#include "quuid.h"
+#include <QtCore/quuid.h> // IWYU pragma: export

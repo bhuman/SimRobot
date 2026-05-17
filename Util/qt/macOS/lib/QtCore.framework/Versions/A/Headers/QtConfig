@@ -1,2 +1,1 @@
-#include "qconfig.h"
-
+#include <QtCore/qconfig.h> // IWYU pragma: export

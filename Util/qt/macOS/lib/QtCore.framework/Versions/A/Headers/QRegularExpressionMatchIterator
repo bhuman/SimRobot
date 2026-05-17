@@ -1,1 +1,1 @@
-#include "qregularexpression.h"
+#include <QtCore/qregularexpression.h> // IWYU pragma: export

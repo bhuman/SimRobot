@@ -1,1 +1,1 @@
-#include "qfileselector.h"
+#include <QtCore/qfileselector.h> // IWYU pragma: export

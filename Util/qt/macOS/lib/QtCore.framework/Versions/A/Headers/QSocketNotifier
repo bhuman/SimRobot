@@ -1,1 +1,1 @@
-#include "qsocketnotifier.h"
+#include <QtCore/qsocketnotifier.h> // IWYU pragma: export

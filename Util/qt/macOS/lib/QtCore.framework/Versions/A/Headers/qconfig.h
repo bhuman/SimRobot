@@ -1,3 +1,8 @@
+#ifndef QT_FEATURES_GlobalConfig_src_corelib_global_qconfig_h_H
+#define QT_FEATURES_GlobalConfig_src_corelib_global_qconfig_h_H
+
+#define QT_FEATURE_version_tagging 1
+
 #define QT_FEATURE_shared 1
 
 #define QT_FEATURE_static -1
@@ -20,25 +25,25 @@
 
 #define QT_FEATURE_framework 1
 
-#define QT_FEATURE_cxx11 1
-
-#define QT_FEATURE_cxx14 1
-
-#define QT_FEATURE_cxx17 1
-
-#define QT_FEATURE_cxx1z 1
-
 #define QT_FEATURE_cxx20 -1
 
 #define QT_FEATURE_cxx2a -1
 
 #define QT_FEATURE_cxx2b -1
 
-#define QT_FEATURE_c99 1
+#define QT_FEATURE_cxx2c -1
 
-#define QT_FEATURE_c11 1
+#define QT_FEATURE_reduce_relocations -1
 
 #define QT_FEATURE_signaling_nan 1
+
+#define QT_FEATURE_wasm_simd128 -1
+
+#define QT_FEATURE_wasm_exceptions -1
+
+#define QT_FEATURE_wasm_jspi -1
+
+#define QT_FEATURE_zstd -1
 
 #define QT_FEATURE_thread 1
 
@@ -48,14 +53,26 @@
 
 #define QT_FEATURE_dbus 1
 
+#define QT_FEATURE_openssl_linked -1
 
-#define QT_VERSION_STR "6.3.1"
+#define QT_FEATURE_opensslv11 -1
+
+#define QT_FEATURE_opensslv30 1
+
+#define QT_FEATURE_test_gui 1
+
+#define QT_FEATURE_test_squish 1
+
+
+#define QT_VERSION_STR "6.11.1"
 
 #define QT_VERSION_MAJOR 6
 
-#define QT_VERSION_MINOR 3
+#define QT_VERSION_MINOR 11
 
 #define QT_VERSION_PATCH 1
+
+#define QT_COPYRIGHT "Copyright (C) The Qt Company Ltd. and other contributors."
 #define QT_MAC_FRAMEWORK_BUILD
 #define QT_LARGEFILE_SUPPORT 64
 #define QT_VISIBILITY_AVAILABLE
@@ -76,9 +93,14 @@
 #define QT_COMPILER_SUPPORTS_AVX512VL 1
 #define QT_COMPILER_SUPPORTS_AVX512IFMA 1
 #define QT_COMPILER_SUPPORTS_AVX512VBMI 1
+#define QT_COMPILER_SUPPORTS_AVX512VBMI2 1
 #define QT_COMPILER_SUPPORTS_AES 1
+#define QT_COMPILER_SUPPORTS_VAES 1
 #define QT_COMPILER_SUPPORTS_RDRND 1
 #define QT_COMPILER_SUPPORTS_RDSEED 1
 #define QT_COMPILER_SUPPORTS_SHA 1
-#define QT_COMPILER_SUPPORTS_SIMD_ALWAYS 1
 #define QT_COMPILER_SUPPORTS_NEON 1
+#define QT_GUI_TEST 1
+#define QT_SQUISH_TEST
+
+#endif // QT_FEATURES_GlobalConfig_src_corelib_global_qconfig_h_H

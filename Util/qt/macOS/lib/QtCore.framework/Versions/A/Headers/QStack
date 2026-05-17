@@ -1,1 +1,1 @@
-#include "qstack.h"
+#include <QtCore/qstack.h> // IWYU pragma: export

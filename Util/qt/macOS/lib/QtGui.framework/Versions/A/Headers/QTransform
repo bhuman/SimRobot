@@ -1,1 +1,1 @@
-#include "qtransform.h"
+#include <QtGui/qtransform.h> // IWYU pragma: export

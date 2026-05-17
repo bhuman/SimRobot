@@ -1,1 +1,1 @@
-#include "qopengltextureblitter.h"
+#include <QtOpenGL/qopengltextureblitter.h> // IWYU pragma: export

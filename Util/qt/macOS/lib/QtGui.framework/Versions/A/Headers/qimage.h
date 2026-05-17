@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QIMAGE_H
 #define QIMAGE_H
@@ -111,6 +75,7 @@ public:
         Format_RGBX32FPx4,
         Format_RGBA32FPx4,
         Format_RGBA32FPx4_Premultiplied,
+        Format_CMYK8888,
 #ifndef Q_QDOC
         NImageFormats
 #endif
@@ -132,7 +97,7 @@ public:
 
     QImage(const QImage &);
     QImage(QImage &&other) noexcept
-        : QPaintDevice(), d(qExchange(other.d, nullptr))
+        : QPaintDevice(), d(std::exchange(other.d, nullptr))
     {}
     ~QImage();
 
@@ -250,27 +215,47 @@ public:
     [[nodiscard]] QImage scaledToHeight(int h, Qt::TransformationMode mode = Qt::FastTransformation) const;
     [[nodiscard]] QImage transformed(const QTransform &matrix, Qt::TransformationMode mode = Qt::FastTransformation) const;
     static QTransform trueMatrix(const QTransform &, int w, int h);
-
+#if QT_DEPRECATED_SINCE(6, 13)
+    QT_DEPRECATED_VERSION_X_6_13("Use flipped(Qt::Orientations) instead")
     [[nodiscard]] QImage mirrored(bool horizontally = false, bool vertically = true) const &
     { return mirrored_helper(horizontally, vertically); }
+    QT_DEPRECATED_VERSION_X_6_13("Use flipped(Qt::Orientations) instead")
     [[nodiscard]] QImage mirrored(bool horizontally = false, bool vertically = true) &&
     { mirrored_inplace(horizontally, vertically); return std::move(*this); }
+    QT_DEPRECATED_VERSION_X_6_13("Use flip(Qt::Orientations) instead")
+    void mirror(bool horizontally = false, bool vertically = true)
+    { mirrored_inplace(horizontally, vertically); }
+#endif
     [[nodiscard]] QImage rgbSwapped() const &
     { return rgbSwapped_helper(); }
     [[nodiscard]] QImage rgbSwapped() &&
     { rgbSwapped_inplace(); return std::move(*this); }
-    void mirror(bool horizontally = false, bool vertically = true)
-    { mirrored_inplace(horizontally, vertically); }
+    [[nodiscard]] QImage flipped(Qt::Orientations orient = Qt::Vertical) const &
+    { return mirrored_helper(orient.testFlag(Qt::Horizontal), orient.testFlag(Qt::Vertical)); }
+    [[nodiscard]] QImage flipped(Qt::Orientations orient = Qt::Vertical) &&
+    { mirrored_inplace(orient.testFlag(Qt::Horizontal), orient.testFlag(Qt::Vertical)); return std::move(*this); }
+    void flip(Qt::Orientations orient = Qt::Vertical)
+    { mirrored_inplace(orient.testFlag(Qt::Horizontal), orient.testFlag(Qt::Vertical)); }
     void rgbSwap()
     { rgbSwapped_inplace(); }
     void invertPixels(InvertMode = InvertRgb);
 
     QColorSpace colorSpace() const;
-    [[nodiscard]] QImage convertedToColorSpace(const QColorSpace &) const;
-    void convertToColorSpace(const QColorSpace &);
-    void setColorSpace(const QColorSpace &);
+    [[nodiscard]] QImage convertedToColorSpace(const QColorSpace &colorSpace) const;
+    [[nodiscard]] QImage convertedToColorSpace(const QColorSpace &colorSpace, QImage::Format format,
+                                               Qt::ImageConversionFlags flags = Qt::AutoColor) const &;
+    [[nodiscard]] QImage convertedToColorSpace(const QColorSpace &colorSpace, QImage::Format format,
+                                               Qt::ImageConversionFlags flags = Qt::AutoColor) &&;
+    void convertToColorSpace(const QColorSpace &colorSpace);
+    void convertToColorSpace(const QColorSpace &colorSpace, QImage::Format format, Qt::ImageConversionFlags flags = Qt::AutoColor);
+    void setColorSpace(const QColorSpace &colorSpace);
 
+    QImage colorTransformed(const QColorTransform &transform) const &;
+    QImage colorTransformed(const QColorTransform &transform, QImage::Format format, Qt::ImageConversionFlags flags = Qt::AutoColor) const &;
+    QImage colorTransformed(const QColorTransform &transform) &&;
+    QImage colorTransformed(const QColorTransform &transform, QImage::Format format, Qt::ImageConversionFlags flags = Qt::AutoColor) &&;
     void applyColorTransform(const QColorTransform &transform);
+    void applyColorTransform(const QColorTransform &transform, QImage::Format format, Qt::ImageConversionFlags flags = Qt::AutoColor);
 
     bool load(QIODevice *device, const char *format);
     bool load(const QString &fileName, const char *format = nullptr);
@@ -327,6 +312,8 @@ protected:
     QImage convertToFormat_helper(Format format, Qt::ImageConversionFlags flags) const;
     bool convertToFormat_inplace(Format format, Qt::ImageConversionFlags flags);
     QImage smoothScaled(int w, int h) const;
+
+    void detachMetadata(bool invalidateCache = false);
 
 private:
     QImageData *d;

@@ -1,1 +1,1 @@
-#include "qgesture.h"
+#include <QtWidgets/qgesture.h> // IWYU pragma: export

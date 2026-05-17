@@ -1,51 +1,19 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QPIXELFORMAT_H
 #define QPIXELFORMAT_H
 
 #include <QtGui/qtguiglobal.h>
 
+#include <QtCore/qobjectdefs.h>
+
 QT_BEGIN_NAMESPACE
 
 class QPixelFormat
 {
+    Q_GADGET_EXPORT(Q_GUI_EXPORT)
+
     // QPixelFormat basically is a glorified quint64, split into several fields.
     // We could use bit-fields, but GCC at least generates horrible, horrible code for them,
     // so we do the bit-twiddling ourselves.
@@ -112,21 +80,25 @@ public:
         YUV,
         Alpha
     };
+    Q_ENUM(ColorModel)
 
     enum AlphaUsage {
         UsesAlpha,
         IgnoresAlpha
     };
+    Q_ENUM(AlphaUsage)
 
     enum AlphaPosition {
         AtBeginning,
         AtEnd
     };
+    Q_ENUM(AlphaPosition)
 
     enum AlphaPremultiplied {
         NotPremultiplied,
         Premultiplied
     };
+    Q_ENUM(AlphaPremultiplied)
 
     enum TypeInterpretation {
         UnsignedInteger,
@@ -134,6 +106,7 @@ public:
         UnsignedByte,
         FloatingPoint
     };
+    Q_ENUM(TypeInterpretation)
 
     enum YUVLayout {
         YUV444,
@@ -153,12 +126,14 @@ public:
         Y8,
         Y16
     };
+    Q_ENUM(YUVLayout)
 
     enum ByteOrder {
         LittleEndian,
         BigEndian,
         CurrentSystemEndian
     };
+    Q_ENUM(ByteOrder)
 
     constexpr inline QPixelFormat() noexcept : data(0) {}
     constexpr inline QPixelFormat(ColorModel colorModel,
@@ -216,8 +191,9 @@ public:
     constexpr inline uchar subEnum() const noexcept { return get(SubEnumField, SubEnumFieldWidth); }
 
 private:
-    constexpr static inline ByteOrder resolveByteOrder(ByteOrder bo)
-    { return bo == CurrentSystemEndian ? Q_BYTE_ORDER == Q_LITTLE_ENDIAN ? LittleEndian : BigEndian : bo ; }
+    constexpr static inline ByteOrder resolveByteOrder(ByteOrder bo) { return resolveByteOrder(bo, UnsignedInteger ); }
+    constexpr static inline ByteOrder resolveByteOrder(ByteOrder bo, TypeInterpretation ti)
+    { return bo == CurrentSystemEndian ? ti == UnsignedByte || Q_BYTE_ORDER == Q_BIG_ENDIAN ? BigEndian : LittleEndian : bo ; }
 
 private:
     quint64 data;
@@ -227,6 +203,10 @@ private:
 
     friend Q_DECL_CONST_FUNCTION constexpr inline bool operator!=(QPixelFormat fmt1, QPixelFormat fmt2)
     { return !(fmt1 == fmt2); }
+
+#ifndef QT_NO_DEBUG_STREAM
+    friend Q_GUI_EXPORT QDebug operator<<(QDebug debug, const QPixelFormat &format);
+#endif
 };
 static_assert(sizeof(QPixelFormat) == sizeof(quint64));
 Q_DECLARE_TYPEINFO(QPixelFormat, Q_PRIMITIVE_TYPE);
@@ -266,7 +246,7 @@ constexpr QPixelFormat::QPixelFormat(ColorModel mdl,
            set(AlphaPositionField, AlphaPositionFieldWidth, uchar(position)) |
            set(PremulField, PremulFieldWidth, uchar(premult)) |
            set(TypeInterpretationField, TypeInterpretationFieldWidth, uchar(typeInterp)) |
-           set(ByteOrderField, ByteOrderFieldWidth, uchar(resolveByteOrder(b_order))) |
+           set(ByteOrderField, ByteOrderFieldWidth, uchar(resolveByteOrder(b_order, typeInterp))) |
            set(SubEnumField, SubEnumFieldWidth, s_enum) |
            set(UnusedField, UnusedFieldWidth, 0))
 {
@@ -389,7 +369,7 @@ inline QPixelFormat qPixelFormatYuv(QPixelFormat::YUVLayout layout,
                                     QPixelFormat::AlphaPosition position=QPixelFormat::AtBeginning,
                                     QPixelFormat::AlphaPremultiplied p_mul=QPixelFormat::NotPremultiplied,
                                     QPixelFormat::TypeInterpretation typeInt=QPixelFormat::UnsignedByte,
-                                    QPixelFormat::ByteOrder b_order=QPixelFormat::LittleEndian)
+                                    QPixelFormat::ByteOrder b_order=QPixelFormat::BigEndian)
 {
     return QtPrivate::QPixelFormat_createYUV(layout,
                                              alfa,

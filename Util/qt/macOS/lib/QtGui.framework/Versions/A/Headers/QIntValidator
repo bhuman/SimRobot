@@ -1,1 +1,1 @@
-#include "qvalidator.h"
+#include <QtGui/qvalidator.h> // IWYU pragma: export

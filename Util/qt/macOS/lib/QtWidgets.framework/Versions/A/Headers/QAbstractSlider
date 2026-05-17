@@ -1,1 +1,1 @@
-#include "qabstractslider.h"
+#include <QtWidgets/qabstractslider.h> // IWYU pragma: export

@@ -1,43 +1,8 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 Giuseppe D'Angelo <dangelog@gmail.com>.
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 Giuseppe D'Angelo <dangelog@gmail.com>.
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:trivial-impl-only
 
 #ifndef QREGULAREXPRESSION_H
 #define QREGULAREXPRESSION_H
@@ -53,8 +18,6 @@
 QT_REQUIRE_CONFIG(regularexpression);
 
 QT_BEGIN_NAMESPACE
-
-class QLatin1String;
 
 class QRegularExpressionMatch;
 class QRegularExpressionMatchIterator;
@@ -88,10 +51,10 @@ public:
 
     QRegularExpression();
     explicit QRegularExpression(const QString &pattern, PatternOptions options = NoPatternOption);
-    QRegularExpression(const QRegularExpression &re);
+    QRegularExpression(const QRegularExpression &re) noexcept;
     QRegularExpression(QRegularExpression &&re) = default;
     ~QRegularExpression();
-    QRegularExpression &operator=(const QRegularExpression &re);
+    QRegularExpression &operator=(const QRegularExpression &re) noexcept;
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QRegularExpression)
 
     void swap(QRegularExpression &other) noexcept { d.swap(other.d); }
@@ -129,11 +92,20 @@ public:
                                   MatchType matchType       = NormalMatch,
                                   MatchOptions matchOptions = NoMatchOption) const;
 
+#if QT_DEPRECATED_SINCE(6, 8)
     [[nodiscard]]
+    QT_DEPRECATED_VERSION_X_6_8("Use matchView instead.")
     QRegularExpressionMatch match(QStringView subjectView,
                                   qsizetype offset          = 0,
                                   MatchType matchType       = NormalMatch,
                                   MatchOptions matchOptions = NoMatchOption) const;
+#endif
+
+    [[nodiscard]]
+    QRegularExpressionMatch matchView(QStringView subjectView,
+                                      qsizetype offset          = 0,
+                                      MatchType matchType       = NormalMatch,
+                                      MatchOptions matchOptions = NoMatchOption) const;
 
     [[nodiscard]]
     QRegularExpressionMatchIterator globalMatch(const QString &subject,
@@ -141,17 +113,27 @@ public:
                                                 MatchType matchType       = NormalMatch,
                                                 MatchOptions matchOptions = NoMatchOption) const;
 
+#if QT_DEPRECATED_SINCE(6, 8)
     [[nodiscard]]
+    QT_DEPRECATED_VERSION_X_6_8("Use globalMatchView instead.")
     QRegularExpressionMatchIterator globalMatch(QStringView subjectView,
                                                 qsizetype offset          = 0,
                                                 MatchType matchType       = NormalMatch,
                                                 MatchOptions matchOptions = NoMatchOption) const;
+#endif
+
+    [[nodiscard]]
+    QRegularExpressionMatchIterator globalMatchView(QStringView subjectView,
+                                                    qsizetype offset          = 0,
+                                                    MatchType matchType       = NormalMatch,
+                                                    MatchOptions matchOptions = NoMatchOption) const;
 
     void optimize() const;
 
     enum WildcardConversionOption {
         DefaultWildcardConversion = 0x0,
-        UnanchoredWildcardConversion = 0x1
+        UnanchoredWildcardConversion = 0x1,
+        NonPathWildcardConversion = 0x2,
     };
     Q_DECLARE_FLAGS(WildcardConversionOptions, WildcardConversionOption)
 
@@ -176,11 +158,15 @@ public:
 
     static QRegularExpression fromWildcard(QStringView pattern, Qt::CaseSensitivity cs = Qt::CaseInsensitive,
                                            WildcardConversionOptions options = DefaultWildcardConversion);
-
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool operator==(const QRegularExpression &re) const;
     inline bool operator!=(const QRegularExpression &re) const { return !operator==(re); }
-
+#endif
 private:
+    friend Q_CORE_EXPORT bool comparesEqual(const QRegularExpression &lhs,
+                                            const QRegularExpression &rhs) noexcept;
+    Q_DECLARE_EQUALITY_COMPARABLE(QRegularExpression)
+
     friend struct QRegularExpressionPrivate;
     friend class QRegularExpressionMatch;
     friend struct QRegularExpressionMatchPrivate;
@@ -194,6 +180,7 @@ private:
 Q_DECLARE_SHARED(QRegularExpression)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QRegularExpression::PatternOptions)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QRegularExpression::MatchOptions)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QRegularExpression::WildcardConversionOptions)
 
 #ifndef QT_NO_DATASTREAM
 Q_CORE_EXPORT QDataStream &operator<<(QDataStream &out, const QRegularExpression &re);
@@ -204,6 +191,11 @@ Q_CORE_EXPORT QDataStream &operator>>(QDataStream &in, QRegularExpression &re);
 Q_CORE_EXPORT QDebug operator<<(QDebug debug, const QRegularExpression &re);
 Q_CORE_EXPORT QDebug operator<<(QDebug debug, QRegularExpression::PatternOptions patternOptions);
 #endif
+
+[[nodiscard]] inline qsizetype QStringView::count(const QRegularExpression &re) const
+{
+    return QtPrivate::count(*this, re);
+}
 
 struct QRegularExpressionMatchPrivate;
 QT_DECLARE_QESDP_SPECIALIZATION_DTOR_WITH_EXPORT(QRegularExpressionMatchPrivate, Q_CORE_EXPORT)
@@ -231,18 +223,26 @@ public:
 
     int lastCapturedIndex() const;
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool hasCaptured(const QString &name) const
-    { return hasCaptured(QStringView(name)); }
+    { return hasCaptured(qToAnyStringViewIgnoringNull(name)); }
     bool hasCaptured(QStringView name) const;
+#endif
+    bool hasCaptured(QAnyStringView name) const;
     bool hasCaptured(int nth) const;
 
     QString captured(int nth = 0) const;
     QStringView capturedView(int nth = 0) const;
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     QString captured(const QString &name) const
-    { return captured(QStringView(name)); }
+    { return captured(qToAnyStringViewIgnoringNull(name)); }
+
     QString captured(QStringView name) const;
     QStringView capturedView(QStringView name) const;
+#endif
+    QString captured(QAnyStringView name) const;
+    QStringView capturedView(QAnyStringView name) const;
 
     QStringList capturedTexts() const;
 
@@ -250,16 +250,21 @@ public:
     qsizetype capturedLength(int nth = 0) const;
     qsizetype capturedEnd(int nth = 0) const;
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     qsizetype capturedStart(const QString &name) const
-    { return capturedStart(QStringView(name)); }
+    { return capturedStart(qToAnyStringViewIgnoringNull(name)); }
     qsizetype capturedLength(const QString &name) const
-    { return capturedLength(QStringView(name)); }
+    { return capturedLength(qToAnyStringViewIgnoringNull(name)); }
     qsizetype capturedEnd(const QString &name) const
-    { return capturedEnd(QStringView(name)); }
+    { return capturedEnd(qToAnyStringViewIgnoringNull(name)); }
 
     qsizetype capturedStart(QStringView name) const;
     qsizetype capturedLength(QStringView name) const;
     qsizetype capturedEnd(QStringView name) const;
+#endif
+    qsizetype capturedStart(QAnyStringView name) const;
+    qsizetype capturedLength(QAnyStringView name) const;
+    qsizetype capturedEnd(QAnyStringView name) const;
 
 private:
     friend class QRegularExpression;
@@ -370,30 +375,24 @@ private:
     // [input.iterators] imposes operator== on us. Unfortunately, it's not
     // trivial to implement, so just do the bare minimum to satifisfy
     // Cpp17EqualityComparable.
-    friend bool operator==(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
-                           const QRegularExpressionMatchIteratorRangeBasedForIterator &rhs) noexcept
+    friend bool comparesEqual(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
+                              const QRegularExpressionMatchIteratorRangeBasedForIterator &rhs)
+            noexcept
     {
         return (&lhs == &rhs);
     }
-
-    friend bool operator!=(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
-                           const QRegularExpressionMatchIteratorRangeBasedForIterator &rhs) noexcept
-    {
-        return !(lhs == rhs);
-    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QRegularExpressionMatchIteratorRangeBasedForIterator)
 
     // This is what we really use in a range-based for.
-    friend bool operator==(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
-                           QRegularExpressionMatchIteratorRangeBasedForIteratorSentinel) noexcept
+    friend bool comparesEqual(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
+                              const QRegularExpressionMatchIteratorRangeBasedForIteratorSentinel &rhs)
+            noexcept
     {
+        Q_UNUSED(rhs);
         return lhs.m_atEnd;
     }
-
-    friend bool operator!=(const QRegularExpressionMatchIteratorRangeBasedForIterator &lhs,
-                           QRegularExpressionMatchIteratorRangeBasedForIteratorSentinel) noexcept
-    {
-        return !lhs.m_atEnd;
-    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QRegularExpressionMatchIteratorRangeBasedForIterator,
+                                  QRegularExpressionMatchIteratorRangeBasedForIteratorSentinel)
 
     QRegularExpressionMatchIterator m_matchIterator;
     QRegularExpressionMatch m_currentMatch;

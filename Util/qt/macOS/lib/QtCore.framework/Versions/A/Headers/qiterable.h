@@ -1,48 +1,12 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QITERABLE_H
 #define QITERABLE_H
 
 #include <QtCore/qglobal.h>
 #include <QtCore/qtypeinfo.h>
-#include <QtCore/qmetacontainer.h>
 #include <QtCore/qtaggedpointer.h>
 
 QT_BEGIN_NAMESPACE
@@ -55,16 +19,16 @@ namespace QtPrivate {
         QTaggedPointer<Storage, Tag> m_pointer;
 
     public:
-        QConstPreservingPointer(std::nullptr_t) : m_pointer(nullptr, Const) {}
+        Q_NODISCARD_CTOR QConstPreservingPointer(std::nullptr_t) : m_pointer(nullptr, Const) {}
 
-        QConstPreservingPointer(const void *pointer, qsizetype alignment)
+        Q_NODISCARD_CTOR QConstPreservingPointer(const void *pointer, qsizetype alignment)
             : m_pointer(reinterpret_cast<Storage *>(const_cast<void *>(pointer)), Const)
         {
             Q_UNUSED(alignment);
             Q_ASSERT(alignment > qsizetype(alignof(Storage)));
         }
 
-        QConstPreservingPointer(void *pointer, qsizetype alignment)
+        Q_NODISCARD_CTOR QConstPreservingPointer(void *pointer, qsizetype alignment)
             : m_pointer(reinterpret_cast<Storage *>(pointer), Mutable)
         {
             Q_UNUSED(alignment);
@@ -72,20 +36,20 @@ namespace QtPrivate {
         }
 
         template<typename InputType>
-        QConstPreservingPointer(const InputType *pointer)
+        Q_NODISCARD_CTOR QConstPreservingPointer(const InputType *pointer)
             : m_pointer(reinterpret_cast<Storage *>(const_cast<InputType *>(pointer)), Const)
         {
             static_assert(alignof(InputType) >= alignof(Storage));
         }
 
         template<typename InputType>
-        QConstPreservingPointer(InputType *pointer)
+        Q_NODISCARD_CTOR QConstPreservingPointer(InputType *pointer)
             : m_pointer(reinterpret_cast<Storage *>(pointer), Mutable)
         {
             static_assert(alignof(InputType) >= alignof(Storage));
         }
 
-        QConstPreservingPointer() = default;
+        Q_NODISCARD_CTOR QConstPreservingPointer() = default;
 
         const Type *constPointer() const
         {
@@ -97,6 +61,14 @@ namespace QtPrivate {
             return m_pointer.tag() == Mutable ? reinterpret_cast<Type *>(m_pointer.data()) : nullptr;
         }
     };
+
+    enum class SynthesizedAccessFunction: quint8
+    {
+        IterableSize,
+        SequenceAt
+    };
+
+    Q_CORE_EXPORT void warnSynthesizedIterableAccess(SynthesizedAccessFunction function);
 }
 
 template<class Iterator, typename IteratorCategory>
@@ -106,29 +78,33 @@ public:
     using iterator_category = IteratorCategory;
     QTaggedIterator(Iterator &&it) : Iterator(std::move(it))
     {
-        const QMetaContainer metaContainer = this->metaContainer();
-        if (std::is_base_of_v<std::random_access_iterator_tag, IteratorCategory>
-                && !metaContainer.hasRandomAccessIterator()) {
-            qFatal("You cannot use this iterator as a random access iterator");
-            this->clearIterator();
+        [[maybe_unused]] const auto metaContainer = this->metaContainer();
+        if constexpr (std::is_base_of_v<std::random_access_iterator_tag, IteratorCategory>) {
+            if (!metaContainer.hasRandomAccessIterator()) {
+                qFatal("You cannot use this iterator as a random access iterator");
+                this->clearIterator();
+            }
         }
 
-        if (std::is_base_of_v<std::bidirectional_iterator_tag, IteratorCategory>
-                && !metaContainer.hasBidirectionalIterator()) {
-            qFatal("You cannot use this iterator as a bidirectional iterator");
-            this->clearIterator();
+        if constexpr (std::is_base_of_v<std::bidirectional_iterator_tag, IteratorCategory>) {
+            if (!metaContainer.hasBidirectionalIterator()) {
+                qFatal("You cannot use this iterator as a bidirectional iterator");
+                this->clearIterator();
+            }
         }
 
-        if (std::is_base_of_v<std::forward_iterator_tag, IteratorCategory>
-                && !metaContainer.hasForwardIterator()) {
-            qFatal("You cannot use this iterator as a forward iterator");
-            this->clearIterator();
+        if constexpr (std::is_base_of_v<std::forward_iterator_tag, IteratorCategory>) {
+            if (!metaContainer.hasForwardIterator()) {
+                qFatal("You cannot use this iterator as a forward iterator");
+                this->clearIterator();
+            }
         }
 
-        if (std::is_base_of_v<std::input_iterator_tag, IteratorCategory>
-                && !metaContainer.hasInputIterator()) {
-            qFatal("You cannot use this iterator as an input iterator");
-            this->clearIterator();
+        if constexpr (std::is_base_of_v<std::input_iterator_tag, IteratorCategory>) {
+            if (!metaContainer.hasInputIterator()) {
+                qFatal("You cannot use this iterator as an input iterator");
+                this->clearIterator();
+            }
         }
     }
 
@@ -526,6 +502,14 @@ public:
         const void *container = constIterable();
         if (m_metaContainer.hasSize())
             return m_metaContainer.size(container);
+
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0)
+        // We shouldn't second-guess the underlying container, so we're not synthesizing a size.
+        return -1;
+#else
+        QtPrivate::warnSynthesizedIterableAccess(
+                QtPrivate::SynthesizedAccessFunction::IterableSize);
+
         if (!m_metaContainer.hasConstIterator())
             return -1;
 
@@ -535,6 +519,12 @@ public:
         m_metaContainer.destroyConstIterator(begin);
         m_metaContainer.destroyConstIterator(end);
         return size;
+#endif
+    }
+
+    void clear()
+    {
+        m_metaContainer.clear(mutableIterable());
     }
 
     Container metaContainer() const

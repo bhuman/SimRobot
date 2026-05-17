@@ -1,1 +1,1 @@
-#include "qopenglvertexarrayobject.h"
+#include <QtOpenGL/qopenglvertexarrayobject.h> // IWYU pragma: export

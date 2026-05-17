@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QPROPERTYPRIVATE_H
 #define QPROPERTYPRIVATE_H
@@ -54,6 +19,8 @@
 #include <QtCore/qglobal.h>
 #include <QtCore/qtaggedpointer.h>
 #include <QtCore/qmetatype.h>
+#include <QtCore/qcontainerfwd.h>
+#include <QtCore/qttypetraits.h>
 
 #include <functional>
 
@@ -64,13 +31,20 @@ class QBindingStorage;
 template<typename Class, typename T, auto Offset, auto Setter, auto Signal, auto Getter>
 class QObjectCompatProperty;
 
+class QPropertyBindingPrivatePtr;
+using PendingBindingObserverList = QVarLengthArray<QPropertyBindingPrivatePtr>;
+
 namespace QtPrivate {
 // QPropertyBindingPrivatePtr operates on a RefCountingMixin solely so that we can inline
 // the constructor and copy constructor
 struct RefCounted {
+
+    int refCount() const { return ref; }
+    void addRef() { ++ref; }
+    bool deref() { return --ref != 0; }
+
+private:
     int ref = 0;
-    void addRef() {++ref;}
-    bool deref() {--ref; return ref;}
 };
 }
 
@@ -93,7 +67,7 @@ public:
     QPropertyBindingPrivatePtr() noexcept : d(nullptr) { }
     ~QPropertyBindingPrivatePtr()
     {
-        if (d && (--d->ref == 0))
+        if (d && !d->deref())
             destroyAndFreeMemory();
     }
     Q_CORE_EXPORT void destroyAndFreeMemory();
@@ -114,7 +88,7 @@ public:
         reset(o);
         return *this;
     }
-    QPropertyBindingPrivatePtr(QPropertyBindingPrivatePtr &&o) noexcept : d(qExchange(o.d, nullptr)) {}
+    QPropertyBindingPrivatePtr(QPropertyBindingPrivatePtr &&o) noexcept : d(std::exchange(o.d, nullptr)) {}
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QPropertyBindingPrivatePtr)
 
     operator bool () const noexcept { return d != nullptr; }
@@ -123,42 +97,37 @@ public:
     void swap(QPropertyBindingPrivatePtr &other) noexcept
     { qt_ptr_swap(d, other.d); }
 
-    friend bool operator==(const QPropertyBindingPrivatePtr &p1, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return p1.d == p2.d; }
-    friend bool operator!=(const QPropertyBindingPrivatePtr &p1, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return p1.d != p2.d; }
-    friend bool operator==(const QPropertyBindingPrivatePtr &p1, const T *ptr) noexcept
-    { return p1.d == ptr; }
-    friend bool operator!=(const QPropertyBindingPrivatePtr &p1, const T *ptr) noexcept
-    { return p1.d != ptr; }
-    friend bool operator==(const T *ptr, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return ptr == p2.d; }
-    friend bool operator!=(const T *ptr, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return ptr != p2.d; }
-    friend bool operator==(const QPropertyBindingPrivatePtr &p1, std::nullptr_t) noexcept
-    { return !p1; }
-    friend bool operator!=(const QPropertyBindingPrivatePtr &p1, std::nullptr_t) noexcept
-    { return p1; }
-    friend bool operator==(std::nullptr_t, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return !p2; }
-    friend bool operator!=(std::nullptr_t, const QPropertyBindingPrivatePtr &p2) noexcept
-    { return p2; }
-
 private:
+    friend bool comparesEqual(const QPropertyBindingPrivatePtr &lhs,
+                              const QPropertyBindingPrivatePtr &rhs) noexcept
+    { return lhs.d == rhs.d; }
+    Q_DECLARE_EQUALITY_COMPARABLE(QPropertyBindingPrivatePtr)
+    friend bool comparesEqual(const QPropertyBindingPrivatePtr &lhs,
+                              const T *rhs) noexcept
+    { return lhs.d == rhs; }
+    Q_DECLARE_EQUALITY_COMPARABLE(QPropertyBindingPrivatePtr, T*)
+    friend bool comparesEqual(const QPropertyBindingPrivatePtr &lhs,
+                              std::nullptr_t) noexcept
+    { return !lhs; }
+    Q_DECLARE_EQUALITY_COMPARABLE(QPropertyBindingPrivatePtr, std::nullptr_t)
+
     QtPrivate::RefCounted *d;
 };
 
 class QUntypedPropertyBinding;
 class QPropertyBindingPrivate;
 struct QPropertyBindingDataPointer;
+class QPropertyObserver;
 struct QPropertyObserverPointer;
 
 class QUntypedPropertyData
 {
-public:
-    // sentinel to check whether a class inherits QUntypedPropertyData
-    struct InheritsQUntypedPropertyData {};
 };
+
+namespace QtPrivate {
+template <typename T>
+using IsUntypedPropertyData = std::enable_if_t<std::is_base_of_v<QUntypedPropertyData, T>, bool>;
+}
 
 template <typename T>
 class QPropertyData;
@@ -225,8 +194,7 @@ struct BindingFunctionVTable
                     return true;
                 } else {
                     // Our code will never instantiate this
-                    Q_UNREACHABLE();
-                    return false;
+                    Q_UNREACHABLE_RETURN(false);
                 }
             },
             /*destroy*/[](void *f){ static_cast<Callable *>(f)->~Callable(); },
@@ -335,17 +303,23 @@ private:
     {
         quintptr &d = d_ptr;
         if (isNotificationDelayed())
-            return reinterpret_cast<QPropertyProxyBindingData *>(d_ptr & ~(BindingBit|DelayedNotificationBit))->d_ptr;
+            return proxyData()->d_ptr;
         return d;
     }
     quintptr d() const { return d_ref(); }
+    QPropertyProxyBindingData *proxyData() const
+    {
+        Q_ASSERT(isNotificationDelayed());
+        return reinterpret_cast<QPropertyProxyBindingData *>(d_ptr & ~(BindingBit|DelayedNotificationBit));
+    }
     void registerWithCurrentlyEvaluatingBinding_helper(BindingEvaluationState *currentBinding) const;
     void removeBinding_helper();
 
     enum NotificationResult { Delayed, Evaluated };
     NotificationResult notifyObserver_helper(
-            QUntypedPropertyData *propertyDataPtr, QPropertyObserverPointer observer,
-            QBindingStorage *storage) const;
+            QUntypedPropertyData *propertyDataPtr, QBindingStorage *storage,
+            QPropertyObserverPointer observer,
+            PendingBindingObserverList &bindingObservers) const;
 };
 
 template <typename T, typename Tag>

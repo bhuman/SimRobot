@@ -1,1 +1,1 @@
-#include "qcborarray.h"
+#include <QtCore/qcborarray.h> // IWYU pragma: export

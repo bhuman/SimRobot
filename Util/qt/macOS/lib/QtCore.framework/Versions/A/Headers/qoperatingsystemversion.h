@@ -1,49 +1,21 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #include <QtCore/qglobal.h>
+#include <QtCore/qcompare.h>
 #include <QtCore/qversionnumber.h>
 
 #ifndef QOPERATINGSYSTEMVERSION_H
 #define QOPERATINGSYSTEMVERSION_H
 
 QT_BEGIN_NAMESPACE
+
+#if 0
+#  pragma qt_class(QOperatingSystemVersionBase)
+#  pragma qt_class(QOperatingSystemVersion)
+#  pragma qt_sync_stop_processing       // we have some ifdef'ery fooling syncqt
+#endif
 
 class QString;
 
@@ -59,7 +31,8 @@ public:
         IOS,
         TvOS,
         WatchOS,
-        Android
+        Android,
+        VisionOS,
     };
 
     constexpr QOperatingSystemVersionBase(OSType osType,
@@ -86,6 +59,8 @@ public:
         return TvOS;
 #elif defined(Q_OS_WATCHOS)
         return WatchOS;
+#elif defined(Q_OS_VISIONOS)
+        return VisionOS;
 #elif defined(Q_OS_ANDROID)
         return Android;
 #else
@@ -109,26 +84,43 @@ public:
     constexpr OSType type() const { return m_os; }
     inline QString name() const { return name(*this); }
 
-    friend bool operator>(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs)
-    { return lhs.type() == rhs.type() && QOperatingSystemVersionBase::compare(lhs, rhs) > 0; }
-
-    friend bool operator>=(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs)
-    { return lhs.type() == rhs.type() && QOperatingSystemVersionBase::compare(lhs, rhs) >= 0; }
-
-    friend bool operator<(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs)
-    { return lhs.type() == rhs.type() && QOperatingSystemVersionBase::compare(lhs, rhs) < 0; }
-
-    friend bool operator<=(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs)
-    { return lhs.type() == rhs.type() && QOperatingSystemVersionBase::compare(lhs, rhs) <= 0; }
-
 protected:
     static Q_CORE_EXPORT int compare(QOperatingSystemVersionBase v1,
-                                     QOperatingSystemVersionBase v2);
+                                     QOperatingSystemVersionBase v2) noexcept;
+
+    friend Qt::partial_ordering compareThreeWay(const QOperatingSystemVersionBase &lhs,
+                                                const QOperatingSystemVersionBase &rhs) noexcept
+    {
+        if (lhs.type() != rhs.type())
+            return Qt::partial_ordering::unordered;
+        const int res = QOperatingSystemVersionBase::compare(lhs, rhs);
+        return Qt::compareThreeWay(res, 0);
+    }
+#ifdef __cpp_lib_three_way_comparison
+    friend std::partial_ordering
+    operator<=>(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs) noexcept
+    { return compareThreeWay(lhs, rhs); }
+#else
+    friend bool
+    operator>(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs) noexcept
+    { return is_gt(compareThreeWay(lhs, rhs)); }
+
+    friend bool
+    operator>=(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs) noexcept
+    { return is_gteq(compareThreeWay(lhs, rhs)); }
+
+    friend bool
+    operator<(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs) noexcept
+    { return is_lt(compareThreeWay(lhs, rhs)); }
+
+    friend bool
+    operator<=(QOperatingSystemVersionBase lhs, QOperatingSystemVersionBase rhs) noexcept
+    { return is_lteq(compareThreeWay(lhs, rhs)); }
+#endif
 
     QOperatingSystemVersionBase() = default;
 private:
     static QOperatingSystemVersionBase current_impl();
-
 
     OSType m_os;
     int m_major;
@@ -136,12 +128,38 @@ private:
     int m_micro;
 };
 
-// ### Qt 7: Un-export the class, export relevant functions. Remove the enum.
-class Q_CORE_EXPORT QOperatingSystemVersion : public QOperatingSystemVersionBase
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED) && !defined(Q_QDOC)
+class QOperatingSystemVersionUnexported : public QOperatingSystemVersionBase
 {
 public:
+    using QOperatingSystemVersionBase::QOperatingSystemVersionBase;
+    constexpr QOperatingSystemVersionUnexported(QOperatingSystemVersionBase other) noexcept
+        : QOperatingSystemVersionBase(other) {}
+#else
+class QOperatingSystemVersion : public QOperatingSystemVersionBase
+{
+    using QOperatingSystemVersionUnexported = QOperatingSystemVersionBase;
+public:
+#endif
+
+    // ### Qt7: Regroup with the rest below
+    static constexpr QOperatingSystemVersionBase MacOSSonoma { QOperatingSystemVersionBase::MacOS, 14 };
+    static constexpr QOperatingSystemVersionBase MacOSSequoia { QOperatingSystemVersionBase::MacOS, 15 };
+    static constexpr QOperatingSystemVersionBase MacOSTahoe { QOperatingSystemVersionBase::MacOS, 26 };
+    static constexpr QOperatingSystemVersionBase Android14 { QOperatingSystemVersionBase::Android, 14, 0 };
+    static constexpr QOperatingSystemVersionBase Windows11_23H2 { QOperatingSystemVersionBase::Windows, 10, 0, 22631 };
+    static constexpr QOperatingSystemVersionBase Windows11_24H2 { QOperatingSystemVersionBase::Windows, 10, 0, 26100 };
+    static constexpr QOperatingSystemVersionBase Windows11_25H2 { QOperatingSystemVersionBase::Windows, 10, 0, 26200 };
+
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED) && !defined(Q_QDOC)
+};
+
+class Q_CORE_EXPORT QOperatingSystemVersion : public QOperatingSystemVersionUnexported
+{
+#endif
+public:
     // ### Qt7: Remove. Keep synchronized with QOperatingSystemVersionBase::OSType until then!
-#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED)
     enum OSType {
         Unknown = 0,
         Windows,
@@ -149,16 +167,15 @@ public:
         IOS,
         TvOS,
         WatchOS,
-        Android
+        Android,
+        VisionOS,
     };
 #endif
 
-    // ### Qt7: remove the branch with static const variables. Then group and sort the inline ones.
-    // Since the exported variables emit symbols they cannot be cherry-picked back to patch-releases
-    // without breaking our BC promises. They must be fully inline but we cannot make that change
-    // until Qt7
-    // @note: New entries should be added after the if-def-ery until Qt 7!!
-#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
+    // ### Qt7: remove the branch with static const variables. Then group and
+    // sort the inline ones. Until then, new entries should be added to
+    // QOperatingSystemVersionUnexported.
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED)
     static const QOperatingSystemVersion Windows7;
     static const QOperatingSystemVersion Windows8;
     static const QOperatingSystemVersion Windows8_1;
@@ -201,12 +218,8 @@ public:
     static constexpr QOperatingSystemVersionBase MacOSHighSierra { QOperatingSystemVersionBase::MacOS, 10, 13 };
     static constexpr QOperatingSystemVersionBase MacOSMojave { QOperatingSystemVersionBase::MacOS, 10, 14 };
     static constexpr QOperatingSystemVersionBase MacOSCatalina { QOperatingSystemVersionBase::MacOS, 10, 15 };
-#if !defined(Q_OS_DARWIN) || QT_MACOS_PLATFORM_SDK_EQUAL_OR_ABOVE(__MAC_11_0)
-    static constexpr QOperatingSystemVersionBase MacOSBigSur = { QOperatingSystemVersionBase::MacOS, 11, 0 };
-    static constexpr QOperatingSystemVersionBase MacOSMonterey = { QOperatingSystemVersionBase::MacOS, 12, 0 };
-#else // ### Qt 7: Verify the assumption
-#   error Either you are using an outdated SDK or my assumption that Qt7 would require at least 11.0 was wrong
-#endif
+    static constexpr QOperatingSystemVersionBase MacOSBigSur = { QOperatingSystemVersionBase::MacOS, 11 };
+    static constexpr QOperatingSystemVersionBase MacOSMonterey = { QOperatingSystemVersionBase::MacOS, 12 };
 
     static constexpr QOperatingSystemVersionBase AndroidJellyBean { QOperatingSystemVersionBase::Android, 4, 1 };
     static constexpr QOperatingSystemVersionBase AndroidJellyBean_MR1 { QOperatingSystemVersionBase::Android, 4, 2 };
@@ -222,7 +235,7 @@ public:
     static constexpr QOperatingSystemVersionBase AndroidPie { QOperatingSystemVersionBase::Android, 9, 0 };
     static constexpr QOperatingSystemVersionBase Android10 { QOperatingSystemVersionBase::Android, 10, 0 };
     static constexpr QOperatingSystemVersionBase Android11 { QOperatingSystemVersionBase::Android, 11, 0 };
-#endif // New (static constexpr) entries go here, only cherry-pick as far back as 6.3 (QTBUG-97808):
+#endif
 
     static constexpr QOperatingSystemVersionBase Windows10_1809 { QOperatingSystemVersionBase::Windows, 10, 0, 17763 }; // RS5
     static constexpr QOperatingSystemVersionBase Windows10_1903 { QOperatingSystemVersionBase::Windows, 10, 0, 18362 }; // 19H1
@@ -231,17 +244,27 @@ public:
     static constexpr QOperatingSystemVersionBase Windows10_20H2 { QOperatingSystemVersionBase::Windows, 10, 0, 19042 };
     static constexpr QOperatingSystemVersionBase Windows10_21H1 { QOperatingSystemVersionBase::Windows, 10, 0, 19043 };
     static constexpr QOperatingSystemVersionBase Windows10_21H2 { QOperatingSystemVersionBase::Windows, 10, 0, 19044 };
+    static constexpr QOperatingSystemVersionBase Windows10_22H2 { QOperatingSystemVersionBase::Windows, 10, 0, 19045 };
     static constexpr QOperatingSystemVersionBase Windows11 { QOperatingSystemVersionBase::Windows, 10, 0, 22000 };
+    static constexpr QOperatingSystemVersionBase Windows11_21H2 = Windows11;
+    static constexpr QOperatingSystemVersionBase Windows11_22H2 { QOperatingSystemVersionBase::Windows, 10, 0, 22621 };
+
+    static constexpr QOperatingSystemVersionBase Android12 { QOperatingSystemVersionBase::Android, 12, 0 };
+    static constexpr QOperatingSystemVersionBase Android12L { QOperatingSystemVersionBase::Android, 12, 0 };
+    static constexpr QOperatingSystemVersionBase Android13 { QOperatingSystemVersionBase::Android, 13, 0 };
+
+    static constexpr QOperatingSystemVersionBase MacOSVentura { QOperatingSystemVersionBase::MacOS, 13 };
 
     constexpr QOperatingSystemVersion(const QOperatingSystemVersionBase &osversion)
-        : QOperatingSystemVersionBase(osversion) {}
+        : QOperatingSystemVersionUnexported(osversion) {}
 
     constexpr QOperatingSystemVersion(OSType osType, int vmajor, int vminor = -1, int vmicro = -1)
-        : QOperatingSystemVersionBase(QOperatingSystemVersionBase::OSType(osType), vmajor, vminor,
+        : QOperatingSystemVersionUnexported(QOperatingSystemVersionBase::OSType(osType), vmajor, vminor,
                                       vmicro)
     {
     }
 
+    QT_CORE_INLINE_SINCE(6, 3)
     static QOperatingSystemVersion current();
 
     static constexpr OSType currentType()
@@ -249,6 +272,7 @@ public:
         return OSType(QOperatingSystemVersionBase::currentType());
     }
 
+#if QT_CORE_REMOVED_SINCE(6, 3) || defined(Q_QDOC)
     QVersionNumber version() const { return QOperatingSystemVersionBase::version(); }
 
     constexpr int majorVersion() const { return QOperatingSystemVersionBase::majorVersion(); }
@@ -257,10 +281,13 @@ public:
 
     constexpr int segmentCount() const
     { return QOperatingSystemVersionBase::segmentCount(); }
+#endif // QT_CORE_REMOVED_SINCE(6, 3)
 
     constexpr OSType type() const { return OSType(QOperatingSystemVersionBase::type()); }
-    bool isAnyOfType(std::initializer_list<OSType> types) const;
+    QT7_ONLY(Q_CORE_EXPORT) bool isAnyOfType(std::initializer_list<OSType> types) const;
+#if QT_CORE_REMOVED_SINCE(6, 3) || defined(Q_QDOC)
     QString name() const;
+#endif
 
 private:
     QOperatingSystemVersion() = default;
@@ -277,6 +304,13 @@ Q_DECLARE_TYPEINFO(QOperatingSystemVersion, Q_PRIMITIVE_TYPE);
 class QDebug;
 Q_CORE_EXPORT QDebug operator<<(QDebug debug, const QOperatingSystemVersion &ov);
 #endif
+
+#if QT_CORE_INLINE_IMPL_SINCE(6, 3)
+QOperatingSystemVersion QOperatingSystemVersion::current()
+{
+    return QOperatingSystemVersionBase::current();
+}
+#endif // QT_CORE_INLINE_IMPL_SINCE(6, 3)
 
 QT_END_NAMESPACE
 

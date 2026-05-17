@@ -1,1 +1,1 @@
-#include "qfontdatabase.h"
+#include <QtGui/qfontdatabase.h> // IWYU pragma: export

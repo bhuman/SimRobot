@@ -1,1 +1,1 @@
-#include "qtimer.h"
+#include <QtCore/qtimer.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qdir.h"
+#include <QtCore/qdir.h> // IWYU pragma: export

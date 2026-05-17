@@ -1,55 +1,22 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QHASH_H
 #define QHASH_H
 
+#include <QtCore/qalgorithms.h>
 #include <QtCore/qcontainertools_impl.h>
 #include <QtCore/qhashfunctions.h>
 #include <QtCore/qiterator.h>
 #include <QtCore/qlist.h>
-#include <QtCore/qmath.h>
 #include <QtCore/qrefcount.h>
+#include <QtCore/qttypetraits.h>
 
 #include <initializer_list>
 #include <functional> // for std::hash
+#include <QtCore/q20type_traits.h>
 
 class tst_QHash; // for befriending
 
@@ -57,7 +24,13 @@ QT_BEGIN_NAMESPACE
 
 struct QHashDummyValue
 {
-    bool operator==(const QHashDummyValue &) const noexcept { return true; }
+    explicit QHashDummyValue() = default;
+    friend constexpr bool operator==(QHashDummyValue, QHashDummyValue) noexcept { return true; }
+#ifndef __cpp_impl_three_way_comparison
+    friend constexpr bool operator!=(QHashDummyValue, QHashDummyValue) noexcept { return false; }
+#endif
+    friend constexpr size_t qHash(QHashDummyValue) noexcept = delete;
+    friend constexpr size_t qHash(QHashDummyValue, size_t) noexcept = delete;
 };
 
 namespace QHashPrivate {
@@ -97,7 +70,7 @@ size_t calculateHash(const T &t, size_t seed = 0)
         Q_UNUSED(seed);
         return std::hash<T>()(t);
     } else {
-        static_assert(sizeof(T) == 0, "The key type must have a qHash overload or a std::hash specialization");
+        static_assert(QtPrivate::type_dependent_false<T>(), "The key type must have a qHash overload or a std::hash specialization");
         return 0;
     }
 }
@@ -121,7 +94,7 @@ struct Node
     {
         value = T(std::forward<Args>(args)...);
     }
-    T &&takeValue() noexcept(std::is_nothrow_move_assignable_v<T>)
+    T &&takeValue() noexcept
     {
         return std::move(value);
     }
@@ -144,7 +117,7 @@ struct Node<Key, QHashDummyValue> {
     void emplaceValue(Args &&...)
     {
     }
-    ValueType takeValue() { return QHashDummyValue(); }
+    ValueType takeValue() noexcept { return QHashDummyValue(); }
     bool valuesEqual(const Node *) const { return true; }
 };
 
@@ -207,8 +180,8 @@ struct MultiNode
     {}
 
     MultiNode(MultiNode &&other)
-        : key(other.key),
-          value(qExchange(other.value, nullptr))
+        : key(std::move(other.key)),
+          value(std::exchange(other.value, nullptr))
     {
     }
 
@@ -239,7 +212,7 @@ struct MultiNode
     void insertMulti(Args &&... args)
     {
         Chain *e = new Chain{ T(std::forward<Args>(args)...), nullptr };
-        e->next = qExchange(value, e);
+        e->next = std::exchange(value, e);
     }
     template<typename ...Args>
     void emplaceValue(Args &&... args)
@@ -249,10 +222,18 @@ struct MultiNode
 };
 
 template<typename  Node>
-constexpr bool isRelocatable()
-{
-    return QTypeInfo<typename Node::KeyType>::isRelocatable && QTypeInfo<typename Node::ValueType>::isRelocatable;
-}
+inline constexpr bool isRelocatable_v =
+        QTypeInfo<typename Node::KeyType>::isRelocatable &&
+        QTypeInfo<typename Node::ValueType>::isRelocatable;
+
+struct SpanConstants {
+    static constexpr size_t SpanShift = 7;
+    static constexpr size_t NEntries = (1 << SpanShift);
+    static constexpr size_t LocalBucketMask = (NEntries - 1);
+    static constexpr size_t UnusedEntry = 0xff;
+
+    static_assert ((NEntries & LocalBucketMask) == 0, "NEntries must be a power of two.");
+};
 
 // Regular hash tables consist of a list of buckets that can store Nodes. But simply allocating one large array of buckets
 // would waste a lot of memory. To avoid this, we split the vector of buckets up into a vector of Spans. Each Span represents
@@ -264,13 +245,6 @@ constexpr bool isRelocatable()
 // table have a very small memory overhead compared to many other implementations.
 template<typename Node>
 struct Span {
-    enum {
-        NEntries = 128,
-        LocalBucketMask = (NEntries - 1),
-        UnusedEntry = 0xff
-    };
-    static_assert ((NEntries & LocalBucketMask) == 0, "EntriesPerSpan must be a power of two.");
-
     // Entry is a slot available for storing a Node. The Span holds a pointer to
     // an array of Entries. Upon construction of the array, those entries are
     // unused, and nextFree() is being used to set up a singly linked list
@@ -284,13 +258,13 @@ struct Span {
         Node &node() { return *reinterpret_cast<Node *>(&storage); }
     };
 
-    unsigned char offsets[NEntries];
+    unsigned char offsets[SpanConstants::NEntries];
     Entry *entries = nullptr;
     unsigned char allocated = 0;
     unsigned char nextFree = 0;
     Span() noexcept
     {
-        memset(offsets, UnusedEntry, sizeof(offsets));
+        memset(offsets, SpanConstants::UnusedEntry, sizeof(offsets));
     }
     ~Span()
     {
@@ -301,7 +275,7 @@ struct Span {
         if (entries) {
             if constexpr (!std::is_trivially_destructible<Node>::value) {
                 for (auto o : offsets) {
-                    if (o != UnusedEntry)
+                    if (o != SpanConstants::UnusedEntry)
                         entries[o].node().~Node();
                 }
             }
@@ -311,8 +285,8 @@ struct Span {
     }
     Node *insert(size_t i)
     {
-        Q_ASSERT(i < NEntries);
-        Q_ASSERT(offsets[i] == UnusedEntry);
+        Q_ASSERT(i < SpanConstants::NEntries);
+        Q_ASSERT(offsets[i] == SpanConstants::UnusedEntry);
         if (nextFree == allocated)
             addStorage();
         unsigned char entry = nextFree;
@@ -323,11 +297,11 @@ struct Span {
     }
     void erase(size_t bucket) noexcept(std::is_nothrow_destructible<Node>::value)
     {
-        Q_ASSERT(bucket < NEntries);
-        Q_ASSERT(offsets[bucket] != UnusedEntry);
+        Q_ASSERT(bucket < SpanConstants::NEntries);
+        Q_ASSERT(offsets[bucket] != SpanConstants::UnusedEntry);
 
         unsigned char entry = offsets[bucket];
-        offsets[bucket] = UnusedEntry;
+        offsets[bucket] = SpanConstants::UnusedEntry;
 
         entries[entry].node().~Node();
         entries[entry].nextFree() = nextFree;
@@ -339,19 +313,19 @@ struct Span {
     }
     bool hasNode(size_t i) const noexcept
     {
-        return (offsets[i] != UnusedEntry);
+        return (offsets[i] != SpanConstants::UnusedEntry);
     }
     Node &at(size_t i) noexcept
     {
-        Q_ASSERT(i < NEntries);
-        Q_ASSERT(offsets[i] != UnusedEntry);
+        Q_ASSERT(i < SpanConstants::NEntries);
+        Q_ASSERT(offsets[i] != SpanConstants::UnusedEntry);
 
         return entries[offsets[i]].node();
     }
     const Node &at(size_t i) const noexcept
     {
-        Q_ASSERT(i < NEntries);
-        Q_ASSERT(offsets[i] != UnusedEntry);
+        Q_ASSERT(i < SpanConstants::NEntries);
+        Q_ASSERT(offsets[i] != SpanConstants::UnusedEntry);
 
         return entries[offsets[i]].node();
     }
@@ -369,17 +343,17 @@ struct Span {
     }
     void moveLocal(size_t from, size_t to) noexcept
     {
-        Q_ASSERT(offsets[from] != UnusedEntry);
-        Q_ASSERT(offsets[to] == UnusedEntry);
+        Q_ASSERT(offsets[from] != SpanConstants::UnusedEntry);
+        Q_ASSERT(offsets[to] == SpanConstants::UnusedEntry);
         offsets[to] = offsets[from];
-        offsets[from] = UnusedEntry;
+        offsets[from] = SpanConstants::UnusedEntry;
     }
     void moveFromSpan(Span &fromSpan, size_t fromIndex, size_t to) noexcept(std::is_nothrow_move_constructible_v<Node>)
     {
-        Q_ASSERT(to < NEntries);
-        Q_ASSERT(offsets[to] == UnusedEntry);
-        Q_ASSERT(fromIndex < NEntries);
-        Q_ASSERT(fromSpan.offsets[fromIndex] != UnusedEntry);
+        Q_ASSERT(to < SpanConstants::NEntries);
+        Q_ASSERT(offsets[to] == SpanConstants::UnusedEntry);
+        Q_ASSERT(fromIndex < SpanConstants::NEntries);
+        Q_ASSERT(fromSpan.offsets[fromIndex] != SpanConstants::UnusedEntry);
         if (nextFree == allocated)
             addStorage();
         Q_ASSERT(nextFree < allocated);
@@ -388,10 +362,10 @@ struct Span {
         nextFree = toEntry.nextFree();
 
         size_t fromOffset = fromSpan.offsets[fromIndex];
-        fromSpan.offsets[fromIndex] = UnusedEntry;
+        fromSpan.offsets[fromIndex] = SpanConstants::UnusedEntry;
         Entry &fromEntry = fromSpan.entries[fromOffset];
 
-        if constexpr (isRelocatable<Node>()) {
+        if constexpr (isRelocatable_v<Node>) {
             memcpy(&toEntry, &fromEntry, sizeof(Entry));
         } else {
             new (&toEntry.node()) Node(std::move(fromEntry.node()));
@@ -403,19 +377,32 @@ struct Span {
 
     void addStorage()
     {
-        Q_ASSERT(allocated < NEntries);
+        Q_ASSERT(allocated < SpanConstants::NEntries);
         Q_ASSERT(nextFree == allocated);
         // the hash table should always be between 25 and 50% full
         // this implies that we on average have between 32 and 64 entries
-        // in here. The likelihood of having below 16 entries is very small,
-        // so start with that and increment by 16 each time we need to add
-        // some more space
-        const size_t increment = NEntries / 8;
-        size_t alloc = allocated + increment;
+        // in here. More exactly, we have a binominal distribution of the amount of
+        // occupied entries.
+        // For a 25% filled table, the average is 32 entries, with a 95% chance that we have between
+        // 23 and 41 entries.
+        // For a 50% filled table, the average is 64 entries, with a 95% chance that we have between
+        // 53 and 75 entries.
+        // Since we only resize the table once it's 50% filled and we want to avoid copies of
+        // data where possible, we initially allocate 48 entries, then resize to 80 entries, after that
+        // resize by increments of 16. That way, we usually only get one resize of the table
+        // while filling it.
+        size_t alloc;
+        static_assert(SpanConstants::NEntries % 8 == 0);
+        if (!allocated)
+            alloc = SpanConstants::NEntries / 8 * 3;
+        else if (allocated == SpanConstants::NEntries / 8 * 3)
+            alloc = SpanConstants::NEntries / 8 * 5;
+        else
+            alloc = allocated + SpanConstants::NEntries/8;
         Entry *newEntries = new Entry[alloc];
         // we only add storage if the previous storage was fully filled, so
         // simply copy the old data over
-        if constexpr (isRelocatable<Node>()) {
+        if constexpr (isRelocatable_v<Node>) {
             if (allocated)
                 memcpy(newEntries, entries, allocated * sizeof(Entry));
         } else {
@@ -424,7 +411,7 @@ struct Span {
                 entries[i].node().~Node();
             }
         }
-        for (size_t i = allocated; i < allocated + increment; ++i) {
+        for (size_t i = allocated; i < alloc; ++i) {
             newEntries[i].nextFree() = uchar(i + 1);
         }
         delete[] entries;
@@ -435,28 +422,25 @@ struct Span {
 
 // QHash uses a power of two growth policy.
 namespace GrowthPolicy {
-inline constexpr size_t maxNumBuckets() noexcept
-{
-    // ensure the size of a Span does not depend on the template parameters
-    using Node1 = Node<int, int>;
-    using Node2 = Node<char, void *>;
-    using Node3 = Node<qsizetype, QHashDummyValue>;
-    static_assert(sizeof(Span<Node1>) == sizeof(Span<Node2>));
-    static_assert(sizeof(Span<Node1>) == sizeof(Span<Node3>));
-    static_assert(int(Span<Node1>::NEntries) == int(Span<Node2>::NEntries));
-    static_assert(int(Span<Node1>::NEntries) == int(Span<Node3>::NEntries));
-
-    // Maximum is 2^31-1 or 2^63-1 bytes (limited by qsizetype and ptrdiff_t)
-    size_t max = (std::numeric_limits<ptrdiff_t>::max)();
-    return max / sizeof(Span<Node1>) * Span<Node1>::NEntries;
-}
 inline constexpr size_t bucketsForCapacity(size_t requestedCapacity) noexcept
 {
-    if (requestedCapacity <= 8)
-        return 16;
-    if (requestedCapacity >= maxNumBuckets())
-        return maxNumBuckets();
-    return qNextPowerOfTwo(QIntegerForSize<sizeof(size_t)>::Unsigned(2 * requestedCapacity - 1));
+    constexpr int SizeDigits = std::numeric_limits<size_t>::digits;
+
+    // We want to use at minimum a full span (128 entries), so we hardcode it for any requested
+    // capacity <= 64. Any capacity above that gets rounded to a later power of two.
+    if (requestedCapacity <= 64)
+        return SpanConstants::NEntries;
+
+    // Same as
+    //    qNextPowerOfTwo(2 * requestedCapacity);
+    //
+    // but ensuring neither our multiplication nor the function overflow.
+    // Additionally, the maximum memory allocation is 2^31-1 or 2^63-1 bytes
+    // (limited by qsizetype and ptrdiff_t).
+    int count = qCountLeadingZeroBits(requestedCapacity);
+    if (count < 2)
+        return (std::numeric_limits<size_t>::max)();    // will cause std::bad_alloc
+    return size_t(1) << (SizeDigits - count + 1);
 }
 inline constexpr size_t bucketForHash(size_t nBuckets, size_t hash) noexcept
 {
@@ -479,29 +463,123 @@ struct Data
     size_t size = 0;
     size_t numBuckets = 0;
     size_t seed = 0;
-
-
     Span *spans = nullptr;
+
+    static constexpr size_t maxNumBuckets() noexcept
+    {
+        return (std::numeric_limits<ptrdiff_t>::max)() / sizeof(Span);
+    }
+
+    struct Bucket {
+        Span *span;
+        size_t index;
+
+        Bucket(Span *s, size_t i) noexcept
+            : span(s), index(i)
+        {}
+        Bucket(const Data *d, size_t bucket) noexcept
+            : span(d->spans + (bucket >> SpanConstants::SpanShift)),
+            index(bucket & SpanConstants::LocalBucketMask)
+        {}
+        Bucket(iterator it) noexcept
+            : Bucket(it.d, it.bucket)
+        {}
+
+        size_t toBucketIndex(const Data *d) const noexcept
+        {
+            return ((span - d->spans) << SpanConstants::SpanShift) | index;
+        }
+        iterator toIterator(const Data *d) const noexcept { return iterator{d, toBucketIndex(d)}; }
+        void advanceWrapped(const Data *d) noexcept
+        {
+            advance_impl(d, d->spans);
+        }
+        void advance(const Data *d) noexcept
+        {
+            advance_impl(d, nullptr);
+        }
+        bool isUnused() const noexcept
+        {
+            return !span->hasNode(index);
+        }
+        size_t offset() const noexcept
+        {
+            return span->offset(index);
+        }
+        Node &nodeAtOffset(size_t offset)
+        {
+            return span->atOffset(offset);
+        }
+        Node *node()
+        {
+            return &span->at(index);
+        }
+        Node *insert() const
+        {
+            return span->insert(index);
+        }
+
+    private:
+        friend bool operator==(Bucket lhs, Bucket rhs) noexcept
+        {
+            return lhs.span == rhs.span && lhs.index == rhs.index;
+        }
+        friend bool operator!=(Bucket lhs, Bucket rhs) noexcept { return !(lhs == rhs); }
+
+        void advance_impl(const Data *d, Span *whenAtEnd) noexcept
+        {
+            Q_ASSERT(span);
+            ++index;
+            if (Q_UNLIKELY(index == SpanConstants::NEntries)) {
+                index = 0;
+                ++span;
+                if (span - d->spans == ptrdiff_t(d->numBuckets >> SpanConstants::SpanShift))
+                    span = whenAtEnd;
+            }
+        }
+    };
+
+    static auto allocateSpans(size_t numBuckets)
+    {
+        struct R {
+            Span *spans;
+            size_t nSpans;
+        };
+
+        constexpr qptrdiff MaxSpanCount = (std::numeric_limits<qptrdiff>::max)() / sizeof(Span);
+        constexpr size_t MaxBucketCount = MaxSpanCount << SpanConstants::SpanShift;
+
+        if (numBuckets > MaxBucketCount) {
+            Q_CHECK_PTR(false);
+            Q_UNREACHABLE();    // no exceptions and no assertions -> no error reporting
+        }
+
+        size_t nSpans = numBuckets >> SpanConstants::SpanShift;
+        return R{ new Span[nSpans], nSpans };
+    }
 
     Data(size_t reserve = 0)
     {
         numBuckets = GrowthPolicy::bucketsForCapacity(reserve);
-        size_t nSpans = (numBuckets + Span::LocalBucketMask) / Span::NEntries;
-        spans = new Span[nSpans];
+        spans = allocateSpans(numBuckets).spans;
         seed = QHashSeed::globalSeed();
     }
 
-    void reallocationHelper(const Data &other, size_t nSpans, bool resized)
+    // The Resized parameter is a template param to make sure the compiler will get rid of the
+    // branch, for performance.
+    template <bool Resized>
+    Q_ALWAYS_INLINE
+    void reallocationHelper(const Data &other, size_t nSpans)
     {
         for (size_t s = 0; s < nSpans; ++s) {
             const Span &span = other.spans[s];
-            for (size_t index = 0; index < Span::NEntries; ++index) {
+            for (size_t index = 0; index < SpanConstants::NEntries; ++index) {
                 if (!span.hasNode(index))
                     continue;
                 const Node &n = span.at(index);
-                iterator it = resized ? find(n.key) : iterator { this, s * Span::NEntries + index };
+                auto it = Resized ? findBucket(n.key) : Bucket { spans + s, index };
                 Q_ASSERT(it.isUnused());
-                Node *newNode = spans[it.span()].insert(it.index());
+                Node *newNode = it.insert();
                 new (newNode) Node(n);
             }
         }
@@ -509,17 +587,16 @@ struct Data
 
     Data(const Data &other) : size(other.size), numBuckets(other.numBuckets), seed(other.seed)
     {
-        size_t nSpans = (numBuckets + Span::LocalBucketMask) / Span::NEntries;
-        spans = new Span[nSpans];
-        reallocationHelper(other, nSpans, false);
+        auto r = allocateSpans(numBuckets);
+        spans = r.spans;
+        reallocationHelper<false>(other, r.nSpans);
     }
     Data(const Data &other, size_t reserved) : size(other.size), seed(other.seed)
     {
         numBuckets = GrowthPolicy::bucketsForCapacity(qMax(size, reserved));
-        size_t nSpans = (numBuckets + Span::LocalBucketMask) / Span::NEntries;
-        spans = new Span[nSpans];
-        size_t otherNSpans = (other.numBuckets + Span::LocalBucketMask) / Span::NEntries;
-        reallocationHelper(other, otherNSpans, true);
+        spans = allocateSpans(numBuckets).spans;
+        size_t otherNSpans = other.numBuckets >> SpanConstants::SpanShift;
+        reallocationHelper<true>(other, otherNSpans);
     }
 
     static Data *detached(Data *d)
@@ -575,20 +652,19 @@ struct Data
 
         Span *oldSpans = spans;
         size_t oldBucketCount = numBuckets;
-        size_t nSpans = (newBucketCount + Span::LocalBucketMask) / Span::NEntries;
-        spans = new Span[nSpans];
+        spans = allocateSpans(newBucketCount).spans;
         numBuckets = newBucketCount;
-        size_t oldNSpans = (oldBucketCount + Span::LocalBucketMask) / Span::NEntries;
+        size_t oldNSpans = oldBucketCount >> SpanConstants::SpanShift;
 
         for (size_t s = 0; s < oldNSpans; ++s) {
             Span &span = oldSpans[s];
-            for (size_t index = 0; index < Span::NEntries; ++index) {
+            for (size_t index = 0; index < SpanConstants::NEntries; ++index) {
                 if (!span.hasNode(index))
                     continue;
                 Node &n = span.at(index);
-                iterator it = find(n.key);
+                auto it = findBucket(n.key);
                 Q_ASSERT(it.isUnused());
-                Node *newNode = spans[it.span()].insert(it.index());
+                Node *newNode = it.insert();
                 new (newNode) Node(std::move(n));
             }
             span.freeData();
@@ -613,39 +689,39 @@ struct Data
         return size >= (numBuckets >> 1);
     }
 
-    iterator find(const Key &key) const noexcept
+    template <typename K> Bucket findBucket(const K &key) const noexcept
     {
-        Q_ASSERT(numBuckets > 0);
         size_t hash = QHashPrivate::calculateHash(key, seed);
-        size_t bucket = GrowthPolicy::bucketForHash(numBuckets, hash);
+        return findBucketWithHash(key, hash);
+    }
+
+    template <typename K> Bucket findBucketWithHash(const K &key, size_t hash) const noexcept
+    {
+        static_assert(std::is_same_v<std::remove_cv_t<Key>, K> ||
+                QHashHeterogeneousSearch<std::remove_cv_t<Key>, K>::value);
+        Q_ASSERT(numBuckets > 0);
+        Bucket bucket(this, GrowthPolicy::bucketForHash(numBuckets, hash));
         // loop over the buckets until we find the entry we search for
         // or an empty slot, in which case we know the entry doesn't exist
         while (true) {
-            // Split the bucket into the indexex of span array, and the local
-            // offset inside the span
-            size_t span = bucket / Span::NEntries;
-            size_t index = bucket & Span::LocalBucketMask;
-            Span &s = spans[span];
-            size_t offset = s.offset(index);
-            if (offset == Span::UnusedEntry) {
-                return iterator{ this, bucket };
+            size_t offset = bucket.offset();
+            if (offset == SpanConstants::UnusedEntry) {
+                return bucket;
             } else {
-                Node &n = s.atOffset(offset);
+                Node &n = bucket.nodeAtOffset(offset);
                 if (qHashEquals(n.key, key))
-                    return iterator{ this, bucket };
+                    return bucket;
             }
-            bucket = nextBucket(bucket);
+            bucket.advanceWrapped(this);
         }
     }
 
-    Node *findNode(const Key &key) const noexcept
+    template <typename K> Node *findNode(const K &key) const noexcept
     {
-        if (!size)
+        auto bucket = findBucket(key);
+        if (bucket.isUnused())
             return nullptr;
-        iterator it = find(key);
-        if (it.isUnused())
-            return nullptr;
-        return it.node();
+        return bucket.node();
     }
 
     struct InsertionResult
@@ -654,70 +730,59 @@ struct Data
         bool initialized;
     };
 
-    InsertionResult findOrInsert(const Key &key) noexcept
+    template <typename K> InsertionResult findOrInsert(const K &key) noexcept
     {
-        iterator it;
+        Bucket it(static_cast<Span *>(nullptr), 0);
+        size_t hash = QHashPrivate::calculateHash(key, seed);
         if (numBuckets > 0) {
-            it = find(key);
+            it = findBucketWithHash(key, hash);
             if (!it.isUnused())
-                return { it, true };
+                return { it.toIterator(this), true };
         }
         if (shouldGrow()) {
             rehash(size + 1);
-            it = find(key); // need to get a new iterator after rehashing
+            it = findBucketWithHash(key, hash); // need to get a new iterator after rehashing
         }
-        Q_ASSERT(it.d);
+        Q_ASSERT(it.span != nullptr);
         Q_ASSERT(it.isUnused());
-        spans[it.span()].insert(it.index());
+        it.insert();
         ++size;
-        return { it, false };
+        return { it.toIterator(this), false };
     }
 
-    iterator erase(iterator it) noexcept(std::is_nothrow_destructible<Node>::value)
+    void erase(Bucket bucket) noexcept(std::is_nothrow_destructible<Node>::value)
     {
-        size_t bucket = it.bucket;
-        size_t span = bucket / Span::NEntries;
-        size_t index = bucket & Span::LocalBucketMask;
-        Q_ASSERT(spans[span].hasNode(index));
-        spans[span].erase(index);
+        Q_ASSERT(bucket.span->hasNode(bucket.index));
+        bucket.span->erase(bucket.index);
         --size;
 
         // re-insert the following entries to avoid holes
-        size_t hole = bucket;
-        size_t next = bucket;
+        Bucket next = bucket;
         while (true) {
-            next = nextBucket(next);
-            size_t nextSpan = next / Span::NEntries;
-            size_t nextIndex = next & Span::LocalBucketMask;
-            if (!spans[nextSpan].hasNode(nextIndex))
-                break;
-            size_t hash = QHashPrivate::calculateHash(spans[nextSpan].at(nextIndex).key, seed);
-            size_t newBucket = GrowthPolicy::bucketForHash(numBuckets, hash);
+            next.advanceWrapped(this);
+            size_t offset = next.offset();
+            if (offset == SpanConstants::UnusedEntry)
+                return;
+            size_t hash = QHashPrivate::calculateHash(next.nodeAtOffset(offset).key, seed);
+            Bucket newBucket(this, GrowthPolicy::bucketForHash(numBuckets, hash));
             while (true) {
                 if (newBucket == next) {
                     // nothing to do, item is at the right plae
                     break;
-                } else if (newBucket == hole) {
-                    // move into hole
-                    size_t holeSpan = hole / Span::NEntries;
-                    size_t holeIndex = hole & Span::LocalBucketMask;
-                    if (nextSpan == holeSpan) {
-                        spans[holeSpan].moveLocal(nextIndex, holeIndex);
+                } else if (newBucket == bucket) {
+                    // move into the hole we created earlier
+                    if (next.span == bucket.span) {
+                        bucket.span->moveLocal(next.index, bucket.index);
                     } else {
                         // move between spans, more expensive
-                        spans[holeSpan].moveFromSpan(spans[nextSpan], nextIndex, holeIndex);
+                        bucket.span->moveFromSpan(*next.span, next.index, bucket.index);
                     }
-                    hole = next;
+                    bucket = next;
                     break;
                 }
-                newBucket = nextBucket(newBucket);
+                newBucket.advanceWrapped(this);
             }
         }
-
-        // return correct position of the next element
-        if (bucket == numBuckets - 1 || !spans[span].hasNode(index))
-            ++it;
-        return it;
     }
 
     ~Data()
@@ -733,8 +798,8 @@ struct iterator {
     const Data<Node> *d = nullptr;
     size_t bucket = 0;
 
-    size_t span() const noexcept { return bucket / Span::NEntries; }
-    size_t index() const noexcept { return bucket & Span::LocalBucketMask; }
+    size_t span() const noexcept { return bucket >> SpanConstants::SpanShift; }
+    size_t index() const noexcept { return bucket & SpanConstants::LocalBucketMask; }
     inline bool isUnused() const noexcept { return !d->spans[span()].hasNode(index()); }
 
     inline Node *node() const noexcept
@@ -764,7 +829,12 @@ struct iterator {
     { return !(*this == other); }
 };
 
-
+template <typename HashKey, typename KeyArgument>
+using HeterogenousConstructProxy = std::conditional_t<
+        std::is_same_v<HashKey, q20::remove_cvref_t<KeyArgument>>,
+        KeyArgument, // HashKey == KeyArg w/ potential modifiers, so we keep modifiers
+        HashKey
+    >;
 
 } // namespace QHashPrivate
 
@@ -846,38 +916,53 @@ public:
         : QHash()
     {
         QtPrivate::reserveIfForwardIterator(this, f, l);
-        for (; f != l; ++f)
-            insert(f->first, f->second);
+        for (; f != l; ++f) {
+            auto &&e = *f;
+            using V = decltype(e);
+            insert(std::forward<V>(e).first, std::forward<V>(e).second);
+        }
     }
 #endif
     void swap(QHash &other) noexcept { qt_ptr_swap(d, other.d); }
 
-#ifndef Q_CLANG_QDOC
-    template <typename AKey = Key, typename AT = T>
-    QTypeTraits::compare_eq_result_container<QHash, AKey, AT> operator==(const QHash &other) const noexcept
+    class const_iterator;
+
+#ifndef Q_QDOC
+private:
+    static bool compareIterators(const const_iterator &lhs, const const_iterator &rhs)
     {
-        if (d == other.d)
+        return lhs.i.node()->valuesEqual(rhs.i.node());
+    }
+
+    template <typename AKey = Key, typename AT = T,
+              QTypeTraits::compare_eq_result_container<QHash, AKey, AT> = true>
+    friend bool comparesEqual(const QHash &lhs, const QHash &rhs) noexcept
+    {
+        if (lhs.d == rhs.d)
             return true;
-        if (size() != other.size())
+        if (lhs.size() != rhs.size())
             return false;
 
-        for (const_iterator it = other.begin(); it != other.end(); ++it) {
-            const_iterator i = find(it.key());
-            if (i == end() || !i.i.node()->valuesEqual(it.i.node()))
+        for (const_iterator it = rhs.begin(); it != rhs.end(); ++it) {
+            const_iterator i = lhs.find(it.key());
+            if (i == lhs.end() || !compareIterators(i, it))
                 return false;
         }
         // all values must be the same as size is the same
         return true;
     }
-    template <typename AKey = Key, typename AT = T>
-    QTypeTraits::compare_eq_result_container<QHash, AKey, AT> operator!=(const QHash &other) const noexcept
-    { return !(*this == other); }
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QHash, QHash, /* non-constexpr */, noexcept,
+                     template <typename AKey = Key, typename AT = T,
+                               QTypeTraits::compare_eq_result_container<QHash, AKey, AT> = true>)
+public:
 #else
-    bool operator==(const QHash &other) const;
-    bool operator!=(const QHash &other) const;
-#endif // Q_CLANG_QDOC
+    friend bool operator==(const QHash &lhs, const QHash &rhs) noexcept;
+    friend bool operator!=(const QHash &lhs, const QHash &rhs) noexcept;
+#endif // Q_QDOC
 
     inline qsizetype size() const noexcept { return d ? qsizetype(d->size) : 0; }
+
+    [[nodiscard]]
     inline bool isEmpty() const noexcept { return !d || d->size == 0; }
 
     inline qsizetype capacity() const noexcept { return d ? qsizetype(d->numBuckets >> 1) : 0; }
@@ -910,37 +995,56 @@ public:
 
     bool remove(const Key &key)
     {
+        return removeImpl(key);
+    }
+private:
+    template <typename K> bool removeImpl(const K &key)
+    {
         if (isEmpty()) // prevents detaching shared null
             return false;
-        auto it = d->find(key);
-        detach();
-        it = d->detachedIterator(it);
-
+        auto it = d->findBucket(key);
         if (it.isUnused())
             return false;
+
+        size_t bucket = it.toBucketIndex(d);
+        detach();
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
+
         d->erase(it);
         return true;
     }
+
+public:
     template <typename Predicate>
     qsizetype removeIf(Predicate pred)
     {
         return QtPrivate::associative_erase_if(*this, pred);
     }
+
     T take(const Key &key)
+    {
+        return takeImpl(key);
+    }
+private:
+    template <typename K> T takeImpl(const K &key)
     {
         if (isEmpty()) // prevents detaching shared null
             return T();
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
         detach();
-        it = d->detachedIterator(it);
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
 
         if (it.isUnused())
             return T();
-        T value = it.node()->takeValue();
-        d->erase(it);
-        return value;
+        return [&] {
+            T value = it.node()->takeValue();
+            d->erase(it);
+            return value;
+        }();
     }
 
+public:
     bool contains(const Key &key) const noexcept
     {
         if (!d)
@@ -984,7 +1088,8 @@ public:
     }
 
 private:
-    T *valueImpl(const Key &key) const noexcept
+    template <typename K>
+    T *valueImpl(const K &key) const noexcept
     {
         if (d) {
             Node *n = d->findNode(key);
@@ -1012,13 +1117,7 @@ public:
 
     T &operator[](const Key &key)
     {
-        const auto copy = isDetached() ? QHash() : *this; // keep 'key' alive across the detach
-        detach();
-        auto result = d->findOrInsert(key);
-        Q_ASSERT(!result.it.atEnd());
-        if (!result.initialized)
-            Node::createInPlace(result.it.node(), key, T());
-        return result.it.node()->value;
+        return *tryEmplace(key).iterator;
     }
 
     const T operator[](const Key &key) const noexcept
@@ -1039,8 +1138,6 @@ public:
         return res;
     }
     QList<T> values() const { return QList<T>(begin(), end()); }
-
-    class const_iterator;
 
     class iterator
     {
@@ -1152,7 +1249,7 @@ public:
     typedef QKeyValueIterator<const Key&, T&, iterator> key_value_iterator;
 
     // STL style
-    inline iterator begin() { detach(); return iterator(d->begin()); }
+    inline iterator begin() { if (!d) return iterator(); detach(); return iterator(d->begin()); }
     inline const_iterator begin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
     inline const_iterator cbegin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
     inline const_iterator constBegin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
@@ -1168,6 +1265,34 @@ public:
     inline const_key_value_iterator constKeyValueBegin() const noexcept { return const_key_value_iterator(begin()); }
     inline const_key_value_iterator keyValueEnd() const noexcept { return const_key_value_iterator(end()); }
     inline const_key_value_iterator constKeyValueEnd() const noexcept { return const_key_value_iterator(end()); }
+    auto asKeyValueRange() & { return QtPrivate::QKeyValueRange<QHash &>(*this); }
+    auto asKeyValueRange() const & { return QtPrivate::QKeyValueRange<const QHash &>(*this); }
+    auto asKeyValueRange() && { return QtPrivate::QKeyValueRange<QHash>(std::move(*this)); }
+    auto asKeyValueRange() const && { return QtPrivate::QKeyValueRange<QHash>(std::move(*this)); }
+
+    struct TryEmplaceResult
+    {
+        QHash::iterator iterator;
+        bool inserted;
+
+        TryEmplaceResult() = default;
+        // Generated SMFs are fine!
+        TryEmplaceResult(QHash::iterator it, bool b)
+            : iterator(it), inserted(b)
+        {
+        }
+
+        // Implicit conversion _from_ the return-type of try_emplace:
+        Q_IMPLICIT TryEmplaceResult(const std::pair<key_value_iterator, bool> &p)
+            : iterator(p.first.base()), inserted(p.second)
+        {
+        }
+        // Implicit conversion _to_ the return-type of try_emplace:
+        Q_IMPLICIT operator std::pair<key_value_iterator, bool>()
+        {
+            return { key_value_iterator(iterator), inserted };
+        }
+    };
 
     iterator erase(const_iterator it)
     {
@@ -1175,59 +1300,89 @@ public:
         detach();
         // ensure a valid iterator across the detach:
         iterator i = iterator{d->detachedIterator(it.i)};
+        typename Data::Bucket bucket(i.i);
 
-        i.i = d->erase(i.i);
+        d->erase(bucket);
+        if (bucket.toBucketIndex(d) == d->numBuckets - 1 || bucket.isUnused())
+            ++i;
         return i;
     }
 
-    QPair<iterator, iterator> equal_range(const Key &key)
+    std::pair<iterator, iterator> equal_range(const Key &key)
     {
-        auto first = find(key);
+        return equal_range_impl(*this, key);
+    }
+    std::pair<const_iterator, const_iterator> equal_range(const Key &key) const noexcept
+    {
+        return equal_range_impl(*this, key);
+    }
+private:
+    template <typename Hash, typename K> static auto equal_range_impl(Hash &self, const K &key)
+    {
+        auto first = self.find(key);
         auto second = first;
-        if (second != iterator())
+        if (second != decltype(first){})
             ++second;
-        return qMakePair(first, second);
+        return std::make_pair(first, second);
     }
 
-    QPair<const_iterator, const_iterator> equal_range(const Key &key) const noexcept
+    template <typename K> iterator findImpl(const K &key)
     {
-        auto first = find(key);
-        auto second = first;
-        if (second != iterator())
-            ++second;
-        return qMakePair(first, second);
+        if (isEmpty()) // prevents detaching shared null
+            return end();
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
+        detach();
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
+        if (it.isUnused())
+            return end();
+        return iterator(it.toIterator(d));
+    }
+    template <typename K> const_iterator constFindImpl(const K &key) const noexcept
+    {
+        if (isEmpty())
+            return end();
+        auto it = d->findBucket(key);
+        if (it.isUnused())
+            return end();
+        return const_iterator({d, it.toBucketIndex(d)});
     }
 
+public:
     typedef iterator Iterator;
     typedef const_iterator ConstIterator;
     inline qsizetype count() const noexcept { return d ? qsizetype(d->size) : 0; }
     iterator find(const Key &key)
     {
-        if (isEmpty()) // prevents detaching shared null
-            return end();
-        auto it = d->find(key);
-        detach();
-        it = d->detachedIterator(it);
-        if (it.isUnused())
-            it = d->end();
-        return iterator(it);
+        return findImpl(key);
     }
     const_iterator find(const Key &key) const noexcept
     {
-        if (isEmpty())
-            return end();
-        auto it = d->find(key);
-        if (it.isUnused())
-            it = d->end();
-        return const_iterator(it);
+        return constFindImpl(key);
     }
     const_iterator constFind(const Key &key) const noexcept
     {
         return find(key);
     }
+
     iterator insert(const Key &key, const T &value)
     {
         return emplace(key, value);
+    }
+
+    iterator insert(const Key &key, T &&value)
+    {
+        return emplace(key, std::move(value));
+    }
+
+    iterator insert(Key &&key, const T &value)
+    {
+        return emplace(std::move(key), value);
+    }
+
+    iterator insert(Key &&key, T &&value)
+    {
+        return emplace(std::move(key), std::move(value));
     }
 
     void insert(const QHash &hash)
@@ -1266,11 +1421,125 @@ public:
         return emplace_helper(std::move(key), std::forward<Args>(args)...);
     }
 
+    template <typename... Args>
+    TryEmplaceResult tryEmplace(const Key &key, Args &&...args)
+    {
+        return tryEmplace_impl(key, std::forward<Args>(args)...);
+    }
+    template <typename... Args>
+    TryEmplaceResult tryEmplace(Key &&key, Args &&...args)
+    {
+        return tryEmplace_impl(std::move(key), std::forward<Args>(args)...);
+    }
+
+    TryEmplaceResult tryInsert(const Key &key, const T &value)
+    {
+        return tryEmplace_impl(key, value);
+    }
+
+    template <typename... Args>
+    std::pair<key_value_iterator, bool> try_emplace(const Key &key, Args &&...args)
+    {
+        return tryEmplace_impl(key, std::forward<Args>(args)...);
+    }
+    template <typename... Args>
+    std::pair<key_value_iterator, bool> try_emplace(Key &&key, Args &&...args)
+    {
+        return tryEmplace_impl(std::move(key), std::forward<Args>(args)...);
+    }
+    template <typename... Args>
+    key_value_iterator try_emplace(const_iterator /*hint*/, const Key &key, Args &&...args)
+    {
+        return key_value_iterator(tryEmplace_impl(key, std::forward<Args>(args)...).iterator);
+    }
+    template <typename... Args>
+    key_value_iterator try_emplace(const_iterator /*hint*/, Key &&key, Args &&...args)
+    {
+        return key_value_iterator(tryEmplace_impl(std::move(key), std::forward<Args>(args)...).iterator);
+    }
+
+private:
+    template <typename K, typename... Args>
+    TryEmplaceResult tryEmplace_impl(K &&key, Args &&...args)
+    {
+        if (!d)
+            detach();
+        QHash detachGuard;
+
+        size_t hash = QHashPrivate::calculateHash(key, d->seed);
+        typename Data::Bucket bucket = d->findBucketWithHash(key, hash);
+        const bool shouldInsert = bucket.isUnused();
+
+        // Even if we don't insert we may have to detach because we are
+        // returning a non-const iterator:
+        if (!isDetached() || (shouldInsert && d->shouldGrow())) {
+            detachGuard = *this;
+            const bool resized = shouldInsert && d->shouldGrow();
+            const size_t bucketIndex = bucket.toBucketIndex(d);
+
+            // Must detach from detachGuard
+            d = resized ? Data::detached(d, d->size + 1) : Data::detached(d);
+            bucket = resized ? d->findBucketWithHash(key, hash) : typename Data::Bucket(d, bucketIndex);
+        }
+        if (shouldInsert) {
+            Node *n = bucket.insert();
+            using ConstructProxy = typename QHashPrivate::HeterogenousConstructProxy<Key, K>;
+            Node::createInPlace(n, ConstructProxy(std::forward<K>(key)),
+                                std::forward<Args>(args)...);
+            ++d->size;
+        }
+        return {iterator(bucket.toIterator(d)), shouldInsert};
+    }
+public:
+    template <typename Value>
+    TryEmplaceResult insertOrAssign(const Key &key, Value &&value)
+    {
+        return insertOrAssign_impl(key, std::forward<Value>(value));
+    }
+    template <typename Value>
+    TryEmplaceResult insertOrAssign(Key &&key, Value &&value)
+    {
+        return insertOrAssign_impl(std::move(key), std::forward<Value>(value));
+    }
+    template <typename Value>
+    std::pair<key_value_iterator, bool> insert_or_assign(const Key &key, Value &&value)
+    {
+        return insertOrAssign_impl(key, std::forward<Value>(value));
+    }
+    template <typename Value>
+    std::pair<key_value_iterator, bool> insert_or_assign(Key &&key, Value &&value)
+    {
+        return insertOrAssign_impl(std::move(key), std::forward<Value>(value));
+    }
+    template <typename Value>
+    key_value_iterator insert_or_assign(const_iterator /*hint*/, const Key &key, Value &&value)
+    {
+        return key_value_iterator(insertOrAssign_impl(key, std::forward<Value>(value)).iterator);
+    }
+    template <typename Value>
+    key_value_iterator insert_or_assign(const_iterator /*hint*/, Key &&key, Value &&value)
+    {
+        return key_value_iterator(insertOrAssign_impl(std::move(key), std::forward<Value>(value)).iterator);
+    }
+
+private:
+    template <typename K, typename Value>
+    TryEmplaceResult insertOrAssign_impl(K &&key, Value &&value)
+    {
+        auto r = tryEmplace(std::forward<K>(key), std::forward<Value>(value));
+        if (!r.inserted)
+            *r.iterator = std::forward<Value>(value); // `value` is untouched if we get here
+        return r;
+    }
+
+public:
+
     float load_factor() const noexcept { return d ? d->loadFactor() : 0; }
     static float max_load_factor() noexcept { return 0.5; }
     size_t bucket_count() const noexcept { return d ? d->numBuckets : 0; }
-    static size_t max_bucket_count() noexcept { return QHashPrivate::GrowthPolicy::maxNumBuckets(); }
+    static size_t max_bucket_count() noexcept { return Data::maxNumBuckets(); }
 
+    [[nodiscard]]
     inline bool empty() const noexcept { return isEmpty(); }
 
 private:
@@ -1284,8 +1553,123 @@ private:
             result.it.node()->emplaceValue(std::forward<Args>(args)...);
         return iterator(result.it);
     }
-};
 
+    template <typename K>
+    using if_heterogeneously_searchable = QHashPrivate::if_heterogeneously_searchable_with<Key, K>;
+
+    template <typename K>
+    using if_key_constructible_from = std::enable_if_t<std::is_constructible_v<Key, K>, bool>;
+
+public:
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    bool remove(const K &key)
+    {
+        return removeImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T take(const K &key)
+    {
+        return takeImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    bool contains(const K &key) const
+    {
+        return d ? d->findNode(key) != nullptr : false;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    qsizetype count(const K &key) const
+    {
+        return contains(key) ? 1 : 0;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T value(const K &key) const noexcept
+    {
+        if (auto *v = valueImpl(key))
+            return *v;
+        else
+            return T();
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T value(const K &key, const T &defaultValue) const noexcept
+    {
+        if (auto *v = valueImpl(key))
+            return *v;
+        else
+            return defaultValue;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    T &operator[](const K &key)
+    {
+        return *tryEmplace(key).iterator;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const T operator[](const K &key) const noexcept
+    {
+        return value(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    std::pair<iterator, iterator>
+    equal_range(const K &key)
+    {
+        return equal_range_impl(*this, key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    std::pair<const_iterator, const_iterator>
+    equal_range(const K &key) const noexcept
+    {
+        return equal_range_impl(*this, key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    iterator find(const K &key)
+    {
+        return findImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator find(const K &key) const noexcept
+    {
+        return constFindImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator constFind(const K &key) const noexcept
+    {
+        return find(key);
+    }
+    template <typename K, typename... Args, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    TryEmplaceResult tryEmplace(K &&key, Args &&...args)
+    {
+        return tryEmplace_impl(std::forward<K>(key), std::forward<Args>(args)...);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    TryEmplaceResult tryInsert(K &&key, const T &value)
+    {
+        return tryEmplace_impl(std::forward<K>(key), value);
+    }
+    template <typename K, typename... Args, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    std::pair<key_value_iterator, bool> try_emplace(K &&key, Args &&...args)
+    {
+        return tryEmplace_impl(std::forward<K>(key), std::forward<Args>(args)...);
+    }
+    template <typename K, typename... Args, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    key_value_iterator try_emplace(const_iterator /*hint*/, K &&key, Args &&...args)
+    {
+        return key_value_iterator(tryEmplace_impl(std::forward<K>(key), std::forward<Args>(args)...).iterator);
+    }
+    template <typename K, typename Value, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    TryEmplaceResult insertOrAssign(K &&key, Value &&value)
+    {
+        return insertOrAssign_impl(std::forward<K>(key), std::forward<Value>(value));
+    }
+    template <typename K, typename Value, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    std::pair<key_value_iterator, bool> insert_or_assign(K &&key, Value &&value)
+    {
+        return insertOrAssign_impl(std::forward<K>(key), std::forward<Value>(value));
+    }
+    template <typename K, typename Value, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    key_value_iterator insert_or_assign(const_iterator /*hint*/, K &&key, Value &&value)
+    {
+        return key_value_iterator(insertOrAssign_impl(std::forward<K>(key), std::forward<Value>(value)).iterator);
+    }
+};
 
 
 template <typename Key, typename T>
@@ -1330,8 +1714,11 @@ public:
     QMultiHash(InputIterator f, InputIterator l)
     {
         QtPrivate::reserveIfForwardIterator(this, f, l);
-        for (; f != l; ++f)
-            insert(f->first, f->second);
+        for (; f != l; ++f) {
+            auto &&e = *f;
+            using V = decltype(e);
+            insert(std::forward<V>(e).first, std::forward<V>(e).second);
+        }
     }
 #endif
     QMultiHash(const QMultiHash &other) noexcept
@@ -1363,8 +1750,8 @@ public:
         return *this;
     }
     QMultiHash(QMultiHash &&other) noexcept
-        : d(qExchange(other.d, nullptr)),
-          m_size(qExchange(other.m_size, 0))
+        : d(std::exchange(other.d, nullptr)),
+          m_size(std::exchange(other.m_size, 0))
     {
     }
     QMultiHash &operator=(QMultiHash &&other) noexcept(std::is_nothrow_destructible<Node>::value)
@@ -1389,23 +1776,25 @@ public:
         std::swap(m_size, other.m_size);
     }
 
-#ifndef Q_CLANG_QDOC
-    template <typename AKey = Key, typename AT = T>
-    QTypeTraits::compare_eq_result_container<QMultiHash, AKey, AT> operator==(const QMultiHash &other) const noexcept
+#ifndef Q_QDOC
+private:
+    template <typename AKey = Key, typename AT = T,
+              QTypeTraits::compare_eq_result_container<QMultiHash, AKey, AT> = true>
+    friend bool comparesEqual(const QMultiHash &lhs, const QMultiHash &rhs) noexcept
     {
-        if (d == other.d)
+        if (lhs.d == rhs.d)
             return true;
-        if (m_size != other.m_size)
+        if (lhs.m_size != rhs.m_size)
             return false;
-        if (m_size == 0)
+        if (lhs.m_size == 0)
             return true;
         // equal size, and both non-zero size => d pointers allocated for both
-        Q_ASSERT(d);
-        Q_ASSERT(other.d);
-        if (d->size != other.d->size)
+        Q_ASSERT(lhs.d);
+        Q_ASSERT(rhs.d);
+        if (lhs.d->size != rhs.d->size)
             return false;
-        for (auto it = other.d->begin(); it != other.d->end(); ++it) {
-            auto *n = d->findNode(it.node()->key);
+        for (auto it = rhs.d->begin(); it != rhs.d->end(); ++it) {
+            auto *n = lhs.d->findNode(it.node()->key);
             if (!n)
                 return false;
             Chain *e = it.node()->value;
@@ -1424,16 +1813,18 @@ public:
         // all values must be the same as size is the same
         return true;
     }
-    template <typename AKey = Key, typename AT = T>
-    QTypeTraits::compare_eq_result_container<QMultiHash, AKey, AT> operator!=(const QMultiHash &other) const noexcept
-    { return !(*this == other); }
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QMultiHash, QMultiHash, /* non-constexpr */, noexcept,
+                 template <typename AKey = Key, typename AT = T,
+                           QTypeTraits::compare_eq_result_container<QMultiHash, AKey, AT> = true>)
+public:
 #else
-    bool operator==(const QMultiHash &other) const;
-    bool operator!=(const QMultiHash &other) const;
-#endif // Q_CLANG_QDOC
+    friend bool operator==(const QMultiHash &lhs, const QMultiHash &rhs) noexcept;
+    friend bool operator!=(const QMultiHash &lhs, const QMultiHash &rhs) noexcept;
+#endif // Q_QDOC
 
     inline qsizetype size() const noexcept { return m_size; }
 
+    [[nodiscard]]
     inline bool isEmpty() const noexcept { return !m_size; }
 
     inline qsizetype capacity() const noexcept { return d ? qsizetype(d->numBuckets >> 1) : 0; }
@@ -1463,11 +1854,17 @@ public:
 
     qsizetype remove(const Key &key)
     {
+        return removeImpl(key);
+    }
+private:
+    template <typename K> qsizetype removeImpl(const K &key)
+    {
         if (isEmpty()) // prevents detaching shared null
             return 0;
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
         detach();
-        it = d->detachedIterator(it);
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
 
         if (it.isUnused())
             return 0;
@@ -1477,18 +1874,27 @@ public:
         d->erase(it);
         return n;
     }
+
+public:
     template <typename Predicate>
     qsizetype removeIf(Predicate pred)
     {
         return QtPrivate::associative_erase_if(*this, pred);
     }
+
     T take(const Key &key)
+    {
+        return takeImpl(key);
+    }
+private:
+    template <typename K> T takeImpl(const K &key)
     {
         if (isEmpty()) // prevents detaching shared null
             return T();
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
         detach();
-        it = d->detachedIterator(it);
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
 
         if (it.isUnused())
             return T();
@@ -1507,6 +1913,7 @@ public:
         return t;
     }
 
+public:
     bool contains(const Key &key) const noexcept
     {
         if (!d)
@@ -1546,7 +1953,8 @@ public:
     }
 
 private:
-    T *valueImpl(const Key &key) const noexcept
+    template <typename K>
+    T *valueImpl(const K &key) const noexcept
     {
         if (d) {
             Node *n = d->findNode(key);
@@ -1575,15 +1983,23 @@ public:
 
     T &operator[](const Key &key)
     {
+        return operatorIndexImpl(key);
+    }
+private:
+    template <typename K> T &operatorIndexImpl(const K &key)
+    {
         const auto copy = isDetached() ? QMultiHash() : *this; // keep 'key' alive across the detach
         detach();
         auto result = d->findOrInsert(key);
         Q_ASSERT(!result.it.atEnd());
-        if (!result.initialized)
-            Node::createInPlace(result.it.node(), key, T());
+        if (!result.initialized) {
+            Node::createInPlace(result.it.node(), Key(key), T());
+            ++m_size;
+        }
         return result.it.node()->value->value;
     }
 
+public:
     const T operator[](const Key &key) const noexcept
     {
         return value(key);
@@ -1614,8 +2030,14 @@ public:
         }
         return res;
     }
+
     QList<T> values() const { return QList<T>(begin(), end()); }
     QList<T> values(const Key &key) const
+    {
+        return valuesImpl(key);
+    }
+private:
+    template <typename K> QList<T> valuesImpl(const K &key) const
     {
         QList<T> values;
         if (d) {
@@ -1631,6 +2053,7 @@ public:
         return values;
     }
 
+public:
     class const_iterator;
 
     class iterator
@@ -1764,7 +2187,7 @@ public:
     typedef QKeyValueIterator<const Key&, T&, iterator> key_value_iterator;
 
     // STL style
-    inline iterator begin() { detach(); return iterator(d->begin()); }
+    inline iterator begin() { if (!d) return iterator(); detach(); return iterator(d->begin()); }
     inline const_iterator begin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
     inline const_iterator cbegin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
     inline const_iterator constBegin() const noexcept { return d ? const_iterator(d->begin()): const_iterator(); }
@@ -1780,6 +2203,10 @@ public:
     inline const_key_value_iterator constKeyValueBegin() const noexcept { return const_key_value_iterator(begin()); }
     inline const_key_value_iterator keyValueEnd() const noexcept { return const_key_value_iterator(end()); }
     inline const_key_value_iterator constKeyValueEnd() const noexcept { return const_key_value_iterator(end()); }
+    auto asKeyValueRange() & { return QtPrivate::QKeyValueRange<QMultiHash &>(*this); }
+    auto asKeyValueRange() const & { return QtPrivate::QKeyValueRange<const QMultiHash &>(*this); }
+    auto asKeyValueRange() && { return QtPrivate::QKeyValueRange<QMultiHash>(std::move(*this)); }
+    auto asKeyValueRange() const && { return QtPrivate::QKeyValueRange<QMultiHash>(std::move(*this)); }
 
     iterator detach(const_iterator it)
     {
@@ -1819,7 +2246,12 @@ public:
         if (!next) {
             if (i.e == &i.i.node()->value) {
                 // last remaining entry, erase
-                i = iterator(d->erase(i.i));
+                typename Data::Bucket bucket(i.i);
+                d->erase(bucket);
+                if (bucket.toBucketIndex(d) == d->numBuckets - 1 || bucket.isUnused())
+                    i = iterator(++iter.i);
+                else // 'i' currently has a nullptr chain. So, we must recreate it
+                    i = iterator(bucket.toIterator(d));
             } else {
                 i = iterator(++iter.i);
             }
@@ -1833,34 +2265,62 @@ public:
     typedef iterator Iterator;
     typedef const_iterator ConstIterator;
     inline qsizetype count() const noexcept { return size(); }
-    iterator find(const Key &key)
+
+private:
+    template <typename K> iterator findImpl(const K &key)
     {
         if (isEmpty())
             return end();
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
         detach();
-        it = d->detachedIterator(it);
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
 
         if (it.isUnused())
-            it = d->end();
-        return iterator(it);
+            return end();
+        return iterator(it.toIterator(d));
     }
-    const_iterator find(const Key &key) const noexcept
+    template <typename K> const_iterator constFindImpl(const K &key) const noexcept
     {
-        return constFind(key);
+        if (isEmpty())
+            return end();
+        auto it = d->findBucket(key);
+        if (it.isUnused())
+            return constEnd();
+        return const_iterator(it.toIterator(d));
+    }
+public:
+    iterator find(const Key &key)
+    {
+        return findImpl(key);
     }
     const_iterator constFind(const Key &key) const noexcept
     {
-        if (isEmpty())
-            return end();
-        auto it = d->find(key);
-        if (it.isUnused())
-            it = d->end();
-        return const_iterator(it);
+        return constFindImpl(key);
     }
+    const_iterator find(const Key &key) const noexcept
+    {
+        return constFindImpl(key);
+    }
+
     iterator insert(const Key &key, const T &value)
     {
         return emplace(key, value);
+    }
+
+    iterator insert(const Key &key, T &&value)
+    {
+        return emplace(key, std::move(value));
+    }
+
+    iterator insert(Key &&key, const T &value)
+    {
+        return emplace(std::move(key), value);
+    }
+
+    iterator insert(Key &&key, T &&value)
+    {
+        return emplace(std::move(key), std::move(value));
     }
 
     template <typename ...Args>
@@ -1887,8 +2347,9 @@ public:
     float load_factor() const noexcept { return d ? d->loadFactor() : 0; }
     static float max_load_factor() noexcept { return 0.5; }
     size_t bucket_count() const noexcept { return d ? d->numBuckets : 0; }
-    static size_t max_bucket_count() noexcept { return QHashPrivate::GrowthPolicy::maxNumBuckets(); }
+    static size_t max_bucket_count() noexcept { return Data::maxNumBuckets(); }
 
+    [[nodiscard]]
     inline bool empty() const noexcept { return isEmpty(); }
 
     inline iterator replace(const Key &key, const T &value)
@@ -1923,6 +2384,11 @@ public:
 
     bool contains(const Key &key, const T &value) const noexcept
     {
+        return containsImpl(key, value);
+    }
+private:
+    template <typename K> bool containsImpl(const K &key, const T &value) const noexcept
+    {
         if (isEmpty())
             return false;
         auto n = d->findNode(key);
@@ -1931,13 +2397,20 @@ public:
         return n->value->contains(value);
     }
 
+public:
     qsizetype remove(const Key &key, const T &value)
+    {
+        return removeImpl(key, value);
+    }
+private:
+    template <typename K> qsizetype removeImpl(const K &key, const T &value)
     {
         if (isEmpty()) // prevents detaching shared null
             return 0;
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
+        size_t bucket = it.toBucketIndex(d);
         detach();
-        it = d->detachedIterator(it);
+        it = typename Data::Bucket(d, bucket); // reattach in case of detach
 
         if (it.isUnused())
             return 0;
@@ -1960,11 +2433,17 @@ public:
         return n;
     }
 
+public:
     qsizetype count(const Key &key) const noexcept
+    {
+        return countImpl(key);
+    }
+private:
+    template <typename K> qsizetype countImpl(const K &key) const noexcept
     {
         if (!d)
             return 0;
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
         if (it.isUnused())
             return 0;
         qsizetype n = 0;
@@ -1977,11 +2456,17 @@ public:
         return n;
     }
 
+public:
     qsizetype count(const Key &key, const T &value) const noexcept
+    {
+        return countImpl(key, value);
+    }
+private:
+    template <typename K> qsizetype countImpl(const K &key, const T &value) const noexcept
     {
         if (!d)
             return 0;
-        auto it = d->find(key);
+        auto it = d->findBucket(key);
         if (it.isUnused())
             return 0;
         qsizetype n = 0;
@@ -1995,7 +2480,7 @@ public:
         return n;
     }
 
-    iterator find(const Key &key, const T &value)
+    template <typename K> iterator findImpl(const K &key, const T &value)
     {
         if (isEmpty())
             return end();
@@ -2004,11 +2489,7 @@ public:
         auto it = constFind(key, value);
         return iterator(it.i, it.e);
     }
-    const_iterator find(const Key &key, const T &value) const noexcept
-    {
-        return constFind(key, value);
-    }
-    const_iterator constFind(const Key &key, const T &value) const noexcept
+    template <typename K> const_iterator constFindImpl(const K &key, const T &value) const noexcept
     {
         const_iterator i(constFind(key));
         const_iterator end(constEnd());
@@ -2018,6 +2499,21 @@ public:
             ++i;
         }
         return end;
+    }
+
+public:
+    iterator find(const Key &key, const T &value)
+    {
+        return findImpl(key, value);
+    }
+
+    const_iterator constFind(const Key &key, const T &value) const noexcept
+    {
+        return constFindImpl(key, value);
+    }
+    const_iterator find(const Key &key, const T &value) const noexcept
+    {
+        return constFind(key, value);
     }
 
     QMultiHash &unite(const QMultiHash &other)
@@ -2050,33 +2546,44 @@ public:
         }
         auto it = other.d->begin();
         for (const auto end = other.d->end(); it != end; ++it)
-            emplace(std::move(it.node()->key), std::move(it.node()->takeValue()));
+            emplace(std::move(it.node()->key), it.node()->takeValue());
         other.clear();
         return *this;
     }
 
-    QPair<iterator, iterator> equal_range(const Key &key)
+    std::pair<iterator, iterator> equal_range(const Key &key)
+    {
+        return equal_range_impl(key);
+    }
+private:
+    template <typename K> std::pair<iterator, iterator> equal_range_impl(const K &key)
     {
         const auto copy = isDetached() ? QMultiHash() : *this; // keep 'key' alive across the detach
         detach();
-        auto pair = qAsConst(*this).equal_range(key);
-        return qMakePair(iterator(pair.first.i), iterator(pair.second.i));
+        auto pair = std::as_const(*this).equal_range(key);
+        return {iterator(pair.first.i), iterator(pair.second.i)};
     }
 
-    QPair<const_iterator, const_iterator> equal_range(const Key &key) const noexcept
+public:
+    std::pair<const_iterator, const_iterator> equal_range(const Key &key) const noexcept
+    {
+        return equal_range_impl(key);
+    }
+private:
+    template <typename K> std::pair<const_iterator, const_iterator> equal_range_impl(const K &key) const noexcept
     {
         if (!d)
-            return qMakePair(end(), end());
+            return {end(), end()};
 
-        auto it = d->find(key);
-        if (it.isUnused())
-            return qMakePair(end(), end());
+        auto bucket = d->findBucket(key);
+        if (bucket.isUnused())
+            return {end(), end()};
+        auto it = bucket.toIterator(d);
         auto end = it;
         ++end;
-        return qMakePair(const_iterator(it), const_iterator(end));
+        return {const_iterator(it), const_iterator(end)};
     }
 
-private:
     void detach_helper()
     {
         if (!d) {
@@ -2113,6 +2620,124 @@ private:
         }
         return iterator(result.it);
     }
+
+    template <typename K>
+    using if_heterogeneously_searchable = QHashPrivate::if_heterogeneously_searchable_with<Key, K>;
+
+    template <typename K>
+    using if_key_constructible_from = std::enable_if_t<std::is_constructible_v<Key, K>, bool>;
+
+public:
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    qsizetype remove(const K &key)
+    {
+        return removeImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T take(const K &key)
+    {
+        return takeImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    bool contains(const K &key) const noexcept
+    {
+        if (!d)
+            return false;
+        return d->findNode(key) != nullptr;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T value(const K &key) const noexcept
+    {
+        if (auto *v = valueImpl(key))
+            return *v;
+        else
+            return T();
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    T value(const K &key, const T &defaultValue) const noexcept
+    {
+        if (auto *v = valueImpl(key))
+            return *v;
+        else
+            return defaultValue;
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true, if_key_constructible_from<K> = true>
+    T &operator[](const K &key)
+    {
+        return operatorIndexImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const T operator[](const K &key) const noexcept
+    {
+        return value(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    QList<T> values(const K &key)
+    {
+        return valuesImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    iterator find(const K &key)
+    {
+        return findImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator constFind(const K &key) const noexcept
+    {
+        return constFindImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator find(const K &key) const noexcept
+    {
+        return constFindImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    bool contains(const K &key, const T &value) const noexcept
+    {
+        return containsImpl(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    qsizetype remove(const K &key, const T &value)
+    {
+        return removeImpl(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    qsizetype count(const K &key) const noexcept
+    {
+        return countImpl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    qsizetype count(const K &key, const T &value) const noexcept
+    {
+        return countImpl(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    iterator find(const K &key, const T &value)
+    {
+        return findImpl(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator constFind(const K &key, const T &value) const noexcept
+    {
+        return constFindImpl(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    const_iterator find(const K &key, const T &value) const noexcept
+    {
+        return constFind(key, value);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    std::pair<iterator, iterator>
+    equal_range(const K &key)
+    {
+        return equal_range_impl(key);
+    }
+    template <typename K, if_heterogeneously_searchable<K> = true>
+    std::pair<const_iterator, const_iterator>
+    equal_range(const K &key) const noexcept
+    {
+        return equal_range_impl(key);
+    }
 };
 
 Q_DECLARE_ASSOCIATIVE_FORWARD_ITERATOR(Hash)
@@ -2124,9 +2749,9 @@ template <class Key, class T>
 size_t qHash(const QHash<Key, T> &key, size_t seed = 0)
     noexcept(noexcept(qHash(std::declval<Key&>())) && noexcept(qHash(std::declval<T&>())))
 {
+    const QtPrivate::QHashCombine combine(seed);
     size_t hash = 0;
     for (auto it = key.begin(), end = key.end(); it != end; ++it) {
-        QtPrivate::QHashCombine combine;
         size_t h = combine(seed, it.key());
         // use + to keep the result independent of the ordering of the keys
         hash += combine(h, it.value());
@@ -2138,9 +2763,9 @@ template <class Key, class T>
 inline size_t qHash(const QMultiHash<Key, T> &key, size_t seed = 0)
     noexcept(noexcept(qHash(std::declval<Key&>())) && noexcept(qHash(std::declval<T&>())))
 {
+    const QtPrivate::QHashCombine combine(seed);
     size_t hash = 0;
     for (auto it = key.begin(), end = key.end(); it != end; ++it) {
-        QtPrivate::QHashCombine combine;
         size_t h = combine(seed, it.key());
         // use + to keep the result independent of the ordering of the keys
         hash += combine(h, it.value());

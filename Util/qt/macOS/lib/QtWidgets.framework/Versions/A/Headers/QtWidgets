@@ -1,305 +1,306 @@
 #ifndef QT_QTWIDGETS_MODULE_H
 #define QT_QTWIDGETS_MODULE_H
 #include <QtWidgets/QtWidgetsDepends>
-#include "qtwidgetsglobal.h"
+#include <QtWidgets/qtwidgetsglobal.h>
 #if QT_CONFIG(abstractbutton)
-#include "qabstractbutton.h"
+#include <QtWidgets/qabstractbutton.h>
 #endif
 #if QT_CONFIG(itemviews)
-#include "qabstractitemdelegate.h"
+#include <QtWidgets/qabstractitemdelegate.h>
 #endif
 #if QT_CONFIG(itemviews)
-#include "qabstractitemview.h"
+#include <QtWidgets/qabstractitemview.h>
 #endif
-#include "qabstractscrollarea.h"
+#include <QtWidgets/qabstractscrollarea.h>
 #if QT_CONFIG(abstractslider)
-#include "qabstractslider.h"
+#include <QtWidgets/qabstractslider.h>
 #endif
 #if QT_CONFIG(spinbox)
-#include "qabstractspinbox.h"
+#include <QtWidgets/qabstractspinbox.h>
 #endif
-#include "qaccessiblewidget.h"
-#include "qaction.h"
-#include "qactiongroup.h"
-#include "qapplication.h"
-#include "qboxlayout.h"
+#include <QtWidgets/qaccessiblewidget.h>
+#include <QtWidgets/qaction.h>
+#include <QtWidgets/qactiongroup.h>
+#include <QtWidgets/qapplication.h>
+#include <QtWidgets/qboxlayout.h>
 #if QT_CONFIG(buttongroup)
-#include "qbuttongroup.h"
+#include <QtWidgets/qbuttongroup.h>
 #endif
 #if QT_CONFIG(calendarwidget)
-#include "qcalendarwidget.h"
+#include <QtWidgets/qcalendarwidget.h>
 #endif
 #if QT_CONFIG(checkbox)
-#include "qcheckbox.h"
+#include <QtWidgets/qcheckbox.h>
 #endif
 #if QT_CONFIG(colordialog)
-#include "qcolordialog.h"
+#include <QtWidgets/qcolordialog.h>
 #endif
-#include "qcolormap.h"
+#include <QtWidgets/qcolormap.h>
 #if QT_CONFIG(columnview)
-#include "qcolumnview.h"
+#include <QtWidgets/qcolumnview.h>
 #endif
 #if QT_CONFIG(combobox)
-#include "qcombobox.h"
+#include <QtWidgets/qcombobox.h>
 #endif
 #if QT_CONFIG(commandlinkbutton)
-#include "qcommandlinkbutton.h"
+#include <QtWidgets/qcommandlinkbutton.h>
 #endif
-#include "qcommonstyle.h"
+#include <QtWidgets/qcommonstyle.h>
 #if QT_CONFIG(completer)
-#include "qcompleter.h"
+#include <QtWidgets/qcompleter.h>
 #endif
 #if QT_CONFIG(datawidgetmapper)
-#include "qdatawidgetmapper.h"
+#include <QtWidgets/qdatawidgetmapper.h>
 #endif
 #if QT_CONFIG(datetimeedit)
-#include "qdatetimeedit.h"
+#include <QtWidgets/qdatetimeedit.h>
 #endif
 #if QT_CONFIG(dial)
-#include "qdial.h"
+#include <QtWidgets/qdial.h>
 #endif
 #if QT_CONFIG(dialog)
-#include "qdialog.h"
+#include <QtWidgets/qdialog.h>
 #endif
 #if QT_CONFIG(dialogbuttonbox)
-#include "qdialogbuttonbox.h"
+#include <QtWidgets/qdialogbuttonbox.h>
 #endif
 #if QT_CONFIG(dockwidget)
-#include "qdockwidget.h"
+#include <QtWidgets/qdockwidget.h>
 #endif
-#include "qdrawutil.h"
+#include <QtWidgets/qdrawutil.h>
 #if QT_CONFIG(errormessage)
-#include "qerrormessage.h"
+#include <QtWidgets/qerrormessage.h>
 #endif
 #if QT_CONFIG(filedialog)
-#include "qfiledialog.h"
+#include <QtWidgets/qfiledialog.h>
 #endif
-#include "qfileiconprovider.h"
-#include "qfilesystemmodel.h"
-#include "qfocusframe.h"
+#include <QtWidgets/qfileiconprovider.h>
+#include <QtWidgets/qfilesystemmodel.h>
+#include <QtWidgets/qfocusframe.h>
 #if QT_CONFIG(fontcombobox)
-#include "qfontcombobox.h"
+#include <QtWidgets/qfontcombobox.h>
 #endif
 #if QT_CONFIG(fontdialog)
-#include "qfontdialog.h"
+#include <QtWidgets/qfontdialog.h>
 #endif
 #if QT_CONFIG(formlayout)
-#include "qformlayout.h"
+#include <QtWidgets/qformlayout.h>
 #endif
-#include "qframe.h"
-#include "qgesture.h"
-#include "qgesturerecognizer.h"
+#include <QtWidgets/qframe.h>
+#include <QtWidgets/qgesture.h>
+#include <QtWidgets/qgesturerecognizer.h>
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsanchorlayout.h"
+#include <QtWidgets/qgraphicsanchorlayout.h>
 #endif
 #if QT_CONFIG(graphicseffect)
-#include "qgraphicseffect.h"
+#include <QtWidgets/qgraphicseffect.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsgridlayout.h"
+#include <QtWidgets/qgraphicsgridlayout.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsitem.h"
+#include <QtWidgets/qgraphicsitem.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsitemanimation.h"
+#include <QtWidgets/qgraphicsitemanimation.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicslayout.h"
+#include <QtWidgets/qgraphicslayout.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicslayoutitem.h"
+#include <QtWidgets/qgraphicslayoutitem.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicslinearlayout.h"
+#include <QtWidgets/qgraphicslinearlayout.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsproxywidget.h"
+#include <QtWidgets/qgraphicsproxywidget.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsscene.h"
+#include <QtWidgets/qgraphicsscene.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicssceneevent.h"
+#include <QtWidgets/qgraphicssceneevent.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicstransform.h"
+#include <QtWidgets/qgraphicstransform.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicsview.h"
+#include <QtWidgets/qgraphicsview.h>
 #endif
 #if QT_CONFIG(graphicsview)
-#include "qgraphicswidget.h"
+#include <QtWidgets/qgraphicswidget.h>
 #endif
-#include "qgridlayout.h"
+#include <QtWidgets/qgridlayout.h>
 #if QT_CONFIG(groupbox)
-#include "qgroupbox.h"
+#include <QtWidgets/qgroupbox.h>
 #endif
 #if QT_CONFIG(itemviews)
-#include "qheaderview.h"
+#include <QtWidgets/qheaderview.h>
 #endif
 #if QT_CONFIG(inputdialog)
-#include "qinputdialog.h"
+#include <QtWidgets/qinputdialog.h>
 #endif
 #if QT_CONFIG(itemviews)
-#include "qitemdelegate.h"
+#include <QtWidgets/qitemdelegate.h>
 #endif
 #if QT_CONFIG(itemviews)
-#include "qitemeditorfactory.h"
+#include <QtWidgets/qitemeditorfactory.h>
 #endif
 #if QT_CONFIG(keysequenceedit)
-#include "qkeysequenceedit.h"
+#include <QtWidgets/qkeysequenceedit.h>
 #endif
 #if QT_CONFIG(label)
-#include "qlabel.h"
+#include <QtWidgets/qlabel.h>
 #endif
-#include "qlayout.h"
-#include "qlayoutitem.h"
+#include <QtWidgets/qlayout.h>
+#include <QtWidgets/qlayoutitem.h>
 #if QT_CONFIG(lcdnumber)
-#include "qlcdnumber.h"
+#include <QtWidgets/qlcdnumber.h>
 #endif
 #if QT_CONFIG(lineedit)
-#include "qlineedit.h"
+#include <QtWidgets/qlineedit.h>
 #endif
 #if QT_CONFIG(listview)
-#include "qlistview.h"
+#include <QtWidgets/qlistview.h>
 #endif
 #if QT_CONFIG(listwidget)
-#include "qlistwidget.h"
+#include <QtWidgets/qlistwidget.h>
 #endif
 #if QT_CONFIG(mainwindow)
-#include "qmainwindow.h"
+#include <QtWidgets/qmainwindow.h>
 #endif
 #if QT_CONFIG(mdiarea)
-#include "qmdiarea.h"
+#include <QtWidgets/qmdiarea.h>
 #endif
 #if QT_CONFIG(mdiarea)
-#include "qmdisubwindow.h"
+#include <QtWidgets/qmdisubwindow.h>
 #endif
 #if QT_CONFIG(menu)
-#include "qmenu.h"
+#include <QtWidgets/qmenu.h>
 #endif
 #if QT_CONFIG(menubar)
-#include "qmenubar.h"
+#include <QtWidgets/qmenubar.h>
 #endif
 #if QT_CONFIG(messagebox)
-#include "qmessagebox.h"
+#include <QtWidgets/qmessagebox.h>
 #endif
 #if QT_CONFIG(textedit)
-#include "qplaintextedit.h"
+#include <QtWidgets/qplaintextedit.h>
 #endif
 #if QT_CONFIG(progressbar)
-#include "qprogressbar.h"
+#include <QtWidgets/qprogressbar.h>
 #endif
 #if QT_CONFIG(progressdialog)
-#include "qprogressdialog.h"
+#include <QtWidgets/qprogressdialog.h>
 #endif
-#include "qproxystyle.h"
+#include <QtWidgets/qproxystyle.h>
 #if QT_CONFIG(pushbutton)
-#include "qpushbutton.h"
+#include <QtWidgets/qpushbutton.h>
 #endif
 #if QT_CONFIG(radiobutton)
-#include "qradiobutton.h"
+#include <QtWidgets/qradiobutton.h>
 #endif
+#include <QtWidgets/qrhiwidget.h>
 #if QT_CONFIG(rubberband)
-#include "qrubberband.h"
+#include <QtWidgets/qrubberband.h>
 #endif
 #if QT_CONFIG(scrollarea)
-#include "qscrollarea.h"
+#include <QtWidgets/qscrollarea.h>
 #endif
 #if QT_CONFIG(scrollbar)
-#include "qscrollbar.h"
+#include <QtWidgets/qscrollbar.h>
 #endif
 #if QT_CONFIG(scroller)
-#include "qscroller.h"
+#include <QtWidgets/qscroller.h>
 #endif
 #if QT_CONFIG(scroller)
-#include "qscrollerproperties.h"
+#include <QtWidgets/qscrollerproperties.h>
 #endif
-#include "qshortcut.h"
+#include <QtWidgets/qshortcut.h>
 #if QT_CONFIG(sizegrip)
-#include "qsizegrip.h"
+#include <QtWidgets/qsizegrip.h>
 #endif
-#include "qsizepolicy.h"
+#include <QtWidgets/qsizepolicy.h>
 #if QT_CONFIG(slider)
-#include "qslider.h"
+#include <QtWidgets/qslider.h>
 #endif
 #if QT_CONFIG(spinbox)
-#include "qspinbox.h"
+#include <QtWidgets/qspinbox.h>
 #endif
 #if QT_CONFIG(splashscreen)
-#include "qsplashscreen.h"
+#include <QtWidgets/qsplashscreen.h>
 #endif
 #if QT_CONFIG(splitter)
-#include "qsplitter.h"
+#include <QtWidgets/qsplitter.h>
 #endif
-#include "qstackedlayout.h"
+#include <QtWidgets/qstackedlayout.h>
 #if QT_CONFIG(stackedwidget)
-#include "qstackedwidget.h"
+#include <QtWidgets/qstackedwidget.h>
 #endif
 #if QT_CONFIG(statusbar)
-#include "qstatusbar.h"
+#include <QtWidgets/qstatusbar.h>
 #endif
-#include "qstyle.h"
+#include <QtWidgets/qstyle.h>
 #if QT_CONFIG(itemviews)
-#include "qstyleditemdelegate.h"
+#include <QtWidgets/qstyleditemdelegate.h>
 #endif
-#include "qstylefactory.h"
-#include "qstyleoption.h"
-#include "qstylepainter.h"
-#include "qstyleplugin.h"
-#include "qsystemtrayicon.h"
+#include <QtWidgets/qstylefactory.h>
+#include <QtWidgets/qstyleoption.h>
+#include <QtWidgets/qstylepainter.h>
+#include <QtWidgets/qstyleplugin.h>
+#include <QtWidgets/qsystemtrayicon.h>
 #if QT_CONFIG(tabbar)
-#include "qtabbar.h"
+#include <QtWidgets/qtabbar.h>
 #endif
 #if QT_CONFIG(tableview)
-#include "qtableview.h"
+#include <QtWidgets/qtableview.h>
 #endif
 #if QT_CONFIG(tablewidget)
-#include "qtablewidget.h"
+#include <QtWidgets/qtablewidget.h>
 #endif
 #if QT_CONFIG(tabwidget)
-#include "qtabwidget.h"
+#include <QtWidgets/qtabwidget.h>
 #endif
 #if QT_CONFIG(textbrowser)
-#include "qtextbrowser.h"
+#include <QtWidgets/qtextbrowser.h>
 #endif
 #if QT_CONFIG(textedit)
-#include "qtextedit.h"
+#include <QtWidgets/qtextedit.h>
 #endif
 #if QT_CONFIG(toolbar)
-#include "qtoolbar.h"
+#include <QtWidgets/qtoolbar.h>
 #endif
 #if QT_CONFIG(toolbox)
-#include "qtoolbox.h"
+#include <QtWidgets/qtoolbox.h>
 #endif
 #if QT_CONFIG(toolbutton)
-#include "qtoolbutton.h"
+#include <QtWidgets/qtoolbutton.h>
 #endif
 #if QT_CONFIG(tooltip)
-#include "qtooltip.h"
+#include <QtWidgets/qtooltip.h>
 #endif
 #if QT_CONFIG(treeview)
-#include "qtreeview.h"
+#include <QtWidgets/qtreeview.h>
 #endif
 #if QT_CONFIG(treewidget)
-#include "qtreewidget.h"
+#include <QtWidgets/qtreewidget.h>
 #endif
 #if QT_CONFIG(treewidget)
-#include "qtreewidgetitemiterator.h"
+#include <QtWidgets/qtreewidgetitemiterator.h>
 #endif
+#include <QtWidgets/qtwidgetsversion.h>
 #if QT_CONFIG(undoview)
-#include "qundoview.h"
+#include <QtWidgets/qundoview.h>
 #endif
 #if QT_CONFIG(whatsthis)
-#include "qwhatsthis.h"
+#include <QtWidgets/qwhatsthis.h>
 #endif
-#include "qwidget.h"
+#include <QtWidgets/qwidget.h>
 #if QT_CONFIG(action)
-#include "qwidgetaction.h"
+#include <QtWidgets/qwidgetaction.h>
 #endif
 #if QT_CONFIG(wizard)
-#include "qwizard.h"
+#include <QtWidgets/qwizard.h>
 #endif
-#include "qtwidgetsversion.h"
 #endif

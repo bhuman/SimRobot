@@ -1,55 +1,21 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2016 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2016 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QARRAYDATAOPS_H
 #define QARRAYDATAOPS_H
 
 #include <QtCore/qarraydata.h>
 #include <QtCore/qcontainertools_impl.h>
+#include <QtCore/qnamespace.h>
 
-#include <memory>
+#include <QtCore/q20functional.h>
+#include <QtCore/q20memory.h>
 #include <new>
 #include <string.h>
 #include <utility>
 #include <iterator>
-#include <tuple>
 #include <type_traits>
 
 QT_BEGIN_NAMESPACE
@@ -71,19 +37,7 @@ protected:
 public:
     typedef typename QArrayDataPointer<T>::parameter_type parameter_type;
 
-    void appendInitialize(qsizetype newSize) noexcept
-    {
-        Q_ASSERT(this->isMutable());
-        Q_ASSERT(!this->isShared());
-        Q_ASSERT(newSize > this->size);
-        Q_ASSERT(newSize - this->size <= this->freeSpaceAtEnd());
-
-        T *where = this->end();
-        this->size = newSize;
-        const T *e = this->end();
-        while (where != e)
-            *where++ = T();
-    }
+    using QArrayDataPointer<T>::QArrayDataPointer;
 
     void copyAppend(const T *b, const T *e) noexcept
     {
@@ -121,7 +75,7 @@ public:
     {
         Q_ASSERT(this->isMutable());
         Q_ASSERT(!this->isShared());
-        Q_ASSERT(newSize < size_t(this->size));
+        Q_ASSERT(newSize <= size_t(this->size));
 
         this->size = qsizetype(newSize);
     }
@@ -249,6 +203,51 @@ public:
         --this->size;
     }
 
+    template <typename Predicate>
+    qsizetype eraseIf(Predicate pred)
+    {
+        qsizetype result = 0;
+        if (this->size == 0)
+            return result;
+
+        if (!this->needsDetach()) {
+            auto end = this->end();
+            auto it = std::remove_if(this->begin(), end, pred);
+            if (it != end) {
+                result = std::distance(it, end);
+                erase(it, result);
+            }
+        } else {
+            const auto begin = this->begin();
+            const auto end = this->end();
+            auto it = std::find_if(begin, end, pred);
+            if (it == end)
+                return result;
+
+            QPodArrayOps<T> other(this->size);
+            Q_CHECK_PTR(other.data());
+            auto dest = other.begin();
+            // std::uninitialized_copy will fallback to ::memcpy/memmove()
+            dest = std::uninitialized_copy(begin, it, dest);
+            dest = q_uninitialized_remove_copy_if(std::next(it), end, dest, pred);
+            other.size = std::distance(other.data(), dest);
+            result = this->size - other.size;
+            this->swap(other);
+        }
+        return result;
+    }
+
+    struct Span { T *begin; T *end; };
+
+    void copyRanges(std::initializer_list<Span> ranges)
+    {
+        auto it = this->begin();
+        std::for_each(ranges.begin(), ranges.end(), [&it](const auto &span) {
+            it = std::copy(span.begin, span.end, it);
+        });
+        this->size = std::distance(this->begin(), it);
+    }
+
     void assign(T *b, T *e, parameter_type t) noexcept
     {
         Q_ASSERT(b <= e);
@@ -256,27 +255,6 @@ public:
 
         while (b != e)
             ::memcpy(static_cast<void *>(b++), static_cast<const void *>(&t), sizeof(T));
-    }
-
-    bool compare(const T *begin1, const T *begin2, size_t n) const
-    {
-        // only use memcmp for fundamental types or pointers.
-        // Other types could have padding in the data structure or custom comparison
-        // operators that would break the comparison using memcmp
-        if constexpr (QArrayDataPointer<T>::pass_parameter_by_value) {
-            return ::memcmp(begin1, begin2, n * sizeof(T)) == 0;
-        } else {
-            const T *end1 = begin1 + n;
-            while (begin1 != end1) {
-                if (*begin1 == *begin2) {
-                    ++begin1;
-                    ++begin2;
-                } else {
-                    return false;
-                }
-            }
-            return true;
-        }
     }
 
     void reallocate(qsizetype alloc, QArrayData::AllocationOption option)
@@ -301,19 +279,6 @@ protected:
 
 public:
     typedef typename QArrayDataPointer<T>::parameter_type parameter_type;
-
-    void appendInitialize(qsizetype newSize)
-    {
-        Q_ASSERT(this->isMutable());
-        Q_ASSERT(!this->isShared());
-        Q_ASSERT(newSize > this->size);
-        Q_ASSERT(newSize - this->size <= this->freeSpaceAtEnd());
-
-        T *const b = this->begin();
-        do {
-            new (b + this->size) T;
-        } while (++this->size != newSize);
-    }
 
     void copyAppend(const T *b, const T *e)
     {
@@ -369,7 +334,7 @@ public:
     {
         Q_ASSERT(this->isMutable());
         Q_ASSERT(!this->isShared());
-        Q_ASSERT(newSize < size_t(this->size));
+        Q_ASSERT(newSize <= size_t(this->size));
 
         std::destroy(this->begin() + newSize, this->end());
         this->size = newSize;
@@ -649,20 +614,6 @@ public:
         while (b != e)
             *b++ = t;
     }
-
-    bool compare(const T *begin1, const T *begin2, size_t n) const
-    {
-        const T *end1 = begin1 + n;
-        while (begin1 != end1) {
-            if (*begin1 == *begin2) {
-                ++begin1;
-                ++begin2;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
 };
 
 template <class T>
@@ -684,65 +635,60 @@ public:
 
     struct Inserter
     {
-        QArrayDataPointer<T> *data;
+        QArrayDataPointer<T> * const data;
         T *displaceFrom;
-        T *displaceTo;
-        qsizetype nInserts = 0;
-        qsizetype bytes;
+        T * const displaceTo;
+        const qsizetype nInserts = 0;
+        const size_t bytes;
 
-        Inserter(QArrayDataPointer<T> *d) : data(d) { }
+        void verifyPost()
+        { Q_ASSERT(displaceFrom == displaceTo); }
+
+        explicit Inserter(QArrayDataPointer<T> *d, qsizetype pos, qsizetype n)
+            : data{d},
+              displaceFrom{d->ptr + pos},
+              displaceTo{displaceFrom + n},
+              nInserts{n},
+              bytes{(data->size - pos) * sizeof(T)}
+        {
+            ::memmove(static_cast<void *>(displaceTo), static_cast<void *>(displaceFrom), bytes);
+        }
         ~Inserter() {
+            auto inserts = nInserts;
             if constexpr (!std::is_nothrow_copy_constructible_v<T>) {
                 if (displaceFrom != displaceTo) {
                     ::memmove(static_cast<void *>(displaceFrom), static_cast<void *>(displaceTo), bytes);
-                    nInserts -= qAbs(displaceFrom - displaceTo);
+                    inserts -= qAbs(displaceFrom - displaceTo);
                 }
             }
-            data->size += nInserts;
+            data->size += inserts;
         }
         Q_DISABLE_COPY(Inserter)
 
-        T *displace(qsizetype pos, qsizetype n)
+        void insertRange(const T *source, qsizetype n)
         {
-            nInserts = n;
-            T *insertionPoint = data->ptr + pos;
-            displaceFrom = data->ptr + pos;
-            displaceTo = displaceFrom + n;
-            bytes = data->size - pos;
-            bytes *= sizeof(T);
-            ::memmove(static_cast<void *>(displaceTo), static_cast<void *>(displaceFrom), bytes);
-            return insertionPoint;
-        }
-
-        void insert(qsizetype pos, const T *source, qsizetype n)
-        {
-            T *where = displace(pos, n);
-
             while (n--) {
-                new (where) T(*source);
-                ++where;
+                new (displaceFrom) T(*source);
                 ++source;
                 ++displaceFrom;
             }
+            verifyPost();
         }
 
-        void insert(qsizetype pos, const T &t, qsizetype n)
+        void insertFill(const T &t, qsizetype n)
         {
-            T *where = displace(pos, n);
-
             while (n--) {
-                new (where) T(t);
-                ++where;
+                new (displaceFrom) T(t);
                 ++displaceFrom;
             }
+            verifyPost();
         }
 
-        void insertOne(qsizetype pos, T &&t)
+        void insertOne(T &&t)
         {
-            T *where = displace(pos, 1);
-            new (where) T(std::move(t));
+            new (displaceFrom) T(std::move(t));
             ++displaceFrom;
-            Q_ASSERT(displaceFrom == displaceTo);
+            verifyPost();
         }
 
     };
@@ -768,7 +714,7 @@ public:
                 ++this->size;
             }
         } else {
-            Inserter(this).insert(i, data, n);
+            Inserter(this, i, n).insertRange(data, n);
         }
     }
 
@@ -792,7 +738,7 @@ public:
                 ++this->size;
             }
         } else {
-            Inserter(this).insert(i, copy, n);
+            Inserter(this, i, n).insertFill(copy, n);
         }
     }
 
@@ -824,7 +770,7 @@ public:
             --this->ptr;
             ++this->size;
         } else {
-            Inserter(this).insertOne(i, std::move(tmp));
+            Inserter(this, i, 1).insertOne(std::move(tmp));
         }
     }
 
@@ -899,8 +845,6 @@ protected:
 public:
     // using Base::truncate;
     // using Base::destroyAll;
-    // using Base::assign;
-    // using Base::compare;
 
     template<typename It>
     void appendIteratorRange(It b, It e, QtPrivate::IfIsForwardIterator<It> = true)
@@ -941,14 +885,181 @@ public:
         DataPointer old;
 
         // points into range:
-        if (QtPrivate::q_points_into_range(b, this->begin(), this->end())) {
+        if (QtPrivate::q_points_into_range(b, *this))
             this->detachAndGrow(QArrayData::GrowsAtEnd, n, &b, &old);
-        } else {
+        else
             this->detachAndGrow(QArrayData::GrowsAtEnd, n, nullptr, nullptr);
-        }
         Q_ASSERT(this->freeSpaceAtEnd() >= n);
         // b might be updated so use [b, n)
         this->copyAppend(b, b + n);
+    }
+
+    void appendUninitialized(qsizetype newSize)
+    {
+        Q_ASSERT(this->isMutable());
+        Q_ASSERT(!this->isShared());
+        Q_ASSERT(newSize > this->size);
+        Q_ASSERT(newSize - this->size <= this->freeSpaceAtEnd());
+
+
+        T *const b = this->begin() + this->size;
+        T *const e = this->begin() + newSize;
+        if constexpr (std::is_constructible_v<T, Qt::Initialization>)
+            std::uninitialized_fill(b, e, Qt::Uninitialized);
+        else
+            std::uninitialized_default_construct(b, e);
+        this->size = newSize;
+    }
+
+    using Base::assign;
+
+    template <typename InputIterator, typename Projection = q20::identity>
+    void assign(InputIterator first, InputIterator last, Projection proj = {})
+    {
+        // This function only provides the basic exception guarantee.
+        using Category = typename std::iterator_traits<InputIterator>::iterator_category;
+        constexpr bool IsFwdIt = std::is_convertible_v<Category, std::forward_iterator_tag>;
+
+        const qsizetype n = IsFwdIt ? std::distance(first, last) : 0;
+        bool undoPrependOptimization = true;
+        bool needCapacity = n > this->constAllocatedCapacity();
+        if (needCapacity || this->needsDetach()) {
+            qsizetype newCapacity = this->detachCapacity(n);
+            bool wasLastRef = !this->deref();
+            if (wasLastRef && needCapacity) {
+                // free memory we can't reuse
+                this->destroyAll();
+                Data::deallocate(this->d);
+            }
+            if (!needCapacity && wasLastRef) {
+                // we were the last reference and can reuse the storage
+                this->d->ref_.storeRelaxed(1);
+            } else {
+                // we must allocate new memory
+                std::tie(this->d, this->ptr) = Data::allocate(newCapacity);
+                this->size = 0;
+                undoPrependOptimization = false;
+            }
+        }
+
+        if constexpr (!std::is_nothrow_constructible_v<T, decltype(std::invoke(proj, *first))>
+                      || !std::is_nothrow_invocable_v<Projection, decltype(*first)>)
+        {
+            // If construction can throw, and we have freeSpaceAtBegin(),
+            // it's easiest to just clear the container and start fresh.
+            // The alternative would be to keep track of two active, disjoint ranges.
+            if (undoPrependOptimization) {
+                this->truncate(0);
+                this->setBegin(Data::dataStart(this->d, alignof(typename Data::AlignmentDummy)));
+                undoPrependOptimization = false;
+            }
+        }
+
+        const auto dend = this->end();
+        T *dst = this->begin();
+        T *capacityBegin = dst;
+        if (undoPrependOptimization) {
+            capacityBegin = Data::dataStart(this->d, alignof(typename Data::AlignmentDummy));
+            this->setBegin(capacityBegin); // undo prepend optimization
+        }
+
+        assign_impl(first, last, capacityBegin, dst, dend, proj, Category{});
+    }
+
+    template <typename InputIterator, typename Projection>
+    void assign_impl(InputIterator first, InputIterator last, T *capacityBegin, T *dst, T *dend,
+                     Projection proj, std::input_iterator_tag)
+    {
+        if (qsizetype offset = dst - capacityBegin) {
+            T *prependBufferEnd = dst;
+            dst = capacityBegin;
+
+            // By construction, the following loop is nothrow!
+            // (otherwise, we can't reach here)
+            // Assumes InputIterator operations don't throw.
+            // (but we can't statically assert that, as these operations
+            //  have preconditons, so typically aren't noexcept)
+            while (true) {
+                if (dst == prependBufferEnd) {  // ran out of prepend buffer space
+                    this->size += offset;
+                    // we now have a contiguous buffer, continue with the main loop:
+                    break;
+                }
+                if (first == last) {            // ran out of elements to assign
+                    std::destroy(prependBufferEnd, dend);
+                    this->size = dst - this->begin();
+                    return;
+                }
+                // construct element in prepend buffer
+                q20::construct_at(dst, std::invoke(proj, *first));
+                ++dst;
+                ++first;
+            }
+        }
+        while (true) {
+            if (first == last) {    // ran out of elements to assign
+                std::destroy(dst, dend);
+                break;
+            }
+            if (dst == dend) {      // ran out of existing elements to overwrite
+                do {
+                    this->emplace(this->size, std::invoke(proj, *first));
+                } while (++first != last);
+                return;         // size() is already correct (and dst invalidated)!
+            }
+            *dst = std::invoke(proj, *first);    // overwrite existing element
+            ++dst;
+            ++first;
+        }
+        this->size = dst - this->begin();
+    }
+
+    template <typename InputIterator, typename Projection>
+    void assign_impl(InputIterator first, InputIterator last, T *capacityBegin, T *dst, T *dend,
+                     Projection proj, std::forward_iterator_tag)
+    {
+        constexpr bool IsIdentity = std::is_same_v<Projection, q20::identity>;
+        const qsizetype n = std::distance(first, last);
+        if constexpr (IsIdentity && !QTypeInfo<T>::isComplex) {
+            // For non-complex types, we prefer a single std::copy() -> memcpy()
+            // call. We can do that because either the default constructor is
+            // trivial (so the lifetime has started) or the copy constructor is
+            // (and won't care what the stored value is).
+            std::copy(first, last, capacityBegin);
+        } else {
+            // There are two possibilities:
+            // 1) fewer elements than the current allocated space
+            //    | prepend buffer | array |  destroy  |
+            // 2) more elements than the current allocated space
+            //    | prepend buffer | array | construct |
+            //
+            // Both the prepend buffer and the current array may be empty.
+
+            // construct elements in the prepend buffer
+            while (first != last && capacityBegin != dst) {
+                q20::construct_at(capacityBegin, std::invoke(proj, *first));
+                ++first;
+                ++capacityBegin;
+            }
+
+            // overwrite elements in the existing array
+            while (first != last && dst != dend) {
+                *dst = std::invoke(proj, *first);    // overwrite existing element
+                ++first;
+                ++dst;
+            }
+
+            // construct new elements in the append buffer
+            while (first != last) {
+                q20::construct_at(dst, std::invoke(proj, *first));
+                ++first;
+                ++dst;
+            }
+            // or destroy elements from the existing array
+            if (dst < dend)
+                std::destroy(dst, dend);
+        }
+        this->size = n;
     }
 };
 

@@ -1,55 +1,23 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QEVENTLOOP_H
 #define QEVENTLOOP_H
 
 #include <QtCore/qobject.h>
+#include <QtCore/qdeadlinetimer.h>
 
 QT_BEGIN_NAMESPACE
 
+class QEventLoopLocker;
 class QEventLoopPrivate;
 
 class Q_CORE_EXPORT QEventLoop : public QObject
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(QEventLoop)
+    friend class QEventLoopLocker;
 
 public:
     explicit QEventLoop(QObject *parent = nullptr);
@@ -70,6 +38,7 @@ public:
 
     bool processEvents(ProcessEventsFlags flags = AllEvents);
     void processEvents(ProcessEventsFlags flags, int maximumTime);
+    void processEvents(ProcessEventsFlags flags, QDeadlineTimer deadline);
 
     int exec(ProcessEventsFlags flags = AllEvents);
     bool isRunning() const;
@@ -87,17 +56,41 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QEventLoop::ProcessEventsFlags)
 
 class QEventLoopLockerPrivate;
 
-class Q_CORE_EXPORT QEventLoopLocker
+class QEventLoopLocker
 {
 public:
-    QEventLoopLocker();
-    explicit QEventLoopLocker(QEventLoop *loop);
-    explicit QEventLoopLocker(QThread *thread);
-    ~QEventLoopLocker();
+    Q_NODISCARD_CTOR Q_CORE_EXPORT QEventLoopLocker() noexcept;
+    Q_NODISCARD_CTOR Q_CORE_EXPORT explicit QEventLoopLocker(QEventLoop *loop) noexcept;
+    Q_NODISCARD_CTOR Q_CORE_EXPORT explicit QEventLoopLocker(QThread *thread) noexcept;
+    Q_CORE_EXPORT ~QEventLoopLocker();
+
+    Q_NODISCARD_CTOR QEventLoopLocker(QEventLoopLocker &&other) noexcept
+        : p{std::exchange(other.p, 0)} {}
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QEventLoopLocker)
+
+    void swap(QEventLoopLocker &other) noexcept { std::swap(p, other.p); }
+    friend void swap(QEventLoopLocker &lhs, QEventLoopLocker &rhs) noexcept { lhs.swap(rhs); }
 
 private:
     Q_DISABLE_COPY(QEventLoopLocker)
-    QEventLoopLockerPrivate *d_ptr;
+    friend class QEventLoopLockerPrivate;
+
+    //
+    // Private implementation details.
+    // Do not call from public inline API!
+    //
+    enum class Type : quintptr {
+        EventLoop,
+        Thread,
+        Application,
+    };
+    explicit QEventLoopLocker(void *ptr, Type t) noexcept;
+    quintptr p;
+    static constexpr quintptr TypeMask = 0x3;
+    Type type() const { return Type(p & TypeMask); }
+    void *pointer() const { return reinterpret_cast<void *>(p & ~TypeMask); }
+    template <typename Func>
+    void visit(Func func) const;
 };
 
 QT_END_NAMESPACE

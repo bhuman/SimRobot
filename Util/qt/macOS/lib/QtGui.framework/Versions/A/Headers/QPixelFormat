@@ -1,1 +1,1 @@
-#include "qpixelformat.h"
+#include <QtGui/qpixelformat.h> // IWYU pragma: export

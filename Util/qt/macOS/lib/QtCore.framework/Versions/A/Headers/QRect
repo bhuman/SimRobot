@@ -1,1 +1,1 @@
-#include "qrect.h"
+#include <QtCore/qrect.h> // IWYU pragma: export

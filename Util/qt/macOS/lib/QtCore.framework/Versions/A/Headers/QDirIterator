@@ -1,1 +1,1 @@
-#include "qdiriterator.h"
+#include <QtCore/qdiriterator.h> // IWYU pragma: export

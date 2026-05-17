@@ -1,52 +1,17 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
-** Contact: http://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:data-parser
+
 #ifndef QSTRINGTOKENIZER_H
 #define QSTRINGTOKENIZER_H
 
 #include <QtCore/qnamespace.h>
 #include <QtCore/qcontainerfwd.h>
+#include <iterator>
 
 QT_BEGIN_NAMESPACE
 
 template <typename, typename> class QStringBuilder;
-
-#define Q_STRINGTOKENIZER_USE_SENTINEL
 
 class QStringTokenizerBaseBase
 {
@@ -83,14 +48,10 @@ public:
 
     class iterator;
     friend class iterator;
-#ifdef Q_STRINGTOKENIZER_USE_SENTINEL
     class sentinel {
         friend constexpr bool operator==(sentinel, sentinel) noexcept { return true; }
         friend constexpr bool operator!=(sentinel, sentinel) noexcept { return false; }
     };
-#else
-    using sentinel = iterator;
-#endif
     class iterator {
         const QStringTokenizerBase *tokenizer;
         next_result current;
@@ -113,11 +74,6 @@ public:
         iterator& operator++() { advance(); return *this; }
         iterator  operator++(int) { auto tmp = *this; advance(); return tmp; }
 
-        friend constexpr bool operator==(const iterator &lhs, const iterator &rhs) noexcept
-        { return lhs.current.ok == rhs.current.ok && (!lhs.current.ok || (Q_ASSERT(lhs.tokenizer == rhs.tokenizer), lhs.current.state == rhs.current.state)); }
-        friend constexpr bool operator!=(const iterator &lhs, const iterator &rhs) noexcept
-        { return !operator==(lhs, rhs); }
-#ifdef Q_STRINGTOKENIZER_USE_SENTINEL
         friend constexpr bool operator==(const iterator &lhs, sentinel) noexcept
         { return !lhs.current.ok; }
         friend constexpr bool operator!=(const iterator &lhs, sentinel) noexcept
@@ -126,7 +82,6 @@ public:
         { return !rhs.current.ok; }
         friend constexpr bool operator!=(sentinel, const iterator &rhs) noexcept
         { return !operator==(sentinel{}, rhs); }
-#endif
     private:
         void advance() {
             Q_ASSERT(current.ok);
@@ -145,9 +100,7 @@ public:
 
     [[nodiscard]] iterator begin() const noexcept { return iterator{*this}; }
     [[nodiscard]] iterator cbegin() const noexcept { return begin(); }
-    template <bool = std::is_same<iterator, sentinel>::value> // ODR protection
     [[nodiscard]] constexpr sentinel end() const noexcept { return {}; }
-    template <bool = std::is_same<iterator, sentinel>::value> // ODR protection
     [[nodiscard]] constexpr sentinel cend() const noexcept { return {}; }
 
 private:
@@ -162,13 +115,13 @@ QT_END_INCLUDE_NAMESPACE
 namespace QtPrivate {
 namespace Tok {
 
-    constexpr qsizetype size(QChar) noexcept { return 1; }
+    constexpr qsizetype tokenSize(QChar) noexcept { return 1; }
     template <typename String>
-    constexpr qsizetype size(const String &s) noexcept { return static_cast<qsizetype>(s.size()); }
+    constexpr qsizetype tokenSize(const String &s) noexcept { return static_cast<qsizetype>(s.size()); }
 
     template <typename String> struct ViewForImpl {};
     template <> struct ViewForImpl<QStringView>   { using type = QStringView; };
-    template <> struct ViewForImpl<QLatin1String> { using type = QLatin1String; };
+    template <> struct ViewForImpl<QLatin1StringView> { using type = QLatin1StringView; };
     template <> struct ViewForImpl<QChar>         { using type = QChar; };
     template <> struct ViewForImpl<QString>     : ViewForImpl<QStringView> {};
     template <> struct ViewForImpl<QLatin1Char> : ViewForImpl<QChar> {};
@@ -185,7 +138,7 @@ namespace Tok {
 #endif
 
     // This metafunction maps a StringLike to a View (currently, QChar,
-    // QStringView, QLatin1String). This is what QStringTokenizerBase
+    // QStringView, QLatin1StringView). This is what QStringTokenizerBase
     // operates on. QStringTokenizer adds pinning to keep rvalues alive
     // for the duration of the algorithm.
     template <typename String>
@@ -292,7 +245,7 @@ class QStringTokenizer
     using if_haystack_not_pinned = typename if_haystack_not_pinned_impl<Container, HPin>::type;
     template <typename Container, typename Iterator = decltype(std::begin(std::declval<Container>()))>
     using if_compatible_container = typename std::enable_if<
-            std::is_same<
+            std::is_convertible<
                 typename Base::value_type,
                 typename std::iterator_traits<Iterator>::value_type
             >::value,
@@ -435,7 +388,7 @@ auto QStringTokenizerBase<Haystack, Needle>::next(tokenizer_state state) const n
         if (state.end >= 0) {
             // token separator found => return intermediate element:
             result = m_haystack.sliced(state.start, state.end - state.start);
-            const auto ns = QtPrivate::Tok::size(m_needle);
+            const auto ns = QtPrivate::Tok::tokenSize(m_needle);
             state.start = state.end + ns;
             state.extra = (ns == 0 ? 1 : 0);
         } else {

@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QPROPERTY_H
 #define QPROPERTY_H
@@ -43,22 +8,32 @@
 #include <QtCore/qglobal.h>
 #include <QtCore/qshareddata.h>
 #include <QtCore/qstring.h>
+#include <QtCore/qttypetraits.h>
 #include <QtCore/qbindingstorage.h>
 
 #include <type_traits>
 
 #include <QtCore/qpropertyprivate.h>
 
-#if __has_include(<source_location>) && __cplusplus >= 202002L && !defined(Q_CLANG_QDOC)
+#if __has_include(<source_location>) && __cplusplus >= 202002L && !defined(Q_QDOC)
 #include <source_location>
 #if defined(__cpp_lib_source_location)
 #define QT_SOURCE_LOCATION_NAMESPACE std
 #define QT_PROPERTY_COLLECT_BINDING_LOCATION
-#define QT_PROPERTY_DEFAULT_BINDING_LOCATION QPropertyBindingSourceLocation(std::source_location::current())
+#if defined(Q_CC_MSVC)
+/* MSVC runs into an issue with constexpr with source location (error C7595)
+   so use the factory function as a workaround */
+#  define QT_PROPERTY_DEFAULT_BINDING_LOCATION QPropertyBindingSourceLocation::fromStdSourceLocation(std::source_location::current())
+#else
+/* some versions of gcc in turn run into
+   expression ‘std::source_location::current()’ is not a constant expression
+   so don't use the workaround there */
+#  define QT_PROPERTY_DEFAULT_BINDING_LOCATION QPropertyBindingSourceLocation(std::source_location::current())
+#endif
 #endif
 #endif
 
-#if __has_include(<experimental/source_location>) && !defined(Q_CLANG_QDOC)
+#if __has_include(<experimental/source_location>) && !defined(Q_QDOC)
 #include <experimental/source_location>
 #if !defined(QT_PROPERTY_COLLECT_BINDING_LOCATION)
 #if defined(__cpp_lib_experimental_source_location)
@@ -79,6 +54,17 @@ namespace Qt {
 Q_CORE_EXPORT void beginPropertyUpdateGroup();
 Q_CORE_EXPORT void endPropertyUpdateGroup();
 }
+
+class QScopedPropertyUpdateGroup
+{
+    Q_DISABLE_COPY_MOVE(QScopedPropertyUpdateGroup)
+public:
+    Q_NODISCARD_CTOR
+    QScopedPropertyUpdateGroup()
+    { Qt::beginPropertyUpdateGroup(); }
+    ~QScopedPropertyUpdateGroup() noexcept(false)
+    { Qt::endPropertyUpdateGroup(); }
+};
 
 template <typename T>
 class QPropertyData : public QUntypedPropertyData
@@ -121,6 +107,12 @@ struct Q_CORE_EXPORT QPropertyBindingSourceLocation
         functionName = cppLocation.function_name();
         line = cppLocation.line();
         column = cppLocation.column();
+    }
+    QT_POST_CXX17_API_IN_EXPORTED_CLASS
+    static consteval QPropertyBindingSourceLocation
+    fromStdSourceLocation(const std::source_location &cppLocation)
+    {
+        return cppLocation;
     }
 #endif
 #ifdef __cpp_lib_experimental_source_location
@@ -238,7 +230,9 @@ public:
         ObserverNotifiesBinding, // observer was installed to notify bindings that obsverved property changed
         ObserverNotifiesChangeHandler, // observer is a change handler, which runs on every change
         ObserverIsPlaceholder,  // the observer before this one is currently evaluated in QPropertyObserver::notifyObservers.
-        ObserverIsAlias
+#if QT_DEPRECATED_SINCE(6, 6)
+        ObserverIsAlias QT_DEPRECATED_VERSION_X_6_6("Use QProperty and add a binding to the target.")
+#endif
     };
 protected:
     using ChangeHandler = void (*)(QPropertyObserver*, QUntypedPropertyData *);
@@ -271,14 +265,17 @@ public:
     QPropertyObserver &operator=(QPropertyObserver &&other) noexcept;
     ~QPropertyObserver();
 
-    template<typename Property, typename = typename Property::InheritsQUntypedPropertyData>
+    template <typename Property, QtPrivate::IsUntypedPropertyData<Property> = true>
     void setSource(const Property &property)
     { setSource(property.bindingData()); }
     void setSource(const QtPrivate::QPropertyBindingData &property);
 
 protected:
     QPropertyObserver(ChangeHandler changeHandler);
+#if QT_DEPRECATED_SINCE(6, 6)
+    QT_DEPRECATED_VERSION_X_6_6("This constructor was only meant for internal use. Use QProperty and add a binding to the target.")
     QPropertyObserver(QUntypedPropertyData *aliasedPropertyPtr);
+#endif
 
     QUntypedPropertyData *aliasedProperty() const
     {
@@ -293,53 +290,59 @@ private:
 };
 
 template <typename Functor>
-class [[nodiscard]] QPropertyChangeHandler : public QPropertyObserver
+class QPropertyChangeHandler : public QPropertyObserver
 {
     Functor m_handler;
 public:
+    Q_NODISCARD_CTOR
     QPropertyChangeHandler(Functor handler)
         : QPropertyObserver([](QPropertyObserver *self, QUntypedPropertyData *) {
               auto This = static_cast<QPropertyChangeHandler<Functor>*>(self);
               This->m_handler();
           })
-        , m_handler(handler)
+        , m_handler(std::move(handler))
     {
     }
 
-    template<typename Property, typename = typename Property::InheritsQUntypedPropertyData>
+    template <typename Property, QtPrivate::IsUntypedPropertyData<Property> = true>
+    Q_NODISCARD_CTOR
     QPropertyChangeHandler(const Property &property, Functor handler)
         : QPropertyObserver([](QPropertyObserver *self, QUntypedPropertyData *) {
               auto This = static_cast<QPropertyChangeHandler<Functor>*>(self);
               This->m_handler();
           })
-        , m_handler(handler)
+        , m_handler(std::move(handler))
     {
         setSource(property);
     }
 };
 
-class [[nodiscard]] QPropertyNotifier : public QPropertyObserver
+class QPropertyNotifier : public QPropertyObserver
 {
     std::function<void()> m_handler;
 public:
+    Q_NODISCARD_CTOR
     QPropertyNotifier() = default;
     template<typename Functor>
+    Q_NODISCARD_CTOR
     QPropertyNotifier(Functor handler)
         : QPropertyObserver([](QPropertyObserver *self, QUntypedPropertyData *) {
             auto This = static_cast<QPropertyNotifier *>(self);
             This->m_handler();
         })
-        , m_handler(handler)
+        , m_handler(std::move(handler))
     {
     }
 
-    template<typename Functor, typename Property, typename = typename Property::InheritsQUntypedPropertyData>
+    template <typename Functor, typename Property,
+              QtPrivate::IsUntypedPropertyData<Property> = true>
+    Q_NODISCARD_CTOR
     QPropertyNotifier(const Property &property, Functor handler)
         : QPropertyObserver([](QPropertyObserver *self, QUntypedPropertyData *) {
             auto This = static_cast<QPropertyNotifier *>(self);
             This->m_handler();
         })
-        , m_handler(handler)
+        , m_handler(std::move(handler))
     {
         setSource(property);
     }
@@ -358,6 +361,17 @@ class QProperty : public QPropertyData<T>
         return false;
     }
 
+    template <typename U, typename = void>
+    struct has_operator_equal_to : std::false_type{};
+
+    template <typename U>
+    struct has_operator_equal_to<U, std::void_t<decltype(bool(std::declval<const T&>() == std::declval<const U&>()))>>
+        : std::true_type{};
+
+    template <typename U>
+    static constexpr bool has_operator_equal_to_v =
+            !std::is_same_v<U, T> && has_operator_equal_to<U>::value;
+
 public:
     using value_type = typename QPropertyData<T>::value_type;
     using parameter_type = typename QPropertyData<T>::parameter_type;
@@ -370,7 +384,7 @@ public:
     explicit QProperty(const QPropertyBinding<T> &binding)
         : QProperty()
     { setBinding(binding); }
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     explicit QProperty(Functor &&f, const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
                        typename std::enable_if_t<std::is_invocable_r_v<T, Functor&>> * = nullptr)
@@ -381,6 +395,27 @@ public:
     explicit QProperty(Functor &&f);
 #endif
     ~QProperty() = default;
+
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QProperty, QProperty, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QProperty, T, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
+    QT_DECLARE_EQUALITY_OPERATORS_REVERSED_HELPER(QProperty, T, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
+
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QProperty, U, /* non-constexpr */, noexcept(false), template <typename U, std::enable_if_t<has_operator_equal_to_v<U>>* = nullptr>)
+    QT_DECLARE_EQUALITY_OPERATORS_REVERSED_HELPER(QProperty, U, /* non-constexpr */, noexcept(false), template <typename U, std::enable_if_t<has_operator_equal_to_v<U>>* = nullptr>)
+
+    // Explicitly delete op==(QProperty<T>, QProperty<U>) for different T & U.
+    // We do not want implicit conversions here!
+    // However, GCC complains about using a default template argument in a
+    // friend declaration, while Clang and MSVC are fine. So, skip GCC here.
+#if !defined(Q_CC_GNU) || defined(Q_CC_CLANG)
+#define QPROPERTY_DECL_DELETED_EQ_OP \
+    Q_DECL_EQ_DELETE_X("Call .value() on one of the properties explicitly.")
+    template <typename U, std::enable_if_t<!std::is_same_v<T, U>>* = nullptr>
+    friend void operator==(const QProperty &, const QProperty<U> &) QPROPERTY_DECL_DELETED_EQ_OP;
+    template <typename U, std::enable_if_t<!std::is_same_v<T, U>>* = nullptr>
+    friend void operator!=(const QProperty &, const QProperty<U> &) QPROPERTY_DECL_DELETED_EQ_OP;
+#undef QPROPERTY_DECL_DELETED_EQ_OP
+#endif // !defined(Q_CC_GNU) || defined(Q_CC_CLANG)
 
     parameter_type value() const
     {
@@ -453,7 +488,7 @@ public:
         return true;
     }
 
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     QPropertyBinding<T> setBinding(Functor &&f,
                                    const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
@@ -482,7 +517,7 @@ public:
     QPropertyChangeHandler<Functor> onValueChanged(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyChangeHandler<Functor>(*this, f);
+        return QPropertyChangeHandler<Functor>(*this, std::move(f));
     }
 
     template<typename Functor>
@@ -490,18 +525,36 @@ public:
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
         f();
-        return onValueChanged(f);
+        return onValueChanged(std::move(f));
     }
 
     template<typename Functor>
     QPropertyNotifier addNotifier(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyNotifier(*this, f);
+        return QPropertyNotifier(*this, std::move(f));
     }
 
     const QtPrivate::QPropertyBindingData &bindingData() const { return d; }
 private:
+    template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>
+    friend bool comparesEqual(const QProperty &lhs, const QProperty &rhs)
+    {
+        return lhs.value() == rhs.value();
+    }
+
+    template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>
+    friend bool comparesEqual(const QProperty &lhs, const T &rhs)
+    {
+        return lhs.value() == rhs;
+    }
+
+    template <typename U, std::enable_if_t<has_operator_equal_to_v<U>>* = nullptr>
+    friend bool comparesEqual(const QProperty &lhs, const U &rhs)
+    {
+        return lhs.value() == rhs;
+    }
+
     void notify()
     {
         d.notifyObservers(this);
@@ -618,6 +671,72 @@ enum Reason { InvalidInterface, NonBindableInterface, ReadOnlyInterface };
 Q_CORE_EXPORT void printUnsuitableBindableWarning(QAnyStringView prefix, Reason reason);
 Q_CORE_EXPORT void printMetaTypeMismatch(QMetaType actual, QMetaType expected);
 }
+
+namespace PropertyAdaptorSlotObjectHelpers {
+Q_CORE_EXPORT void getter(const QUntypedPropertyData *d, void *value);
+Q_CORE_EXPORT void setter(QUntypedPropertyData *d, const void *value);
+Q_CORE_EXPORT QUntypedPropertyBinding getBinding(const QUntypedPropertyData *d);
+Q_CORE_EXPORT bool bindingWrapper(QMetaType type, QUntypedPropertyData *d,
+                                  QtPrivate::QPropertyBindingFunction binding,
+                                  QUntypedPropertyData *temp, void *value);
+Q_CORE_EXPORT QUntypedPropertyBinding setBinding(QUntypedPropertyData *d,
+                                                 const QUntypedPropertyBinding &binding,
+                                                 QPropertyBindingWrapper wrapper);
+Q_CORE_EXPORT void setObserver(const QUntypedPropertyData *d, QPropertyObserver *observer);
+
+template<typename T>
+bool bindingWrapper(QMetaType type, QUntypedPropertyData *d,
+                    QtPrivate::QPropertyBindingFunction binding)
+{
+    struct Data : QPropertyData<T>
+    {
+        void *data() { return &this->val; }
+    } temp;
+    return bindingWrapper(type, d, binding, &temp, temp.data());
+}
+
+template<typename T>
+QUntypedPropertyBinding setBinding(QUntypedPropertyData *d, const QUntypedPropertyBinding &binding)
+{
+    return setBinding(d, binding, &bindingWrapper<T>);
+}
+
+template<typename T>
+QUntypedPropertyBinding makeBinding(const QUntypedPropertyData *d,
+                                    const QPropertyBindingSourceLocation &location)
+{
+    return Qt::makePropertyBinding(
+            [d]() -> T {
+                T r;
+                getter(d, &r);
+                return r;
+            },
+            location);
+}
+
+template<class T>
+inline constexpr QBindableInterface iface = {
+#ifdef QT_NO_DATA_RELOCATION
+    // On windows the address of a dllimported function can't be relocated here.
+    // MSVC automatically generates a trampoline, but clang won't, so do it explicitly.
+    [](const QUntypedPropertyData *d, void *value) { getter(d, value); },
+    [](QUntypedPropertyData *d, const void *value) { setter(d, value); },
+    [](const QUntypedPropertyData *d) -> QUntypedPropertyBinding { return getBinding(d); },
+    &setBinding<T>,
+    &makeBinding<T>,
+    [](const QUntypedPropertyData *d, QPropertyObserver *observer) { setObserver(d, observer); },
+    &QMetaType::fromType<T>,
+#else
+    &getter,
+    &setter,
+    &getBinding,
+    &setBinding<T>,
+    &makeBinding<T>,
+    &setObserver,
+    &QMetaType::fromType<T>,
+#endif
+};
+}
 }
 
 class QUntypedBindable
@@ -629,6 +748,9 @@ protected:
     constexpr QUntypedBindable(QUntypedPropertyData *d, const QtPrivate::QBindableInterface *i)
         : data(d), iface(i)
     {}
+
+    Q_CORE_EXPORT explicit QUntypedBindable(QObject* obj, const QMetaProperty &property, const QtPrivate::QBindableInterface *i);
+    Q_CORE_EXPORT explicit QUntypedBindable(QObject* obj, const char* property, const QtPrivate::QBindableInterface *i);
 
 public:
     constexpr QUntypedBindable() = default;
@@ -657,9 +779,11 @@ public:
         // afterwards.
         if (!(iface->getBinding && iface->setBinding))
             return QUntypedPropertyBinding {};
-        QUntypedPropertyBinding binding = iface->getBinding(data);
-        iface->setBinding(data, QUntypedPropertyBinding{});
-        return binding;
+        return [&] {
+            QUntypedPropertyBinding binding = iface->getBinding(data);
+            iface->setBinding(data, QUntypedPropertyBinding{});
+            return binding;
+        }();
     }
 
     void observe(QPropertyObserver *observer) const
@@ -676,7 +800,7 @@ public:
     template<typename Functor>
     QPropertyChangeHandler<Functor> onValueChanged(Functor f) const
     {
-        QPropertyChangeHandler<Functor> handler(f);
+        QPropertyChangeHandler<Functor> handler(std::move(f));
         observe(&handler);
         return handler;
     }
@@ -685,13 +809,13 @@ public:
     QPropertyChangeHandler<Functor> subscribe(Functor f) const
     {
         f();
-        return onValueChanged(f);
+        return onValueChanged(std::move(f));
     }
 
     template<typename Functor>
     QPropertyNotifier addNotifier(Functor f)
     {
-        QPropertyNotifier handler(f);
+        QPropertyNotifier handler(std::move(f));
         observe(&handler);
         return handler;
     }
@@ -766,6 +890,12 @@ public:
         }
     }
 
+    explicit QBindable(QObject *obj, const QMetaProperty &property)
+        : QUntypedBindable(obj, property, &QtPrivate::PropertyAdaptorSlotObjectHelpers::iface<T>) {}
+
+    explicit QBindable(QObject *obj, const char *property)
+        : QUntypedBindable(obj, property, &QtPrivate::PropertyAdaptorSlotObjectHelpers::iface<T>) {}
+
     QPropertyBinding<T> makeBinding(const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION) const
     {
         return static_cast<QPropertyBinding<T> &&>(QUntypedBindable::makeBinding(location));
@@ -795,7 +925,7 @@ public:
 #endif
         return QPropertyBinding<T>();
     }
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     QPropertyBinding<T> setBinding(Functor &&f,
                                    const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
@@ -825,13 +955,16 @@ public:
     }
 };
 
+#if QT_DEPRECATED_SINCE(6, 6)
 template<typename T>
-class QPropertyAlias : public QPropertyObserver
+class QT_DEPRECATED_VERSION_X_6_6("Class was only meant for internal use, use a QProperty and add a binding to the target")
+QPropertyAlias : public QPropertyObserver
 {
     Q_DISABLE_COPY_MOVE(QPropertyAlias)
     const QtPrivate::QBindableInterface *iface = nullptr;
 
 public:
+    QT_WARNING_PUSH QT_WARNING_DISABLE_DEPRECATED
     QPropertyAlias(QProperty<T> *property)
         : QPropertyObserver(property),
           iface(&QtPrivate::QBindableInterfaceForProperty<QProperty<T>>::iface)
@@ -840,7 +973,7 @@ public:
             iface->setObserver(aliasedProperty(), this);
     }
 
-    template<typename Property, typename = typename Property::InheritsQUntypedPropertyData>
+    template <typename Property, QtPrivate::IsUntypedPropertyData<Property> = true>
     QPropertyAlias(Property *property)
         : QPropertyObserver(property),
           iface(&QtPrivate::QBindableInterfaceForProperty<Property>::iface)
@@ -897,7 +1030,7 @@ public:
         return QBindable<T>(aliasedProperty(), iface).setBinding(newBinding);
     }
 
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     QPropertyBinding<T> setBinding(Functor &&f,
                                    const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
@@ -928,26 +1061,28 @@ public:
     template<typename Functor>
     QPropertyChangeHandler<Functor> onValueChanged(Functor f)
     {
-        return QBindable<T>(aliasedProperty(), iface).onValueChanged(f);
+        return QBindable<T>(aliasedProperty(), iface).onValueChanged(std::move(f));
     }
 
     template<typename Functor>
     QPropertyChangeHandler<Functor> subscribe(Functor f)
     {
-        return QBindable<T>(aliasedProperty(), iface).subscribe(f);
+        return QBindable<T>(aliasedProperty(), iface).subscribe(std::move(f));
     }
 
     template<typename Functor>
     QPropertyNotifier addNotifier(Functor f)
     {
-        return QBindable<T>(aliasedProperty(), iface).notify(f);
+        return QBindable<T>(aliasedProperty(), iface).addNotifier(std::move(f));
     }
 
     bool isValid() const
     {
         return aliasedProperty() != nullptr;
     }
+    QT_WARNING_POP
 };
+#endif // QT_DEPRECATED_SINCE(6, 6)
 
 template<typename Class, typename T, auto Offset, auto Signal = nullptr>
 class QObjectBindableProperty : public QPropertyData<T>
@@ -987,7 +1122,7 @@ public:
     explicit QObjectBindableProperty(const QPropertyBinding<T> &binding)
         : QObjectBindableProperty()
     { setBinding(binding); }
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     explicit QObjectBindableProperty(Functor &&f, const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
                        typename std::enable_if_t<std::is_invocable_r_v<T, Functor&>> * = nullptr)
@@ -997,6 +1132,10 @@ public:
     template <typename Functor>
     explicit QObjectBindableProperty(Functor &&f);
 #endif
+
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QObjectBindableProperty, QObjectBindableProperty, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
+    QT_DECLARE_EQUALITY_OPERATORS_HELPER(QObjectBindableProperty, T, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
+    QT_DECLARE_EQUALITY_OPERATORS_REVERSED_HELPER(QObjectBindableProperty, T, /* non-constexpr */, noexcept(false), template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>)
 
     parameter_type value() const
     {
@@ -1080,7 +1219,7 @@ public:
         return true;
     }
 
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename Functor>
     QPropertyBinding<T> setBinding(Functor &&f,
                                    const QPropertyBindingSourceLocation &location = QT_PROPERTY_DEFAULT_BINDING_LOCATION,
@@ -1114,7 +1253,7 @@ public:
     QPropertyChangeHandler<Functor> onValueChanged(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyChangeHandler<Functor>(*this, f);
+        return QPropertyChangeHandler<Functor>(*this, std::move(f));
     }
 
     template<typename Functor>
@@ -1122,14 +1261,14 @@ public:
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
         f();
-        return onValueChanged(f);
+        return onValueChanged(std::move(f));
     }
 
     template<typename Functor>
     QPropertyNotifier addNotifier(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyNotifier(*this, f);
+        return QPropertyNotifier(*this, std::move(f));
     }
 
     const QtPrivate::QPropertyBindingData &bindingData() const
@@ -1138,6 +1277,18 @@ public:
         return *storage->bindingData(const_cast<ThisType *>(this), true);
     }
 private:
+    template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>
+    friend bool comparesEqual(const QObjectBindableProperty &lhs, const QObjectBindableProperty &rhs)
+    {
+        return lhs.value() == rhs.value();
+    }
+
+    template <typename Ty = T, std::enable_if_t<QTypeTraits::has_operator_equal_v<Ty>>* = nullptr>
+    friend bool comparesEqual(const QObjectBindableProperty &lhs, const T &rhs)
+    {
+        return lhs.value() == rhs;
+    }
+
     void notify(const QtPrivate::QPropertyBindingData *binding)
     {
         if (binding)
@@ -1250,7 +1401,7 @@ public:
     QPropertyChangeHandler<Functor> onValueChanged(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyChangeHandler<Functor>(*this, f);
+        return QPropertyChangeHandler<Functor>(*this, std::move(f));
     }
 
     template<typename Functor>
@@ -1258,14 +1409,14 @@ public:
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
         f();
-        return onValueChanged(f);
+        return onValueChanged(std::move(f));
     }
 
     template<typename Functor>
     QPropertyNotifier addNotifier(Functor f)
     {
         static_assert(std::is_invocable_v<Functor>, "Functor callback must be callable without any parameters");
-        return QPropertyNotifier(*this, f);
+        return QPropertyNotifier(*this, std::move(f));
     }
 
     QtPrivate::QPropertyBindingData &bindingData() const

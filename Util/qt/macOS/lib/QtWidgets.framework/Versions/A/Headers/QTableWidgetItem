@@ -1,1 +1,1 @@
-#include "qtablewidget.h"
+#include <QtWidgets/qtablewidget.h> // IWYU pragma: export

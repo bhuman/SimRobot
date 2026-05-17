@@ -1,1 +1,1 @@
-#include "qdbuspendingreply.h"
+#include <QtDBus/qdbuspendingreply.h> // IWYU pragma: export

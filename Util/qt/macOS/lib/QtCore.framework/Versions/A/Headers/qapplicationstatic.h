@@ -1,42 +1,7 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Copyright (C) 2021 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// Copyright (C) 2021 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QAPPLICATIONSTATIC_H
 #define QAPPLICATIONSTATIC_H
@@ -44,6 +9,12 @@
 #include <QtCore/QMutex>
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qglobalstatic.h>
+
+#include <new>
+
+#if 0
+#pragma qt_class(QApplicationStatic)
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -53,9 +24,9 @@ template <typename QAS> struct ApplicationHolder
     using Type = typename QAS::QAS_Type;
     using PlainType = std::remove_cv_t<Type>;
 
-    static inline std::aligned_union_t<1, PlainType> storage;
-    static inline QBasicAtomicInteger<qint8> guard = { QtGlobalStatic::Uninitialized };
-    static inline QBasicMutex mutex {};
+    Q_CONSTINIT static inline struct { alignas(Type) unsigned char data[sizeof(Type)]; } storage = {};
+    Q_CONSTINIT static inline QBasicAtomicInteger<qint8> guard = { QtGlobalStatic::Uninitialized };
+    Q_CONSTINIT static inline QBasicMutex mutex {};
 
     static constexpr bool MutexLockIsNoexcept = noexcept(mutex.lock());
     static constexpr bool ConstructionIsNoexcept = noexcept(QAS::innerFunction(nullptr));
@@ -64,7 +35,8 @@ template <typename QAS> struct ApplicationHolder
     Q_DISABLE_COPY_MOVE(ApplicationHolder)
     ~ApplicationHolder()
     {
-        if (guard.loadRelaxed() == QtGlobalStatic::Initialized) {
+        if (guard.loadAcquire() == QtGlobalStatic::Initialized) {
+            // No mutex! Up to external code to ensure no race happens.
             guard.storeRelease(QtGlobalStatic::Destroyed);
             realPointer()->~PlainType();
         }
@@ -72,27 +44,31 @@ template <typename QAS> struct ApplicationHolder
 
     static PlainType *realPointer()
     {
-        return reinterpret_cast<PlainType *>(&storage);
+        return std::launder(reinterpret_cast<PlainType *>(&storage));
     }
 
     // called from QGlobalStatic::instance()
     PlainType *pointer() noexcept(MutexLockIsNoexcept && ConstructionIsNoexcept)
     {
-        if (guard.loadRelaxed() == QtGlobalStatic::Initialized)
+        if (guard.loadAcquire() == QtGlobalStatic::Initialized)
             return realPointer();
         QMutexLocker locker(&mutex);
         if (guard.loadRelaxed() == QtGlobalStatic::Uninitialized) {
-            QAS::innerFunction(realPointer());
-            QObject::connect(QCoreApplication::instance(), &QObject::destroyed, reset);
-            guard.storeRelaxed(QtGlobalStatic::Initialized);
+            QAS::innerFunction(&storage);
+            const auto *app = QCoreApplication::instance();
+            Q_ASSERT_X(app, Q_FUNC_INFO,
+                       "The application static was used without a QCoreApplication instance");
+            QObject::connect(app, &QObject::destroyed, app, reset, Qt::DirectConnection);
+            guard.storeRelease(QtGlobalStatic::Initialized);
         }
         return realPointer();
     }
 
     static void reset()
     {
+        // we only synchronize using the mutex here, not the guard
+        QMutexLocker locker(&mutex);
         if (guard.loadRelaxed() == QtGlobalStatic::Initialized) {
-            QMutexLocker locker(&mutex);
             realPointer()->~PlainType();
             guard.storeRelaxed(QtGlobalStatic::Uninitialized);
         }

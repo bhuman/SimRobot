@@ -1,1 +1,1 @@
-#include "qimageiohandler.h"
+#include <QtGui/qimageiohandler.h> // IWYU pragma: export

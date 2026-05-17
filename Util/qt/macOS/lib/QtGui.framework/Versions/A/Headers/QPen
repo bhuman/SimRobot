@@ -1,1 +1,1 @@
-#include "qpen.h"
+#include <QtGui/qpen.h> // IWYU pragma: export

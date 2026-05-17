@@ -1,1 +1,1 @@
-#include "qsurface.h"
+#include <QtGui/qsurface.h> // IWYU pragma: export

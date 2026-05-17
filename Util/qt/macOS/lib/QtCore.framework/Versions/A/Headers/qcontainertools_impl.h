@@ -1,43 +1,8 @@
-/****************************************************************************
-**
-** Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
-** Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
+// Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #if 0
 #pragma qt_sync_skip_header_check
@@ -49,6 +14,8 @@
 
 #include <QtCore/qglobal.h>
 #include <QtCore/qtypeinfo.h>
+
+#include <QtCore/qxptype_traits.h>
 
 #include <cstring>
 #include <iterator>
@@ -73,6 +40,26 @@ static constexpr bool q_points_into_range(const T *p, const T *b, const T *e,
     return !less(p, b) && less(p, e);
 }
 
+/*!
+  \internal
+
+  Returns whether \a p is within container \a c. In its simplest form equivalent to:
+  c.data() <= p < c.data() + c.size()
+*/
+template <typename C, typename T>
+static constexpr bool q_points_into_range(const T &p, const C &c) noexcept
+{
+    static_assert(std::is_same_v<decltype(std::data(c)), T>);
+
+    // std::distance because QArrayDataPointer has a "qsizetype size"
+    // member but no size() function
+    return q_points_into_range(p, std::data(c),
+                               std::data(c) + std::distance(std::begin(c), std::end(c)));
+}
+
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
+
 template <typename T, typename N>
 void q_uninitialized_move_if_noexcept_n(T* first, N n, T* out)
 {
@@ -86,16 +73,75 @@ template <typename T, typename N>
 void q_uninitialized_relocate_n(T* first, N n, T* out)
 {
     if constexpr (QTypeInfo<T>::isRelocatable) {
-        if (n != N(0)) { // even if N == 0, out == nullptr or first == nullptr are UB for memmove()
-            std::memmove(static_cast<void*>(out),
-                         static_cast<const void*>(first),
-                         n * sizeof(T));
+        static_assert(std::is_copy_constructible_v<T> || std::is_move_constructible_v<T>,
+                      "Refusing to relocate this non-copy/non-move-constructible type.");
+        if (n != N(0)) { // even if N == 0, out == nullptr or first == nullptr are UB for memcpy()
+            std::memcpy(static_cast<void *>(out),
+                        static_cast<const void *>(first),
+                        n * sizeof(T));
         }
     } else {
         q_uninitialized_move_if_noexcept_n(first, n, out);
         if constexpr (QTypeInfo<T>::isComplex)
             std::destroy_n(first, n);
     }
+}
+
+QT_WARNING_POP
+
+/*!
+    \internal
+
+    A wrapper around std::rotate(), with an optimization for
+    Q_RELOCATABLE_TYPEs. We omit the return value, as it would be more work to
+    compute in the Q_RELOCATABLE_TYPE case and, unlike std::rotate on
+    ForwardIterators, callers can compute the result in constant time
+    themselves.
+*/
+template <typename T>
+void q_rotate(T *first, T *mid, T *last)
+{
+    if constexpr (QTypeInfo<T>::isRelocatable) {
+        const auto cast = [](T *p) { return reinterpret_cast<uchar*>(p); };
+        std::rotate(cast(first), cast(mid), cast(last));
+    } else {
+        std::rotate(first, mid, last);
+    }
+}
+
+/*!
+    \internal
+    Copies all elements, except the ones for which \a pred returns \c true, from
+    range [first, last), to the uninitialized memory buffer starting at \a out.
+
+    It's undefined behavior if \a out points into [first, last).
+
+    Returns a pointer one past the last copied element.
+
+    If an exception is thrown, all the already copied elements in the destination
+    buffer are destroyed.
+*/
+template <typename T, typename Predicate>
+T *q_uninitialized_remove_copy_if(T *first, T *last, T *out, Predicate &pred)
+{
+    static_assert(std::is_nothrow_destructible_v<T>,
+                  "This algorithm requires that T has a non-throwing destructor");
+    Q_ASSERT(!q_points_into_range(out, first, last));
+
+    T *dest_begin = out;
+    QT_TRY {
+        while (first != last) {
+            if (!pred(*first)) {
+                new (std::addressof(*out)) T(*first);
+                ++out;
+            }
+            ++first;
+        }
+    } QT_CATCH (...) {
+        std::destroy(std::reverse_iterator(out), std::reverse_iterator(dest_begin));
+        QT_RETHROW;
+    }
+    return out;
 }
 
 template<typename iterator, typename N>
@@ -209,6 +255,13 @@ void q_relocate_overlap_n(T *first, N n, T *d_first)
     }
 }
 
+template <typename T>
+struct ArrowProxy
+{
+    T t;
+    T *operator->() noexcept { return &t; }
+};
+
 template <typename Iterator>
 using IfIsInputIterator = typename std::enable_if<
     std::is_convertible<typename std::iterator_traits<Iterator>::iterator_category, std::input_iterator_tag>::value,
@@ -239,43 +292,38 @@ void reserveIfForwardIterator(Container *c, ForwardIterator f, ForwardIterator l
     c->reserve(static_cast<typename Container::size_type>(std::distance(f, l)));
 }
 
-template <typename Iterator, typename = std::void_t<>>
-struct AssociativeIteratorHasKeyAndValue : std::false_type
-{
-};
+template <typename Iterator>
+using KeyAndValueTest = decltype(
+    std::declval<Iterator &>().key(),
+    std::declval<Iterator &>().value()
+);
 
 template <typename Iterator>
-struct AssociativeIteratorHasKeyAndValue<
-        Iterator,
-        std::void_t<decltype(std::declval<Iterator &>().key()),
-                    decltype(std::declval<Iterator &>().value())>
-    >
-    : std::true_type
-{
-};
-
-template <typename Iterator, typename = std::void_t<>, typename = std::void_t<>>
-struct AssociativeIteratorHasFirstAndSecond : std::false_type
-{
-};
-
-template <typename Iterator>
-struct AssociativeIteratorHasFirstAndSecond<
-        Iterator,
-        std::void_t<decltype(std::declval<Iterator &>()->first),
-                    decltype(std::declval<Iterator &>()->second)>
-    >
-    : std::true_type
-{
-};
+using FirstAndSecondTest = decltype(
+    (*std::declval<Iterator &>()).first,
+    (*std::declval<Iterator &>()).second
+);
 
 template <typename Iterator>
 using IfAssociativeIteratorHasKeyAndValue =
-    typename std::enable_if<AssociativeIteratorHasKeyAndValue<Iterator>::value, bool>::type;
+    std::enable_if_t<qxp::is_detected_v<KeyAndValueTest, Iterator>, bool>;
 
 template <typename Iterator>
 using IfAssociativeIteratorHasFirstAndSecond =
-    typename std::enable_if<AssociativeIteratorHasFirstAndSecond<Iterator>::value, bool>::type;
+    std::enable_if_t<
+        std::conjunction_v<
+            std::negation<qxp::is_detected<KeyAndValueTest, Iterator>>,
+            qxp::is_detected<FirstAndSecondTest, Iterator>
+        >, bool>;
+
+template <typename Iterator>
+using MoveBackwardsTest = decltype(
+    std::declval<Iterator &>().operator--()
+);
+
+template <typename Iterator>
+using IfIteratorCanMoveBackwards =
+    std::enable_if_t<qxp::is_detected_v<MoveBackwardsTest, Iterator>, bool>;
 
 template <typename T, typename U>
 using IfIsNotSame =
@@ -325,7 +373,7 @@ template <typename Container, typename T>
 auto sequential_erase(Container &c, const T &t)
 {
     // use the equivalence relation from http://eel.is/c++draft/list.erasure#1
-    auto cmp = [&](auto &e) { return e == t; };
+    auto cmp = [&](const auto &e) -> bool { return e == t; };
     return sequential_erase_if(c, cmp); // can't pass rvalues!
 }
 
@@ -333,8 +381,7 @@ template <typename Container, typename T>
 auto sequential_erase_with_copy(Container &c, const T &t)
 {
     using CopyProxy = std::conditional_t<std::is_copy_constructible_v<T>, T, const T &>;
-    const T &tCopy = CopyProxy(t);
-    return sequential_erase(c, tCopy);
+    return sequential_erase(c, CopyProxy(t));
 }
 
 template <typename Container, typename T>
@@ -352,12 +399,13 @@ template <typename T, typename Predicate>
 qsizetype qset_erase_if(QSet<T> &set, Predicate &pred)
 {
     qsizetype result = 0;
-    auto it = set.begin();
-    const auto e = set.end();
+    auto it = set.cbegin();
+    auto e = set.cend(); // stable across detach (QHash::end() is a stateless sentinel)...
     while (it != e) {
         if (pred(*it)) {
             ++result;
             it = set.erase(it);
+            e = set.cend(); // ...but re-set nonetheless, in case at some point it won't be
         } else {
             ++it;
         }
@@ -410,7 +458,7 @@ auto associative_erase_if(Container &c, Predicate &pred)
                 ++it;
             }
         } else {
-            static_assert(sizeof(Container) == 0, "Predicate has an incompatible signature");
+            static_assert(type_dependent_false<Container>(), "Predicate has an incompatible signature");
         }
     }
 

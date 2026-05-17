@@ -1,1 +1,1 @@
-#include "qshareddata.h"
+#include <QtCore/qshareddata.h> // IWYU pragma: export

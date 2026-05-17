@@ -1,1 +1,1 @@
-#include "qaccessibleplugin.h"
+#include <QtGui/qaccessibleplugin.h> // IWYU pragma: export

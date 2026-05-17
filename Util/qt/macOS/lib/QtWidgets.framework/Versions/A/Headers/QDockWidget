@@ -1,1 +1,1 @@
-#include "qdockwidget.h"
+#include <QtWidgets/qdockwidget.h> // IWYU pragma: export

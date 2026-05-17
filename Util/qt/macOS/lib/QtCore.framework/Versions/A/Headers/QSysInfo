@@ -1,1 +1,1 @@
-#include "qsysinfo.h"
+#include <QtCore/qsysinfo.h> // IWYU pragma: export

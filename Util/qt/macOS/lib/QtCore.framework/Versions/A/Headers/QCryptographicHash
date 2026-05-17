@@ -1,1 +1,1 @@
-#include "qcryptographichash.h"
+#include <QtCore/qcryptographichash.h> // IWYU pragma: export

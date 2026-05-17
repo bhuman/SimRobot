@@ -1,1 +1,1 @@
-#include "qpropertyprivate.h"
+#include <QtCore/qpropertyprivate.h> // IWYU pragma: export

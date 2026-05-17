@@ -1,1 +1,1 @@
-#include "qtextoption.h"
+#include <QtGui/qtextoption.h> // IWYU pragma: export

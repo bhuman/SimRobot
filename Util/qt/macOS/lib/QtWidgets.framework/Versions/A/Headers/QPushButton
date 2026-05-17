@@ -1,1 +1,1 @@
-#include "qpushbutton.h"
+#include <QtWidgets/qpushbutton.h> // IWYU pragma: export

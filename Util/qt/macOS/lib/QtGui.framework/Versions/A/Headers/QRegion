@@ -1,1 +1,1 @@
-#include "qregion.h"
+#include <QtGui/qregion.h> // IWYU pragma: export

@@ -1,45 +1,12 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// Copyright (C) 2023 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:execute-external-code
 
 #ifndef QPROCESS_H
 #define QPROCESS_H
 
+#include <QtCore/qcompare.h>
 #include <QtCore/qiodevice.h>
 #include <QtCore/qstringlist.h>
 #include <QtCore/qshareddata.h>
@@ -48,7 +15,7 @@
 
 QT_REQUIRE_CONFIG(processenvironment);
 
-#if defined(Q_OS_WIN) || defined(Q_CLANG_QDOC)
+#if defined(Q_OS_WIN) || defined(Q_QDOC)
 struct _PROCESS_INFORMATION;
 struct _SECURITY_ATTRIBUTES;
 struct _STARTUPINFOW;
@@ -76,9 +43,11 @@ public:
 
     void swap(QProcessEnvironment &other) noexcept { d.swap(other.d); }
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool operator==(const QProcessEnvironment &other) const;
     inline bool operator!=(const QProcessEnvironment &other) const
-    { return !(*this == other); }
+    { return !operator==(other); }
+#endif
 
     bool isEmpty() const;
     [[nodiscard]] bool inheritsFromParent() const;
@@ -98,6 +67,9 @@ public:
     static QProcessEnvironment systemEnvironment();
 
 private:
+    friend Q_CORE_EXPORT bool comparesEqual(const QProcessEnvironment &lhs,
+                                            const QProcessEnvironment &rhs);
+    Q_DECLARE_EQUALITY_COMPARABLE_NON_NOEXCEPT(QProcessEnvironment)
     friend class QProcessPrivate;
     friend class QProcessEnvironmentPrivate;
     QSharedDataPointer<QProcessEnvironmentPrivate> d;
@@ -186,7 +158,7 @@ public:
     void setStandardErrorFile(const QString &fileName, OpenMode mode = Truncate);
     void setStandardOutputProcess(QProcess *destination);
 
-#if defined(Q_OS_WIN) || defined(Q_CLANG_QDOC)
+#if defined(Q_OS_WIN) || defined(Q_QDOC)
     QString nativeArguments() const;
     void setNativeArguments(const QString &arguments);
     struct CreateProcessArguments
@@ -205,10 +177,34 @@ public:
     typedef std::function<void(CreateProcessArguments *)> CreateProcessArgumentModifier;
     CreateProcessArgumentModifier createProcessArgumentsModifier() const;
     void setCreateProcessArgumentsModifier(CreateProcessArgumentModifier modifier);
-#endif // Q_OS_WIN || Q_CLANG_QDOC
-#if defined(Q_OS_UNIX) || defined(Q_CLANG_QDOC)
+#endif // Q_OS_WIN || Q_QDOC
+#if defined(Q_OS_UNIX) || defined(Q_QDOC)
     std::function<void(void)> childProcessModifier() const;
     void setChildProcessModifier(const std::function<void(void)> &modifier);
+    Q_NORETURN void failChildProcessModifier(const char *description, int error = 0) noexcept;
+
+    enum class UnixProcessFlag : quint32 {
+        ResetSignalHandlers                 = 0x0001, // like POSIX_SPAWN_SETSIGDEF
+        IgnoreSigPipe                       = 0x0002,
+        // some room if we want to add IgnoreSigHup or so
+        CloseFileDescriptors                = 0x0010,
+        UseVFork                            = 0x0020, // like POSIX_SPAWN_USEVFORK
+        CreateNewSession                    = 0x0040, // like POSIX_SPAWN_SETSID
+        DisconnectControllingTerminal       = 0x0080,
+        ResetIds                            = 0x0100, // like POSIX_SPAWN_RESETIDS
+        DisableCoreDumps                    = 0x0200,
+    };
+    Q_DECLARE_FLAGS(UnixProcessFlags, UnixProcessFlag)
+    struct UnixProcessParameters
+    {
+        UnixProcessFlags flags = {};
+        int lowestFileDescriptorToClose = 0;
+
+        quint32 _reserved[6] {};
+    };
+    UnixProcessParameters unixProcessParameters() const noexcept;
+    void setUnixProcessParameters(const UnixProcessParameters &params);
+    void setUnixProcessParameters(UnixProcessFlags flagsOnly);
 #endif
 
     QString workingDirectory() const;
@@ -282,14 +278,22 @@ private:
     QT_DEPRECATED_X("Use setChildProcessModifier() instead")
     virtual Use_setChildProcessModifier_Instead setupChildProcess();
 #endif
+};
 
-    Q_PRIVATE_SLOT(d_func(), bool _q_canReadStandardOutput())
-    Q_PRIVATE_SLOT(d_func(), bool _q_canReadStandardError())
 #ifdef Q_OS_UNIX
-    Q_PRIVATE_SLOT(d_func(), bool _q_canWrite())
+Q_DECLARE_OPERATORS_FOR_FLAGS(QProcess::UnixProcessFlags)
 #endif
-    Q_PRIVATE_SLOT(d_func(), bool _q_startupNotification())
-    Q_PRIVATE_SLOT(d_func(), void _q_processDied())
+
+#else // !QT_CONFIG(process)
+
+class QProcess
+{
+public:
+    Q_CORE_EXPORT static QStringList splitCommand(QStringView command);
+
+private:
+    QProcess() = delete;
+    Q_DISABLE_COPY_MOVE(QProcess)
 };
 
 #endif // QT_CONFIG(process)

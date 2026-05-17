@@ -1,69 +1,53 @@
-/****************************************************************************
-**
-** Copyright (C) 2018 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTESTSUPPORT_CORE_H
 #define QTESTSUPPORT_CORE_H
 
 #include <QtCore/qcoreapplication.h>
 #include <QtCore/qdeadlinetimer.h>
-#include <QtCore/qthread.h>
+
+#include <chrono>
 
 QT_BEGIN_NAMESPACE
 
 namespace QTest {
 
 Q_CORE_EXPORT void qSleep(int ms);
+Q_CORE_EXPORT void qSleep(std::chrono::milliseconds msecs);
+
+extern Q_CORE_EXPORT std::atomic<std::chrono::milliseconds> defaultTryTimeout;
+
+namespace Internal {
+enum class WaitForResult {
+    Failed = -1,
+    NotYet = 0,
+    Done = 1,
+};
+
+inline bool waitForMore(bool) { return true; }
+inline bool waitForMore(WaitForResult value) { return value == WaitForResult::NotYet; }
+
+inline bool waitForSucceeded(bool value) { return value; }
+inline bool waitForSucceeded(WaitForResult value) { return value >= WaitForResult::Done; }
+}
 
 template <typename Functor>
-[[nodiscard]] static bool qWaitFor(Functor predicate, int timeout = 5000)
+[[nodiscard]] bool
+qWaitFor(Functor predicate, QDeadlineTimer deadline = QDeadlineTimer(
+    defaultTryTimeout.load(std::memory_order_relaxed)))
 {
+    using Internal::waitForMore; // customization point
+    using Internal::waitForSucceeded; // customization point
+
     // We should not spin the event loop in case the predicate is already true,
     // otherwise we might send new events that invalidate the predicate.
-    if (predicate())
+    if (waitForSucceeded(predicate()))
         return true;
 
-    // qWait() is expected to spin the event loop, even when called with a small
-    // timeout like 1ms, so we we can't use a simple while-loop here based on
-    // the deadline timer not having timed out. Use do-while instead.
-
-    int remaining = timeout;
-    QDeadlineTimer deadline(remaining, Qt::PreciseTimer);
+    // qWait() is expected to spin the event loop at least once, even when
+    // called with a small timeout like 1ns.
 
     do {
         // We explicitly do not pass the remaining time to processEvents, as
@@ -75,19 +59,30 @@ template <typename Functor>
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 
-        if (predicate())
+        if (auto predresult = predicate(); waitForSucceeded(predresult))
             return true;
+        else if (!waitForMore(predresult))
+            return false;
 
-        remaining = int(deadline.remainingTime());
-        if (remaining > 0)
-            qSleep(qMin(10, remaining));
-        remaining = int(deadline.remainingTime());
-    } while (remaining > 0);
+        using namespace std::chrono;
 
-    return predicate(); // Last chance
+        if (const auto remaining = deadline.remainingTimeAsDuration(); remaining > 0ns)
+            qSleep((std::min)(10ms, ceil<milliseconds>(remaining)));
+
+    } while (!deadline.hasExpired());
+
+    return waitForSucceeded(predicate()); // Last chance
+}
+
+template <typename Functor>
+[[nodiscard]] bool qWaitFor(Functor predicate, int timeout)
+{
+    return qWaitFor(predicate, QDeadlineTimer{timeout, Qt::PreciseTimer});
 }
 
 Q_CORE_EXPORT void qWait(int ms);
+
+Q_CORE_EXPORT void qWait(std::chrono::milliseconds msecs);
 
 } // namespace QTest
 

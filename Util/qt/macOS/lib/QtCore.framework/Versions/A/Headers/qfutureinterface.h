@@ -1,47 +1,13 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFUTUREINTERFACE_H
 #define QFUTUREINTERFACE_H
 
 #include <QtCore/qmutex.h>
 #include <QtCore/qresultstore.h>
+#include <QtCore/qtcoreexports.h>
 #ifndef QT_NO_EXCEPTIONS
 #include <exception>
 #endif
@@ -57,13 +23,14 @@ QT_BEGIN_NAMESPACE
 
 template <typename T> class QFuture;
 class QThreadPool;
+class QFutureInterfaceBase;
 class QFutureInterfaceBasePrivate;
 class QFutureWatcherBase;
 class QFutureWatcherBasePrivate;
 
 namespace QtPrivate {
 template<typename Function, typename ResultType, typename ParentResultType>
-class Continuation;
+class CompactContinuation;
 
 class ExceptionStore;
 
@@ -74,6 +41,14 @@ class CanceledHandler;
 template<class Function, class ResultType>
 class FailureHandler;
 #endif
+
+struct UnwrapHandler;
+
+#if QT_CORE_REMOVED_SINCE(6, 10)
+void Q_CORE_EXPORT watchContinuationImpl(const QObject *context,
+                                         QtPrivate::QSlotObjectBase *slotObj,
+                                         QFutureInterfaceBase &fi);
+#endif // QT_CORE_REMOVED_SINCE(6, 10)
 }
 
 class Q_CORE_EXPORT QFutureInterfaceBase
@@ -155,6 +130,9 @@ public:
 
     void cancel();
     void cancelAndFinish() { cancel(CancelMode::CancelAndFinish); }
+    void cancelChain();
+    void setAddResultsIfCanceledEnabled(bool enable);
+    bool isAddResultsIfCanceledEnabled() const;
 
     void setSuspended(bool suspend);
     void toggleSuspended();
@@ -195,6 +173,7 @@ public:
 #ifndef QFUTURE_TEST
 private:
 #endif
+    friend class QFutureInterfaceBasePrivate;
     QFutureInterfaceBasePrivate *d;
 
 private:
@@ -202,7 +181,7 @@ private:
     friend class QFutureWatcherBasePrivate;
 
     template<typename Function, typename ResultType, typename ParentResultType>
-    friend class QtPrivate::Continuation;
+    friend class QtPrivate::CompactContinuation;
 
     template<class Function, class ResultType>
     friend class QtPrivate::CanceledHandler;
@@ -212,13 +191,34 @@ private:
     friend class QtPrivate::FailureHandler;
 #endif
 
+    friend struct QtPrivate::UnwrapHandler;
+
+#if QT_CORE_REMOVED_SINCE(6, 10)
+    friend Q_CORE_EXPORT void QtPrivate::watchContinuationImpl(
+            const QObject *context, QtPrivate::QSlotObjectBase *slotObj, QFutureInterfaceBase &fi);
+#endif // QT_CORE_REMOVED_SINCE(6, 10)
+
     template<class T>
     friend class QPromise;
 
 protected:
+    enum class ContinuationType : quint8
+    {
+        Unknown,
+        Then,
+        OnFailed,
+        OnCanceled,
+    };
+
+#if QT_CORE_REMOVED_SINCE(6, 10)
     void setContinuation(std::function<void(const QFutureInterfaceBase &)> func);
     void setContinuation(std::function<void(const QFutureInterfaceBase &)> func,
                          QFutureInterfaceBasePrivate *continuationFutureData);
+#endif // QT_CORE_REMOVED_SINCE(6, 10)
+    void setContinuation(std::function<void(const QFutureInterfaceBase &)> func,
+                         void *continuationFutureData, ContinuationType type);
+    void setContinuation(const QObject *context, std::function<void()> func,
+                         const QVariant &continuationFuture, ContinuationType type);
     void cleanContinuation();
     void runContinuation() const;
 
@@ -229,6 +229,7 @@ protected:
 
     enum class CancelMode { CancelOnly, CancelAndFinish };
     void cancel(CancelMode mode);
+    void cancelChain(CancelMode mode);
 };
 
 inline void swap(QFutureInterfaceBase &lhs, QFutureInterfaceBase &rhs) noexcept
@@ -272,6 +273,8 @@ public:
 
     inline QFuture<T> future(); // implemented in qfuture.h
 
+    template <typename...Args, std::enable_if_t<std::is_constructible_v<T, Args...>, bool> = true>
+    inline bool reportAndEmplaceResult(int index, Args&&...args);
     inline bool reportResult(const T *result, int index = -1);
     inline bool reportAndMoveResult(T &&result, int index = -1);
     inline bool reportResult(T &&result, int index = -1);
@@ -318,7 +321,7 @@ template <typename T>
 inline bool QFutureInterface<T>::reportResult(const T *result, int index)
 {
     QMutexLocker<QMutex> locker{&mutex()};
-    if (this->queryState(Canceled) || this->queryState(Finished))
+    if ((this->queryState(Canceled) && !this->isAddResultsIfCanceledEnabled()) || this->queryState(Finished))
         return false;
 
     Q_ASSERT(!hasException());
@@ -337,21 +340,28 @@ inline bool QFutureInterface<T>::reportResult(const T *result, int index)
 }
 
 template<typename T>
-bool QFutureInterface<T>::reportAndMoveResult(T &&result, int index)
+template<typename...Args, std::enable_if_t<std::is_constructible_v<T, Args...>, bool>>
+bool QFutureInterface<T>::reportAndEmplaceResult(int index, Args&&...args)
 {
     QMutexLocker<QMutex> locker{&mutex()};
-    if (queryState(Canceled) || queryState(Finished))
+    if ((queryState(Canceled) && !isAddResultsIfCanceledEnabled()) || queryState(Finished))
         return false;
 
     Q_ASSERT(!hasException());
     QtPrivate::ResultStoreBase &store = resultStoreBase();
 
     const int oldResultCount = store.count();
-    const int insertIndex = store.moveResult(index, std::forward<T>(result));
+    const int insertIndex = store.emplaceResult<T>(index, std::forward<Args>(args)...);
     // Let's make sure it's not in pending results.
     if (insertIndex != -1 && (!store.filterMode() || oldResultCount < store.count()))
         reportResultsReady(insertIndex, store.count());
     return insertIndex != -1;
+}
+
+template<typename T>
+bool QFutureInterface<T>::reportAndMoveResult(T &&result, int index)
+{
+    return reportAndEmplaceResult(index, std::move(result));
 }
 
 template<typename T>
@@ -370,7 +380,7 @@ template<typename T>
 inline bool QFutureInterface<T>::reportResults(const QList<T> &_results, int beginIndex, int count)
 {
     QMutexLocker<QMutex> locker{&mutex()};
-    if (this->queryState(Canceled) || this->queryState(Finished))
+    if ((this->queryState(Canceled) && !this->isAddResultsIfCanceledEnabled()) || this->queryState(Finished))
         return false;
 
     Q_ASSERT(!hasException());
@@ -383,7 +393,7 @@ inline bool QFutureInterface<T>::reportResults(const QList<T> &_results, int beg
     if (store.filterMode()) {
         this->reportResultsReady(resultCountBefore, store.count());
     } else {
-        this->reportResultsReady(insertIndex, insertIndex + _results.count());
+        this->reportResultsReady(insertIndex, insertIndex + _results.size());
     }
     return true;
 }
@@ -441,12 +451,11 @@ inline QList<T> QFutureInterface<T>::results()
 template<typename T>
 T QFutureInterface<T>::takeResult()
 {
-    Q_ASSERT(isValid());
-
     // Note: we wait for all, this is intentional,
     // not to mess with other unready results.
     waitForResult(-1);
 
+    Q_ASSERT(isValid());
     Q_ASSERT(!hasException());
 
     const QMutexLocker<QMutex> locker{&mutex()};
@@ -462,10 +471,9 @@ T QFutureInterface<T>::takeResult()
 template<typename T>
 std::vector<T> QFutureInterface<T>::takeResults()
 {
-    Q_ASSERT(isValid());
-
     waitForResult(-1);
 
+    Q_ASSERT(isValid());
     Q_ASSERT(!hasException());
 
     std::vector<T> res;
@@ -484,11 +492,14 @@ std::vector<T> QFutureInterface<T>::takeResults()
 }
 #endif
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_CLANG("-Wweak-vtables") // QTBUG-125115
+
 template <>
 class QFutureInterface<void> : public QFutureInterfaceBase
 {
 public:
-    explicit QFutureInterface<void>(State initialState = NoState)
+    explicit QFutureInterface(State initialState = NoState)
         : QFutureInterfaceBase(initialState)
     { }
 
@@ -513,6 +524,8 @@ public:
         QFutureInterfaceBase::runContinuation();
     }
 };
+
+QT_WARNING_POP // Clang -Wweak-vtables
 
 template<typename T>
 inline void swap(QFutureInterface<T> &a, QFutureInterface<T> &b) noexcept

@@ -1,1 +1,1 @@
-#include "qpromise.h"
+#include <QtCore/qpromise.h> // IWYU pragma: export

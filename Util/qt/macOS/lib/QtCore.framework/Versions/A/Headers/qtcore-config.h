@@ -1,22 +1,21 @@
-#define QT_FEATURE_clock_monotonic -1
+#ifndef QT_FEATURES_Core_src_corelib_qtcore_config_h_H
+#define QT_FEATURES_Core_src_corelib_qtcore_config_h_H
 
-#define QT_FEATURE_doubleconversion 1
+#define QT_FEATURE_clock_monotonic -1
 
 #define QT_FEATURE_cxx11_future 1
 
-#define QT_FEATURE_cxx17_filesystem -1
-
-#define QT_FEATURE_eventfd -1
+#define QT_FEATURE_cxx17_filesystem 1
 
 #define QT_FEATURE_glib -1
 
 #define QT_FEATURE_inotify -1
 
+#define QT_FEATURE_jemalloc -1
+
 #define QT_FEATURE_std_atomic64 1
 
 #define QT_FEATURE_mimetype 1
-
-#define QT_FEATURE_properties 1
 
 #define QT_FEATURE_regularexpression 1
 
@@ -27,6 +26,8 @@
 #define QT_FEATURE_systemsemaphore 1
 
 #define QT_FEATURE_xmlstream 1
+
+#define QT_FEATURE_cpp_winrt -1
 
 #define QT_FEATURE_xmlstreamreader 1
 
@@ -78,13 +79,18 @@
 
 #define QT_FEATURE_timezone 1
 
+#define QT_FEATURE_timezone_tzdb -1
+
 #define QT_FEATURE_commandlineparser 1
 
 #define QT_FEATURE_cborstreamreader 1
 
 #define QT_FEATURE_cborstreamwriter 1
 
+#define QT_FEATURE_permissions 1
+
 #define QT_NO_CLOCK_MONOTONIC 1
-#define QT_NO_EVENTFD 1
 #define QT_NO_GLIB 1
 #define QT_NO_INOTIFY 1
+
+#endif // QT_FEATURES_Core_src_corelib_qtcore_config_h_H
