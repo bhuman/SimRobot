@@ -154,31 +154,31 @@ vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo,
   return kD * albedo / PI + specular;
 }
 
-void calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
+vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
 {
   float cosTheta = max(dot(normal, lightDir), 0.0);
-  Lo += calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta;
+  return calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta;
 }
 
-void calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
+vec3 calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
 {
   vec3 lightDir = normalize(-light.direction);
   vec3 irradiance = light.color;
 
-  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
 }
 
-void calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
+vec3 calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   vec3 irradiance = light.color * attenuation;
 
-  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
 }
 
-void calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, inout vec3 Lo)
+vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
@@ -187,7 +187,7 @@ void calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec
   float intensity = clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
   vec3 irradiance = light.color * attenuation * intensity;
 
-  calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, Lo);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
 }
 
 #ifdef WITH_LIGHTING
@@ -578,17 +578,17 @@ void GraphicsContext::addLight(const Light* light)
   if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
     lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec3(" + std::to_string(dirLight->color[0]) + ", " + std::to_string(dirLight->color[1]) + ", " + std::to_string(dirLight->color[2]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
-    lightCalculations.push_back("calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0, Lo);");
+    lightCalculations.push_back("Lo += calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0);");
   }
   else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
   {
     lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec3(" + std::to_string(spotLight->color[0]) + ", " + std::to_string(spotLight->color[1]) + ", " + std::to_string(spotLight->color[2]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
-    lightCalculations.push_back("calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, Lo);");
+    lightCalculations.push_back("Lo += calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0);");
   }
   else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
   {
     lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec3(" + std::to_string(pointLight->color[0]) + ", " + std::to_string(pointLight->color[1]) + ", " + std::to_string(pointLight->color[2]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
-    lightCalculations.push_back("calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, Lo);");
+    lightCalculations.push_back("Lo += calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0);");
   }
 }
 
@@ -665,24 +665,19 @@ void GraphicsContext::updateModelMatrices(ModelMatrix::Usage usage, bool forceUp
     modelMatrix->updateMemory();
 }
 
-void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
+void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
 {
-  const auto* context = QOpenGLContext::currentContext();
-  ASSERT(!data);
+  ASSERT(data);
+  ASSERT(f);
   ASSERT(!shader);
-  ASSERT(!f);
-  data = &perContextData[context];
   // Even if the caller wants textures to be active, we only use the corresponding shader if there are any textures
   // in the scene. Otherwise, at least the Apple implementation complains that a texture unit is used in a shader
   // without a bound texture.
   textures &= !data->textureIDs.empty();
-  shader = &data->shaders[(lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)];
-  f = data->f;
-  if(clear)
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  shader = &data->shaders[renderDepthOnly ? 8 : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0))];
   if(viewportX >= 0)
     f->glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-  f->glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
+  f->glPolygonMode(GL_FRONT_AND_BACK, (fillPolygons || renderDepthOnly) ? GL_FILL : GL_LINE);
   f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
   f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
@@ -697,36 +692,9 @@ void GraphicsContext::startColorRendering(const Matrix4f& projection, const Matr
   data->boundVAO = 0;
   // If this shader uses textures, we bind some non-null texture initially. This prevents warnings
   // on Apple devices and signals setSurface that textures have to be bound.
-  data->boundTexture = textures ? data->textureIDs.front() : 0;
+  data->boundTexture = (textures && !renderDepthOnly) ? data->textureIDs.front() : 0;
   data->blendEnabled = false;
   f->glBindTexture(GL_TEXTURE_2D, data->boundTexture);
-  f->glDisable(GL_BLEND);
-}
-
-void GraphicsContext::startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear)
-{
-  const auto* context = QOpenGLContext::currentContext();
-  ASSERT(!data);
-  ASSERT(!shader);
-  ASSERT(!f);
-  data = &perContextData[context];
-  shader = &data->shaders[8];
-  f = data->f;
-  if(clear)
-    f->glClear(GL_DEPTH_BUFFER_BIT);
-  if(viewportX >= 0)
-    f->glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-  f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  f->glUseProgram(shader->program);
-  const Matrix4f pv = projection * view;
-  f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
-  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
-
-  // Controller drawings might have changed these states in the meantime:
-  data->boundVAO = 0;
-  data->boundTexture = 0;
-  data->blendEnabled = false;
-  f->glBindTexture(GL_TEXTURE_2D, 0);
   f->glDisable(GL_BLEND);
 }
 
@@ -740,8 +708,8 @@ void GraphicsContext::setForcedSurface(const Surface* surface)
 void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface)
 {
   ASSERT(data);
-  ASSERT(shader);
   ASSERT(f);
+  ASSERT(shader);
   const GLuint newVAO = data->vao[mesh->vertexBuffer->vaoIndex];
   if(newVAO != data->boundVAO)
     f->glBindVertexArray((data->boundVAO = newVAO));
@@ -757,15 +725,13 @@ void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, con
 void GraphicsContext::finishRendering()
 {
   ASSERT(data);
-  ASSERT(shader);
   ASSERT(f);
+  ASSERT(shader);
   ASSERT(!forcedSurface);
-  data = nullptr;
   shader = nullptr;
-  f = nullptr;
 }
 
-bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
+bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthOnly)
 {
   ASSERT(offscreenContext && offscreenSurface);
   ASSERT(width > 0 && height > 0);
@@ -775,10 +741,10 @@ bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
   // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
   // So we create an individual buffer for each size in demand.
 
-  auto it = offscreenBuffers.find(width << 16 | height << 1 | (sampleBuffers ? 1 : 0));
+  auto it = offscreenBuffers.find(width << 16 | height);
   if(it == offscreenBuffers.end())
   {
-    QOpenGLFramebufferObject*& buffer = offscreenBuffers[width << 16 | height << 1 | (sampleBuffers ? 1 : 0)];
+    QOpenGLFramebufferObject*& buffer = offscreenBuffers[width << 16 | height];
 
     buffer = new QOpenGLFramebufferObject(width, height, QOpenGLFramebufferObject::Depth);
     if(!buffer->isValid())
@@ -787,26 +753,69 @@ bool GraphicsContext::makeCurrent(int width, int height, bool sampleBuffers)
       buffer = nullptr;
       return false;
     }
+  }
+  else if(!it->second || !it->second->bind())
+    return false;
 
-    return true;
+  ASSERT(!data);
+  ASSERT(!f);
+  ASSERT(!shader);
+  data = &perContextData[offscreenContext];
+  f = data->f;
+
+  f->glClear((depthOnly ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT);
+  renderDepthOnly = depthOnly;
+
+  return true;
+}
+
+void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+
+  if(renderDepthOnly)
+  {
+    f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
+    f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
   }
   else
-    return it->second && it->second->bind();
+  {
+    const int lineSize = w * 3;
+    f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
+    f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+  }
+
+  data = nullptr;
+  f = nullptr;
 }
 
-void GraphicsContext::finishImageRendering(void* image, int w, int h)
+bool GraphicsContext::startExternalRendering()
 {
-  QOpenGLFunctions_3_3_Core* f = perContextData[QOpenGLContext::currentContext()].f;
-  const int lineSize = w * 3;
-  f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-  f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
+  ASSERT(!data);
+  ASSERT(!f);
+  ASSERT(!shader);
+  if(auto it = perContextData.find(QOpenGLContext::currentContext()); it != perContextData.end())
+    data = &it->second;
+  else
+    return false;
+
+  f = data->f;
+
+  f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  renderDepthOnly = false;
+
+  return true;
 }
 
-void GraphicsContext::finishDepthRendering(void* image, int w, int h)
+void GraphicsContext::finishExternalRendering()
 {
-  QOpenGLFunctions_3_3_Core* f = perContextData[QOpenGLContext::currentContext()].f;
-  f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-  f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  data = nullptr;
+  f = nullptr;
 }
 
 void GraphicsContext::setSurface(const Surface* surface)

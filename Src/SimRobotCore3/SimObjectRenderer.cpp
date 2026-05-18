@@ -155,6 +155,8 @@ void SimObjectRenderer::draw()
 
   const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
+  graphicsContext.startExternalRendering();
+
   QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
 
   if(renderFlags & enableMultisample)
@@ -162,45 +164,38 @@ void SimObjectRenderer::draw()
   else
     f->glDisable(GL_MULTISAMPLE);
 
-  // clear
-  bool clear = true;
-
   // draw origin
   if(drawCoordinateSystem)
   {
-    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, false);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, false);
     graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
     graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
     graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
     graphicsContext.finishRendering();
-    clear = false;
   }
 
   // draw object / scene appearance
   if(drawAppearances)
   {
-    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
     graphicalObject->drawAppearances(graphicsContext);
     graphicsContext.finishRendering();
-    clear = false;
   }
 
   // draw object / scene physics
   if(drawPhysics || drawSensors)
   {
-    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
     physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
     graphicsContext.finishRendering();
-    clear = false;
   }
 
   // draw drag plane
   if(drawDragPlane)
   {
-    graphicsContext.startColorRendering(projection, viewMatrix, -1, -1, -1, -1, clear, false, false, false, true);
+    graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, true);
     graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
     graphicsContext.finishRendering();
-    clear = false;
   }
 
   // draw controller drawings
@@ -261,6 +256,8 @@ void SimObjectRenderer::draw()
 
     f->glDisable(GL_BLEND);
   }
+
+  graphicsContext.finishExternalRendering();
 }
 
 void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int height)

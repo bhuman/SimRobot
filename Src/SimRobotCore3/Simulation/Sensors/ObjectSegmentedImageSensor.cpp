@@ -115,7 +115,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.makeCurrent(imageWidth, imageHeight);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
@@ -126,7 +126,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true, false, false, false);
+  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, false, false, false);
 
   // draw all objects
   Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
@@ -142,7 +142,7 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
   graphicsContext.finishRendering();
 
   // read frame buffer
-  graphicsContext.finishImageRendering(imageBuffer, imageWidth, imageHeight);
+  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, imageHeight);
   data.byteArray = imageBuffer;
 }
 
@@ -177,7 +177,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.makeCurrent(imageWidth, imageHeight * count);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight * count);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // render images
@@ -197,7 +197,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos, false, false, false);
+      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, false, false, false);
 
       // draw all objects
       Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
@@ -221,7 +221,7 @@ bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraIma
   }
 
   // read frame buffer
-  graphicsContext.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
+  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, currentHorizontalPos);
   return true;
 }
 

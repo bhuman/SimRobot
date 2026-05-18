@@ -407,19 +407,7 @@ public:
    * @param smoothShading Whether vertex normals are interpolated.
    * @param fillPolygons Whether polygons are filled (instead of wireframe rendering).
    */
-  void startColorRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
-
-  /**
-   * Starts a depth only render pass.
-   * @param projection The projection matrix of the camera.
-   * @param view The view matrix (= inverse pose) of the camera.
-   * @param viewportX Lower left corner of the viewport. If negative, the viewport is not set.
-   * @param viewportY Lower left corner of the viewport.
-   * @param viewportWidth Width of the viewport.
-   * @param viewportHeight Height of the viewport.
-   * @param clear Whether to clear the depth buffer.
-   */
-  void startDepthOnlyRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool clear);
+  void startRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
 
   /**
    * Forces the following draw calls to use a specific surface.
@@ -435,33 +423,34 @@ public:
    */
   void draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface);
 
-  /** Must be called as counterpart to \c startColorRendering / \c startDepthOnlyRendering. */
+  /** Must be called as counterpart to \c startRendering. */
   void finishRendering();
 
   /**
    * Selects the OpenGL context of the off-screen renderer.
    * @param width The width of an image that will be rendered using this off-screen renderer.
    * @param height The height of an image that will be rendered using this off-screen renderer.
-   * @param sampleBuffers Are sample buffers for multi-sampling required?
+   * @param depthOnly Whether only depth rendering is required (also affects what is read back in \c finishOffscreenRendering).
    * @return Whether the OpenGL context was successfully selected.
    */
-  bool makeCurrent(int width, int height, bool sampleBuffers = true);
+  bool startOffscreenRendering(int width, int height, bool depthOnly = false);
 
   /**
-   * Reads an image from current rendering context.
+   * Reads an image from the current rendering context. Must be called as counterpart to \c startOffscreenRendering.
    * @param image The buffer where is image will be saved to.
    * @param width The image width.
    * @param height The image height.
    */
-  void finishImageRendering(void* image, int width, int height);
+  void finishOffscreenRendering(void* image, int width, int height);
 
   /**
-   * Reads a depth image from current rendering context.
-   * @param image The buffer where is image will be saved to.
-   * @param width The image width.
-   * @param height The image height.
+   * Selects the (already current) OpenGL context for rendering, e.g. into an external framebuffer.
+   * @return Whether the OpenGL context was successfully selected.
    */
-  void finishDepthRendering(void* image, int width, int height);
+  bool startExternalRendering();
+
+  /** Must be called as counterpart to \c startExternalRendering. */
+  void finishExternalRendering();
 
   /**
    * Accesses the QOpenGLContext used for rendering. It can be used for creating further QOpenGLContexts with shared display lists and textures.
@@ -605,10 +594,13 @@ private:
   // To construct the model matrices:
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */
 
-  // Only valid between \c startColorRendering / \c startDepthOnlyRendering and \c finishRendering:
+  // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
   PerContextData* data = nullptr; /**< The per context data for the current OpenGL context. */
-  Shader* shader = nullptr; /**< The currently selected shader. */
   QOpenGLFunctions_3_3_Core* f = nullptr; /**< The OpenGL functions for the current OpenGL context. */
+  bool renderDepthOnly = false; /**< Whether the current rendering is into a depth-only framebuffer. */
+
+  // Only valid between \c startRendering and \c finishRendering:
+  Shader* shader = nullptr; /**< The currently selected shader. */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides \c draw's argument. */
 
   // Offscreen rendering:

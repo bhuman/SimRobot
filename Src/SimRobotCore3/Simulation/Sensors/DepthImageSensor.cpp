@@ -210,7 +210,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.makeCurrent(renderWidth, renderHeight, false);
+  graphicsContext.startOffscreenRendering(renderWidth, renderHeight, true);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
@@ -227,7 +227,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
     Matrix4f transformation;
     OpenGLTools::convertTransformation(pose.inverse(), transformation);
 
-    graphicsContext.startDepthOnlyRendering(projection, transformation, 0, 0, renderWidth, renderHeight, true);
+    graphicsContext.startRendering(projection, transformation, 0, 0, renderWidth, renderHeight);
 
     // draw all objects
     Simulation::simulation->scene->drawAppearances(graphicsContext);
@@ -235,7 +235,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
     graphicsContext.finishRendering();
 
     // read frame buffer
-    graphicsContext.finishDepthRendering(renderBuffer, renderWidth, renderHeight);
+    graphicsContext.finishOffscreenRendering(renderBuffer, renderWidth, renderHeight);
 
     if(depthImageSensor->projection == perspectiveProjection)
     {
@@ -262,6 +262,9 @@ void DepthImageSensor::DistanceSensor::updateValue()
       widthLeft -= end;
       pose.rotate(RotationMatrix::aroundY(-renderAngleX));
     }
+
+    if(i + 1 != numOfBuffers)
+      graphicsContext.startOffscreenRendering(renderWidth, renderHeight, true);
   }
 }
 

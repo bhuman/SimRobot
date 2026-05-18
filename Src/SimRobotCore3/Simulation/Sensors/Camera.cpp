@@ -84,7 +84,7 @@ void Camera::CameraSensor::updateValue()
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.makeCurrent(imageWidth, imageHeight);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
@@ -95,7 +95,7 @@ void Camera::CameraSensor::updateValue()
   Matrix4f transformation;
   OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-  graphicsContext.startColorRendering(projection, transformation, 0, 0, imageWidth, imageHeight, true);
+  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight);
 
   // draw all objects
   Simulation::simulation->scene->drawAppearances(graphicsContext);
@@ -103,7 +103,7 @@ void Camera::CameraSensor::updateValue()
   graphicsContext.finishRendering();
 
   // read frame buffer
-  graphicsContext.finishImageRendering(imageBuffer, imageWidth, imageHeight);
+  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, imageHeight);
   data.byteArray = imageBuffer;
 }
 
@@ -138,7 +138,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore3::SensorPort** camera
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.makeCurrent(imageWidth, imageHeight * count);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight * count);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // render images
@@ -158,7 +158,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore3::SensorPort** camera
       Matrix4f transformation;
       OpenGLTools::convertTransformation(pose.invert(), transformation);
 
-      graphicsContext.startColorRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, !currentHorizontalPos);
+      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight);
 
       // draw all objects
       Simulation::simulation->scene->drawAppearances(graphicsContext);
@@ -174,7 +174,7 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore3::SensorPort** camera
   }
 
   // read frame buffer
-  graphicsContext.finishImageRendering(imageBuffer, imageWidth, currentHorizontalPos);
+  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, currentHorizontalPos);
   return true;
 }
 
