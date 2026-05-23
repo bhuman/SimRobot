@@ -365,8 +365,7 @@ public:
     QVarLengthArray<T, Prealloc> &operator=(std::initializer_list<T> list)
     {
         resize(qsizetype(list.size()));
-        std::copy(list.begin(), list.end(),
-                  QT_MAKE_CHECKED_ARRAY_ITERATOR(begin(), size()));
+        std::copy(list.begin(), list.end(), begin());
         return *this;
     }
 
@@ -914,7 +913,7 @@ Q_OUTOFLINE_TEMPLATE auto QVLABase<T>::erase(const_iterator abegin, const_iterat
     Q_ASSERT(n > 0); // aend must be reachable from abegin
 
     if constexpr (QTypeInfo<T>::isComplex) {
-        std::move(begin() + l, end(), QT_MAKE_CHECKED_ARRAY_ITERATOR(begin() + f, size() - f));
+        std::move(begin() + l, end(), begin() + f);
         std::destroy(end() - n, end());
     } else {
         memmove(static_cast<void *>(data() + f), static_cast<const void *>(data() + l), (size() - l) * sizeof(T));
