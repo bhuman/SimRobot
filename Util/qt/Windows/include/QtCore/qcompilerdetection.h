@@ -1192,12 +1192,6 @@
 #ifndef Q_DECL_COLD_FUNCTION
 #  define Q_DECL_COLD_FUNCTION
 #endif
-#ifndef QT_MAKE_UNCHECKED_ARRAY_ITERATOR
-#  define QT_MAKE_UNCHECKED_ARRAY_ITERATOR(x) (x)
-#endif
-#ifndef QT_MAKE_CHECKED_ARRAY_ITERATOR
-#  define QT_MAKE_CHECKED_ARRAY_ITERATOR(x, N) (x)
-#endif
 
 /*
  * "Weak overloads" - makes an otherwise confliciting overload weaker
