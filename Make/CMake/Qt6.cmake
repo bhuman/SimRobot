@@ -118,6 +118,7 @@ elseif(WINDOWS)
 
   set(Qt6Core_VERSION_MAJOR 6)
   set(Qt6Core_VERSION_MINOR 3)
+  set(Qt6_VERSION 6.3.1)
 elseif(MACOS)
   add_library(Qt6::Concurrent SHARED IMPORTED)
   set_target_properties(Qt6::Concurrent PROPERTIES
@@ -144,6 +145,10 @@ elseif(MACOS)
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::DBus"
       INTERFACE_COMPILE_DEFINITIONS "QT_GUI_LIB"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/Headers")
+
+  add_library(Qt6::GuiPrivate INTERFACE IMPORTED)
+  set_target_properties(Qt6::GuiPrivate PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/Headers/6.11.1/QtGui")
 
   add_library(Qt6::OpenGL SHARED IMPORTED)
   set_target_properties(Qt6::OpenGL PROPERTIES
@@ -187,5 +192,6 @@ elseif(MACOS)
   set_target_properties(Qt6::rcc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/libexec/rcc")
 
   set(Qt6Core_VERSION_MAJOR 6)
-  set(Qt6Core_VERSION_MINOR 3)
+  set(Qt6Core_VERSION_MINOR 11)
+  set(Qt6_VERSION 6.11.1)
 endif()
