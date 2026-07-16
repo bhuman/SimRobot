@@ -162,6 +162,12 @@ bool ServoMotor::getMinAndMax(float& min, float& max) const
   return false;
 }
 
+void ServoMotor::setMotorParameters(float kP, float kD)
+{
+  controller.p = kP;
+  controller.d = kD;
+}
+
 void ServoMotor::PositionSensor::updateValue()
 {
   data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[servoMotor->joint->jointIndex]]);

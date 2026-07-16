@@ -112,5 +112,6 @@ private:
   void setValue(float value) override;
   void setStiffness(float stiffness) override;
   void setPuppetState(bool isPuppet) override;
+  void setMotorParameters(float kP, float kD) override;
   bool getMinAndMax(float& min, float& max) const override;
 };
