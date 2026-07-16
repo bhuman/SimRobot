@@ -110,7 +110,7 @@ void ServoMotor::act()
     newVel = maxForce;
   if(newVel < -maxForce)
     newVel = -maxForce;
-  Simulation::simulation->data->ctrl[ctrlIndex] = newVel * stiffness;
+  Simulation::simulation->data->ctrl[ctrlIndex] = newVel;
 
   lastPos = currentPos;
 }
@@ -134,15 +134,6 @@ void ServoMotor::setValue(float value)
     else if(setpoint < deflection->min)
       setpoint = deflection->min;
   }
-}
-
-void ServoMotor::setStiffness(float stiffness)
-{
-  this->stiffness = stiffness / 100.f;
-  if(this->stiffness > 1.f)
-    this->stiffness = 1.f;
-  else if(this->stiffness < 0.05f)
-    this->stiffness = 0.05f;
 }
 
 void ServoMotor::setPuppetState(bool isPuppet)
