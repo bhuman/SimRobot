@@ -618,7 +618,7 @@ namespace SimRobotCore3
     virtual void setValue(float value) = 0;
     virtual void setStiffness(float) {}
     virtual void setPuppetState(bool) {};
-    virtual void setMotorParameters(float, float) {};
+    virtual void setMotorParameters(float, float, float) {};
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**

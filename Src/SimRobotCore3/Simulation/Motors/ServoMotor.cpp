@@ -162,10 +162,11 @@ bool ServoMotor::getMinAndMax(float& min, float& max) const
   return false;
 }
 
-void ServoMotor::setMotorParameters(float kP, float kD)
+void ServoMotor::setMotorParameters(float kP, float kD, float maxTorque)
 {
   controller.p = kP;
   controller.d = kD;
+  maxForce = maxTorque;
 }
 
 void ServoMotor::PositionSensor::updateValue()
