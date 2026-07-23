@@ -532,7 +532,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
       }
       else
       {
-        const Vector3f offset = currentPos - dragStartPos;
+        const Vector3f offset = (currentPos - dragStartPos).cwiseProduct(Vector3f::Ones() - dragPlaneVector);
         dragSelection->move(offset);
         if(dragMode == adoptDynamics)
         {
