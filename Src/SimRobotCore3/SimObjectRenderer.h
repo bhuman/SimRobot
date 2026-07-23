@@ -52,6 +52,7 @@ private:
   DragType dragType;
   Body* dragSelection;
   Vector3f dragStartPos;
+  Vector3f dragLastPos;
   Vector3f interCameraPos;
   DragAndDropPlane dragPlane = xyPlane;
   Vector3f dragPlaneVector;

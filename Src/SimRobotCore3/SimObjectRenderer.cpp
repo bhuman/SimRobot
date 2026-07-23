@@ -384,10 +384,11 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
 
     if(dragSelection)
     {
+      dragStartPos = dragSelection->poseInWorld.translation;
       calcDragPlaneVector();
       if(type == dragRotateObject || type == dragTranslateObject)
         dragPlaneVector = dragSelection->poseInWorld.rotation * dragPlaneVector;
-      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, dragStartPos))
+      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, dragLastPos))
         dragSelection = nullptr;
       else
       {
@@ -406,8 +407,8 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
 
   if(!dragSelection) // camera control
   {
-    dragStartPos.x() = x;
-    dragStartPos.y() = y;
+    dragLastPos.x() = x;
+    dragLastPos.y() = y;
     interCameraPos = cameraPos;
     dragging = true;
     dragType = type;
@@ -433,8 +434,8 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
     if(dragType == dragRotateObject || dragType == dragRotateWorld)
     {
       Vector3f v = (dragType == dragRotateObject ? cameraPos : interCameraPos) - cameraTarget;
-      const RotationMatrix rotateY = RotationMatrix::aroundY((y - dragStartPos.y()) * -0.01f);
-      const RotationMatrix rotateZ = RotationMatrix::aroundZ((x - dragStartPos.x()) * -0.01f);
+      const RotationMatrix rotateY = RotationMatrix::aroundY((y - dragLastPos.y()) * -0.01f);
+      const RotationMatrix rotateZ = RotationMatrix::aroundZ((x - dragLastPos.x()) * -0.01f);
       const float hypoLength = std::sqrt(v.x() * v.x() + v.y() * v.y());
       Vector3f v2(hypoLength, 0.f, v.z());
       v2 = rotateY * v2;
@@ -467,7 +468,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
     {
       Vector3f start;
       Vector3f end;
-      if(intersectClickAndCoordinatePlane(static_cast<int>(dragStartPos.x()), static_cast<int>(dragStartPos.y()), dragPlane, start))
+      if(intersectClickAndCoordinatePlane(static_cast<int>(dragLastPos.x()), static_cast<int>(dragLastPos.y()), dragPlane, start))
         if(intersectClickAndCoordinatePlane(x, y, dragPlane, end))
         {
           Vector3f translate = end - start;
@@ -476,8 +477,8 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
         }
     }
 
-    dragStartPos.x() = x;
-    dragStartPos.y() = y;
+    dragLastPos.x() = x;
+    dragLastPos.y() = y;
     updateCameraTransformation();
     return true;
   }
@@ -488,11 +489,11 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
       return true;
     Vector3f projectedClick = projectClick(x, y);
     Vector3f currentPos;
-    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
+    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, currentPos))
     {
       if(dragType == dragRotateObject || dragType == dragRotateWorld)
       {
-        Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
+        Vector3f oldV = dragLastPos - dragSelection->poseInWorld.translation;
         Vector3f newV = currentPos - dragSelection->poseInWorld.translation;
 
         if(dragType != dragRotateWorld)
@@ -528,11 +529,11 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           mju_f2n(mjcVel, velocity.data(), 3);
           dragStartTime = now;
         }
-        dragStartPos = currentPos;
+        dragLastPos = currentPos;
       }
       else
       {
-        const Vector3f offset = (currentPos - dragStartPos).cwiseProduct(Vector3f::Ones() - dragPlaneVector);
+        const Vector3f offset = currentPos - dragLastPos;
         dragSelection->move(offset);
         if(dragMode == adoptDynamics)
         {
@@ -548,7 +549,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
           mju_f2n(mjcVel, velocity.data(), 3);
           dragStartTime = now;
         }
-        dragStartPos = currentPos;
+        dragLastPos = currentPos;
       }
     }
     return true;
@@ -573,11 +574,11 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
     {
       Vector3f projectedClick = projectClick(x, y);
       Vector3f currentPos;
-      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragSelection->poseInWorld.translation, dragPlaneVector, currentPos))
+      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, currentPos))
       {
         if(dragType == dragRotateObject || dragType == dragRotateWorld)
         {
-          Vector3f oldV = dragStartPos - dragSelection->poseInWorld.translation;
+          Vector3f oldV = dragLastPos - dragSelection->poseInWorld.translation;
           Vector3f newV = currentPos - dragSelection->poseInWorld.translation;
 
           if(dragType != dragRotateWorld)
@@ -601,7 +602,7 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
         }
         else
         {
-          const Vector3f offset = currentPos - dragStartPos;
+          const Vector3f offset = currentPos - dragLastPos;
           const Vector3f force = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->bodyIndex]) * 500.f;
           mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->bodyIndex * 6, force.data(), 3);
         }
