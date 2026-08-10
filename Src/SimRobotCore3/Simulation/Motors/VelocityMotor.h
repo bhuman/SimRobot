@@ -69,4 +69,5 @@ private:
   // actuator API
   void setValue(float value) override;
   bool getMinAndMax(float& min, float& max) const override;
+  float getTorque() const override;
 };

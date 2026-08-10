@@ -112,4 +112,5 @@ private:
   void setPuppetState(bool isPuppet) override;
   void setMotorParameters(float kP, float kD, float maxTorque) override;
   bool getMinAndMax(float& min, float& max) const override;
+  float getTorque() const override;
 };

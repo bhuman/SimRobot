@@ -82,6 +82,11 @@ bool VelocityMotor::getMinAndMax(float& min, float& max) const
   return true;
 }
 
+float VelocityMotor::getTorque() const
+{
+  return ctrlIndex >= 0 ? static_cast<float>(Simulation::simulation->data->actuator_force[ctrlIndex]) : 0.f;
+}
+
 void VelocityMotor::PositionSensor::updateValue()
 {
   data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]);

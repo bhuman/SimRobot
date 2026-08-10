@@ -160,6 +160,11 @@ void ServoMotor::setMotorParameters(float kP, float kD, float maxTorque)
   maxForce = maxTorque;
 }
 
+float ServoMotor::getTorque() const
+{
+  return ctrlIndex >= 0 ? static_cast<float>(Simulation::simulation->data->actuator_force[ctrlIndex]) : 0.f;
+}
+
 void ServoMotor::PositionSensor::updateValue()
 {
   data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[servoMotor->joint->jointIndex]]);
