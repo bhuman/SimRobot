@@ -55,6 +55,20 @@ private:
   } velocitySensor;
 
   /**
+   * @class TorqueSensor
+   * A torque sensor interface
+   */
+  class TorqueSensor : public Sensor::Port
+  {
+  public:
+    VelocityMotor* velocityMotor;
+
+    //API
+    void updateValue() override;
+    bool getMinAndMax(float& min, float& max) const override;
+  } torqueSensor;
+
+  /**
    * Initializes the motor
    * @param joint The joint that is controlled by this motor
    */
@@ -69,5 +83,4 @@ private:
   // actuator API
   void setValue(float value) override;
   bool getMinAndMax(float& min, float& max) const override;
-  float getTorque() const override;
 };

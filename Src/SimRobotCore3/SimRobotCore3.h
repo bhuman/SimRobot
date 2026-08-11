@@ -621,12 +621,6 @@ namespace SimRobotCore3
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**
-     * Returns the torque the engine is applying to this actuator.
-     * @return The torque/force, or 0 if this actuator does not support it.
-     */
-    virtual float getTorque() const {return 0.f;}
-
-    /**
      * Returns the name of the unit of the actuator's set point
      * @return The name
      */

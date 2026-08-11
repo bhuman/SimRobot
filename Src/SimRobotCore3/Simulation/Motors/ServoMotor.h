@@ -78,6 +78,20 @@ private:
     void updateValue() override;
     bool getMinAndMax(float& min, float& max) const override;
   } velocitySensor;
+    
+  /**
+   * @class TorqueSensor
+   * A torque sensor interface
+   */
+  class TorqueSensor : public Sensor::Port
+  {
+  public:
+    ServoMotor* servoMotor;
+
+    //API
+    void updateValue() override;
+    bool getMinAndMax(float& min, float& max) const override;
+  } torqueSensor;
 
   /** Last position of an angular hinge. */
   float lastPos = 0;
@@ -112,5 +126,4 @@ private:
   void setPuppetState(bool isPuppet) override;
   void setMotorParameters(float kP, float kD, float maxTorque) override;
   bool getMinAndMax(float& min, float& max) const override;
-  float getTorque() const override;
 };

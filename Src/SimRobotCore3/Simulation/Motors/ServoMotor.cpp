@@ -23,12 +23,14 @@ ServoMotor::ServoMotor()
   positionSensor.dimensions.push_back(1);
   velocitySensor.sensorType = SimRobotCore3::SensorPort::floatSensor;
   velocitySensor.dimensions.push_back(1);
+  torqueSensor.sensorType = SimRobotCore3::SensorPort::floatSensor;
+  torqueSensor.dimensions.push_back(1);
 }
 
 void ServoMotor::create(Joint* joint)
 {
   this->joint = joint;
-  positionSensor.servoMotor = velocitySensor.servoMotor = this;
+  positionSensor.servoMotor = velocitySensor.servoMotor = torqueSensor.servoMotor = this;
   lastPos = joint->axis->deflection ? joint->axis->deflection->offset : 0.f;
 
   mjsActuator* actuator = mjs_addActuator(Simulation::simulation->spec, nullptr);
@@ -160,11 +162,6 @@ void ServoMotor::setMotorParameters(float kP, float kD, float maxTorque)
   maxForce = maxTorque;
 }
 
-float ServoMotor::getTorque() const
-{
-  return ctrlIndex >= 0 ? static_cast<float>(Simulation::simulation->data->actuator_force[ctrlIndex]) : 0.f;
-}
-
 void ServoMotor::PositionSensor::updateValue()
 {
   data.floatValue = static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[servoMotor->joint->jointIndex]]);
@@ -199,23 +196,39 @@ bool ServoMotor::VelocitySensor::getMinAndMax(float& min, float& max) const
   return true;
 }
 
+void ServoMotor::TorqueSensor::updateValue()
+{
+  data.floatValue = servoMotor->ctrlIndex >= 0 ? static_cast<float>(Simulation::simulation->data->actuator_force[servoMotor->ctrlIndex]) : 0.f;
+}
+
+bool ServoMotor::TorqueSensor::getMinAndMax(float& min, float& max) const
+{
+  min = -servoMotor->maxForce;
+  max = servoMotor->maxForce;
+  return true;
+}
+
 void ServoMotor::registerObjects()
 {
   if(Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_HINGE)
   {
     positionSensor.unit = unit = QString::fromUtf8("°");
     velocitySensor.unit = QString::fromUtf8("°/s");
+    torqueSensor.unit = "Nm";
   }
   else
   {
     positionSensor.unit = unit = "m";
     velocitySensor.unit = "m/s";
+    torqueSensor.unit = "N";
   }
   positionSensor.fullName = joint->fullName + ".position";
   velocitySensor.fullName = joint->fullName + ".velocity";
+  torqueSensor.fullName = joint->fullName + ".torque";
   fullName = joint->fullName + ".position";
 
   CoreModule::application->registerObject(*CoreModule::module, positionSensor, joint);
   CoreModule::application->registerObject(*CoreModule::module, velocitySensor, joint);
+  CoreModule::application->registerObject(*CoreModule::module, torqueSensor, joint);
   CoreModule::application->registerObject(*CoreModule::module, *this, joint);
 }
