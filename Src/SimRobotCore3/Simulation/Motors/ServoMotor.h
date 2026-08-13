@@ -78,7 +78,7 @@ private:
     void updateValue() override;
     bool getMinAndMax(float& min, float& max) const override;
   } velocitySensor;
-    
+
   /**
    * @class TorqueSensor
    * A torque sensor interface
