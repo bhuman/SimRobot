@@ -203,6 +203,7 @@ MainWindow::MainWindow(int, char* argv[]) :
   menuBar()->addMenu(helpMenu);
 
 #ifdef MACOS
+  applicationStateChanged(Qt::ApplicationActive);
   connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::applicationStateChanged);
 #else
   updateMenuAndToolBar();
