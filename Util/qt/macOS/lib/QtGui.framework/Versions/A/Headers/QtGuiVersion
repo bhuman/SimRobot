@@ -1,1 +1,1 @@
-#include "qtguiversion.h"
+#include <QtGui/qtguiversion.h> // IWYU pragma: export

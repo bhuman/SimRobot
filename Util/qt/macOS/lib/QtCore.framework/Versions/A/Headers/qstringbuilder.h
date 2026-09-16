@@ -1,41 +1,8 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:data-parser
+
+#include <QtCore/qstring.h>
 
 #ifndef QSTRINGBUILDER_H
 #define QSTRINGBUILDER_H
@@ -47,7 +14,6 @@
 #pragma qt_sync_stop_processing
 #endif
 
-#include <QtCore/qstring.h>
 #include <QtCore/qbytearray.h>
 
 #include <string.h>
@@ -63,16 +29,28 @@ protected:
     {
         *out++ = QLatin1Char(a);
     }
-    static void appendLatin1To(QLatin1String in, QChar *out) noexcept;
+    static void appendLatin1To(QLatin1StringView in, QChar *out) noexcept;
 };
 
-template <typename T> struct QConcatenable {};
+template <typename T> struct QConcatenable;
+
+template <typename T>
+using QConcatenableEx = QConcatenable<q20::remove_cvref_t<T>>;
 
 namespace QtStringBuilder {
     template <typename A, typename B> struct ConvertToTypeHelper
     { typedef A ConvertTo; };
     template <typename T> struct ConvertToTypeHelper<T, QString>
     { typedef QString ConvertTo; };
+
+    template <typename T> using HasIsNull = decltype(std::declval<const T &>().isNull());
+    template <typename T> bool isNull(const T &t)
+    {
+        if constexpr (qxp::is_detected_v<HasIsNull, T>)
+            return t.isNull();
+        else
+            return false;
+    }
 }
 
 template<typename Builder, typename T>
@@ -99,28 +77,52 @@ struct QStringBuilderBase<Builder, QString> : public QStringBuilderCommon<Builde
 };
 
 template <typename A, typename B>
-class QStringBuilder : public QStringBuilderBase<QStringBuilder<A, B>, typename QtStringBuilder::ConvertToTypeHelper<typename QConcatenable<A>::ConvertTo, typename QConcatenable<B>::ConvertTo>::ConvertTo>
+class QStringBuilder : public QStringBuilderBase<QStringBuilder<A, B>,
+                                                 typename QtStringBuilder::ConvertToTypeHelper<
+                                                         typename QConcatenableEx<A>::ConvertTo,
+                                                         typename QConcatenableEx<B>::ConvertTo
+                                                         >::ConvertTo
+                                                >
 {
 public:
-    QStringBuilder(const A &a_, const B &b_) : a(a_), b(b_) {}
+    QStringBuilder(A &&a_, B &&b_) : a(std::forward<A>(a_)), b(std::forward<B>(b_)) {}
+
+    QStringBuilder(QStringBuilder &&) = default;
+    QStringBuilder(const QStringBuilder &) = default;
+    ~QStringBuilder() = default;
+
 private:
     friend class QByteArray;
     friend class QString;
     template <typename T> T convertTo() const
     {
-        const qsizetype len = QConcatenable< QStringBuilder<A, B> >::size(*this);
+        if (isNull()) {
+            // appending two null strings must give back a null string,
+            // so we're special casing this one out, QTBUG-114206
+            return T();
+        }
+        return convertToImpl<T>(Concatenable::size(*this));
+    }
+    template <typename T> T convertToImpl(const qsizetype len) const
+    {
         T s(len, Qt::Uninitialized);
 
-        // we abuse const_cast / constData here because we know we've just
-        // allocated the data and we're the only reference count
-        typename T::iterator d = const_cast<typename T::iterator>(s.constData());
-        typename T::const_iterator const start = d;
-        QConcatenable< QStringBuilder<A, B> >::appendTo(*this, d);
+        // Using data_ptr() here (private API) so we can bypass the
+        // isDetached() and the replacement of a null pointer with _empty in
+        // both QString and QByteArray's data() and constData(). The result is
+        // the same if len != 0.
+        auto d = reinterpret_cast<typename T::iterator>(s.data_ptr().data());
+        const auto start = d;
+        Concatenable::appendTo(*this, d);
 
-        if (!QConcatenable< QStringBuilder<A, B> >::ExactSize && len != d - start) {
-            // this resize is necessary since we allocate a bit too much
-            // when dealing with variable sized 8-bit encodings
-            s.resize(d - start);
+        if constexpr (Concatenable::ExactSize) {
+            Q_UNUSED(start)
+        } else {
+            if (len != d - start) {
+                // this resize is necessary since we allocate a bit too much
+                // when dealing with variable sized 8-bit encodings
+                s.resize(d - start);
+            }
         }
         return s;
     }
@@ -132,44 +134,18 @@ public:
 
     qsizetype size() const { return Concatenable::size(*this); }
 
-    const A &a;
-    const B &b;
+    bool isNull() const
+    {
+        return QtStringBuilder::isNull(a) && QtStringBuilder::isNull(b);
+    }
+
+    A a;
+    B b;
+
+private:
+    QStringBuilder &operator=(QStringBuilder &&) = delete;
+    QStringBuilder &operator=(const QStringBuilder &) = delete;
 };
-
-template <>
-class QStringBuilder <QString, QString> : public QStringBuilderBase<QStringBuilder<QString, QString>, QString>
-{
-    public:
-        QStringBuilder(const QString &a_, const QString &b_) : a(a_), b(b_) {}
-        QStringBuilder(const QStringBuilder &other) : a(other.a), b(other.b) {}
-
-        operator QString() const
-        { QString r(a); r += b; return r; }
-
-        const QString &a;
-        const QString &b;
-
-    private:
-        QStringBuilder &operator=(const QStringBuilder &) = delete;
-};
-
-template <>
-class QStringBuilder <QByteArray, QByteArray> : public QStringBuilderBase<QStringBuilder<QByteArray, QByteArray>, QByteArray>
-{
-    public:
-        QStringBuilder(const QByteArray &a_, const QByteArray &b_) : a(a_), b(b_) {}
-        QStringBuilder(const QStringBuilder &other) : a(other.a), b(other.b) {}
-
-        operator QByteArray() const
-        { QByteArray r(a); r += b; return r; }
-
-        const QByteArray &a;
-        const QByteArray &b;
-
-    private:
-        QStringBuilder &operator=(const QStringBuilder &) = delete;
-};
-
 
 template <> struct QConcatenable<char> : private QAbstractConcatenable
 {
@@ -250,18 +226,18 @@ template <> struct QConcatenable<QChar::SpecialCharacter> : private QAbstractCon
     { *out++ = c; }
 };
 
-template <> struct QConcatenable<QLatin1String> : private QAbstractConcatenable
+template <> struct QConcatenable<QLatin1StringView> : private QAbstractConcatenable
 {
-    typedef QLatin1String type;
+    typedef QLatin1StringView type;
     typedef QString ConvertTo;
     enum { ExactSize = true };
-    static qsizetype size(const QLatin1String a) { return a.size(); }
-    static inline void appendTo(const QLatin1String a, QChar *&out)
+    static qsizetype size(const QLatin1StringView a) { return a.size(); }
+    static inline void appendTo(const QLatin1StringView a, QChar *&out)
     {
         appendLatin1To(a, out);
         out += a.size();
     }
-    static inline void appendTo(const QLatin1String a, char *&out)
+    static inline void appendTo(const QLatin1StringView a, char *&out)
     {
         if (const char *data = a.data()) {
             memcpy(out, data, a.size());
@@ -280,7 +256,7 @@ template <> struct QConcatenable<QString> : private QAbstractConcatenable
     {
         const qsizetype n = a.size();
         if (n)
-            memcpy(out, reinterpret_cast<const char*>(a.constData()), sizeof(QChar) * n);
+            memcpy(out, a.data(), sizeof(QChar) * n);
         out += n;
     }
 };
@@ -400,10 +376,10 @@ template <> struct QConcatenable<QByteArray> : private QAbstractConcatenable
 #endif
     static inline void appendTo(const QByteArray &ba, char *&out)
     {
-        const char *a = ba.constData();
-        const char * const end = ba.end();
-        while (a != end)
-            *out++ = *a++;
+        const qsizetype n = ba.size();
+        if (n)
+            memcpy(out, ba.begin(), n);
+        out += n;
     }
 };
 
@@ -412,34 +388,37 @@ template <typename A, typename B>
 struct QConcatenable< QStringBuilder<A, B> >
 {
     typedef QStringBuilder<A, B> type;
-    typedef typename QtStringBuilder::ConvertToTypeHelper<typename QConcatenable<A>::ConvertTo, typename QConcatenable<B>::ConvertTo>::ConvertTo ConvertTo;
-    enum { ExactSize = QConcatenable<A>::ExactSize && QConcatenable<B>::ExactSize };
+    using ConvertTo = typename QtStringBuilder::ConvertToTypeHelper<
+                typename QConcatenableEx<A>::ConvertTo,
+                typename QConcatenableEx<B>::ConvertTo
+            >::ConvertTo;
+    enum { ExactSize = QConcatenableEx<A>::ExactSize && QConcatenableEx<B>::ExactSize };
     static qsizetype size(const type &p)
     {
-        return QConcatenable<A>::size(p.a) + QConcatenable<B>::size(p.b);
+        return QConcatenableEx<A>::size(p.a) + QConcatenableEx<B>::size(p.b);
     }
     template<typename T> static inline void appendTo(const type &p, T *&out)
     {
-        QConcatenable<A>::appendTo(p.a, out);
-        QConcatenable<B>::appendTo(p.b, out);
+        QConcatenableEx<A>::appendTo(p.a, out);
+        QConcatenableEx<B>::appendTo(p.b, out);
     }
 };
 
-template <typename A, typename B>
-QStringBuilder<typename QConcatenable<A>::type, typename QConcatenable<B>::type>
-operator%(const A &a, const B &b)
+template <typename A, typename B,
+         typename = std::void_t<typename QConcatenableEx<A>::type, typename QConcatenableEx<B>::type>>
+auto operator%(A &&a, B &&b)
 {
-   return QStringBuilder<typename QConcatenable<A>::type, typename QConcatenable<B>::type>(a, b);
+    return QStringBuilder<A, B>(std::forward<A>(a), std::forward<B>(b));
 }
 
 // QT_USE_FAST_OPERATOR_PLUS was introduced in 4.7, QT_USE_QSTRINGBUILDER is to be used from 4.8 onwards
 // QT_USE_FAST_OPERATOR_PLUS does not remove the normal operator+ for QByteArray
 #if defined(QT_USE_FAST_OPERATOR_PLUS) || defined(QT_USE_QSTRINGBUILDER)
-template <typename A, typename B>
-QStringBuilder<typename QConcatenable<A>::type, typename QConcatenable<B>::type>
-operator+(const A &a, const B &b)
+template <typename A, typename B,
+         typename = std::void_t<typename QConcatenableEx<A>::type, typename QConcatenableEx<B>::type>>
+auto operator+(A &&a, B &&b)
 {
-   return QStringBuilder<typename QConcatenable<A>::type, typename QConcatenable<B>::type>(a, b);
+    return std::forward<A>(a) % std::forward<B>(b);
 }
 #endif
 
@@ -487,15 +466,6 @@ QString &operator+=(QString &a, const QStringBuilder<A, B> &b)
     a.resize(it - a.constData()); //may be smaller than len if there was conversion from utf8
     return a;
 }
-
-//
-// inline QAnyStringView members requiring QStringBuilder:
-//
-
-template <typename A, typename B>
-QAnyStringView::QAnyStringView(const QStringBuilder<A, B> &expr,
-                               typename QConcatenable<QStringBuilder<A, B>>::ConvertTo &&capacity)
-    : QAnyStringView(capacity = expr) {}
 
 QT_END_NAMESPACE
 

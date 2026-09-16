@@ -1,1 +1,1 @@
-#include "qqueue.h"
+#include <QtCore/qqueue.h> // IWYU pragma: export

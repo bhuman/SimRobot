@@ -1,1 +1,1 @@
-#include "qrandom.h"
+#include <QtCore/qrandom.h> // IWYU pragma: export

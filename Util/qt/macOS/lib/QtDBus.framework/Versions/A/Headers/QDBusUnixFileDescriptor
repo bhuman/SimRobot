@@ -1,1 +1,1 @@
-#include "qdbusunixfiledescriptor.h"
+#include <QtDBus/qdbusunixfiledescriptor.h> // IWYU pragma: export

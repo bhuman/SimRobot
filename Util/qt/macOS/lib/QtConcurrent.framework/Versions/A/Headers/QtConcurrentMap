@@ -1,1 +1,1 @@
-#include "qtconcurrentmap.h"
+#include <QtConcurrent/qtconcurrentmap.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qpagedpaintdevice.h"
+#include <QtGui/qpagedpaintdevice.h> // IWYU pragma: export

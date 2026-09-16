@@ -1,1 +1,1 @@
-#include "qgraphicssvgitem.h"
+#include <QtSvgWidgets/qgraphicssvgitem.h> // IWYU pragma: export

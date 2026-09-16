@@ -1,1 +1,1 @@
-#include "qmdisubwindow.h"
+#include <QtWidgets/qmdisubwindow.h> // IWYU pragma: export

@@ -1,46 +1,12 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QABSTRACTITEMMODEL_H
 #define QABSTRACTITEMMODEL_H
 
+#include <QtCore/qcompare.h>
 #include <QtCore/qhash.h>
 #include <QtCore/qlist.h>
 #include <QtCore/qobject.h>
@@ -174,19 +140,27 @@ public:
     inline QVariant data(int role = Qt::DisplayRole) const;
     inline void multiData(QModelRoleDataSpan roleDataSpan) const;
     inline Qt::ItemFlags flags() const;
-    constexpr inline const QAbstractItemModel *model() const noexcept { return m; }
+    constexpr inline const QAbstractItemModel *model() const noexcept { return m.get(); }
     constexpr inline bool isValid() const noexcept { return (r >= 0) && (c >= 0) && (m != nullptr); }
-    constexpr inline bool operator==(const QModelIndex &other) const noexcept
-        { return (other.r == r) && (other.i == i) && (other.c == c) && (other.m == m); }
-    constexpr inline bool operator!=(const QModelIndex &other) const noexcept
-        { return !(*this == other); }
-    constexpr inline bool operator<(const QModelIndex &other) const noexcept
-        {
-            return  r <  other.r
-                || (r == other.r && (c <  other.c
-                                 || (c == other.c && (i <  other.i
-                                                  || (i == other.i && std::less<const QAbstractItemModel *>()(m, other.m))))));
-        }
+
+private:
+    friend constexpr bool comparesEqual(const QModelIndex &lhs, const QModelIndex &rhs) noexcept
+    {
+        return lhs.r == rhs.r && lhs.c == rhs.c && lhs.i == rhs.i && lhs.m == rhs.m;
+    }
+    friend constexpr Qt::strong_ordering compareThreeWay(const QModelIndex &lhs, const QModelIndex &rhs) noexcept
+    {
+        if (auto val = Qt::compareThreeWay(lhs.r, rhs.r); !is_eq(val))
+            return val;
+        if (auto val = Qt::compareThreeWay(lhs.c, rhs.c); !is_eq(val))
+            return val;
+        if (auto val = Qt::compareThreeWay(lhs.i, rhs.i); !is_eq(val))
+            return val;
+        if (auto val = Qt::compareThreeWay(lhs.m, rhs.m); !is_eq(val))
+            return val;
+        return Qt::strong_ordering::equivalent;
+    }
+    Q_DECLARE_STRONGLY_ORDERED_LITERAL_TYPE(QModelIndex)
 private:
     inline QModelIndex(int arow, int acolumn, const void *ptr, const QAbstractItemModel *amodel) noexcept
         : r(arow), c(acolumn), i(reinterpret_cast<quintptr>(ptr)), m(amodel) {}
@@ -194,7 +168,7 @@ private:
         : r(arow), c(acolumn), i(id), m(amodel) {}
     int r, c;
     quintptr i;
-    const QAbstractItemModel *m;
+    Qt::totally_ordered_wrapper<const QAbstractItemModel *> m;
 };
 Q_DECLARE_TYPEINFO(QModelIndex, Q_RELOCATABLE_TYPE);
 
@@ -214,17 +188,21 @@ public:
     QPersistentModelIndex(const QModelIndex &index);
     QPersistentModelIndex(const QPersistentModelIndex &other);
     ~QPersistentModelIndex();
-    bool operator<(const QPersistentModelIndex &other) const;
-    bool operator==(const QPersistentModelIndex &other) const;
-    inline bool operator!=(const QPersistentModelIndex &other) const
+#if QT_CORE_REMOVED_SINCE(6, 8)
+    bool operator<(const QPersistentModelIndex &other) const noexcept;
+    bool operator==(const QPersistentModelIndex &other) const noexcept;
+    inline bool operator!=(const QPersistentModelIndex &other) const noexcept
     { return !operator==(other); }
+#endif
     QPersistentModelIndex &operator=(const QPersistentModelIndex &other);
     inline QPersistentModelIndex(QPersistentModelIndex &&other) noexcept
-        : d(qExchange(other.d, nullptr)) {}
+        : d(std::exchange(other.d, nullptr)) {}
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QPersistentModelIndex)
     void swap(QPersistentModelIndex &other) noexcept { qt_ptr_swap(d, other.d); }
-    bool operator==(const QModelIndex &other) const;
-    bool operator!=(const QModelIndex &other) const;
+#if QT_CORE_REMOVED_SINCE(6, 8)
+    bool operator==(const QModelIndex &other) const noexcept;
+    bool operator!=(const QModelIndex &other) const noexcept;
+#endif
     QPersistentModelIndex &operator=(const QModelIndex &other);
     operator QModelIndex() const;
     int row() const;
@@ -244,6 +222,18 @@ private:
     friend size_t qHash(const QPersistentModelIndex &, size_t seed) noexcept;
     friend bool qHashEquals(const QPersistentModelIndex &a, const QPersistentModelIndex &b) noexcept
     { return a.d == b.d; }
+    friend Q_CORE_EXPORT bool
+    comparesEqual(const QPersistentModelIndex &lhs, const QPersistentModelIndex &rhs) noexcept;
+    friend Q_CORE_EXPORT bool
+    comparesEqual(const QPersistentModelIndex &lhs, const QModelIndex &rhs) noexcept;
+    friend Q_CORE_EXPORT Qt::strong_ordering // ### Qt 7: partial_ordering?
+    compareThreeWay(const QPersistentModelIndex &lhs, const QPersistentModelIndex &rhs) noexcept;
+    friend Q_CORE_EXPORT Qt::strong_ordering // ### Qt 7: partial_ordering?
+    compareThreeWay(const QPersistentModelIndex &lhs, const QModelIndex &rhs) noexcept;
+#if !QT_CORE_REMOVED_SINCE(6, 8)
+    Q_DECLARE_STRONGLY_ORDERED(QPersistentModelIndex)
+    Q_DECLARE_STRONGLY_ORDERED(QPersistentModelIndex, QModelIndex)
+#endif
 #ifndef QT_NO_DEBUG_STREAM
     friend Q_CORE_EXPORT QDebug operator<<(QDebug, const QPersistentModelIndex &);
 #endif
@@ -309,28 +299,28 @@ public:
     virtual Qt::DropActions supportedDropActions() const;
     virtual Qt::DropActions supportedDragActions() const;
 
-    virtual bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex());
-    virtual bool insertColumns(int column, int count, const QModelIndex &parent = QModelIndex());
-    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
-    virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
-    virtual bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool insertColumns(int column, int count, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
                           const QModelIndex &destinationParent, int destinationChild);
-    virtual bool moveColumns(const QModelIndex &sourceParent, int sourceColumn, int count,
+    Q_INVOKABLE Q_REVISION(6, 4) virtual bool moveColumns(const QModelIndex &sourceParent, int sourceColumn, int count,
                              const QModelIndex &destinationParent, int destinationChild);
 
-    inline bool insertRow(int row, const QModelIndex &parent = QModelIndex());
-    inline bool insertColumn(int column, const QModelIndex &parent = QModelIndex());
-    inline bool removeRow(int row, const QModelIndex &parent = QModelIndex());
-    inline bool removeColumn(int column, const QModelIndex &parent = QModelIndex());
-    inline bool moveRow(const QModelIndex &sourceParent, int sourceRow,
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool insertRow(int row, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool insertColumn(int column, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool removeRow(int row, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool removeColumn(int column, const QModelIndex &parent = QModelIndex());
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool moveRow(const QModelIndex &sourceParent, int sourceRow,
                         const QModelIndex &destinationParent, int destinationChild);
-    inline bool moveColumn(const QModelIndex &sourceParent, int sourceColumn,
+    Q_INVOKABLE Q_REVISION(6, 4) inline bool moveColumn(const QModelIndex &sourceParent, int sourceColumn,
                            const QModelIndex &destinationParent, int destinationChild);
 
     Q_INVOKABLE virtual void fetchMore(const QModelIndex &parent);
     Q_INVOKABLE virtual bool canFetchMore(const QModelIndex &parent) const;
     Q_INVOKABLE virtual Qt::ItemFlags flags(const QModelIndex &index) const;
-    virtual void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
+    Q_INVOKABLE Q_REVISION(6, 4) virtual void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
     virtual QModelIndex buddy(const QModelIndex &index) const;
     Q_INVOKABLE virtual QModelIndexList match(const QModelIndex &start, int role,
                                               const QVariant &value, int hits = 1,
@@ -386,10 +376,10 @@ Q_SIGNALS:
     void modelReset(QPrivateSignal);
 
     void rowsAboutToBeMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow, QPrivateSignal);
-    void rowsMoved( const QModelIndex &parent, int start, int end, const QModelIndex &destination, int row, QPrivateSignal);
+    void rowsMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow, QPrivateSignal);
 
     void columnsAboutToBeMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn, QPrivateSignal);
-    void columnsMoved( const QModelIndex &parent, int start, int end, const QModelIndex &destination, int column, QPrivateSignal);
+    void columnsMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn, QPrivateSignal);
 
 public Q_SLOTS:
     virtual bool submit();
@@ -535,7 +525,13 @@ inline Qt::ItemFlags QModelIndex::flags() const
 { return m ? m->flags(*this) : Qt::ItemFlags(); }
 
 inline size_t qHash(const QModelIndex &index, size_t seed = 0) noexcept
-{ return size_t((size_t(index.row()) << 4) + size_t(index.column()) + index.internalId()) ^ seed; }
+{
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0)
+    return qHashMulti(seed, index.row(), index.column(), index.internalId());
+#else
+    return size_t((size_t(index.row()) << 4) + size_t(index.column()) + index.internalId()) ^ seed;
+#endif
+}
 
 QT_END_NAMESPACE
 

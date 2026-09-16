@@ -1,1 +1,1 @@
-#include "qsize.h"
+#include <QtCore/qsize.h> // IWYU pragma: export

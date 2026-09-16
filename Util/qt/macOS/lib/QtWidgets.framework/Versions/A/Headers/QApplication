@@ -1,1 +1,1 @@
-#include "qapplication.h"
+#include <QtWidgets/qapplication.h> // IWYU pragma: export

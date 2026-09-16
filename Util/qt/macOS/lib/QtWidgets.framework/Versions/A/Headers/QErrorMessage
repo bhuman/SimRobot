@@ -1,1 +1,1 @@
-#include "qerrormessage.h"
+#include <QtWidgets/qerrormessage.h> // IWYU pragma: export

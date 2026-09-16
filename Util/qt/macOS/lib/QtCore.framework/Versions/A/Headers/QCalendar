@@ -1,1 +1,1 @@
-#include "qcalendar.h"
+#include <QtCore/qcalendar.h> // IWYU pragma: export

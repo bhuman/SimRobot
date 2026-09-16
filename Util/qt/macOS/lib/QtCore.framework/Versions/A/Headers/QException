@@ -1,1 +1,1 @@
-#include "qexception.h"
+#include <QtCore/qexception.h> // IWYU pragma: export

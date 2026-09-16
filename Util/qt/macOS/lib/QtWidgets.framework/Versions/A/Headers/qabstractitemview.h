@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QABSTRACTITEMVIEW_H
 #define QABSTRACTITEMVIEW_H
@@ -82,6 +47,9 @@ class Q_WIDGETS_EXPORT QAbstractItemView : public QAbstractScrollArea
                RESET resetVerticalScrollMode)
     Q_PROPERTY(ScrollMode horizontalScrollMode READ horizontalScrollMode
                WRITE setHorizontalScrollMode RESET resetHorizontalScrollMode)
+    Q_PROPERTY(int updateThreshold READ updateThreshold WRITE setUpdateThreshold)
+    Q_PROPERTY(Qt::MatchFlags keyboardSearchFlags READ keyboardSearchFlags
+               WRITE setKeyboardSearchFlags)
 
 public:
     enum SelectionMode {
@@ -213,6 +181,12 @@ public:
     virtual int sizeHintForRow(int row) const;
     virtual int sizeHintForColumn(int column) const;
 
+    int updateThreshold() const;
+    void setUpdateThreshold(int threshold);
+
+    Qt::MatchFlags keyboardSearchFlags() const;
+    void setKeyboardSearchFlags(Qt::MatchFlags searchFlags);
+
     void openPersistentEditor(const QModelIndex &index);
     void closePersistentEditor(const QModelIndex &index);
     bool isPersistentEditorOpen(const QModelIndex &index) const;
@@ -235,7 +209,7 @@ public:
 
     virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
-    using QAbstractScrollArea::update;
+    using QWidget::update;
 
 public Q_SLOTS:
     virtual void reset();
@@ -362,19 +336,6 @@ protected:
 private:
     Q_DECLARE_PRIVATE(QAbstractItemView)
     Q_DISABLE_COPY(QAbstractItemView)
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsAboutToBeRemoved(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsRemoved(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsInserted(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsInserted(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsRemoved(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsMoved(const QModelIndex&, int, int, const QModelIndex&, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_modelDestroyed())
-    Q_PRIVATE_SLOT(d_func(), void _q_layoutChanged())
-    Q_PRIVATE_SLOT(d_func(), void _q_headerDataChanged())
-#if QT_CONFIG(gestures) && QT_CONFIG(scroller)
-    Q_PRIVATE_SLOT(d_func(), void _q_scrollerStateChanged())
-#endif
 
     friend class ::tst_QAbstractItemView;
     friend class ::tst_QTreeView;
@@ -382,6 +343,7 @@ private:
     friend class QListModeViewBase;
     friend class QListViewPrivate;
     friend class QAbstractSlider;
+    friend class QComboBoxPrivate; // needed to call initViewItemOption
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QAbstractItemView::EditTriggers)

@@ -1,51 +1,15 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2016 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
-#include <QtCore/qglobal.h>
-#include <QtCore/qcontainerfwd.h>
-#include <variant>
-#include <optional>
-#include <tuple>
+// Copyright (C) 2016 The Qt Company Ltd.
+// Copyright (C) 2016 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTYPEINFO_H
 #define QTYPEINFO_H
+
+#include <QtCore/qcompilerdetection.h>
+#include <QtCore/qcontainerfwd.h>
+
+#include <type_traits>
 
 QT_BEGIN_NAMESPACE
 
@@ -55,8 +19,41 @@ class QDebug;
    QTypeInfo     - type trait functionality
 */
 
+namespace QtPrivate {
+
+// Helper for QTypeInfo<T>::isComplex, which used to be simply
+// !std::is_trivial_v but P3247 deprecated it for C++26. It used to be defined
+// (since C++11) by [class]/7 as: "A trivial class is a class that is trivially
+// copyable and has one or more default constructors, all of which are either
+// trivial or deleted and at least one of which is not deleted. [ Note: In
+// particular, a trivially copyable or trivial class does not have virtual
+// functions or virtual base classes. — end note ]".
+
+template <typename T>
+inline constexpr bool qIsComplex =
+        !std::is_trivially_default_constructible_v<T> || !std::is_trivially_copyable_v<T>;
+
+// A trivially copyable class must also have a trivial, non-deleted
+// destructor [class.prop/1.3], CWG1734. Some implementations don't
+// check for a trivial destructor, because of backwards compatibility
+// with C++98's definition of trivial copyability.
+// Since trivial copiability has implications for the ABI, implementations
+// can't "just fix" their traits. So, although formally redundant, we
+// explicitly check for trivial destruction here.
 template <typename T>
 inline constexpr bool qIsRelocatable =  std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
+
+// Denotes types that are trivially default constructible, and for which
+// value-initialization can be achieved by filling their storage with 0 bits.
+// There is no type trait we can use for this, so we hardcode a list of
+// possibilities that we know are OK on the architectures that we support.
+// The most notable exception are pointers to data members, which for instance
+// on the Itanium ABI are initialized to -1.
+template <typename T>
+inline constexpr bool qIsValueInitializationBitwiseZero =
+        std::is_scalar_v<T> && !std::is_member_object_pointer_v<T>;
+
+}
 
 /*
   The catch-all template.
@@ -67,10 +64,11 @@ class QTypeInfo
 {
 public:
     enum {
-        isPointer = std::is_pointer_v<T>,
-        isIntegral = std::is_integral_v<T>,
-        isComplex = !std::is_trivial_v<T>,
-        isRelocatable = qIsRelocatable<T>,
+        isPointer [[deprecated("Use std::is_pointer instead")]] = std::is_pointer_v<T>,
+        isIntegral [[deprecated("Use std::is_integral instead")]] = std::is_integral_v<T>,
+        isComplex = QtPrivate::qIsComplex<T>,
+        isRelocatable = QtPrivate::qIsRelocatable<T>,
+        isValueInitializationBitwiseZero = QtPrivate::qIsValueInitializationBitwiseZero<T>,
     };
 };
 
@@ -79,10 +77,11 @@ class QTypeInfo<void>
 {
 public:
     enum {
-        isPointer = false,
-        isIntegral = false,
+        isPointer [[deprecated("Use std::is_pointer instead")]] = false,
+        isIntegral [[deprecated("Use std::is_integral instead")]] = false,
         isComplex = false,
         isRelocatable = false,
+        isValueInitializationBitwiseZero = false,
     };
 };
 
@@ -113,9 +112,21 @@ class QTypeInfoMerger
 public:
     static constexpr bool isComplex = ((QTypeInfo<Ts>::isComplex) || ...);
     static constexpr bool isRelocatable = ((QTypeInfo<Ts>::isRelocatable) && ...);
-    static constexpr bool isPointer = false;
-    static constexpr bool isIntegral = false;
+    [[deprecated("Use std::is_pointer instead")]] static constexpr bool isPointer = false;
+    [[deprecated("Use std::is_integral instead")]] static constexpr bool isIntegral = false;
+    static constexpr bool isValueInitializationBitwiseZero = false;
+    static_assert(!isRelocatable ||
+                  std::is_copy_constructible_v<T> ||
+                  std::is_move_constructible_v<T>,
+                  "All Ts... are Q_RELOCATABLE_TYPE, but T is neither copy- nor move-constructible, "
+                  "so cannot be Q_RELOCATABLE_TYPE. Please mark T as Q_COMPLEX_TYPE manually.");
 };
+
+// QTypeInfo for std::pair:
+//   std::pair is spec'ed to be struct { T1 first; T2 second; }, so, unlike tuple<>,
+//   we _can_ specialize QTypeInfo for pair<>:
+template <class T1, class T2>
+class QTypeInfo<std::pair<T1, T2>> : public QTypeInfoMerger<std::pair<T1, T2>, T1, T2> {};
 
 #define Q_DECLARE_MOVABLE_CONTAINER(CONTAINER) \
 template <typename ...T> \
@@ -123,10 +134,11 @@ class QTypeInfo<CONTAINER<T...>> \
 { \
 public: \
     enum { \
-        isPointer = false, \
-        isIntegral = false, \
+        isPointer [[deprecated("Use std::is_pointer instead")]] = false, \
+        isIntegral [[deprecated("Use std::is_integral instead")]] = false, \
         isComplex = true, \
         isRelocatable = true, \
+        isValueInitializationBitwiseZero = false, \
     }; \
 }
 
@@ -163,11 +175,16 @@ class QTypeInfo<TYPE > \
 { \
 public: \
     enum { \
-        isComplex = (((FLAGS) & Q_PRIMITIVE_TYPE) == 0) && !std::is_trivial_v<TYPE>, \
-        isRelocatable = !isComplex || ((FLAGS) & Q_RELOCATABLE_TYPE) || qIsRelocatable<TYPE>, \
-        isPointer = false, \
-        isIntegral = std::is_integral< TYPE >::value, \
+        isComplex = (((FLAGS) & Q_PRIMITIVE_TYPE) == 0) && QtPrivate::qIsComplex<TYPE>, \
+        isRelocatable = !isComplex || ((FLAGS) & Q_RELOCATABLE_TYPE) || QtPrivate::qIsRelocatable<TYPE>, \
+        isPointer [[deprecated("Use std::is_pointer instead")]] = std::is_pointer_v< TYPE >, \
+        isIntegral [[deprecated("Use std::is_integral instead")]] = std::is_integral< TYPE >::value, \
+        isValueInitializationBitwiseZero = QtPrivate::qIsValueInitializationBitwiseZero<TYPE>, \
     }; \
+    static_assert(!QTypeInfo<TYPE>::isRelocatable || \
+                  std::is_copy_constructible_v<TYPE > || \
+                  std::is_move_constructible_v<TYPE >, \
+                  #TYPE " is neither copy- nor move-constructible, so cannot be Q_RELOCATABLE_TYPE"); \
 }
 
 #define Q_DECLARE_TYPEINFO(TYPE, FLAGS) \
@@ -178,215 +195,6 @@ Q_DECLARE_TYPEINFO_BODY(TYPE, FLAGS)
 template<typename T> class QFlags;
 template<typename T>
 Q_DECLARE_TYPEINFO_BODY(QFlags<T>, Q_PRIMITIVE_TYPE);
-
-/*
-   Specialize a shared type with:
-
-     Q_DECLARE_SHARED(type)
-
-   where 'type' is the name of the type to specialize.  NOTE: shared
-   types must define a member-swap, and be defined in the same
-   namespace as Qt for this to work.
-*/
-
-#define Q_DECLARE_SHARED_IMPL(TYPE, FLAGS) \
-Q_DECLARE_TYPEINFO(TYPE, FLAGS); \
-inline void swap(TYPE &value1, TYPE &value2) \
-    noexcept(noexcept(value1.swap(value2))) \
-{ value1.swap(value2); }
-#define Q_DECLARE_SHARED(TYPE) Q_DECLARE_SHARED_IMPL(TYPE, Q_RELOCATABLE_TYPE)
-
-namespace QTypeTraits
-{
-
-/*
-    The templates below aim to find out whether one can safely instantiate an operator==() or
-    operator<() for a type.
-
-    This is tricky for containers, as most containers have unconstrained comparison operators, even though they
-    rely on the corresponding operators for its content.
-    This is especially true for all of the STL template classes that have a comparison operator defined, and
-    leads to the situation, that the compiler would try to instantiate the operator, and fail if any
-    of its template arguments does not have the operator implemented.
-
-    The code tries to cover the relevant cases for Qt and the STL, by checking (recusrsively) the value_type
-    of a container (if it exists), and checking the template arguments of pair, tuple and variant.
-*/
-namespace detail {
-
-// find out whether T is a conteiner
-// this is required to check the value type of containers for the existence of the comparison operator
-template <typename, typename = void>
-struct is_container : std::false_type {};
-template <typename T>
-struct is_container<T, std::void_t<
-        typename T::value_type,
-        std::is_convertible<decltype(std::declval<T>().begin() != std::declval<T>().end()), bool>
->> : std::true_type {};
-
-
-// Checks the existence of the comparison operator for the class itself
-QT_WARNING_PUSH
-QT_WARNING_DISABLE_FLOAT_COMPARE
-template <typename, typename = void>
-struct has_operator_equal : std::false_type {};
-template <typename T>
-struct has_operator_equal<T, std::void_t<decltype(bool(std::declval<const T&>() == std::declval<const T&>()))>>
-        : std::true_type {};
-QT_WARNING_POP
-
-// Two forward declarations
-template<typename T, bool = is_container<T>::value>
-struct expand_operator_equal_container;
-template<typename T>
-struct expand_operator_equal_tuple;
-
-// the entry point for the public method
-template<typename T>
-using expand_operator_equal = expand_operator_equal_container<T>;
-
-// if T isn't a container check if it's a tuple like object
-template<typename T, bool>
-struct expand_operator_equal_container : expand_operator_equal_tuple<T> {};
-// if T::value_type exists, check first T::value_type, then T itself
-template<typename T>
-struct expand_operator_equal_container<T, true> :
-        std::conjunction<
-        std::disjunction<
-            std::is_same<T, typename T::value_type>, // avoid endless recursion
-            expand_operator_equal<typename T::value_type>
-        >, expand_operator_equal_tuple<T>> {};
-
-// recursively check the template arguments of a tuple like object
-template<typename ...T>
-using expand_operator_equal_recursive = std::conjunction<expand_operator_equal<T>...>;
-
-template<typename T>
-struct expand_operator_equal_tuple : has_operator_equal<T> {};
-template<typename T>
-struct expand_operator_equal_tuple<std::optional<T>> : has_operator_equal<T> {};
-template<typename T1, typename T2>
-struct expand_operator_equal_tuple<std::pair<T1, T2>> : expand_operator_equal_recursive<T1, T2> {};
-template<typename ...T>
-struct expand_operator_equal_tuple<std::tuple<T...>> : expand_operator_equal_recursive<T...> {};
-template<typename ...T>
-struct expand_operator_equal_tuple<std::variant<T...>> : expand_operator_equal_recursive<T...> {};
-
-// the same for operator<(), see above for explanations
-template <typename, typename = void>
-struct has_operator_less_than : std::false_type{};
-template <typename T>
-struct has_operator_less_than<T, std::void_t<decltype(bool(std::declval<const T&>() < std::declval<const T&>()))>>
-        : std::true_type{};
-
-template<typename T, bool = is_container<T>::value>
-struct expand_operator_less_than_container;
-template<typename T>
-struct expand_operator_less_than_tuple;
-
-template<typename T>
-using expand_operator_less_than = expand_operator_less_than_container<T>;
-
-template<typename T, bool>
-struct expand_operator_less_than_container : expand_operator_less_than_tuple<T> {};
-template<typename T>
-struct expand_operator_less_than_container<T, true> :
-        std::conjunction<
-            std::disjunction<
-                std::is_same<T, typename T::value_type>,
-                expand_operator_less_than<typename T::value_type>
-            >, expand_operator_less_than_tuple<T>
-        > {};
-
-template<typename ...T>
-using expand_operator_less_than_recursive = std::conjunction<expand_operator_less_than<T>...>;
-
-template<typename T>
-struct expand_operator_less_than_tuple : has_operator_less_than<T> {};
-template<typename T>
-struct expand_operator_less_than_tuple<std::optional<T>> : has_operator_less_than<T> {};
-template<typename T1, typename T2>
-struct expand_operator_less_than_tuple<std::pair<T1, T2>> : expand_operator_less_than_recursive<T1, T2> {};
-template<typename ...T>
-struct expand_operator_less_than_tuple<std::tuple<T...>> : expand_operator_less_than_recursive<T...> {};
-template<typename ...T>
-struct expand_operator_less_than_tuple<std::variant<T...>> : expand_operator_less_than_recursive<T...> {};
-
-}
-
-template<typename T, typename = void>
-struct is_dereferenceable : std::false_type {};
-
-template<typename T>
-struct is_dereferenceable<T, std::void_t<decltype(std::declval<T>().operator->())> >
-    : std::true_type {};
-
-template <typename T>
-inline constexpr bool is_dereferenceable_v = is_dereferenceable<T>::value;
-
-template<typename T>
-struct has_operator_equal : detail::expand_operator_equal<T> {};
-template<typename T>
-inline constexpr bool has_operator_equal_v = has_operator_equal<T>::value;
-
-template <typename Container, typename T>
-using has_operator_equal_container = std::disjunction<std::is_base_of<Container, T>, QTypeTraits::has_operator_equal<T>>;
-
-template<typename T>
-struct has_operator_less_than : detail::expand_operator_less_than<T> {};
-template<typename T>
-inline constexpr bool has_operator_less_than_v = has_operator_less_than<T>::value;
-
-template <typename Container, typename T>
-using has_operator_less_than_container = std::disjunction<std::is_base_of<Container, T>, QTypeTraits::has_operator_less_than<T>>;
-
-template <typename ...T>
-using compare_eq_result = std::enable_if_t<std::conjunction_v<QTypeTraits::has_operator_equal<T>...>, bool>;
-
-template <typename Container, typename ...T>
-using compare_eq_result_container = std::enable_if_t<std::conjunction_v<QTypeTraits::has_operator_equal_container<Container, T>...>, bool>;
-
-template <typename ...T>
-using compare_lt_result = std::enable_if_t<std::conjunction_v<QTypeTraits::has_operator_less_than<T>...>, bool>;
-
-template <typename Container, typename ...T>
-using compare_lt_result_container = std::enable_if_t<std::conjunction_v<QTypeTraits::has_operator_less_than_container<Container, T>...>, bool>;
-
-namespace detail {
-
-template<typename T>
-const T &const_reference();
-template<typename T>
-T &reference();
-
-}
-
-template <typename Stream, typename, typename = void>
-struct has_ostream_operator : std::false_type {};
-template <typename Stream, typename T>
-struct has_ostream_operator<Stream, T, std::void_t<decltype(detail::reference<Stream>() << detail::const_reference<T>())>>
-        : std::true_type {};
-template <typename Stream, typename T>
-inline constexpr bool has_ostream_operator_v = has_ostream_operator<Stream, T>::value;
-
-template <typename Stream, typename Container, typename T>
-using has_ostream_operator_container = std::disjunction<std::is_base_of<Container, T>, QTypeTraits::has_ostream_operator<Stream, T>>;
-
-template <typename Stream, typename, typename = void>
-struct has_istream_operator : std::false_type {};
-template <typename Stream, typename T>
-struct has_istream_operator<Stream, T, std::void_t<decltype(detail::reference<Stream>() >> detail::reference<T>())>>
-        : std::true_type {};
-template <typename Stream, typename T>
-inline constexpr bool has_istream_operator_v = has_istream_operator<Stream, T>::value;
-template <typename Stream, typename Container, typename T>
-using has_istream_operator_container = std::disjunction<std::is_base_of<Container, T>, QTypeTraits::has_istream_operator<Stream, T>>;
-
-template <typename Stream, typename T>
-inline constexpr bool has_stream_operator_v = has_ostream_operator_v<Stream, T> && has_istream_operator_v<Stream, T>;
-
-}
-
 
 QT_END_NAMESPACE
 #endif // QTYPEINFO_H

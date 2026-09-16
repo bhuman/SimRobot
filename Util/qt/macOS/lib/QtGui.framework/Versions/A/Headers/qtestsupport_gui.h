@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2018 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2018 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QTESTSUPPORT_GUI_H
 #define QTESTSUPPORT_GUI_H
@@ -43,19 +7,32 @@
 #include <QtGui/qtguiglobal.h>
 #include <QtGui/qevent.h>
 #include <QtCore/qmap.h>
+#include <QtCore/qtestsupport_core.h>
 
 QT_BEGIN_NAMESPACE
 
 class QWindow;
 
-Q_GUI_EXPORT  void qt_handleTouchEvent(QWindow *w, const QPointingDevice *device,
+Q_GUI_EXPORT void qt_handleTouchEvent(QWindow *w, const QPointingDevice *device,
+                                const QList<QEventPoint> &points,
+                                Qt::KeyboardModifiers mods = Qt::NoModifier);
+
+Q_GUI_EXPORT bool qt_handleTouchEventv2(QWindow *w, const QPointingDevice *device,
                                 const QList<QEventPoint> &points,
                                 Qt::KeyboardModifiers mods = Qt::NoModifier);
 
 namespace QTest {
 
-[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowActive(QWindow *window, int timeout = 5000);
-[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowExposed(QWindow *window, int timeout = 5000);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowActive(QWindow *window, int timeout);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowActive(QWindow *window, QDeadlineTimer timeout);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowActive(QWindow *window);
+
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowFocused(QWindow *window, QDeadlineTimer timeout);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowFocused(QWindow *window);
+
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowExposed(QWindow *window, int timeout);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowExposed(QWindow *window, QDeadlineTimer timeout);
+[[nodiscard]] Q_GUI_EXPORT bool qWaitForWindowExposed(QWindow *window);
 
 Q_GUI_EXPORT QPointingDevice * createTouchDevice(QInputDevice::DeviceType devType = QInputDevice::DeviceType::TouchScreen,
                                                  QInputDevice::Capabilities caps = QInputDevice::Capability::Position);
@@ -69,7 +46,7 @@ public:
     QTouchEventSequence& release(int touchId, const QPoint &pt, QWindow *window = nullptr);
     virtual QTouchEventSequence& stationary(int touchId);
 
-    virtual void commit(bool processEvents = true);
+    virtual bool commit(bool processEvents = true);
 
 protected:
     QTouchEventSequence(QWindow *window, QPointingDevice *aDevice, bool autoCommit);
@@ -90,6 +67,55 @@ protected:
 
 } // namespace QTest
 
+//
+//  W A R N I N G
+//  -------------
+//
+// The QtGuiTest namespace is not part of the Qt API.  It exists purely as an
+// implementation detail.  It may change from version to version without notice,
+// or even be removed.
+//
+// We mean it.
+//
+
+#if QT_CONFIG(test_gui)
+namespace QtGuiTest
+{
+    Q_GUI_EXPORT void setKeyboardModifiers(Qt::KeyboardModifiers modifiers);
+    Q_GUI_EXPORT void setCursorPosition(const QPoint &position);
+    Q_GUI_EXPORT void synthesizeExtendedKeyEvent(QEvent::Type type, int key, Qt::KeyboardModifiers modifiers,
+                                    quint32 nativeScanCode, quint32 nativeVirtualKey,
+                                    const QString &text);
+    Q_GUI_EXPORT bool synthesizeKeyEvent(QWindow *window, QEvent::Type t, int k, Qt::KeyboardModifiers mods,
+                            const QString & text = QString(), bool autorep = false,
+                            ushort count = 1);
+
+    Q_GUI_EXPORT void synthesizeMouseEvent(const QPointF &position, Qt::MouseButtons state,
+                              Qt::MouseButton button, QEvent::Type type,
+                              Qt::KeyboardModifiers modifiers);
+
+    Q_GUI_EXPORT void synthesizeWheelEvent(int rollCount, Qt::KeyboardModifiers modifiers);
+
+    Q_GUI_EXPORT qint64 eventTimeElapsed();
+
+    Q_GUI_EXPORT void postFakeWindowActivation(QWindow *window);
+
+    Q_GUI_EXPORT QPoint toNativePixels(const QPoint &value, const QWindow *window);
+    Q_GUI_EXPORT QRect toNativePixels(const QRect &value, const QWindow *window);
+    Q_GUI_EXPORT qreal scaleFactor(const QWindow *window);
+
+    Q_GUI_EXPORT void setEventPointId(QEventPoint &p, int arg);
+    Q_GUI_EXPORT void setEventPointPressure(QEventPoint &p, qreal arg);
+    Q_GUI_EXPORT void setEventPointState(QEventPoint &p, QEventPoint::State arg);
+    Q_GUI_EXPORT void setEventPointPosition(QEventPoint &p, QPointF arg);
+    Q_GUI_EXPORT void setEventPointGlobalPosition(QEventPoint &p, QPointF arg);
+    Q_GUI_EXPORT void setEventPointScenePosition(QEventPoint &p, QPointF arg);
+    Q_GUI_EXPORT void setEventPointEllipseDiameters(QEventPoint &p, QSizeF arg);
+    Q_GUI_EXPORT bool platformSupportsMultipleWindows();
+} // namespace QtGuiTest
+
+#endif // #if QT_CONFIG(test_gui)
+
 QT_END_NAMESPACE
 
-#endif
+#endif // #ifndef QTESTSUPPORT_GUI_H

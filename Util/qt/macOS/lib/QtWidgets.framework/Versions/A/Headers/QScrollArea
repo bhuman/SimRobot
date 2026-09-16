@@ -1,1 +1,1 @@
-#include "qscrollarea.h"
+#include <QtWidgets/qscrollarea.h> // IWYU pragma: export

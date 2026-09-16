@@ -1,1 +1,1 @@
-#include "qlcdnumber.h"
+#include <QtWidgets/qlcdnumber.h> // IWYU pragma: export

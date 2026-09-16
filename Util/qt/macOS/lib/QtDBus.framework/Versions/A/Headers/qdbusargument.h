@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtDBus module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QDBUSARGUMENT_H
 #define QDBUSARGUMENT_H
@@ -50,6 +15,8 @@
 #include <QtCore/qstringlist.h>
 #include <QtCore/qvariant.h>
 #include <QtDBus/qdbusextratypes.h>
+
+#include <tuple>
 
 #ifndef QT_NO_DBUS
 
@@ -83,7 +50,7 @@ public:
 
     void swap(QDBusArgument &other) noexcept { qt_ptr_swap(d, other.d); }
 
-    // used for marshalling (Qt -> D-BUS)
+    // used for marshalling (Qt -> D-Bus)
     QDBusArgument &operator<<(uchar arg);
     QDBusArgument &operator<<(bool arg);
     QDBusArgument &operator<<(short arg);
@@ -116,7 +83,7 @@ public:
 
     void appendVariant(const QVariant &v);
 
-    // used for de-marshalling (D-BUS -> Qt)
+    // used for de-marshalling (D-Bus -> Qt)
     QString currentSignature() const;
     ElementType currentType() const;
 
@@ -153,11 +120,32 @@ protected:
     QDBusArgument(QDBusArgumentPrivate *d);
     friend class QDBusArgumentPrivate;
     mutable QDBusArgumentPrivate *d;
+
+private:
+    template <typename... T>
+    friend QDBusArgument &operator<<(QDBusArgument &argument, const std::tuple<T...> &tuple)
+    {
+        static_assert(sizeof...(T) != 0, "D-Bus doesn't allow empty structs");
+        argument.beginStructure();
+        std::apply([&argument](const auto &...elements) { (argument << ... << elements); }, tuple);
+        argument.endStructure();
+        return argument;
+    }
+
+    template <typename... T>
+    friend const QDBusArgument &operator>>(const QDBusArgument &argument, std::tuple<T...> &tuple)
+    {
+        static_assert(sizeof...(T) != 0, "D-Bus doesn't allow empty structs");
+        argument.beginStructure();
+        std::apply([&argument](auto &...elements) { (argument >> ... >> elements); }, tuple);
+        argument.endStructure();
+        return argument;
+    }
 };
 Q_DECLARE_SHARED(QDBusArgument)
 
 QT_END_NAMESPACE
-Q_DECLARE_METATYPE(QDBusArgument)
+QT_DECL_METATYPE_EXTERN(QDBusArgument, Q_DBUS_EXPORT)
 QT_BEGIN_NAMESPACE
 
 template<typename T> inline T qdbus_cast(const QDBusArgument &arg)
@@ -258,10 +246,8 @@ inline const QDBusArgument &operator>>(const QDBusArgument &arg, Container<T> &l
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantList &list)
 {
     arg.beginArray(QMetaType::fromType<QDBusVariant>());
-    QVariantList::ConstIterator it = list.constBegin();
-    QVariantList::ConstIterator end = list.constEnd();
-    for ( ; it != end; ++it)
-        arg << QDBusVariant(*it);
+    for (const QVariant &value : list)
+        arg << QDBusVariant(value);
     arg.endArray();
     return arg;
 }
@@ -320,11 +306,9 @@ inline const QDBusArgument &operator>>(const QDBusArgument &arg, Container<Key, 
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantMap &map)
 {
     arg.beginMap(QMetaType::fromType<QString>(), QMetaType::fromType<QDBusVariant>());
-    QVariantMap::ConstIterator it = map.constBegin();
-    QVariantMap::ConstIterator end = map.constEnd();
-    for ( ; it != end; ++it) {
+    for (const auto &[key, value] : map.asKeyValueRange()) {
         arg.beginMapEntry();
-        arg << it.key() << QDBusVariant(it.value());
+        arg << key << QDBusVariant(value);
         arg.endMapEntry();
     }
     arg.endMap();
@@ -334,11 +318,9 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantMap &map)
 inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantHash &map)
 {
     arg.beginMap(QMetaType::fromType<QString>(), QMetaType::fromType<QDBusVariant>());
-    QVariantHash::ConstIterator it = map.constBegin();
-    QVariantHash::ConstIterator end = map.constEnd();
-    for ( ; it != end; ++it) {
+    for (const auto &[key, value] : map.asKeyValueRange()) {
         arg.beginMapEntry();
-        arg << it.key() << QDBusVariant(it.value());
+        arg << key << QDBusVariant(value);
         arg.endMapEntry();
     }
     arg.endMap();
@@ -346,7 +328,7 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QVariantHash &map)
 }
 
 template <typename T1, typename T2>
-inline QDBusArgument &operator<<(QDBusArgument &arg, const QPair<T1, T2> &pair)
+inline QDBusArgument &operator<<(QDBusArgument &arg, const std::pair<T1, T2> &pair)
 {
     arg.beginStructure();
     arg << pair.first << pair.second;
@@ -355,7 +337,7 @@ inline QDBusArgument &operator<<(QDBusArgument &arg, const QPair<T1, T2> &pair)
 }
 
 template <typename T1, typename T2>
-inline const QDBusArgument &operator>>(const QDBusArgument &arg, QPair<T1, T2> &pair)
+inline const QDBusArgument &operator>>(const QDBusArgument &arg, std::pair<T1, T2> &pair)
 {
     arg.beginStructure();
     arg >> pair.first >> pair.second;

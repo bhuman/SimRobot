@@ -1,1 +1,1 @@
-#include "qgenericmatrix.h"
+#include <QtGui/qgenericmatrix.h> // IWYU pragma: export

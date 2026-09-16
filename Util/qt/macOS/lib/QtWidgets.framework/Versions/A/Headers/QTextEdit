@@ -1,1 +1,1 @@
-#include "qtextedit.h"
+#include <QtWidgets/qtextedit.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qfiledevice.h"
+#include <QtCore/qfiledevice.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qdatawidgetmapper.h"
+#include <QtWidgets/qdatawidgetmapper.h> // IWYU pragma: export

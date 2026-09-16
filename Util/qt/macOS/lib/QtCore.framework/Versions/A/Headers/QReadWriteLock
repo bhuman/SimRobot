@@ -1,1 +1,1 @@
-#include "qreadwritelock.h"
+#include <QtCore/qreadwritelock.h> // IWYU pragma: export

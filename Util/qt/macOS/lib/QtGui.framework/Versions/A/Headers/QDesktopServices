@@ -1,1 +1,1 @@
-#include "qdesktopservices.h"
+#include <QtGui/qdesktopservices.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qbitmap.h"
+#include <QtGui/qbitmap.h> // IWYU pragma: export

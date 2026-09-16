@@ -1,1 +1,1 @@
-#include "qabstractbutton.h"
+#include <QtWidgets/qabstractbutton.h> // IWYU pragma: export

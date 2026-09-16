@@ -1,1 +1,1 @@
-#include "qproperty.h"
+#include <QtCore/qproperty.h> // IWYU pragma: export

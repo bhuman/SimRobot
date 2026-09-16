@@ -1,1 +1,1 @@
-#include "qsizepolicy.h"
+#include <QtWidgets/qsizepolicy.h> // IWYU pragma: export

@@ -1,42 +1,7 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2016 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2016 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFILE_H
 #define QFILE_H
@@ -45,43 +10,46 @@
 #include <QtCore/qstring.h>
 #include <stdio.h>
 
-#if QT_CONFIG(cxx17_filesystem)
-#include <filesystem>
-#elif defined(Q_CLANG_QDOC)
-namespace std {
-    namespace filesystem {
-        class path {
-        };
-    };
-};
-#endif
-
 #ifdef open
 #error qfile.h must be included before any header file that defines open
 #endif
 
 QT_BEGIN_NAMESPACE
 
+#if defined(Q_OS_WIN) || defined(Q_QDOC)
+
+#if QT_DEPRECATED_SINCE(6,6)
+QT_DEPRECATED_VERSION_X_6_6("Use QNtfsPermissionCheckGuard RAII class instead.")
+Q_CORE_EXPORT extern int qt_ntfs_permission_lookup;      // defined in qfilesystemengine_win.cpp
+#endif
+
+Q_CORE_EXPORT bool qEnableNtfsPermissionChecks() noexcept;
+Q_CORE_EXPORT bool qDisableNtfsPermissionChecks() noexcept;
+Q_CORE_EXPORT bool qAreNtfsPermissionChecksEnabled() noexcept;
+
+class QNtfsPermissionCheckGuard
+{
+    Q_DISABLE_COPY_MOVE(QNtfsPermissionCheckGuard)
+public:
+    Q_NODISCARD_CTOR
+    QNtfsPermissionCheckGuard()
+    {
+        qEnableNtfsPermissionChecks();
+    }
+
+    ~QNtfsPermissionCheckGuard()
+    {
+        qDisableNtfsPermissionChecks();
+    }
+};
+#endif // Q_OS_WIN
+
 #if QT_CONFIG(cxx17_filesystem)
 namespace QtPrivate {
-inline QString fromFilesystemPath(const std::filesystem::path &path)
-{
-#ifdef Q_OS_WIN
-    return QString::fromStdWString(path.native());
-#else
-    return QString::fromStdString(path.native());
-#endif
-}
-
-inline std::filesystem::path toFilesystemPath(const QString &path)
-{
-    return std::filesystem::path(reinterpret_cast<const char16_t *>(path.cbegin()),
-                                 reinterpret_cast<const char16_t *>(path.cend()));
-}
-
 // Both std::filesystem::path and QString (without QT_NO_CAST_FROM_ASCII) can be implicitly
 // constructed from string literals so we force the std::fs::path parameter to only
 // accept std::fs::path with no implicit conversions.
+// ### Qt7: use Q_WEAK_OVERLOAD
 template<typename T>
 using ForceFilesystemPath = typename std::enable_if_t<std::is_same_v<std::filesystem::path, T>, int>;
 }
@@ -89,6 +57,13 @@ using ForceFilesystemPath = typename std::enable_if_t<std::is_same_v<std::filesy
 
 class QTemporaryFile;
 class QFilePrivate;
+
+// ### Qt 7: remove this, and make constructors always explicit.
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)) || defined(QT_EXPLICIT_QFILE_CONSTRUCTION_FROM_PATH)
+#  define QFILE_MAYBE_EXPLICIT explicit
+#else
+#  define QFILE_MAYBE_EXPLICIT Q_IMPLICIT
+#endif
 
 class Q_CORE_EXPORT QFile : public QFileDevice
 {
@@ -99,12 +74,12 @@ class Q_CORE_EXPORT QFile : public QFileDevice
 
 public:
     QFile();
-    QFile(const QString &name);
-#ifdef Q_CLANG_QDOC
-    QFile(const std::filesystem::path &name);
+    QFILE_MAYBE_EXPLICIT QFile(const QString &name);
+#ifdef Q_QDOC
+    QFILE_MAYBE_EXPLICIT QFile(const std::filesystem::path &name);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
-    QFile(const T &name) : QFile(QtPrivate::fromFilesystemPath(name))
+    QFILE_MAYBE_EXPLICIT QFile(const T &name) : QFile(QtPrivate::fromFilesystemPath(name))
     {
     }
 #endif // QT_CONFIG(cxx17_filesystem)
@@ -113,7 +88,7 @@ public:
     explicit QFile(QObject *parent);
     QFile(const QString &name, QObject *parent);
 
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     QFile(const std::filesystem::path &path, QObject *parent);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
@@ -125,12 +100,12 @@ public:
     ~QFile();
 
     QString fileName() const override;
-#if QT_CONFIG(cxx17_filesystem) || defined(Q_CLANG_QDOC)
+#if QT_CONFIG(cxx17_filesystem) || defined(Q_QDOC)
     std::filesystem::path filesystemFileName() const
     { return QtPrivate::toFilesystemPath(fileName()); }
 #endif
     void setFileName(const QString &name);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     void setFileName(const std::filesystem::path &name);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
@@ -172,7 +147,7 @@ public:
 
     bool exists() const;
     static bool exists(const QString &fileName);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     static bool exists(const std::filesystem::path &fileName);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
@@ -184,7 +159,7 @@ public:
 
     QString symLinkTarget() const;
     static QString symLinkTarget(const QString &fileName);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     std::filesystem::path filesystemSymLinkTarget() const;
     static std::filesystem::path filesystemSymLinkTarget(const std::filesystem::path &fileName);
 #elif QT_CONFIG(cxx17_filesystem)
@@ -201,7 +176,7 @@ public:
 
     bool remove();
     static bool remove(const QString &fileName);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     static bool remove(const std::filesystem::path &fileName);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
@@ -211,9 +186,10 @@ public:
     }
 #endif // QT_CONFIG(cxx17_filesystem)
 
+    Q_DECL_PURE_FUNCTION static bool supportsMoveToTrash();
     bool moveToTrash();
     static bool moveToTrash(const QString &fileName, QString *pathInTrash = nullptr);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     static bool moveToTrash(const std::filesystem::path &fileName, QString *pathInTrash = nullptr);
 #elif QT_CONFIG(cxx17_filesystem)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
@@ -225,7 +201,7 @@ public:
 
     bool rename(const QString &newName);
     static bool rename(const QString &oldName, const QString &newName);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     bool rename(const std::filesystem::path &newName);
     static bool rename(const std::filesystem::path &oldName,
                        const std::filesystem::path &newName);
@@ -245,7 +221,7 @@ public:
 
     bool link(const QString &newName);
     static bool link(const QString &fileName, const QString &newName);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     bool link(const std::filesystem::path &newName);
     static bool link(const std::filesystem::path &fileName,
                      const std::filesystem::path &newName);
@@ -263,13 +239,15 @@ public:
     }
 #endif // QT_CONFIG(cxx17_filesystem)
 
+#if QT_CONFIG(temporaryfile)
     bool copy(const QString &newName);
     static bool copy(const QString &fileName, const QString &newName);
-#ifdef Q_CLANG_QDOC
+#endif
+#ifdef Q_QDOC
     bool copy(const std::filesystem::path &newName);
     static bool copy(const std::filesystem::path &fileName,
                      const std::filesystem::path &newName);
-#elif QT_CONFIG(cxx17_filesystem)
+#elif QT_CONFIG(cxx17_filesystem) && QT_CONFIG(temporaryfile)
     template<typename T, QtPrivate::ForceFilesystemPath<T> = 0>
     bool copy(const T &newName)
     {
@@ -283,10 +261,10 @@ public:
     }
 #endif // QT_CONFIG(cxx17_filesystem)
 
-    bool open(OpenMode flags) override;
-    bool open(OpenMode flags, Permissions permissions);
-    bool open(FILE *f, OpenMode ioFlags, FileHandleFlags handleFlags=DontCloseHandle);
-    bool open(int fd, OpenMode ioFlags, FileHandleFlags handleFlags=DontCloseHandle);
+    QFILE_MAYBE_NODISCARD bool open(OpenMode flags) override;
+    QFILE_MAYBE_NODISCARD bool open(OpenMode flags, Permissions permissions);
+    QFILE_MAYBE_NODISCARD bool open(FILE *f, OpenMode ioFlags, FileHandleFlags handleFlags=DontCloseHandle);
+    QFILE_MAYBE_NODISCARD bool open(int fd, OpenMode ioFlags, FileHandleFlags handleFlags=DontCloseHandle);
 
     qint64 size() const override;
 
@@ -297,7 +275,7 @@ public:
     static Permissions permissions(const QString &filename);
     bool setPermissions(Permissions permissionSpec) override;
     static bool setPermissions(const QString &filename, Permissions permissionSpec);
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
     static Permissions permissions(const std::filesystem::path &filename);
     static bool setPermissions(const std::filesystem::path &filename, Permissions permissionSpec);
 #elif QT_CONFIG(cxx17_filesystem)

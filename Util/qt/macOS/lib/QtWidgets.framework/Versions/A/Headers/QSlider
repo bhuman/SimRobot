@@ -1,1 +1,1 @@
-#include "qslider.h"
+#include <QtWidgets/qslider.h> // IWYU pragma: export

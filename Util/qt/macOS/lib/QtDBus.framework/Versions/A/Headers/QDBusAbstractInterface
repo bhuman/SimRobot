@@ -1,1 +1,1 @@
-#include "qdbusabstractinterface.h"
+#include <QtDBus/qdbusabstractinterface.h> // IWYU pragma: export

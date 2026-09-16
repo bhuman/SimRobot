@@ -187,5 +187,4 @@ public slots:
   void simStart() override;
   void simStep() override;
   void simStop() override;
-  void applicationStateChanged(Qt::ApplicationState);
 };

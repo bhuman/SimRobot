@@ -1,56 +1,18 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSEMAPHORE_H
 #define QSEMAPHORE_H
 
 #include <QtCore/qglobal.h>
-#include <QtCore/qmutex.h> // for convertToMilliseconds()
+#include <QtCore/qdeadlinetimer.h>
 
 #include <chrono>
-
-QT_REQUIRE_CONFIG(thread);
 
 QT_BEGIN_NAMESPACE
 
 class QSemaphorePrivate;
-
 class Q_CORE_EXPORT QSemaphore
 {
 public:
@@ -59,10 +21,14 @@ public:
 
     void acquire(int n = 1);
     bool tryAcquire(int n = 1);
+    QT_CORE_INLINE_SINCE(6, 6)
     bool tryAcquire(int n, int timeout);
+    bool tryAcquire(int n, QDeadlineTimer timeout);
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
     template <typename Rep, typename Period>
     bool tryAcquire(int n, std::chrono::duration<Rep, Period> timeout)
-    { return tryAcquire(n, QtPrivate::convertToMilliseconds(timeout)); }
+    { return tryAcquire(n, QDeadlineTimer(timeout)); }
+#endif
 
     void release(int n = 1);
 
@@ -89,14 +55,25 @@ private:
     };
 };
 
+#if QT_CORE_INLINE_IMPL_SINCE(6, 6)
+bool QSemaphore::tryAcquire(int n, int timeout)
+{
+    return tryAcquire(n, QDeadlineTimer(timeout));
+}
+#endif
+
 class QSemaphoreReleaser
 {
 public:
+    Q_NODISCARD_CTOR
     QSemaphoreReleaser() = default;
+    Q_NODISCARD_CTOR
     explicit QSemaphoreReleaser(QSemaphore &sem, int n = 1) noexcept
         : m_sem(&sem), m_n(n) {}
+    Q_NODISCARD_CTOR
     explicit QSemaphoreReleaser(QSemaphore *sem, int n = 1) noexcept
         : m_sem(sem), m_n(n) {}
+    Q_NODISCARD_CTOR
     QSemaphoreReleaser(QSemaphoreReleaser &&other) noexcept
         : m_sem(other.cancel()), m_n(other.m_n) {}
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QSemaphoreReleaser)
@@ -118,12 +95,12 @@ public:
 
     QSemaphore *cancel() noexcept
     {
-        return qExchange(m_sem, nullptr);
+        return std::exchange(m_sem, nullptr);
     }
 
 private:
     QSemaphore *m_sem = nullptr;
-    int m_n;
+    int m_n = 0;
 };
 
 QT_END_NAMESPACE

@@ -1,0 +1,38 @@
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
+
+
+#ifndef QSVGEASINGINTERFACE_P_H
+#define QSVGEASINGINTERFACE_P_H
+
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include <QtSvg/private/qtsvgglobal_p.h>
+#include <memory>
+
+QT_BEGIN_NAMESPACE
+
+class Q_SVG_EXPORT QSvgEasingInterface
+{
+    Q_DISABLE_COPY_MOVE(QSvgEasingInterface)
+public:
+    QSvgEasingInterface() = default;
+    virtual ~QSvgEasingInterface();
+    virtual qreal progress(qreal t) = 0;
+};
+
+using QSvgEasingInterfacePtr = std::unique_ptr<QSvgEasingInterface>;
+
+QT_END_NAMESPACE
+
+#endif // QSVGEASINGINTERFACE_P_H

@@ -1,1 +1,1 @@
-#include "qcache.h"
+#include <QtCore/qcache.h> // IWYU pragma: export

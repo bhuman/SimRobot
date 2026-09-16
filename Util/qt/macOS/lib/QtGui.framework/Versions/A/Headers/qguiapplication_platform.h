@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QGUIAPPLICATION_PLATFORM_H
 #define QGUIAPPLICATION_PLATFORM_H
@@ -59,17 +23,80 @@ typedef struct _XDisplay Display;
 struct xcb_connection_t;
 #endif
 
+#if QT_CONFIG(wayland)
+struct wl_display;
+struct wl_compositor;
+struct wl_seat;
+struct wl_keyboard;
+struct wl_pointer;
+struct wl_touch;
+
+#if QT_CONFIG(xkbcommon)
+struct xkb_context;
+#endif
+
+#endif
+
+#if defined(Q_OS_VISIONOS) || defined(Q_QDOC)
+#  ifdef __OBJC__
+Q_FORWARD_DECLARE_OBJC_CLASS(CP_OBJECT_cp_layer_renderer_capabilities);
+typedef CP_OBJECT_cp_layer_renderer_capabilities *cp_layer_renderer_capabilities_t;
+Q_FORWARD_DECLARE_OBJC_CLASS(CP_OBJECT_cp_layer_renderer_configuration);
+typedef CP_OBJECT_cp_layer_renderer_configuration *cp_layer_renderer_configuration_t;
+Q_FORWARD_DECLARE_OBJC_CLASS(CP_OBJECT_cp_layer_renderer);
+typedef CP_OBJECT_cp_layer_renderer *cp_layer_renderer_t;
+#  else
+typedef struct cp_layer_renderer_capabilities_s *cp_layer_renderer_capabilities_t;
+typedef struct cp_layer_renderer_configuration_s *cp_layer_renderer_configuration_t;
+typedef struct cp_layer_renderer_s *cp_layer_renderer_t;
+#  endif
+#endif
+
+
 QT_BEGIN_NAMESPACE
 
 namespace QNativeInterface
 {
 
-#if QT_CONFIG(xcb) || defined(Q_CLANG_QDOC)
+#if QT_CONFIG(xcb) || defined(Q_QDOC)
 struct Q_GUI_EXPORT QX11Application
 {
     QT_DECLARE_NATIVE_INTERFACE(QX11Application, 1, QGuiApplication)
     virtual Display *display() const = 0;
     virtual xcb_connection_t *connection() const = 0;
+};
+#endif
+
+#if QT_CONFIG(wayland) || defined(Q_QDOC)
+struct Q_GUI_EXPORT QWaylandApplication
+{
+    QT_DECLARE_NATIVE_INTERFACE(QWaylandApplication, 2, QGuiApplication)
+    virtual wl_display *display() const = 0;
+    virtual wl_compositor *compositor() const = 0;
+    virtual wl_seat *seat() const = 0;
+    virtual wl_keyboard *keyboard() const = 0;
+    virtual wl_pointer *pointer() const = 0;
+    virtual wl_touch *touch() const = 0;
+    virtual uint lastInputSerial() const = 0;
+    virtual wl_seat *lastInputSeat() const = 0;
+#if QT_CONFIG(xkbcommon)
+    virtual xkb_context *xkbContext() const = 0;
+#endif
+};
+#endif
+
+#if defined(Q_OS_VISIONOS) || defined(Q_QDOC)
+struct Q_GUI_EXPORT QVisionOSApplication
+{
+    QT_DECLARE_NATIVE_INTERFACE(QVisionOSApplication, 1, QGuiApplication)
+    struct ImmersiveSpaceCompositorLayer {
+        virtual void configure(cp_layer_renderer_capabilities_t, cp_layer_renderer_configuration_t) const {}
+        virtual void render(cp_layer_renderer_t) = 0;
+        virtual void handleSpatialEvents(const QJsonObject &) {};
+    };
+    virtual void setImmersiveSpaceCompositorLayer(ImmersiveSpaceCompositorLayer *layer) = 0;
+    virtual void openImmersiveSpace() = 0;
+    virtual void dismissImmersiveSpace() = 0;
 };
 #endif
 

@@ -1,1 +1,1 @@
-#include "qlayoutitem.h"
+#include <QtWidgets/qlayoutitem.h> // IWYU pragma: export

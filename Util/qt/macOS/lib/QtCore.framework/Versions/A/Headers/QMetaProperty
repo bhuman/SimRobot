@@ -1,1 +1,1 @@
-#include "qmetaobject.h"
+#include <QtCore/qmetaobject.h> // IWYU pragma: export

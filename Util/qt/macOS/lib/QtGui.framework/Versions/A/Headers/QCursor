@@ -1,1 +1,1 @@
-#include "qcursor.h"
+#include <QtGui/qcursor.h> // IWYU pragma: export

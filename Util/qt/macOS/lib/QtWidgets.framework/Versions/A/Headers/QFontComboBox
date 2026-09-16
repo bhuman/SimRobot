@@ -1,1 +1,1 @@
-#include "qfontcombobox.h"
+#include <QtWidgets/qfontcombobox.h> // IWYU pragma: export

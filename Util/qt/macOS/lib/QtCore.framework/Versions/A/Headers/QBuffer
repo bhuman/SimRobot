@@ -1,1 +1,1 @@
-#include "qbuffer.h"
+#include <QtCore/qbuffer.h> // IWYU pragma: export

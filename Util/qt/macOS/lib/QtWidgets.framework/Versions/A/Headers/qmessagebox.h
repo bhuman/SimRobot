@@ -1,53 +1,19 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QMESSAGEBOX_H
 #define QMESSAGEBOX_H
 
 #include <QtWidgets/qtwidgetsglobal.h>
-
 #include <QtWidgets/qdialog.h>
+#include <QtWidgets/qdialogbuttonbox.h>
 
 QT_REQUIRE_CONFIG(messagebox);
 
 QT_BEGIN_NAMESPACE
 
+class QAnyStringView;
 class QLabel;
 class QMessageBoxPrivate;
 class QAbstractButton;
@@ -67,10 +33,16 @@ class Q_WIDGETS_EXPORT QMessageBox : public QDialog
     Q_PROPERTY(QString informativeText READ informativeText WRITE setInformativeText)
     Q_PROPERTY(Qt::TextInteractionFlags textInteractionFlags READ textInteractionFlags
                WRITE setTextInteractionFlags)
-
+    Q_PROPERTY(Options options READ options WRITE setOptions)
 public:
+    // Keep in sync with MessageBoxOption in qplatformdialoghelper.h
+    enum class Option {
+        DontUseNativeDialog = 0x00000001
+    };
+    Q_FLAG(Option)
+
     enum Icon {
-        // keep this in sync with QMessageDialogOptions::Icon
+        // keep this in sync with QMessageDialogOptions::StandardIcon
         NoIcon = 0,
         Information = 1,
         Warning = 2,
@@ -94,6 +66,7 @@ public:
 
         NRoles
     };
+    Q_ENUM(ButtonRole)
 
     enum StandardButton {
         // keep this in sync with QDialogButtonBox::StandardButton and QPlatformDialogHelper::StandardButton
@@ -128,11 +101,14 @@ public:
         FlagMask           = 0x00000300,        // obsolete
         ButtonMask         = ~FlagMask          // obsolete
     };
+    Q_ENUM(StandardButton)
+
 #if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
     typedef StandardButton Button;
 #endif
-
+    Q_DECLARE_FLAGS(Options, Option)
     Q_DECLARE_FLAGS(StandardButtons, StandardButton)
+
     Q_FLAG(StandardButtons)
 
     explicit QMessageBox(QWidget *parent = nullptr);
@@ -184,6 +160,11 @@ public:
 
     void setCheckBox(QCheckBox *cb);
     QCheckBox* checkBox() const;
+
+    void setOption(Option option, bool on = true);
+    bool testOption(Option option) const;
+    void setOptions(Options options);
+    Options options() const;
 
     static StandardButton information(QWidget *parent, const QString &title,
          const QString &text, StandardButtons buttons = Ok,
@@ -313,7 +294,7 @@ public:
 Q_SIGNALS:
     void buttonClicked(QAbstractButton *button);
 
-#ifdef Q_CLANG_QDOC
+#ifdef Q_QDOC
 public Q_SLOTS:
     int exec() override;
 #endif
@@ -327,29 +308,15 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
-    Q_PRIVATE_SLOT(d_func(), void _q_buttonClicked(QAbstractButton *))
-    Q_PRIVATE_SLOT(d_func(), void _q_clicked(QPlatformDialogHelper::StandardButton, QPlatformDialogHelper::ButtonRole))
-
     Q_DISABLE_COPY(QMessageBox)
     Q_DECLARE_PRIVATE(QMessageBox)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QMessageBox::StandardButtons)
 
-#define QT_REQUIRE_VERSION(argc, argv, str) { QString s = QString::fromLatin1(str);\
-QString sq = QString::fromLatin1(qVersion()); \
-if ((sq.section(QChar::fromLatin1('.'),0,0).toInt()<<16)+\
-(sq.section(QChar::fromLatin1('.'),1,1).toInt()<<8)+\
-sq.section(QChar::fromLatin1('.'),2,2).toInt()<(s.section(QChar::fromLatin1('.'),0,0).toInt()<<16)+\
-(s.section(QChar::fromLatin1('.'),1,1).toInt()<<8)+\
-s.section(QChar::fromLatin1('.'),2,2).toInt()) { \
-if (!qApp){ \
-    new QApplication(argc,argv); \
-} \
-QString s = QApplication::tr("Executable '%1' requires Qt "\
- "%2, found Qt %3.").arg(qAppName()).arg(QString::fromLatin1(\
-str)).arg(QString::fromLatin1(qVersion())); QMessageBox::critical(0, QApplication::tr(\
-"Incompatible Qt Library Error"), s, QMessageBox::Abort, 0); qFatal("%s", s.toLatin1().data()); }}
+Q_WIDGETS_EXPORT void qRequireVersion(int argc, char *argv[], QAnyStringView req);
+
+#define QT_REQUIRE_VERSION(argc, argv, str) qRequireVersion(argc, argv, str);
 
 QT_END_NAMESPACE
 

@@ -1,1 +1,1 @@
-#include "qlineedit.h"
+#include <QtWidgets/qlineedit.h> // IWYU pragma: export

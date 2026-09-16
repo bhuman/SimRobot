@@ -1,1 +1,1 @@
-#include "qinputdialog.h"
+#include <QtWidgets/qinputdialog.h> // IWYU pragma: export

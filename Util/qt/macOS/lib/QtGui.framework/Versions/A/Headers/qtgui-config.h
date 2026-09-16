@@ -1,4 +1,9 @@
+#ifndef QT_FEATURES_Gui_src_gui_qtgui_config_h_H
+#define QT_FEATURES_Gui_src_gui_qtgui_config_h_H
+
 #define QT_FEATURE_accessibility_atspi_bridge -1
+
+#define QT_FEATURE_emojisegmenter 1
 
 #define QT_FEATURE_freetype 1
 
@@ -20,6 +25,8 @@
 
 #define QT_FEATURE_vulkan -1
 
+#define QT_FEATURE_metal 1
+
 #define QT_FEATURE_openvg -1
 
 #define QT_FEATURE_egl -1
@@ -31,6 +38,8 @@
 #define QT_FEATURE_xcb -1
 
 #define QT_FEATURE_xcb_glx_plugin -1
+
+#define QT_FEATURE_xkbcommon -1
 
 #define QT_FEATURE_texthtmlparser 1
 
@@ -106,6 +115,12 @@
 
 #define QT_FEATURE_undogroup 1
 
+#define QT_FEATURE_wayland -1
+
+#define QT_FEATURE_waylandscanner -1
+
 #define QT_NO_ACCESSIBILITY_ATSPI_BRIDGE 1
 #define QT_NO_FONTCONFIG 1
 #define QT_NO_EGL 1
+
+#endif // QT_FEATURES_Gui_src_gui_qtgui_config_h_H

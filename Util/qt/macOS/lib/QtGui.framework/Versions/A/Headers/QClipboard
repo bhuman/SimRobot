@@ -1,1 +1,1 @@
-#include "qclipboard.h"
+#include <QtGui/qclipboard.h> // IWYU pragma: export

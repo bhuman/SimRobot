@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QWINDOW_H
 #define QWINDOW_H
@@ -91,7 +55,7 @@ class QWindowContainer;
 #ifndef QT_NO_DEBUG_STREAM
 class QDebug;
 #endif
-#if QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+#if QT_CONFIG(vulkan) || defined(Q_QDOC)
 class QVulkanInstance;
 #endif
 
@@ -112,7 +76,7 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
 
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY windowTitleChanged)
     Q_PROPERTY(Qt::WindowModality modality READ modality WRITE setModality NOTIFY modalityChanged)
-    Q_PROPERTY(Qt::WindowFlags flags READ flags WRITE setFlags)
+    Q_PROPERTY(Qt::WindowFlags flags READ flags WRITE setFlags NOTIFY flagsChanged)
     Q_PROPERTY(int x READ x WRITE setX NOTIFY xChanged)
     Q_PROPERTY(int y READ y WRITE setY NOTIFY yChanged)
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
@@ -123,10 +87,9 @@ class Q_GUI_EXPORT QWindow : public QObject, public QSurface
     Q_PROPERTY(int maximumWidth READ maximumWidth WRITE setMaximumWidth NOTIFY maximumWidthChanged)
     Q_PROPERTY(int maximumHeight READ maximumHeight WRITE setMaximumHeight
                NOTIFY maximumHeightChanged)
-    Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged)
+    Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged VIRTUAL)
     Q_PROPERTY(bool active READ isActive NOTIFY activeChanged REVISION(2, 1))
-    Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged
-               REVISION(2, 1))
+    Q_PROPERTY(Visibility visibility READ visibility WRITE setVisibility NOTIFY visibilityChanged VIRTUAL REVISION(2, 1))
     Q_PROPERTY(Qt::ScreenOrientation contentOrientation READ contentOrientation
                WRITE reportContentOrientationChange NOTIFY contentOrientationChanged)
     Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity NOTIFY opacityChanged REVISION(2, 1))
@@ -238,6 +201,8 @@ public:
     QPoint framePosition() const;
     void setFramePosition(const QPoint &point);
 
+    QMargins safeAreaMargins() const;
+
     inline int width() const { return geometry().width(); }
     inline int height() const { return geometry().height(); }
     inline int x() const { return geometry().x(); }
@@ -284,7 +249,7 @@ public:
 
     static QWindow *fromWinId(WId id);
 
-#if QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+#if QT_CONFIG(vulkan) || defined(Q_QDOC)
     void setVulkanInstance(QVulkanInstance *instance);
     QVulkanInstance *vulkanInstance() const;
 #endif
@@ -331,6 +296,7 @@ public Q_SLOTS:
 Q_SIGNALS:
     void screenChanged(QScreen *screen);
     void modalityChanged(Qt::WindowModality modality);
+    Q_REVISION(6, 10) void flagsChanged(Qt::WindowFlags flags);
     void windowStateChanged(Qt::WindowState windowState);
     Q_REVISION(2, 2) void windowTitleChanged(const QString &title);
 
@@ -344,6 +310,8 @@ Q_SIGNALS:
     void minimumHeightChanged(int arg);
     void maximumWidthChanged(int arg);
     void maximumHeightChanged(int arg);
+
+    Q_REVISION(6, 9) void safeAreaMarginsChanged(QMargins arg);
 
     void visibleChanged(bool arg);
     Q_REVISION(2, 1) void visibilityChanged(QWindow::Visibility visibility);

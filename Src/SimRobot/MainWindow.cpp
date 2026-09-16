@@ -161,7 +161,6 @@ MainWindow::MainWindow(int, char* argv[]) :
   toolBar->setMovable(false);
   toolBar->setFixedHeight(toolBar->height() * 6 / 5);
   fixMainWindow(winId());
-  setContentsMargins(0, 28, 0, 0);
 #endif
 
   statusBar = new StatusBar(this);
@@ -202,12 +201,7 @@ MainWindow::MainWindow(int, char* argv[]) :
   menuBar()->addMenu(createSimMenu());
   menuBar()->addMenu(helpMenu);
 
-#ifdef MACOS
-  applicationStateChanged(Qt::ApplicationActive);
-  connect(qApp, &QGuiApplication::applicationStateChanged, this, &MainWindow::applicationStateChanged);
-#else
   updateMenuAndToolBar();
-#endif
 }
 
 QString MainWindow::getAppPath(const char* argv0)
@@ -485,10 +479,6 @@ void MainWindow::changeEvent(QEvent* event)
 {
   if(event->type() == QEvent::PaletteChange)
     updateMenuAndToolBar();
-#ifdef MACOS
-  else if(event->type() == QEvent::WindowStateChange)
-    setContentsMargins(0, isFullScreen() ? 0 : 28, 0, 0);
-#endif
   QMainWindow::changeEvent(event);
 }
 
@@ -684,7 +674,6 @@ void MainWindow::updateMenuAndToolBar()
                  ? QColor(255, 255, 255, Theme::isDarkMode(this) ? 24 : 96)
                  : QColor(0, 0, 0, Theme::isDarkMode(this) ? 0 : 7);
   toolBar->setStyleSheet("QToolBar {padding: 0px 6px 0px 6px;"
-                                   "border-bottom: 1px solid " + pressed.name(QColor::HexArgb) + ";"
                                    "background-color: " + title.name(QColor::HexArgb) + "}"
                          "QToolBar::separator {background-color: transparent; width: 12px}"
                          "QToolButton {background-color: transparent; padding: 3px 8px 3px 9px; border-width: 0px; border-radius: 12px}"
@@ -1333,12 +1322,5 @@ void MainWindow::focusChanged(QWidget*, QWidget* now)
     if(sceneGraphDockWidget && regDockWidget)
       sceneGraphDockWidget->setActive(regDockWidget->getObject(), true);
   }
-  updateMenuAndToolBar();
-}
-
-void MainWindow::applicationStateChanged(Qt::ApplicationState)
-{
-  if(!isFullScreen())
-    update(0, 0, size().width(), 28);
   updateMenuAndToolBar();
 }

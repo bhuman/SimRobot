@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QPAINTER_H
 #define QPAINTER_H
@@ -90,6 +54,7 @@ public:
         SmoothPixmapTransform = 0x04,
         VerticalSubpixelPositioning = 0x08,
         LosslessImageRendering = 0x40,
+        NonCosmeticBrushPatterns = 0x80
     };
     Q_ENUM(RenderHint)
 
@@ -171,7 +136,9 @@ public:
         RasterOp_SourceOrNotDestination,
         RasterOp_ClearDestination,
         RasterOp_SetDestination,
-        RasterOp_NotDestination
+        RasterOp_NotDestination,
+
+        NCompositionModes
     };
     void setCompositionMode(CompositionMode mode);
     CompositionMode compositionMode() const;
@@ -183,12 +150,18 @@ public:
     QFontInfo fontInfo() const;
 
     void setPen(const QColor &color);
+    QT_GUI_INLINE_SINCE(6, 11)
     void setPen(const QPen &pen);
+    void setPen(QPen &&pen) { doSetPen(pen, &pen); }
     void setPen(Qt::PenStyle style);
     const QPen &pen() const;
 
+    QT_GUI_INLINE_SINCE(6, 11)
     void setBrush(const QBrush &brush);
+    void setBrush(QBrush &&brush) { doSetBrush(brush, &brush); }
     void setBrush(Qt::BrushStyle style);
+    void setBrush(QColor color);
+    void setBrush(Qt::GlobalColor color) { setBrush(QColor(color)); }
     const QBrush &brush() const;
 
     // attributes/modes
@@ -196,6 +169,7 @@ public:
     Qt::BGMode backgroundMode() const;
 
     QPoint brushOrigin() const;
+    QPointF brushOriginF() const;
     inline void setBrushOrigin(int x, int y);
     inline void setBrushOrigin(const QPoint &);
     void setBrushOrigin(const QPointF &);
@@ -439,7 +413,7 @@ public:
     void setRenderHint(RenderHint hint, bool on = true);
     void setRenderHints(RenderHints hints, bool on = true);
     RenderHints renderHints() const;
-    inline bool testRenderHint(RenderHint hint) const { return renderHints() & hint; }
+    inline bool testRenderHint(RenderHint hint) const { return bool(renderHints() & hint); }
 
     QPaintEngine *paintEngine() const;
 
@@ -448,6 +422,9 @@ public:
 
 private:
     Q_DISABLE_COPY(QPainter)
+
+    void doSetPen(const QPen &lvalue, QPen *rvalue);
+    void doSetBrush(const QBrush &lvalue, QBrush *rvalue);
 
     std::unique_ptr<QPainterPrivate> d_ptr;
 
@@ -729,6 +706,21 @@ inline void QPainter::fillRect(const QRectF &r, QGradient::Preset p)
 {
     fillRect(r, QGradient(p));
 }
+
+#if QT_GUI_INLINE_IMPL_SINCE(6, 11)
+
+void QPainter::setPen(const QPen &p)
+{
+    doSetPen(p, nullptr);
+}
+
+void QPainter::setBrush(const QBrush &b)
+{
+    doSetBrush(b, nullptr);
+}
+
+#endif // QT_GUI_INLINE_IMPL_SINCE(6, 11)
+
 
 inline void QPainter::setBrushOrigin(int x, int y)
 {

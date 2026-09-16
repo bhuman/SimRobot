@@ -1,1 +1,1 @@
-#include "qheaderview.h"
+#include <QtWidgets/qheaderview.h> // IWYU pragma: export

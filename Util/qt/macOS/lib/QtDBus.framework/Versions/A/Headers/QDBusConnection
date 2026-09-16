@@ -1,1 +1,1 @@
-#include "qdbusconnection.h"
+#include <QtDBus/qdbusconnection.h> // IWYU pragma: export

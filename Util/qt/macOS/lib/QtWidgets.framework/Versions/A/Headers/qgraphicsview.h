@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QGRAPHICSVIEW_H
 #define QGRAPHICSVIEW_H
@@ -59,7 +24,6 @@ class QGraphicsViewPrivate;
 class Q_WIDGETS_EXPORT QGraphicsView : public QAbstractScrollArea
 {
     Q_OBJECT
-    Q_FLAGS(QPainter::RenderHints CacheMode OptimizationFlags)
     Q_PROPERTY(QBrush backgroundBrush READ backgroundBrush WRITE setBackgroundBrush)
     Q_PROPERTY(QBrush foregroundBrush READ foregroundBrush WRITE setForegroundBrush)
     Q_PROPERTY(bool interactive READ isInteractive WRITE setInteractive)
@@ -93,6 +57,7 @@ public:
         CacheBackground = 0x1
     };
     Q_DECLARE_FLAGS(CacheMode, CacheModeFlag)
+    Q_FLAG(CacheMode)
 
     enum DragMode {
         NoDrag,
@@ -116,6 +81,7 @@ public:
         IndirectPainting = 0x4
     };
     Q_DECLARE_FLAGS(OptimizationFlags, OptimizationFlag)
+    Q_FLAG(OptimizationFlags)
 
     QGraphicsView(QWidget *parent = nullptr);
     QGraphicsView(QGraphicsScene *scene, QWidget *parent = nullptr);

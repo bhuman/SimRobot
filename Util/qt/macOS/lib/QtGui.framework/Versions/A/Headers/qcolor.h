@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QCOLOR_H
 #define QCOLOR_H
@@ -52,7 +16,6 @@ QT_BEGIN_NAMESPACE
 
 
 class QColor;
-class QColormap;
 class QVariant;
 
 #ifndef QT_NO_DEBUG_STREAM
@@ -85,9 +48,11 @@ public:
     QColor(QRgba64 rgba64) noexcept;
     inline QColor(const QString& name);
     explicit inline QColor(QStringView name);
-    inline QColor(const char *aname) : QColor(QLatin1String(aname)) {}
-    inline QColor(QLatin1String name);
+    inline QColor(const char *aname);
+    inline QColor(QLatin1StringView name);
     QColor(Spec spec) noexcept;
+
+    static QColor fromString(QAnyStringView name) noexcept;
 
     QColor &operator=(Qt::GlobalColor color) noexcept;
 
@@ -95,9 +60,14 @@ public:
 
     QString name(NameFormat format = HexRgb) const;
 
+#if QT_DEPRECATED_SINCE(6, 6)
+    QT_DEPRECATED_VERSION_X_6_6("Use fromString() instead.")
     void setNamedColor(const QString& name);
+    QT_DEPRECATED_VERSION_X_6_6("Use fromString() instead.")
     void setNamedColor(QStringView name);
-    void setNamedColor(QLatin1String name);
+    QT_DEPRECATED_VERSION_X_6_6("Use fromString() instead.")
+    void setNamedColor(QLatin1StringView name);
+#endif
 
     static QStringList colorNames();
 
@@ -221,17 +191,21 @@ public:
 
     operator QVariant() const;
 
+#if QT_DEPRECATED_SINCE(6, 6)
+    QT_DEPRECATED_VERSION_X_6_6("Use isValidColorName() instead.")
     static bool isValidColor(const QString &name);
+    QT_DEPRECATED_VERSION_X_6_6("Use isValidColorName() instead.")
     static bool isValidColor(QStringView) noexcept;
-    static bool isValidColor(QLatin1String) noexcept;
+    QT_DEPRECATED_VERSION_X_6_6("Use isValidColorName() instead.")
+    static bool isValidColor(QLatin1StringView) noexcept;
+#endif
+    static bool isValidColorName(QAnyStringView) noexcept;
 
 private:
 
     void invalidate() noexcept;
-    template <typename String>
-    bool setColorFromString(String name);
 
-    static constexpr bool isRgbaValid(int r, int g, int b, int a = 255) noexcept Q_DECL_CONST_FUNCTION
+    Q_DECL_CONST_FUNCTION static constexpr bool isRgbaValid(int r, int g, int b, int a = 255) noexcept
     {
         return uint(r) <= 255 && uint(g) <= 255 && uint(b) <= 255 && uint(a) <= 255;
     }
@@ -281,7 +255,6 @@ private:
         ushort array[5];
     } ct;
 
-    friend class QColormap;
 #ifndef QT_NO_DATASTREAM
     friend Q_GUI_EXPORT QDataStream &operator<<(QDataStream &, const QColor &);
     friend Q_GUI_EXPORT QDataStream &operator>>(QDataStream &, QColor &);
@@ -295,14 +268,17 @@ public: // can't give friendship to a namespace, so it needs to be public
 };
 Q_DECLARE_TYPEINFO(QColor, Q_RELOCATABLE_TYPE);
 
-inline QColor::QColor(QLatin1String aname)
-{ setNamedColor(aname); }
+inline QColor::QColor(QLatin1StringView aname)
+    : QColor(fromString(aname)) {}
 
 inline QColor::QColor(QStringView aname)
-{ setNamedColor(aname); }
+    : QColor(fromString(aname)) {}
 
 inline QColor::QColor(const QString& aname)
-{ setNamedColor(aname); }
+    : QColor(fromString(aname)) {}
+
+inline QColor::QColor(const char *aname)
+    : QColor(fromString(aname)) {}
 
 inline bool QColor::isValid() const noexcept
 { return cspec != Invalid; }
@@ -481,7 +457,7 @@ namespace Svg {
     constexpr inline QColor yellow                   {QColor::Rgb, 0xff * 0x101, 0xff * 0x101, 0xff * 0x101, 0x00 * 0x101};
     constexpr inline QColor yellowgreen              {QColor::Rgb, 0xff * 0x101, 0x9a * 0x101, 0xcd * 0x101, 0x32 * 0x101};
 }  // namespace Svg
-}  // namespace QColorLiterals
+}  // namespace QColorConstants
 
 QT_END_NAMESPACE
 

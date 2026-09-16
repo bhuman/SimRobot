@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFUTURE_H
 #define QFUTURE_H
@@ -61,7 +26,7 @@ template <typename T>
 class QFuture
 {
     static_assert (std::is_move_constructible_v<T>
-                   || std::is_same_v<T, void>,
+                   || std::is_void_v<T>,
                    "A move-constructible type or type void is required");
 public:
     QFuture()
@@ -80,7 +45,7 @@ public:
     }
 
     template<typename U, typename V = T, typename = QtPrivate::EnableForVoid<V>>
-    explicit QFuture(const QFuture<U> &other) : d(other.d)
+    QFuture(const QFuture<U> &other) : d(other.d)
     {
     }
 
@@ -91,7 +56,7 @@ public:
         return *this;
     }
 
-#if defined(Q_CLANG_QDOC)
+#if defined(Q_QDOC)
     ~QFuture() { }
     QFuture(const QFuture<T> &) { }
     QFuture<T> & operator=(const QFuture<T> &) { }
@@ -99,6 +64,7 @@ public:
 
     void cancel() { d.cancel(); }
     bool isCanceled() const { return d.isCanceled(); }
+    void cancelChain() { d.cancelChain(); }
 
 #if QT_DEPRECATED_SINCE(6, 0)
     QT_DEPRECATED_VERSION_X_6_0("Use setSuspended() instead.")
@@ -191,10 +157,18 @@ QT_WARNING_POP
     template<class Function, typename = std::enable_if_t<std::is_invocable_r_v<T, Function>>>
     QFuture<T> onCanceled(QObject *context, Function &&handler);
 
+#if !defined(Q_QDOC)
+    template<class U = T, typename = std::enable_if_t<QtPrivate::isQFutureV<U>>>
+    auto unwrap();
+#else
+    template<class U>
+    QFuture<U> unwrap();
+#endif
+
     class const_iterator
     {
     public:
-        static_assert(!std::is_same_v<T, void>,
+        static_assert(!std::is_void_v<T>,
                       "It isn't possible to define QFuture<void>::const_iterator");
 
         typedef std::bidirectional_iterator_tag iterator_category;
@@ -203,7 +177,7 @@ QT_WARNING_POP
         typedef const T *pointer;
         typedef const T &reference;
 
-        inline const_iterator() {}
+        const_iterator() = default;
         inline const_iterator(QFuture const * const _future, int _index)
         : future(_future), index(advanceIndex(_index, 0)) { }
         inline const_iterator(const const_iterator &o) : future(o.future), index(o.index)  {}
@@ -211,8 +185,6 @@ QT_WARNING_POP
         { future = o.future; index = o.index; return *this; }
         inline const T &operator*() const { return future->d.resultReference(index); }
         inline const T *operator->() const { return future->d.resultPointer(index); }
-        inline bool operator!=(const const_iterator &other) const { return index != other.index; }
-        inline bool operator==(const const_iterator &o) const { return !operator!=(o); }
         inline const_iterator &operator++()
         { index = advanceIndex(index, 1); return *this; }
         inline const_iterator &operator--()
@@ -241,6 +213,12 @@ QT_WARNING_POP
         { return const_iterator(k.future, k.advanceIndex(k.index, j)); }
 
     private:
+        friend bool comparesEqual(const const_iterator &lhs, const const_iterator &rhs) noexcept
+        {
+            return lhs.index == rhs.index;
+        }
+        Q_DECLARE_EQUALITY_COMPARABLE(const_iterator)
+
         /*! \internal
 
             Advances the iterator index \a idx \a n steps, waits for the
@@ -304,7 +282,7 @@ private:
     friend class QFutureInterfaceBase;
 
     template<class Function, class ResultType, class ParentResultType>
-    friend class QtPrivate::Continuation;
+    friend class QtPrivate::CompactContinuation;
 
     template<class Function, class ResultType>
     friend class QtPrivate::CanceledHandler;
@@ -317,8 +295,10 @@ private:
     template<typename ResultType>
     friend struct QtPrivate::WhenAnyContext;
 
+    friend struct QtPrivate::UnwrapHandler;
+
     using QFuturePrivate =
-            std::conditional_t<std::is_same_v<T, void>, QFutureInterfaceBase, QFutureInterface<T>>;
+            std::conditional_t<std::is_void_v<T>, QFutureInterfaceBase, QFutureInterface<T>>;
 
 #ifdef QFUTURE_TEST
 public:
@@ -361,7 +341,7 @@ QFuture<typename QFuture<T>::template ResultType<Function>>
 QFuture<T>::then(QtFuture::Launch policy, Function &&function)
 {
     QFutureInterface<ResultType<Function>> promise(QFutureInterfaceBase::State::Pending);
-    QtPrivate::Continuation<std::decay_t<Function>, ResultType<Function>, T>::create(
+    QtPrivate::CompactContinuation<std::decay_t<Function>, ResultType<Function>, T>::create(
             std::forward<Function>(function), this, promise, policy);
     return promise.future();
 }
@@ -372,7 +352,7 @@ QFuture<typename QFuture<T>::template ResultType<Function>> QFuture<T>::then(QTh
                                                                              Function &&function)
 {
     QFutureInterface<ResultType<Function>> promise(QFutureInterfaceBase::State::Pending);
-    QtPrivate::Continuation<std::decay_t<Function>, ResultType<Function>, T>::create(
+    QtPrivate::CompactContinuation<std::decay_t<Function>, ResultType<Function>, T>::create(
             std::forward<Function>(function), this, promise, pool);
     return promise.future();
 }
@@ -383,7 +363,7 @@ QFuture<typename QFuture<T>::template ResultType<Function>> QFuture<T>::then(QOb
                                                                              Function &&function)
 {
     QFutureInterface<ResultType<Function>> promise(QFutureInterfaceBase::State::Pending);
-    QtPrivate::Continuation<std::decay_t<Function>, ResultType<Function>, T>::create(
+    QtPrivate::CompactContinuation<std::decay_t<Function>, ResultType<Function>, T>::create(
             std::forward<Function>(function), this, promise, context);
     return promise.future();
 }
@@ -431,6 +411,16 @@ QFuture<T> QFuture<T>::onCanceled(QObject *context, Function &&handler)
     return promise.future();
 }
 
+template<class T>
+template<class U, typename>
+auto QFuture<T>::unwrap()
+{
+    if constexpr (QtPrivate::isQFutureV<typename QtPrivate::Future<T>::type>)
+        return QtPrivate::UnwrapHandler::unwrapImpl(this).unwrap();
+    else
+        return QtPrivate::UnwrapHandler::unwrapImpl(this);
+}
+
 inline QFuture<void> QFutureInterface<void>::future()
 {
     return QFuture<void>(this);
@@ -449,11 +439,12 @@ template<typename T>
 struct MetaTypeQFutureHelper<QFuture<T>>
 {
     static bool registerConverter() {
-        if constexpr (std::is_same_v<T, void>)
+        if constexpr (std::is_void_v<T>) {
             return false;
-
-        return QMetaType::registerConverter<QFuture<T>, QFuture<void>>(
-                [](const QFuture<T> &future) { return QFuture<void>(future); });
+        } else {
+            return QMetaType::registerConverter<QFuture<T>, QFuture<void>>(
+                    [](const QFuture<T> &future) { return QFuture<void>(future); });
+        }
     }
 };
 
@@ -461,7 +452,7 @@ struct MetaTypeQFutureHelper<QFuture<T>>
 
 namespace QtFuture {
 
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
 
 template<typename OutputSequence, typename InputIt,
          typename ValueType = typename std::iterator_traits<InputIt>::value_type,
@@ -536,7 +527,20 @@ QFuture<QtFuture::WhenAnyResult<T>> whenAny(InputIt first, InputIt last);
 template<typename... Futures>
 QFuture<std::variant<std::decay_t<Futures>...>> whenAny(Futures &&... futures);
 
-#endif // Q_CLANG_QDOC
+#endif // Q_QDOC
+
+#if QT_DEPRECATED_SINCE(6, 10)
+#if defined(Q_QDOC)
+static QFuture<void> makeReadyFuture()
+#else
+template<typename T = void>
+QT_DEPRECATED_VERSION_X(6, 10, "Use makeReadyVoidFuture() instead.")
+static QFuture<T> makeReadyFuture()
+#endif
+{
+    return makeReadyVoidFuture();
+}
+#endif // QT_DEPRECATED_SINCE(6, 10)
 
 } // namespace QtFuture
 

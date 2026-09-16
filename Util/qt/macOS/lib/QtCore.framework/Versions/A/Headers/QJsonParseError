@@ -1,1 +1,1 @@
-#include "qjsondocument.h"
+#include <QtCore/qjsonparseerror.h> // IWYU pragma: export

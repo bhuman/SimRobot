@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QWIDGET_H
 #define QWIDGET_H
@@ -44,7 +9,9 @@
 #include <QtGui/qwindowdefs.h>
 #include <QtCore/qobject.h>
 #include <QtCore/qmargins.h>
+#if QT_CONFIG(action)
 #include <QtGui/qaction.h>
+#endif
 #include <QtGui/qpaintdevice.h>
 #include <QtGui/qpalette.h>
 #include <QtGui/qfont.h>
@@ -98,7 +65,6 @@ class QLocale;
 class QGraphicsProxyWidget;
 class QGraphicsEffect;
 class QRasterWindowSurface;
-class QUnifiedToolbarSurface;
 class QPixmap;
 #ifndef QT_NO_DEBUG_STREAM
 class QDebug;
@@ -197,9 +163,10 @@ class Q_WIDGETS_EXPORT QWidget : public QObject, public QPaintDevice
 #if QT_CONFIG(whatsthis)
     Q_PROPERTY(QString whatsThis READ whatsThis WRITE setWhatsThis)
 #endif
-#ifndef QT_NO_ACCESSIBILITY
+#if QT_CONFIG(accessibility)
     Q_PROPERTY(QString accessibleName READ accessibleName WRITE setAccessibleName)
     Q_PROPERTY(QString accessibleDescription READ accessibleDescription WRITE setAccessibleDescription)
+    Q_PROPERTY(QString accessibleIdentifier READ accessibleIdentifier WRITE setAccessibleIdentifier)
 #endif
     Q_PROPERTY(Qt::LayoutDirection layoutDirection READ layoutDirection WRITE setLayoutDirection RESET unsetLayoutDirection)
     QDOC_PROPERTY(Qt::WindowFlags windowFlags READ windowFlags WRITE setWindowFlags)
@@ -211,6 +178,7 @@ class Q_WIDGETS_EXPORT QWidget : public QObject, public QPaintDevice
     Q_PROPERTY(QString windowFilePath READ windowFilePath WRITE setWindowFilePath)
     Q_PROPERTY(Qt::InputMethodHints inputMethodHints READ inputMethodHints WRITE setInputMethodHints)
 
+#if QT_CONFIG(action)
 #if 0
     // ### TODO: make this work (requires SFINAE-friendly connect())
     template <typename...Args>
@@ -233,6 +201,8 @@ class Q_WIDGETS_EXPORT QWidget : public QObject, public QPaintDevice
             std::negation<std::is_convertible<Args, QString>>...
         >>;
 #endif
+#endif // QT_CONFIG(action)
+
 public:
     enum RenderFlag {
         DrawWindowBackground = 0x1,
@@ -432,11 +402,13 @@ public:
     void setWhatsThis(const QString &);
     QString whatsThis() const;
 #endif
-#ifndef QT_NO_ACCESSIBILITY
+#if QT_CONFIG(accessibility)
     QString accessibleName() const;
     void setAccessibleName(const QString &name);
     QString accessibleDescription() const;
     void setAccessibleDescription(const QString &description);
+    QString accessibleIdentifier() const;
+    void setAccessibleIdentifier(const QString &identifier);
 #endif
 
     void setLayoutDirection(Qt::LayoutDirection direction);
@@ -463,6 +435,7 @@ public:
     void setFocusPolicy(Qt::FocusPolicy policy);
     bool hasFocus() const;
     static void setTabOrder(QWidget *, QWidget *);
+    static void setTabOrder(std::initializer_list<QWidget *> widgets);
     void setFocusProxy(QWidget *);
     QWidget *focusProxy() const;
     Qt::ContextMenuPolicy contextMenuPolicy() const;
@@ -654,6 +627,7 @@ public:
     static QWidget *find(WId);
     inline QWidget *childAt(int x, int y) const;
     QWidget *childAt(const QPoint &p) const;
+    QWidget *childAt(const QPointF &p) const;
 
     void setAttribute(Qt::WidgetAttribute, bool on = true);
     inline bool testAttribute(Qt::WidgetAttribute) const;
@@ -773,6 +747,7 @@ private:
     friend class QGuiApplication;
     friend class QGuiApplicationPrivate;
     friend class QBaseApplication;
+    friend class QLabel;
     friend class QPainter;
     friend class QPainterPrivate;
     friend class QPixmap; // for QPixmap::fill()
@@ -799,9 +774,6 @@ private:
 #endif // QT_NO_GESTURES
     friend class QWidgetEffectSourcePrivate;
 
-#ifdef Q_OS_MAC
-    friend bool qt_mac_is_metal(const QWidget *w);
-#endif
     friend Q_WIDGETS_EXPORT QWidgetData *qt_qwidget_data(QWidget *widget);
     friend Q_WIDGETS_EXPORT QWidgetPrivate *qt_widget_private(QWidget *widget);
 
@@ -829,20 +801,20 @@ template <> inline const QWidget *qobject_cast<const QWidget*>(const QObject *o)
 #endif // !Q_QDOC
 
 inline QWidget *QWidget::childAt(int ax, int ay) const
-{ return childAt(QPoint(ax, ay)); }
+{ return childAt(QPointF(ax, ay)); }
 
 inline Qt::WindowType QWidget::windowType() const
-{ return static_cast<Qt::WindowType>(int(data->window_flags & Qt::WindowType_Mask)); }
+{ return static_cast<Qt::WindowType>((data->window_flags & Qt::WindowType_Mask).toInt()); }
 inline Qt::WindowFlags QWidget::windowFlags() const
 { return data->window_flags; }
 
 #if QT_DEPRECATED_SINCE(6, 1)
 inline bool QWidget::isTopLevel() const
-{ return (windowType() & Qt::Window); }
+{ return bool(windowType() & Qt::Window); }
 #endif
 
 inline bool QWidget::isWindow() const
-{ return (windowType() & Qt::Window); }
+{ return bool(windowType() & Qt::Window); }
 
 inline bool QWidget::isEnabled() const
 { return !testAttribute(Qt::WA_Disabled); }
@@ -946,7 +918,6 @@ inline bool QWidget::testAttribute(Qt::WidgetAttribute attribute) const
         return data->widget_attributes & (1<<attribute);
     return testAttribute_helper(attribute);
 }
-
 
 #define QWIDGETSIZE_MAX ((1<<24)-1)
 

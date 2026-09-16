@@ -1,59 +1,23 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QPAINTERPATH_H
 #define QPAINTERPATH_H
 
 #include <QtGui/qtguiglobal.h>
 #include <QtGui/qtransform.h>
+
 #include <QtCore/qglobal.h>
 #include <QtCore/qline.h>
 #include <QtCore/qlist.h>
+#include <QtCore/qpoint.h>
 #include <QtCore/qrect.h>
-#include <QtCore/qshareddata.h>
 
 QT_BEGIN_NAMESPACE
 
 
 class QFont;
 class QPainterPathPrivate;
-struct QPainterPathPrivateDeleter;
 class QPainterPathStrokerPrivate;
 class QPen;
 class QPolygonF;
@@ -83,8 +47,11 @@ public:
 
         operator QPointF () const { return QPointF(x, y); }
 
-        bool operator==(const Element &e) const { return qFuzzyCompare(x, e.x)
-            && qFuzzyCompare(y, e.y) && type == e.type; }
+        bool operator==(const Element &e) const
+        {
+            return type == e.type
+                && qFuzzyCompare(QPointF(*this), QPointF(e));
+        }
         inline bool operator!=(const Element &e) const { return !operator==(e); }
     };
 
@@ -92,10 +59,13 @@ public:
     explicit QPainterPath(const QPointF &startPoint);
     QPainterPath(const QPainterPath &other);
     QPainterPath &operator=(const QPainterPath &other);
+    QPainterPath(QPainterPath &&other) noexcept
+        : d_ptr(std::exchange(other.d_ptr, nullptr))
+    {}
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QPainterPath)
     ~QPainterPath();
 
-    inline void swap(QPainterPath &other) noexcept { d_ptr.swap(other.d_ptr); }
+    inline void swap(QPainterPath &other) noexcept { qt_ptr_swap(d_ptr, other.d_ptr); }
 
     void clear();
     void reserve(int size);
@@ -170,11 +140,14 @@ public:
     QPainterPath::Element elementAt(int i) const;
     void setElementPositionAt(int i, qreal x, qreal y);
 
+    bool isCachingEnabled() const;
+    void setCachingEnabled(bool enabled);
     qreal   length() const;
-    qreal   percentAtLength(qreal t) const;
+    qreal   percentAtLength(qreal len) const;
     QPointF pointAtPercent(qreal t) const;
     qreal   angleAtPercent(qreal t) const;
     qreal   slopeAtPercent(qreal t) const;
+    [[nodiscard]] QPainterPath trimmed(qreal fromFraction, qreal toFraction, qreal offset = 0) const;
 
     bool intersects(const QPainterPath &p) const;
     bool contains(const QPainterPath &p) const;
@@ -197,19 +170,19 @@ public:
     QPainterPath &operator-=(const QPainterPath &other);
 
 private:
-    QExplicitlySharedDataPointer<QPainterPathPrivate> d_ptr;
+    QPainterPathPrivate *d_ptr;
 
     inline void ensureData() { if (!d_ptr) ensureData_helper(); }
     void ensureData_helper();
-    void detach();
     void setDirty(bool);
     void computeBoundingRect() const;
     void computeControlPointRect() const;
 
-    QPainterPathPrivate *d_func() const { return d_ptr.data(); }
+    QPainterPathPrivate *d_func() const { return d_ptr; }
 
     friend class QPainterPathStroker;
     friend class QPainterPathStrokerPrivate;
+    friend class QPainterPathPrivate;
     friend class QTransform;
     friend class QVectorPath;
     friend Q_GUI_EXPORT const QVectorPath &qtVectorPathForPath(const QPainterPath &);

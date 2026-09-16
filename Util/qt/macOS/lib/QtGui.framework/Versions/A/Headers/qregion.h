@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QREGION_H
 #define QREGION_H
@@ -44,11 +8,11 @@
 #include <QtCore/qatomic.h>
 #include <QtCore/qrect.h>
 #include <QtGui/qwindowdefs.h>
-#include <QtCore/qcontainerfwd.h>
 
 #ifndef QT_NO_DATASTREAM
 #include <QtCore/qdatastream.h>
 #endif
+#include <QtCore/qspan.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -70,7 +34,7 @@ public:
     QRegion(const QPolygon &pa, Qt::FillRule fillRule = Qt::OddEvenFill);
     QRegion(const QRegion &region);
     QRegion(QRegion &&other) noexcept
-        : d(qExchange(other.d, const_cast<QRegionData*>(&shared_empty))) {}
+        : d(std::exchange(other.d, const_cast<QRegionData*>(&shared_empty))) {}
     QRegion(const QBitmap &bitmap);
     ~QRegion();
     QRegion &operator=(const QRegion &);
@@ -111,6 +75,8 @@ public:
 
     QRect boundingRect() const noexcept;
     void setRects(const QRect *rect, int num);
+    void setRects(QSpan<const QRect> r);
+    QSpan<const QRect> rects() const noexcept;
     int rectCount() const noexcept;
 
     QRegion operator|(const QRegion &r) const;
@@ -155,7 +121,7 @@ Q_GUI_EXPORT
     void exec(const QByteArray &ba, int ver = 0, QDataStream::ByteOrder byteOrder = QDataStream::BigEndian);
 #endif
     struct QRegionData {
-        QtPrivate::RefCount ref;
+        QtPrivate::RefCount ref = Q_REFCOUNT_INITIALIZE_OWNED;
         QRegionPrivate *qt_rgn;
     };
     struct QRegionData *d;

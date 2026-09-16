@@ -1,49 +1,15 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2013 Richard J. Moore <rich@kde.org>.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Marc Mutz <marc.mutz@kdab.com>
+// Copyright (C) 2016 The Qt Company Ltd.
+// Copyright (C) 2013 Richard J. Moore <rich@kde.org>.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:cryptography
 
 #ifndef QCRYPTOGRAPHICHASH_H
 #define QCRYPTOGRAPHICHASH_H
 
 #include <QtCore/qbytearray.h>
 #include <QtCore/qobjectdefs.h>
+#include <QtCore/qspan.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -56,12 +22,9 @@ class Q_CORE_EXPORT QCryptographicHash
     Q_GADGET
 public:
     enum Algorithm {
-#ifndef QT_CRYPTOGRAPHICHASH_ONLY_SHA1
         Md4,
         Md5,
-#endif
         Sha1 = 2,
-#ifndef QT_CRYPTOGRAPHICHASH_ONLY_SHA1
         Sha224,
         Sha256,
         Sha384,
@@ -95,14 +58,19 @@ public:
         Blake2s_160,
         Blake2s_224,
         Blake2s_256,
-#endif
+        NumAlgorithms
     };
     Q_ENUM(Algorithm)
 
     explicit QCryptographicHash(Algorithm method);
+    QCryptographicHash(QCryptographicHash &&other) noexcept : d(std::exchange(other.d, nullptr)) {}
     ~QCryptographicHash();
 
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QCryptographicHash)
+    void swap(QCryptographicHash &other) noexcept { qt_ptr_swap(d, other.d); }
+
     void reset() noexcept;
+    [[nodiscard]] Algorithm algorithm() const noexcept;
 
 #if QT_DEPRECATED_SINCE(6, 4)
     QT_DEPRECATED_VERSION_X_6_4("Use the QByteArrayView overload instead")
@@ -121,7 +89,21 @@ public:
     static QByteArray hash(const QByteArray &data, Algorithm method);
 #endif
     static QByteArray hash(QByteArrayView data, Algorithm method);
+
+    static QByteArrayView hashInto(QSpan<char> buffer, QByteArrayView data, Algorithm method) noexcept
+    { return hashInto(as_writable_bytes(buffer), {&data, 1}, method); }
+    static QByteArrayView hashInto(QSpan<uchar> buffer, QByteArrayView data, Algorithm method) noexcept
+    { return hashInto(as_writable_bytes(buffer), {&data, 1}, method); }
+    static QByteArrayView hashInto(QSpan<std::byte> buffer, QByteArrayView data, Algorithm method) noexcept
+    { return hashInto(buffer, {&data, 1}, method); }
+    static QByteArrayView hashInto(QSpan<char> buffer, QSpan<const QByteArrayView> data, Algorithm method) noexcept
+    { return hashInto(as_writable_bytes(buffer), data, method); }
+    static QByteArrayView hashInto(QSpan<uchar> buffer, QSpan<const QByteArrayView> data, Algorithm method) noexcept
+    { return hashInto(as_writable_bytes(buffer), data, method); }
+    static QByteArrayView hashInto(QSpan<std::byte> buffer, QSpan<const QByteArrayView> data, Algorithm method) noexcept;
+
     static int hashLength(Algorithm method);
+    static bool supportsAlgorithm(Algorithm method);
 private:
     Q_DISABLE_COPY(QCryptographicHash)
     QCryptographicHashPrivate *d;

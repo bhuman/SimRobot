@@ -1,1 +1,1 @@
-#include "qtexttable.h"
+#include <QtGui/qtexttable.h> // IWYU pragma: export

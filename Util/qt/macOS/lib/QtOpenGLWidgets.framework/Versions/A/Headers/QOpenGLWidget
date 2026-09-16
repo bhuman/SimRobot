@@ -1,1 +1,1 @@
-#include "qopenglwidget.h"
+#include <QtOpenGLWidgets/qopenglwidget.h> // IWYU pragma: export
