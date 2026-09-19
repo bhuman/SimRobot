@@ -68,7 +68,7 @@ if [ -d "$PROJECTPATH/CMakeFiles" ]; then
 fi
 
 # Create project.
-"$CMAKE" -G Xcode -S ../CMake -B $PROJECTDIR
+"$(readlink -f $CMAKE)" -G Xcode -S ../CMake -B $PROJECTDIR
 ./pbxgen pbxgen.cfg $PROJECTSRC/project.pbxproj
 xattr -w com.apple.xcode.CreatedByBuildSystem true "$PROJECTDIR"
 
