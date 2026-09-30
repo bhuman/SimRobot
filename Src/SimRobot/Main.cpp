@@ -89,6 +89,30 @@ int main(int argc, char* argv[])
 
 #ifdef WINDOWS
   app.setStyle("fusion");
+  struct AltBaseUpdater : public QObject
+  {
+    void apply()
+    {
+      const QPalette current = QApplication::palette();
+      const QColor base = current.color(QPalette::Base);
+      const QColor alt = base.lightness() < 128 ? base.lighter(120) : base.darker(110);
+      if(current.color(QPalette::AlternateBase) != alt)
+      {
+        QPalette pal;
+        pal.setColor(QPalette::AlternateBase, alt);
+        QApplication::setPalette(pal);
+      }
+    }
+
+    bool eventFilter(QObject* obj, QEvent* ev) override
+    {
+      if(obj == qApp && ev->type() == QEvent::ApplicationPaletteChange)
+        apply();
+      return false;
+    }
+  } updater;
+  app.installEventFilter(&updater);
+  updater.apply();
 #elif defined MACOS
   ::mainWindow = &mainWindow;
 #endif
