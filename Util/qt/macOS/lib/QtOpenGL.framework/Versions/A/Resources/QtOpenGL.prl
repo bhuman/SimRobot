@@ -1,5 +1,5 @@
 QMAKE_PRL_TARGET = QtOpenGL
 QMAKE_PRL_CONFIG = shared lib_bundle
-QMAKE_PRL_VERSION = 6.11.2
+QMAKE_PRL_VERSION = 6.12.0
 QMAKE_PRL_LIBS = -F$$[QT_INSTALL_LIBS] -framework QtGui -framework QtCore -framework IOKit -framework DiskArbitration -framework UniformTypeIdentifiers -framework AppKit -framework OpenGL -framework ImageIO -framework Metal
 QMAKE_PRL_LIBS_FOR_CMAKE = -F$$[QT_INSTALL_LIBS];-framework;QtGui;-framework;QtCore;-framework IOKit;-framework DiskArbitration;-framework UniformTypeIdentifiers;-framework AppKit;-framework OpenGL;-framework ImageIO;-framework Metal

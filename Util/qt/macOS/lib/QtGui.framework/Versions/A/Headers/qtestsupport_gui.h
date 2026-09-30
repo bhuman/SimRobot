@@ -1,5 +1,6 @@
 // Copyright (C) 2018 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTESTSUPPORT_GUI_H
 #define QTESTSUPPORT_GUI_H
@@ -47,11 +48,12 @@ public:
     virtual QTouchEventSequence& stationary(int touchId);
 
     virtual bool commit(bool processEvents = true);
+    bool cancel(bool processEvents = true);
 
 protected:
     QTouchEventSequence(QWindow *window, QPointingDevice *aDevice, bool autoCommit);
 
-    QPoint mapToScreen(QWindow *window, const QPoint &pt);
+    QPointF mapToScreen(QWindow *window, const QPoint &pt);
 
     QEventPoint &point(int touchId);
 

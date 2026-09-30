@@ -51,6 +51,11 @@ using std::rotr;
 namespace detail {
 template <typename T> /*non-constexpr*/ inline auto hw_popcount(T v) noexcept
 {
+#if defined(Q_CC_MSVC) && defined(Q_PROCESSOR_ARM_64)
+    if constexpr (sizeof(T) == sizeof(quint64))
+        return int(_CountOneBits64(v));
+    return int(_CountOneBits(v));
+#endif
 #if defined(Q_CC_MSVC) && defined(Q_PROCESSOR_X86) && defined(__POPCNT__)
     // Note: __POPCNT__ comes from qsimd.h, not the compiler.
 #  ifdef Q_PROCESSOR_X86_64
@@ -69,6 +74,11 @@ template <typename T> /*non-constexpr*/ inline auto hw_popcount(T v) noexcept
 
 template <typename T> /*non-constexpr*/ inline auto hw_countl_zero(T v) noexcept
 {
+#if defined(Q_CC_MSVC_ONLY) && defined(Q_PROCESSOR_ARM_64)
+    if constexpr (sizeof(T) == sizeof(quint64))
+        return int(_CountLeadingZeros64(v));
+    return int(_CountLeadingZeros(v)) - (32 - std::numeric_limits<T>::digits);
+#endif
 #if defined(Q_CC_MSVC) && defined(Q_PROCESSOR_X86) && defined(__LZCNT__)
     // Note: __LZCNT__ comes from qsimd.h, not the compiler
 #  if defined(Q_PROCESSOR_X86_64)
@@ -112,6 +122,13 @@ template <typename T> /*non-constexpr*/ inline auto hw_countl_zero(T v) noexcept
 
 template <typename T> /*non-constexpr*/ inline auto hw_countr_zero(T v) noexcept
 {
+#if defined(Q_CC_MSVC_ONLY) && defined(Q_PROCESSOR_ARM_64)
+    if constexpr (sizeof(T) == sizeof(quint64))
+        return int(_CountTrailingZeros64(v));
+    constexpr int Digits = std::numeric_limits<T>::digits;
+    const int result = int(_CountTrailingZeros(v));
+    return result > Digits ? Digits : result;
+#endif
 #if defined(Q_CC_MSVC) && defined(Q_PROCESSOR_X86) && defined(__BMI__)
     // Note: __BMI__ comes from qsimd.h, not the compiler
 #  if defined(Q_PROCESSOR_X86_64)

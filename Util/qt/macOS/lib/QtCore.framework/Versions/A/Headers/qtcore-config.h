@@ -53,6 +53,8 @@
 
 #define QT_FEATURE_itemmodel 1
 
+#define QT_FEATURE_rangemodel 1
+
 #define QT_FEATURE_proxymodel 1
 
 #define QT_FEATURE_sortfilterproxymodel 1
@@ -88,6 +90,8 @@
 #define QT_FEATURE_cborstreamwriter 1
 
 #define QT_FEATURE_permissions 1
+
+#define QT_FEATURE_randomgenerator_disable_fallback -1
 
 #define QT_NO_CLOCK_MONOTONIC 1
 #define QT_NO_GLIB 1

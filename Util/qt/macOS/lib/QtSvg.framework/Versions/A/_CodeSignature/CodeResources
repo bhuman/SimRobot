@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		UvJ9P6w8FmpnnpyhVNYpC9jH2A8=
+		Hi2PlOZy/Mo+MJn1CI1+t5bLiDg=
 		</data>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<data>
@@ -14,166 +14,166 @@
 		</data>
 		<key>Resources/QtSvg.prl</key>
 		<data>
-		zAFLmUK1gSxb3TTPgalcaffmquw=
+		WjwXjGfHlmfe9YoHM8kgy2Tzk7U=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgabstractanimation_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgabstractanimation_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			IajKf4K+LYTCr0thEEdFWi30MqGhdCbhuMEU9Sb7NSs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvganimate_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvganimate_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6Cx+BGv/fFcePmr00aP213As4/Pe+pYiPE4XZcQnUqM=
+			2Z4TIt/JEYHwbamKPNtqF36ewnUniCPpcSllFBGWZl4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvganimatedproperty_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvganimatedproperty_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			IXUZUQHRfbN0Aj9N16d82rWFz7j1qQInizCmkRw7Qd4=
+			GPAAX5flmu+Bg6FlHZa1ktmN4AodmpsmOeHgyUAEsqQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvganimator_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvganimator_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			VHCiZPmyL2Lpxu/BqhvbOBaPtXDatuwlaSOpiGwJhK4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgcssanimation_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgcssanimation_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			crnOCofEFlY5H4ssmdbihsYEU0gE0sT5i3TCypYyzOo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgcsseasing_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgcsseasing_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jJSju0WrAjRDniiBsQhypZpPDPRraN1VcfQDtN60otc=
+			mzDeHNWre6UMjM4T0jmqU7D7lwLK8geroj7t3eITuHk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgcsshandler_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgcsshandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uz5tnWRTJn/XftUMZevARIUOcE3j/w3tihdWXHobKt4=
+			1FYDde0XPwz6awVeT4QzdolNQsKgkbOLoodadm8N6GQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgcssproperties_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgcssproperties_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			Ql1/KAtOViSYcVVcH1bi4vdv4HJ6GHdiJASzQj53q7Q=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgcssvalues_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgcssvalues_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			2cK68o5geMAYfCOTKE/fg7TAB434JQ/OaWyI3zYHCTs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgdocument_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgdocument_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mjmOW8Gsx73X2FbdcydVr9Oyxbw7eFiwGE3PNFphXcY=
+			6mgy3aAavHfegUVgdJk+BXA8XcM1NeRJovQS76jYcTA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgeasinginterface_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgeasinginterface_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6GyLyqawgDF4WTwAfAbgXoivsaMWmjYM8lP5Wnu96To=
+			/UZg2tmMuMIlJUuG3x9KFP86+6nSNf3SSfo8ViCKSX8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgfilter_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgfilter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			JxHwDPQDM4Ua+HBTTXuWEiomzb3oYOTIty6iDyxBqCw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgfont_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgfont_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			i6DjT8BxZbanjkWnelar+kTASxm1Hoj/vNcgevJW2uM=
+			gvU4kMIVsiJPf8c7NtTqQsmGRt1WEXvOxQnCj0SG7l8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvggraphics_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvggraphics_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			i/Ka3EGMlBKHJ96Fqi6jnlIBL14yycINn9WXC/WQ6y4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvghandler_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvghandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Dp09e0GThwWRmJHZ5nq4jwZARBlYyt3zVh5AVHKG+YA=
+			6vGpjPwj/0YO7pQ25g8QVmrAq6Tl8P1X9i2DUt+yqwg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvghelper_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvghelper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			P2nKUDhCkRRUur8L1LXcVc3VBQ/iTBcvgRuBmri0hxg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgnode_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgnode_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			teEuBKXOD/E8Zsx9yg3Wl6Qy321NVQowOESKg0HP1zM=
+			XNXWzsM8yWzSxqDWCQziYIsOYr3jzSxFcHuAWJzb4zM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgstructure_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgpaintserver_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eazj2u2x7qk87uV4qjM2a9iE7Z9lKIqw0LWELQ299yA=
+			xS/wFETaAAcbIUvbun+I25efiZjxVYmpopRwJe5biko=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgstyle_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgstructure_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eUBsxPinU5hVG+1E66K2PmYj5bhx8psrpnc2I8KAmdU=
+			dDWtETjtALxAyhBY0LulYHxP2RVSY6l7nZFxju2a/rE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgstyleselector_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgstyle_p.h</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			EZEoZy63f6kT60LFVf0zJ/BJSP95+MTV2EK3dLuO+FQ=
+			</data>
+		</dict>
+		<key>Headers/6.12.0/QtSvg/private/qsvgstyleselector_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			vklzne7FVnOFaI4QqJ1zSXGbKP6gv/jDwoTCipU3Rdo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgutils_p.h</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			N4tXoej9DTZHvA59mI5y4YUbxUy3NiBYoP+IC0V73JA=
-			</data>
-		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qsvgvisitor_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qsvgvisitor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			huWYriUmQPewAT5SCSxV1GYY081I1txtQZiCY2gq+a8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtSvg/private/qtsvgglobal_p.h</key>
+		<key>Headers/6.12.0/QtSvg/private/qtsvgglobal_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
@@ -247,14 +247,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			+uwMpR+gtKR1gB2czcTgeMwmj5ZTQfySFSPzKKEPacE=
+			ALya94z6ZRoyx8YNVflyhljWayyMiqjMR6y2gNH9cqA=
 			</data>
 		</dict>
 		<key>Resources/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			l4QCiETMlvcceAM+nSXiT4aYztujyK0wltarquFINII=
+			nO1m3CldMnzfN/M4a7a7+29HFkMTy49NWDAuUZvutYo=
 			</data>
 		</dict>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
@@ -268,7 +268,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZX7OYnWlIttHOOfdIVGjapp/StvQKIrnIOMzWoP6sWA=
+			rJGMiBV/KO3ecqw2lATX6JIOutnrh1lwSQykxmsgJqE=
 			</data>
 		</dict>
 	</dict>

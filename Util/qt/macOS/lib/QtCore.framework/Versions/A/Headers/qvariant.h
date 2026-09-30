@@ -110,6 +110,44 @@ public:
                    size_t(type->size) <= MaxInternalSize && size_t(type->alignment) <= alignof(double);
         }
 
+        template <typename T> static constexpr bool hasAlwaysBeenAbleToUseInternalSpace()
+        {
+            if constexpr (!CanUseInternalSpace<T>)
+                return false;
+#if defined(QT_BOOTSTRAPPED) || defined(QT_STATIC)
+            return true;
+#else
+            // Because it's possible to mark a type relocatable in a later,
+            // dynamic build of Qt, we need to explicitly list which types have
+            // always been relocatable since they were added. Since this is an
+            // optimization, we don't have to be exhaustive.
+            if constexpr (std::is_scalar_v<T>)
+                return true;        // scalars are and have always been relocatable
+            if constexpr (QtPrivate::IsQFlags<T>::value)
+                return true;        // likewise
+            if constexpr (QtPrivate::qIsQtRelocatableContainer<T>)
+                return true;
+            if constexpr (QMetaTypeId2<T>::IsBuiltIn) {
+                // at release time
+#  if QT_VERSION_MAJOR < 7
+                constexpr int LastCoreType = QMetaType::QVariantPair;
+                constexpr int LastGuiType = QMetaType::QColorSpace;
+                constexpr int LastWidgetType = QMetaType::QSizePolicy;
+#  else
+                // add at release time
+#  endif
+                constexpr int Id = QMetaTypeId2<T>::MetaType;
+                if constexpr (Id <= LastCoreType)
+                    return true;    // includes QString, QByteArray, etc.
+                if constexpr (Id >= QMetaType::FirstGuiType && Id <= LastGuiType)
+                    return true;
+                if constexpr (Id >= QMetaType::FirstWidgetsType && Id <= LastWidgetType)
+                    return true;
+            }
+            return false;
+#endif // QT_BOOTSTRAPPED || QT_STATIC
+        }
+
         union
         {
             uchar data[MaxInternalSize] = {};
@@ -124,15 +162,29 @@ public:
         explicit Private(const QtPrivate::QMetaTypeInterface *iface) noexcept;
         template <typename T>
         explicit Private(std::in_place_t, T &&t);
+#if QT_DEPRECATED_SINCE(6, 12)
         template <typename T>
+        QT_DEPRECATED_VERSION_X_6_12("use the std::in_place overload and check whether you can move into it.")
         explicit Private(std::piecewise_construct_t, const T &t)
             : Private{std::in_place, t} {}
+#endif
 
         const void *storage() const
         { return is_shared ? data.shared->data() : &data.data; }
 
         template<typename T> const T &get() const
-        { return *static_cast<const T *>(storage()); }
+        {
+            if constexpr (!FitsInInternalSize<sizeof(T)> || alignof(T) > alignof(double)) {
+                // regardless of whether it's marked relocatable now or in the future
+                Q_ASSERT(is_shared);
+                return *static_cast<const T *>(data.shared->data());
+            } else if constexpr (hasAlwaysBeenAbleToUseInternalSpace<T>()) {
+                Q_ASSERT(!is_shared);
+                return *reinterpret_cast<const T *>(data.data);
+            } else {
+                return *static_cast<const T *>(storage());
+            }
+        }
 
         inline const QtPrivate::QMetaTypeInterface *typeInterface() const
         {
@@ -333,7 +385,7 @@ public:
 
         operator QVariant() const noexcept(Indirect::CanNoexceptConvertToQVariant)
         {
-            return ConstReference(m_referred);
+            return ConstReference<Indirect>(m_referred);
         }
 
         void swap(Reference b)
@@ -392,7 +444,7 @@ public:
         operator ConstPointer<Indirect>() const
                 noexcept(std::is_nothrow_copy_constructible_v<Indirect>)
         {
-            return ConstPointer(m_pointed);
+            return ConstPointer<Indirect>(m_pointed);
         }
     };
 
@@ -433,22 +485,36 @@ public:
     QVariant(QDate date) noexcept;
     QVariant(QTime time) noexcept;
     QVariant(const QBitArray &bitarray) noexcept;
+    QVariant(QBitArray &&bitarray) noexcept;
     QVariant(const QByteArray &bytearray) noexcept;
+    QVariant(QByteArray &&bytearray) noexcept;
     QVariant(const QDateTime &datetime) noexcept;
+    QVariant(QDateTime &&datetime) noexcept;
     QVariant(const QHash<QString, QVariant> &hash) noexcept;
+    QVariant(QHash<QString, QVariant> &&hash) noexcept;
     QVariant(const QJsonArray &jsonArray) noexcept;
+    QVariant(QJsonArray &&jsonArray) noexcept;
     QVariant(const QJsonObject &jsonObject) noexcept;
+    QVariant(QJsonObject &&jsonObject) noexcept;
     QVariant(const QList<QVariant> &list) noexcept;
+    QVariant(QList<QVariant> &&list) noexcept;
     QVariant(const QLocale &locale) noexcept;
+    QVariant(QLocale &&locale) noexcept;
     QVariant(const QMap<QString, QVariant> &map) noexcept;
+    QVariant(QMap<QString, QVariant> &&map) noexcept;
     QVariant(const QRegularExpression &re) noexcept;
+    QVariant(QRegularExpression &&re) noexcept;
     QVariant(const QString &string) noexcept;
+    QVariant(QString &&string) noexcept;
     QVariant(const QStringList &stringlist) noexcept;
+    QVariant(QStringList &&stringlist) noexcept;
     QVariant(const QUrl &url) noexcept;
+    QVariant(QUrl &&url) noexcept;
 
     // conditionally noexcept trivial or trivially-copyable
     // (most of these are noexcept on 64-bit)
     QVariant(const QJsonValue &jsonValue) noexcept(Private::FitsInInternalSize<sizeof(CborValueStandIn)>);
+    QVariant(QJsonValue &&jsonValue) noexcept(Private::FitsInInternalSize<sizeof(CborValueStandIn)>);
     QVariant(const QModelIndex &modelIndex) noexcept(Private::FitsInInternalSize<8 + 2 * sizeof(quintptr)>);
     QVariant(QUuid uuid) noexcept(Private::FitsInInternalSize<16>);
     QVariant(QSize size) noexcept;
@@ -462,8 +528,11 @@ public:
 
     // not noexcept
     QVariant(const QEasingCurve &easing) noexcept(false);
+    QVariant(QEasingCurve &&easing) noexcept;
     QVariant(const QJsonDocument &jsonDocument) noexcept(false);
+    QVariant(QJsonDocument &&jsonDocument) noexcept;
     QVariant(const QPersistentModelIndex &modelIndex) noexcept(false);
+    QVariant(QPersistentModelIndex &&modelIndex) noexcept;
 
 #ifndef QT_NO_CAST_FROM_ASCII
     QT_ASCII_CAST_WARN QVariant(const char *str) noexcept(false)
@@ -601,7 +670,7 @@ public:
     QT_DEPRECATED_VERSION_X_6_0("Use typeId() or metaType().")
     Type type() const
     {
-        int type = d.type().id();
+        int type = d.type().rawId();
         return type >= QMetaType::User ? UserType : static_cast<Type>(type);
     }
     QT_DEPRECATED_VERSION_6_0
@@ -610,7 +679,7 @@ public:
     QT_DEPRECATED_VERSION_6_0
     static Type nameToType(const char *name)
     {
-        int metaType = QMetaType::fromName(name).id();
+        int metaType = QMetaType::fromName(name).rawId();
         return metaType <= int(UserType) ? QVariant::Type(metaType) : UserType;
     }
     QT_WARNING_POP
@@ -801,8 +870,12 @@ private:
     {
         if (!v)
             return false;
-        if (std::is_const_v<Variant> && v->d.is_null)
-            return false;       // (const) data() will not detach from is_null
+
+        using NonConstT = std::remove_const_t<std::remove_pointer_t<T>>;
+        if constexpr (std::is_pointer_v<T> && !std::is_same_v<T, NonConstT *>) {
+            if (v->d.type() == QMetaType::fromType<NonConstT *>())
+                return true;
+        }
         return v->d.type() == QMetaType::fromType<T>();
     }
 
@@ -853,16 +926,24 @@ private:
 
 protected:
     Private d;
+
+#if QT_REMOVAL_QT7_DEPRECATED_SINCE(6, 16)
+    // These were \internal, so no message in _X.
+    QT_DEPRECATED_VERSION_6_16
     void create(int type, const void *copy);
+    QT_DEPRECATED_VERSION_6_16
     void create(QMetaType type, const void *copy);
-    bool equals(const QVariant &other) const;
+    QT_DEPRECATED_VERSION_6_16
     bool convert(int type, void *ptr) const;
+    QT_DEPRECATED_VERSION_6_16
     bool view(int type, void *ptr);
+#endif
+    bool equals(const QVariant &other) const;
 
 private:
     // force compile error, prevent QVariant(bool) to be called
     inline QVariant(void *) = delete;
-    // QVariant::Type is marked as \obsolete, but we don't want to
+    // QVariant::Type is marked as \deprecated, but we don't want to
     // provide a constructor from its intended replacement,
     // QMetaType::Type, instead, because the idea behind these
     // constructors is flawed in the first place. But we also don't
@@ -963,48 +1044,37 @@ template<typename T> inline T qvariant_cast_qmetatype_converted(const QVariant &
 
 template<typename T> inline T qvariant_cast(const QVariant &v)
 {
-    QMetaType targetType = QMetaType::fromType<T>();
-    if (v.d.type() == targetType)
-        return v.d.get<T>();
-    if constexpr (std::is_same_v<T,std::remove_const_t<std::remove_pointer_t<T>> const *>) {
-        using nonConstT = std::remove_const_t<std::remove_pointer_t<T>> *;
-        QMetaType nonConstTargetType = QMetaType::fromType<nonConstT>();
-        if (v.d.type() == nonConstTargetType)
-            return v.d.get<nonConstT>();
-    }
+    if (const T *ptr = get_if<T>(&v))
+        return *ptr;
 
+    QMetaType targetType = QMetaType::fromType<T>();
     return QtPrivate::qvariant_cast_qmetatype_converted<T>(v, targetType);
 }
 
 template<typename T> inline T qvariant_cast(QVariant &&v)
 {
-    QMetaType targetType = QMetaType::fromType<T>();
-    if (v.d.type() == targetType) {
+    if (const T *ptr = get_if<T>(&std::as_const(v))) {
+        // we can only move from this if not sharing
         if constexpr (QVariant::Private::FitsInInternalSize<sizeof(T)>) {
             // If T in principle fits into the internal space, it may be using
             // it (depending on e.g. QTypeInfo, which, generally, can change
             // from version to version, so we need to check is_shared:
             if (!v.d.is_shared)
-                return std::move(*reinterpret_cast<T *>(v.d.data.data));
+                return std::move(*const_cast<T *>(ptr));
         }
         // Otherwise, it cannot possibly be using internal space:
         Q_ASSERT(v.d.is_shared);
         if (v.d.data.shared->ref.loadRelaxed() == 1)
-            return std::move(*reinterpret_cast<T *>(v.d.data.shared->data()));
+            return std::move(*const_cast<T *>(ptr));
         else
-            return v.d.get<T>();
+            return *ptr;
     }
     if constexpr (std::is_same_v<T, QVariant>) {
         // if the metatype doesn't match, but we want a QVariant, just return the current variant
         return v;
-    } if constexpr (std::is_same_v<T,std::remove_const_t<std::remove_pointer_t<T>> const *>) {
-        // moving a pointer is pointless, just do the same as the const & overload
-        using nonConstT = std::remove_const_t<std::remove_pointer_t<T>> *;
-        QMetaType nonConstTargetType = QMetaType::fromType<nonConstT>();
-        if (v.d.type() == nonConstTargetType)
-            return v.d.get<nonConstT>();
     }
 
+    QMetaType targetType = QMetaType::fromType<T>();
     return QtPrivate::qvariant_cast_qmetatype_converted<T>(v, targetType);
 }
 

@@ -60,6 +60,11 @@ namespace Qt {
         HighContrast,
     };
 
+    enum class MotionPreference {
+        NoPreference,
+        ReducedMotion,
+    };
+
     enum MouseButton {
         NoButton         = 0x00000000,
         LeftButton       = 0x00000001,
@@ -1434,6 +1439,7 @@ namespace Qt {
 
         ImhNoEditMenu = 0x800,
         ImhNoTextHandles = 0x1000,
+        ImhNoFullscreen = 0x2000,
 
         ImhDigitsOnly = 0x10000,
         ImhFormattedNumbersOnly = 0x20000,
@@ -1443,6 +1449,7 @@ namespace Qt {
         ImhEmailCharactersOnly = 0x200000,
         ImhUrlCharactersOnly = 0x400000,
         ImhLatinOnly = 0x800000,
+        ImhDecimalNumbersOnly = 0x1000000,
 
         ImhExclusiveInputMask = 0xffff0000
     };
@@ -1693,7 +1700,8 @@ namespace Qt {
 
 #endif // QT_NO_GESTURES
 
-    enum NavigationMode
+#if QT_DEPRECATED_SINCE(6, 12)
+    enum Q_DECL_DEPRECATED_X("This enumeration has no effect since Qt 6.") NavigationMode
     {
         NavigationModeNone,
         NavigationModeKeypadTabOrder,
@@ -1701,6 +1709,7 @@ namespace Qt {
         NavigationModeCursorAuto,
         NavigationModeCursorForceVisible
     };
+#endif
 
     enum CursorMoveStyle {
         LogicalMoveStyle,
@@ -1806,6 +1815,7 @@ namespace Qt {
     Q_ENUM_NS(GlobalColor)
     Q_ENUM_NS(ColorScheme)
     Q_ENUM_NS(ContrastPreference)
+    Q_ENUM_NS(MotionPreference)
     Q_ENUM_NS(AspectRatioMode)
     Q_ENUM_NS(TransformationMode)
     Q_FLAG_NS(ImageConversionFlags)

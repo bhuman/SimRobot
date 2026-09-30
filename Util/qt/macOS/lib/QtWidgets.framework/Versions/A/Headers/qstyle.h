@@ -88,12 +88,9 @@ public:
         State_Item =                0x00100000,
         State_Sibling =             0x00200000,
 #if QT_DEPRECATED_SINCE(6, 11)
-        State_Editing Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 5") =  0x00400000,
+        State_Editing Q_DECL_ENUMERATOR_DEPRECATED_X("Not used and no effect since Qt 5") = 0x00400000,
 #endif
         State_KeyboardFocusChange = 0x00800000,
-#ifdef QT_KEYPAD_NAVIGATION
-        State_HasEditFocus =        0x01000000,
-#endif
         State_ReadOnly =            0x02000000,
         State_Small =               0x04000000,
         State_Mini =                0x08000000
@@ -798,6 +795,10 @@ public:
         SP_DialogIgnoreButton,
         SP_RestoreDefaultsButton,
         SP_TabCloseButton,
+        SP_TabScrollLeftButton,
+        SP_TabScrollRightButton,
+        SP_TabScrollUpButton,
+        SP_TabScrollDownButton,
         NStandardPixmap, // assertion value for sync with QPlatformTheme::StandardPixmap
         // do not add any values below/greater than this
         SP_CustomBase = 0xf0000000

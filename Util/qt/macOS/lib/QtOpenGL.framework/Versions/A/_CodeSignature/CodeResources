@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		Rr6QkyL/RNeIFCDiXJj7ERuwfus=
+		n5ogJU7cA5BkVOqyi1E+dLz2Sfs=
 		</data>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<data>
@@ -14,128 +14,128 @@
 		</data>
 		<key>Resources/QtOpenGL.prl</key>
 		<data>
-		S0nI1AdFCmztpG9B0LOZPNTbFP0=
+		fLjYfsSgI6VCko/jw4NIHbqLCNk=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengl2pexvertexarray_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengl2pexvertexarray_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			BwiPSmOZlZvuOUOGxO00WDHweL+rhuMn8EW9z4Q99/Y=
+			V+svmvcBlFmBelWVQG8P97IEpq3OtwJa7kIC7H2Bl/s=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglcustomshaderstage_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglcustomshaderstage_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZubMxmLv7LFttVmiIJ2QQ21CmPjNHFD4CI+iUkxxPaQ=
+			4NXTfDdSIhSle2whqs8RPWMgwISEoNjvFREAtdDqm8s=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglengineshadermanager_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglengineshadermanager_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			k8YnGll0v/1rAMdVorlKW4oZek3TjZcjXv6BOWER/dA=
+			liTwWtQ7rZNV+Zjmn/aezyesxo0ksTOWJrMStXzu4qI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglengineshadersource_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglengineshadersource_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nGQcL7QFr6bGyqTwA4KvVH/lekVrz8jX85PUA2exhpk=
+			JQoNaZD0/OPiu+xzllVsjT3kOvrA1gLNNqo3NfSCrxg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglframebufferobject_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglframebufferobject_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			k0C66CZ2HJjJiir/MEA0RIjSh/410HB9CozsjS+QESQ=
+			B3NVmpOmsN3fIzT5XRMEbaebVFTxi1TJYNrXJrlE9OQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglgradientcache_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglgradientcache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iRhP73sgUZp0vq6DYUShg94ZC6OQwc/T6PhEFTsuY14=
+			UDVDihq4LVUsRFJMJG3N8GgfmREec6GUOAcD3nrtNT4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglpaintdevice_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglpaintdevice_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8at7+Hn1gYdtzyoONz1h/rUnWf9nulFJCc0s8B78DBE=
+			PtilikbPbdGAzVvNk1cxNEFwed6IIt48LUPvhSTz7pI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglpaintengine_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglpaintengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			R3IzXJkEVNG6W8yFmXvpcq7u70sfy7X4FbFKGNrP+q4=
+			eULHmJ8f26z+GfLm7s0Ygk/DY2NBaAibKSu+BgHqKZ4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglqueryhelper_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglqueryhelper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Q0o/0PG6lnk7smY5DMA2s9BhTAEMXOmdC3aHOuf1fe4=
+			cL+nlLqm33IsWjBR+K/eKBJD7ReO9tPeuyyt/ERqlIQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglshadercache_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglshadercache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			NnIkXl0XAcBdw1KuUJ0wyQprcxiVHsw1zIhL7H9lNTI=
+			puilJQZ0ZR5yO+602+yDxxCGqdfHoZw9mTrknP0W11k=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengltexture_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengltexture_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+OnVuB2lPT0a5n3etOLQp02joB4k6+eXri+q1uDme70=
+			8P1RmQEQE7ndM1Ppd1aJ3ydwjQUILmMz1GII7tEdkso=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengltexturecache_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengltexturecache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			hMPsy9i2hNpLqMG1HPaWAWi0wSWwJzW8s4jmdFaR7cA=
+			JeQ2tA27iBnEuu4/xZztCPHYCh4z+JNocqtIIVGOKY0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengltextureglyphcache_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengltextureglyphcache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			w66reOChiM1ao9oG6kfJdotQPrrUjmg+31/BNhJMc9A=
+			JrYIlpccCfzit0ExMxqNLTTL6LzWoouKvJdlfYMvQsU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengltexturehelper_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengltexturehelper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			PIJ4yBoXDS+3iyNEkB+qXiT5x2qMIVjv2F4rQYe9FgM=
+			fOVBsaJ42lm5J9Ph7cVS9/PtWqcUlYLpb1F+GOydhx4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopengltextureuploader_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopengltextureuploader_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mvNp60jM2NgS+aCwCJAK0yWlqUlYaCMk6z/IgrbQPxE=
+			izUJoS9HRXGUE/P/vJqKopwdGatueWVe/awIW2aAIPw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglversionfunctions_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglversionfunctions_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			96FNJweIRS+eYTi65J0W1SbMooGBMfE6Ka/U1bthtiQ=
+			Oj9UaZ0nfI/+04bZipO9jGUPAVXIUXvRizr2p8Q+seQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtOpenGL/private/qopenglvertexarrayobject_p.h</key>
+		<key>Headers/6.12.0/QtOpenGL/private/qopenglvertexarrayobject_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			hQCIXy21BA3Os7yDc56mv37tB8GpPcgeeQ898q/2+Ms=
+			pdv8FazVWV/CNf6H3lUDENdSUyxBh98/BVht4z2pnUw=
 			</data>
 		</dict>
 		<key>Headers/QOpenGLBuffer</key>
@@ -471,280 +471,280 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			DBC43s4TOeIJKo8F/TOetZTzKuUcL6E+CLg/tqAdwJc=
+			ABlH1bGNuH7RBB+pCcOA7BFlOJL6ZsU/xLYMc27Ygs8=
 			</data>
 		</dict>
 		<key>Headers/qopengldebug.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			03+WWEBs5rk1ykGyeOu3gk1kXTMMdEtdd4ty6358hoc=
+			8uKR0nd83AINCQuBqj1a1r0bFnbRezKFqvPF9zrFG2Y=
 			</data>
 		</dict>
 		<key>Headers/qopenglframebufferobject.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+gDNyoSQ707G+yA2wdb0S5tKgbZuCf64tytKHl56B+Q=
+			/QmIbc/Q4DF1pcM67c/C7pJyLZIx7MzkciQCVkJ26+8=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_0.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			MGZvjkmnr3BupqTLufw0PROQBlP+wx3dBUfCX66wC9w=
+			av7GpTwrbdF3KnHgS8TDtSBqocWrX5jkqpr+GgnrY4c=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_1.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			hPvidIeRtpqNOD8RpcRUVP3ntiBDW5vV+dw79zE8UM0=
+			zPtdG6FHhxTwvnkVaUvyogZn8CCWNegplEmB4mwuphk=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_2.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qVZCuD9kr+5TrcXned/8JZk/2ARcGi1b0H+TQwEFiAI=
+			FoWdMwN9l29btLoJYkRlM23HKH2hunBhtRVlu3DTrZI=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_3.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FVymCTU4ohx5qkGYx141A62ZpPcg16jKWstgrajZvbQ=
+			k9KV047QOyUyGWPHAUUKRAOZztUhkk5v06IvkgB4hkM=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_4.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/zssPl9sxHCezQoz/Qi6MKpuhsVjSIhoiiHWt3gTLkQ=
+			RAUBzJKXR9zrrX1gHOYm9/M5hRjISGtNbfmPam35TV8=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_1_5.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1oRqqPKxLabEWgtvLleYpiK1R7iXsy037svybKZn+fU=
+			1LMsDFN40T+ckZRboIw65FXlEmew/GibCZpIHlHedc8=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_2_0.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			dIASTnQoyWjenxOcsHJ4B93FtB4s74FFTQ42olHQnp8=
+			UZai64n5GQ2eWHqwF+vf+yJJaULjYOW92TtYCGhAHWY=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_2_1.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2GLj2uqiVP7FWCFE69O62DDEpNMwUcNku6RM029REjo=
+			2ofj2ZDYeu+i+Qul3SY1Bmx/x8L19s7t2w+VmrVVhD0=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_0.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			PQ1LLB8S8/+96I9DMcPO1Fsi7LLaN76DN7RoQVaG+P8=
+			4uxE9Iaf4lG3xqxAqZ5c+Z6YbxbufK443F/86i+1V0s=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_1.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ivBHl6SCV9dUVGtEVRf2DeAC83bJlXaveHhRoaJ0yuI=
+			6oEc2iM0oGuj90onaxWc8Zizigp14EFLQM1C4ezRa8E=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_2_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			TTGISlPgoJnBnPGC+XxXJbO0H3++4bnQf+Af8JvP9zg=
+			ad88DAexI4YubCg/poPuUShYV6uKu8gxBVvDBG/zuzM=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_2_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			HcOifjLSErGxRps/e5Mo5rv+zRgiu+/QxRS8RT15dTE=
+			AJcrZ4cFMnvwbHpo/wGPjcK57cJDtb0BS20ARVsa+HY=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_3_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nsjrFsxRHsFJkeLNyrkw3uXgJNVVzUpTtbQYOA4jLGs=
+			TZpRTAEYkMnbrKLWMRsTbMMwTKgpSoYZaRQp+j5FVAU=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_3_3_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Whykop8YztKFhF5Y5iory8xzX8ajH9XPwUqGlSLtXuc=
+			E/H7Afb77Qplp6L+2nFPGV8oSrJaZ5s2ZKGdijYDIgg=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_0_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			TTvN2JUQJ1YI2lbGaFreFrdcwipD8JuQMVZgb778UI4=
+			/FnFBE7NmWGxwVJ8Osj+sVgWEk8BM57SlUG2Y/huLaQ=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_0_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			T9MxMJXuCwYBDcHwWDkp38EtvpSonr6RpJ4BY9UBbTM=
+			L3OgtgzneK6AGjCbdvsXDMFo5e9NMA19PTv2xpWRNOA=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_1_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			bTUMngCzKaysavAyL2zdONTUBvP5uwBOUU6Cugkgo4A=
+			pwE8t2hpoXsFO8YX9yZrSkd6UC162jZNfNYNMDfrIP0=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_1_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2hjK+HCUqnIzn6wBg3FYaNmmdDQ+ZOMcHacMMH9im9g=
+			9uumzhG4HXC3PMFhq+GcZykw8BQCOTgS7WQ6gkYIlW4=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_2_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			F5Cwa6OQdrKImXYaqRwBi0FpeomuVsXl9ecreFmZHT8=
+			WJC3Z/IuKTmOSFYTk1aUfDlwiiLK0nAdhs3GwzFpw+U=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_2_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			fJFMruq4hMAwPbFZEDhkUZM0ifp7ZDQumU8Xgsirnnk=
+			AsX48cFoejUX3ELdHzSEX/C85xJQpMQihxm2CL4nfUs=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_3_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5JgbYVf/ywswAyAIS+Lf2JDtw12fAhWxMjZr43yU+DE=
+			4L+Ml0vXrtOz2vLhx0HEqOD1icC01+wiWIWln2cvmm0=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_3_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ruJQV8gbDxV6VMq7y+HYyZqJbN1YXcUXNVCtHotHdQA=
+			lE8atUcDTLXBwgK+LxPO+XEwG2RZv8XAmAsESn24nFs=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_4_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			bVWp/apI/eZlMgPPCWhk9Zd8ML7vU2QSEIAU6wXdgZA=
+			cwBZ0//ztaidvv5sUC9gBIUX9qfqEMngE66P6X0vPZw=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_4_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nvv/hFazAsjHqItpAPs88zCnwxuxhFowtWIaJsRUu9M=
+			Elwt3P87n4QXiMoWahH65HrUfmgF22dEYzBPJ9CcMgI=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_5_compatibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lS3QsypcyxzA01rlLcbRlPCV2UIAjrcfJy5EeuTkQqk=
+			sXgPjBzXG4Wuiop9aLRNDjFOpo1kt7SherPq8BGvIMI=
 			</data>
 		</dict>
 		<key>Headers/qopenglfunctions_4_5_core.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			661N9hfXQMdRZU8BxqNb3x1j0rSoDu/L2pxstsCRL+U=
+			rcooUt7i+PwvRZ4oSnwSb+rCqYrqUK+uWbHeEW/cohA=
 			</data>
 		</dict>
 		<key>Headers/qopenglpaintdevice.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			++QhV7MXkZTK9EqwR/CLBaV7o/Bq3c/trGZXwr04R/4=
+			rJgzG1VbwFSjHp4v0jACv2vY5FlFL7K2gZxaaTcIZo0=
 			</data>
 		</dict>
 		<key>Headers/qopenglpixeltransferoptions.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qNppfbVB1l3pKe9DdexYIfK/bC04MKqXmWyTgoIsLG4=
+			n1On0wFVgOLzecbmkMOqleZQGO2V6yFkt+Do7oB7gOM=
 			</data>
 		</dict>
 		<key>Headers/qopenglshaderprogram.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			sUY9M5pmSGi6Pi6Hd27sKoWIZuLDPhKl8bij8F4sHeU=
+			6K6En0pNzhusSb2ZNoO8RWKVecFi9dQOoF13usRZtF8=
 			</data>
 		</dict>
 		<key>Headers/qopengltexture.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eqY4qXmvljJkizTGLyfq/NSLBsh+c8zSHcNxu36vOBs=
+			qjj1+uTP5SgcztkoNOw8LINfvO41eixnf6O7zB/oiZo=
 			</data>
 		</dict>
 		<key>Headers/qopengltextureblitter.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Up3q0IjwaDNpeKgnmaIgLTZZnDy+2GeGTA3YRh+4tFk=
+			4xEHJo0/+Cs/S7lxc/kNIm4Ct5q37PX6e49nYmbblSA=
 			</data>
 		</dict>
 		<key>Headers/qopengltimerquery.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			PnsOrS2/1hvuijwwc2wEJw6H3+uJSqSk1A87XsZW7QE=
+			bdp/KmOtOiyBNp6IVqsUk897V/UOBtv4EPzTIFL1WtI=
 			</data>
 		</dict>
 		<key>Headers/qopenglversionfunctions.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5eEPaW+Blzz9EABQQbG4mIxSI9mgf6TsyeGD+tWIxMs=
+			eIdVbUHfyb4tPkWkULgG7PWkD1T1SKnyQsCaJnWSBcg=
 			</data>
 		</dict>
 		<key>Headers/qopenglversionfunctionsfactory.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			oP3DhdJQHm/DS7yVwOr0fabhckuE7eULdJ3bwUghqBU=
+			MUom1EptTYMU56rN6tUbZSvsf2xhKlmSfdjT+dLay74=
 			</data>
 		</dict>
 		<key>Headers/qopenglversionprofile.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			YcKihZOBwxrNEPZZmDnrxtmEU+fRJD0GIV04mh8Kg+s=
+			JLiliGoLqAPOvivwBKJGVVZ+lXKqQk1HBadNzV1CtdM=
 			</data>
 		</dict>
 		<key>Headers/qopenglvertexarrayobject.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lwXxCMAX29gTKxzARxIRALKqFewq7WoJV09dUOxSqYU=
+			ifGX3iws8v/KUzDKwwlZK4ZZxl3UPtt1BT6medMtft0=
 			</data>
 		</dict>
 		<key>Headers/qopenglwindow.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			trJZh19OGqAVhk2dRNUTe3XaikjSq9gzdi2m2uvbshM=
+			pmNL7cDQb8mI7BHHrZqOpuFGAO+ytTtW9Do98hP03lQ=
 			</data>
 		</dict>
 		<key>Headers/qtopenglexports.h</key>
@@ -758,21 +758,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			nbf6YXFW8hqQPpHKL13TOPe810WxkqCCXHRBOPaDlw4=
+			01lF5lG3uQmJrMoQyoR/sQMz9HG5dnUGwdVRJF+5mMY=
 			</data>
 		</dict>
 		<key>Headers/qtopenglversion.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			GbfPNmmwT4dEfrZOxso/hdQdEja85ouyGSarQTb9OJE=
+			Bq0zx3+9P0PFpZCLxBl/UA7yCVG8cg50kmCOV2jYqlg=
 			</data>
 		</dict>
 		<key>Resources/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZzU1Vwlv0y63XPmYw8BHbpUbdGIuOiomdnNYbYY1gz0=
+			9EUViDnamlvqBhQTyIa379pDXpkCegySHrKCRabV+7o=
 			</data>
 		</dict>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
@@ -786,7 +786,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			rJHRYWMNawLAu9R3+SSIa6iCDoc4nNR2ZItqeUtzDzk=
+			Z+2bdZgP6/kfHy2Uwra3SuiH7fvNAMlMOpvKz5lFTws=
 			</data>
 		</dict>
 	</dict>

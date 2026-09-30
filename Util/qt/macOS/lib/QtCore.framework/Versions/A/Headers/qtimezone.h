@@ -81,6 +81,9 @@ class Q_CORE_EXPORT QTimeZone
         QTimeZonePrivate *d = nullptr;
         ShortData s;
     };
+
+    friend class QTypeInfo<Data>;
+
     QTimeZone(ShortData sd) : d(sd) {}
     QTimeZone(Qt::TimeSpec) Q_DECL_EQ_DELETE_X(
         "Would be treated as int offsetSeconds. "
@@ -203,7 +206,10 @@ public:
     static QTimeZone systemTimeZone();
     static QTimeZone utc();
 
+#if QT_CORE_REMOVED_SINCE(6, 12)
     static bool isTimeZoneIdAvailable(const QByteArray &ianaId);
+#endif
+    static bool isTimeZoneIdAvailable(QByteArrayView ianaId);
 
     static QList<QByteArray> availableTimeZoneIds();
     static QList<QByteArray> availableTimeZoneIds(QLocale::Territory territory);
@@ -255,6 +261,8 @@ private:
 #if QT_CONFIG(timezone)
 Q_DECLARE_TYPEINFO(QTimeZone::OffsetData, Q_RELOCATABLE_TYPE);
 #endif
+
+Q_DECLARE_TYPEINFO(QTimeZone::Data, Q_RELOCATABLE_TYPE);
 Q_DECLARE_SHARED(QTimeZone)
 
 #ifndef QT_NO_DATASTREAM

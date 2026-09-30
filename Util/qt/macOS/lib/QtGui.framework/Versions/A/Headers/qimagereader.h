@@ -1,5 +1,6 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QIMAGEREADER_H
 #define QIMAGEREADER_H
@@ -52,6 +53,7 @@ public:
     QString fileName() const;
 
     QSize size() const;
+    QSize effectiveSize() const;
 
     QImage::Format imageFormat() const;
 

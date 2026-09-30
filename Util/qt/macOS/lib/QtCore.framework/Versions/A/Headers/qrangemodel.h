@@ -10,6 +10,7 @@
 QT_BEGIN_NAMESPACE
 
 class QRangeModelPrivate;
+class QCollator;
 
 class Q_CORE_EXPORT QRangeModel : public QAbstractItemModel
 {
@@ -18,6 +19,18 @@ class Q_CORE_EXPORT QRangeModel : public QAbstractItemModel
                                                 NOTIFY roleNamesChanged FINAL)
     Q_PROPERTY(AutoConnectPolicy autoConnectPolicy READ autoConnectPolicy WRITE setAutoConnectPolicy
                                                 NOTIFY autoConnectPolicyChanged REVISION(6, 11))
+    Q_PROPERTY(int sortRole READ sortRole WRITE setSortRole RESET resetSortRole
+                            NOTIFY sortRoleChanged REVISION(6, 12))
+    Q_PROPERTY(QCollator sortCollator READ sortCollator WRITE setSortCollator
+                                      RESET resetSortCollator NOTIFY sortCollatorChanged REVISION(6, 12))
+    Q_PROPERTY(Qt::DropActions supportedDropActions READ supportedDropActions
+                                                    WRITE setSupportedDropActions
+                                                    RESET resetSupportedDropActions
+                                                    NOTIFY supportedDropActionsChanged REVISION(6, 12))
+    Q_PROPERTY(Qt::DropActions supportedDragActions READ supportedDragActions
+                                                    WRITE setSupportedDragActions
+                                                    RESET resetSupportedDragActions
+                                                    NOTIFY supportedDragActionsChanged REVISION(6, 12))
     Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
 
 public:
@@ -33,11 +46,55 @@ public:
         MultiRoleItem,
     };
 
-    template <typename T>
-    struct RowOptions {};
+    enum class DropOperation {
+        DontDrop,
+        Automatic,
+        OverwriteAndIgnore,
+        OverwriteAndExtend,
+        InsertAsSiblings,
+        InsertAsChildren,
+    };
+    Q_ENUM(DropOperation);
 
     template <typename T>
-    struct ItemAccess {};
+    struct RowOptions {
+#ifdef Q_QDOC
+        static constexpr RowCategory rowCategory;
+        static QVariant headerData(int section, int role);
+        static Qt::ItemFlags flags(const T &row);
+
+        static QStringList mimeTypes();
+        static QMimeData *mimeData(const auto &range);
+        static QMimeData *mimeData(const QModelIndex &range);
+        static bool canDropMimeData(const QMimeData *mimeData);
+        static bool canDropMimeData(const QMimeData *mimeData, Qt::DragAction action,
+                                    int row, int column, const QModelIndex &parent);
+        static auto dropMimeData(const QMimeData *mimeData, auto inserter);
+        static auto dropMimeData(const QMimeData *mimeData, Qt::DragAction action,
+                                 int row, int column, const QModelIndex &parent,
+                                 auto inserter);
+#endif
+    };
+
+    template <typename T>
+    struct ItemAccess {
+#ifdef Q_QDOC
+        static QVariant readRole(const T &item, int role);
+        static bool writeRole(T &item, const QVariant &value, int role);
+        static Qt::ItemFlags flags(const T &item);
+
+        static QStringList mimeTypes();
+        static QMimeData *mimeData(const auto &range);
+        static QMimeData *mimeData(const QModelIndex &range);
+        static bool canDropMimeData(const QMimeData *mimeData);
+        static bool canDropMimeData(const QMimeData *mimeData, Qt::DragAction action,
+                                    int row, int column, const QModelIndex &parent);
+        static auto dropMimeData(const QMimeData *mimeData, auto inserter);
+        static auto dropMimeData(const QMimeData *mimeData, Qt::DragAction action,
+                                 int row, int column, const QModelIndex &parent,
+                                 auto inserter);
+#endif
+    };
 
     template <typename Range,
               QRangeModelDetails::if_table_range<Range> = true>
@@ -106,9 +163,23 @@ public:
                           Qt::MatchFlags flags) const override;
     void multiData(const QModelIndex &index, QModelRoleDataSpan roleDataSpan) const override;
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
+
+    QCollator sortCollator() const;
+    void setSortCollator(const QCollator &collator);
+    void resetSortCollator();
+
+    int sortRole() const;
+    void setSortRole(int role);
+    void resetSortRole();
+
     QSize span(const QModelIndex &index) const override;
+
     Qt::DropActions supportedDragActions() const override;
+    void setSupportedDragActions(Qt::DropActions actions);
+    void resetSupportedDragActions();
     Qt::DropActions supportedDropActions() const override;
+    void setSupportedDropActions(Qt::DropActions actions);
+    void resetSupportedDropActions();
 
     AutoConnectPolicy autoConnectPolicy() const;
     void setAutoConnectPolicy(AutoConnectPolicy policy);
@@ -116,6 +187,10 @@ public:
 Q_SIGNALS:
     void roleNamesChanged();
     Q_REVISION(6, 11) void autoConnectPolicyChanged(AutoConnectPolicy policy);
+    Q_REVISION(6, 12) void sortRoleChanged(int role);
+    Q_REVISION(6, 12) void sortCollatorChanged(const QCollator &collator);
+    Q_REVISION(6, 12) void supportedDragActionsChanged(Qt::DropActions actions);
+    Q_REVISION(6, 12) void supportedDropActionsChanged(Qt::DropActions actions);
 
 protected Q_SLOTS:
     void resetInternalData() override;
@@ -141,10 +216,10 @@ QModelIndexList QRangeModelImplBase::persistentIndexList() const
 {
     return m_rangeModel->persistentIndexList();
 }
-void QRangeModelImplBase::changePersistentIndexList(const QModelIndexList &from,
-                                                          const QModelIndexList &to)
+void QRangeModelImplBase::changePersistentIndex(const QModelIndex &from,
+                                                const QModelIndex &to)
 {
-    m_rangeModel->changePersistentIndexList(from, to);
+    m_rangeModel->changePersistentIndex(from, to);
 }
 QHash<int, QByteArray> QRangeModelImplBase::roleNames() const
 {
@@ -217,6 +292,15 @@ void QRangeModelImplBase::endMoveRows()
 {
     m_rangeModel->endMoveRows();
 }
+void QRangeModelImplBase::beginLayoutChange()
+{
+    Q_EMIT m_rangeModel->layoutAboutToBeChanged();
+}
+void QRangeModelImplBase::endLayoutChange()
+{
+    Q_EMIT m_rangeModel->layoutChanged();
+}
+
 QAbstractItemModel &QRangeModelImplBase::itemModel()
 {
     return *m_rangeModel;
@@ -229,6 +313,13 @@ const QAbstractItemModel &QRangeModelImplBase::itemModel() const
 QRangeModelImplBase::AutoConnectPolicy QRangeModelImplBase::autoConnectPolicy() const
 {
     return QRangeModelImplBase::AutoConnectPolicy(m_rangeModel->autoConnectPolicy());
+}
+
+Qt::weak_ordering QRangeModelImplBase::compareData(const QVariant &lhs, const QVariant &rhs,
+                                                   const QCollator *collator)
+{
+    return collator ? QRangeModel::compareData(lhs, rhs, *collator)
+                    : QRangeModel::compareData(lhs, rhs);
 }
 
 // Helper templates that we can forward declare in the _impl header,

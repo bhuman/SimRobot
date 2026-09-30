@@ -18,7 +18,7 @@ QT_DECLARE_QESDP_SPECIALIZATION_DTOR(QCollatorSortKeyPrivate)
 
 class Q_CORE_EXPORT QCollatorSortKey
 {
-    friend class QCollator;
+    friend class QCollatorPrivate;
 public:
     QCollatorSortKey() = delete;
     QCollatorSortKey(const QCollatorSortKey &other);
@@ -29,9 +29,7 @@ public:
     void swap(QCollatorSortKey &other) noexcept
     { d.swap(other.d); }
 
-    int compare(const QCollatorSortKey &key) const;
-    friend bool operator<(const QCollatorSortKey &lhs, const QCollatorSortKey &rhs)
-    { return lhs.compare(rhs) < 0; }
+    int compare(const QCollatorSortKey &key) const noexcept;
 
 protected:
     QCollatorSortKey(QCollatorSortKeyPrivate*);
@@ -39,6 +37,12 @@ protected:
     QExplicitlySharedDataPointer<QCollatorSortKeyPrivate> d;
 
 private:
+    friend bool comparesEqual(const QCollatorSortKey &lhs, const QCollatorSortKey &rhs) noexcept
+    { return lhs.compare(rhs) == 0; }
+    friend Qt::weak_ordering
+    compareThreeWay(const QCollatorSortKey &lhs, const QCollatorSortKey &rhs) noexcept
+    { return Qt::compareThreeWay(lhs.compare(rhs), 0); }
+    Q_DECLARE_WEAKLY_ORDERED(QCollatorSortKey)
 };
 
 class Q_CORE_EXPORT QCollator
@@ -90,7 +94,10 @@ public:
     static QCollatorSortKey defaultSortKey(QStringView key);
 
 private:
-    QCollatorPrivate *d;
+    friend Q_CORE_EXPORT bool comparesEqual(const QCollator &lhs, const QCollator &rhs) noexcept;
+    Q_DECLARE_EQUALITY_COMPARABLE(QCollator)
+
+    mutable QCollatorPrivate *d;
 
     void detach();
 };

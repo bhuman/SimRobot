@@ -1,11 +1,13 @@
 // Copyright (C) 2014 John Layt <jlayt@kde.org>
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QPAGESIZE_H
 #define QPAGESIZE_H
 
 #include <QtGui/qtguiglobal.h>
-#include <QtCore/qsharedpointer.h>
+#include <QtCore/qmetatype.h>
+#include <QtCore/qshareddata.h>
 
 QT_BEGIN_NAMESPACE
 

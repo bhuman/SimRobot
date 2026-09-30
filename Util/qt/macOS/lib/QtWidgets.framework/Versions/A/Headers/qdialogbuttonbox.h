@@ -108,6 +108,11 @@ public:
     void setCenterButtons(bool center);
     bool centerButtons() const;
 
+    static QString standardButtonText(StandardButton button);
+#if QT_CONFIG(shortcut)
+    static QKeySequence standardButtonShortcut(StandardButton button);
+#endif
+
 Q_SIGNALS:
     void clicked(QAbstractButton *button);
     void accepted();

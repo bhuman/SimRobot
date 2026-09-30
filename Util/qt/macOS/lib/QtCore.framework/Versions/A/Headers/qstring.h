@@ -405,25 +405,29 @@ public:
 
     [[nodiscard]] QT_CORE_INLINE_SINCE(6, 8)
     qsizetype indexOf(QChar c, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
-    [[nodiscard]] qsizetype indexOf(QLatin1StringView s, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
-    [[nodiscard]] qsizetype indexOf(const QString &s, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+    [[nodiscard]] QT_CORE_INLINE_SINCE(6, 12)
+    qsizetype indexOf(QLatin1StringView s, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+    [[nodiscard]] QT_CORE_INLINE_SINCE(6, 12)
+    qsizetype indexOf(const QString &s, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] qsizetype indexOf(QStringView s, qsizetype from = 0, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
-    { return QtPrivate::findString(*this, from, s, cs); }
+    { return QStringView(begin(), size()).indexOf(s, from, cs); }
     [[nodiscard]] qsizetype lastIndexOf(QChar c, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
     { return lastIndexOf(c, -1, cs); }
     [[nodiscard]] QT_CORE_INLINE_SINCE(6, 8)
     qsizetype lastIndexOf(QChar c, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] qsizetype lastIndexOf(QLatin1StringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const
     { return lastIndexOf(s, size(), cs); }
-    [[nodiscard]] qsizetype lastIndexOf(QLatin1StringView s, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+    [[nodiscard]] QT_CORE_INLINE_SINCE(6, 12)
+    qsizetype lastIndexOf(QLatin1StringView s, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] qsizetype lastIndexOf(const QString &s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const
     { return lastIndexOf(s, size(), cs); }
-    [[nodiscard]] qsizetype lastIndexOf(const QString &s, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+    [[nodiscard]] QT_CORE_INLINE_SINCE(6, 12)
+    qsizetype lastIndexOf(const QString &s, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
 
     [[nodiscard]] qsizetype lastIndexOf(QStringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
     { return lastIndexOf(s, size(), cs); }
     [[nodiscard]] qsizetype lastIndexOf(QStringView s, qsizetype from, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
-    { return QtPrivate::lastIndexOf(*this, from, s, cs); }
+    { return QStringView(begin(), size()).lastIndexOf(s, from, cs); }
 
     [[nodiscard]] inline bool contains(QChar c, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] inline bool contains(const QString &s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
@@ -531,13 +535,13 @@ public:
 #endif
     bool startsWith(const QString &s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] bool startsWith(QStringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
-    { return QtPrivate::startsWith(*this, s, cs); }
+    { return QStringView(begin(), size()).startsWith(s, cs); }
     bool startsWith(QLatin1StringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     bool startsWith(QChar c, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
 
     bool endsWith(const QString &s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     [[nodiscard]] bool endsWith(QStringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept
-    { return QtPrivate::endsWith(*this, s, cs); }
+    { return QStringView(begin(), size()).endsWith(s, cs); }
     bool endsWith(QLatin1StringView s, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
     bool endsWith(QChar c, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
 
@@ -1670,6 +1674,24 @@ qsizetype QString::lastIndexOf(QChar ch, qsizetype from, Qt::CaseSensitivity cs)
 QString QString::fromRawData(const QChar *unicode, qsizetype size)
 {
     return fromRawData(reinterpret_cast<const char16_t *>(unicode), size);
+}
+#endif
+#if QT_CORE_INLINE_IMPL_SINCE(6, 12)
+qsizetype QString::indexOf(const QString &str, qsizetype from, Qt::CaseSensitivity cs) const
+{
+    return indexOf(QStringView(str.begin(), str.size()), from, cs);
+}
+qsizetype QString::indexOf(QLatin1StringView str, qsizetype from, Qt::CaseSensitivity cs) const
+{
+    return QStringView(begin(), size()).indexOf(str, from, cs);
+}
+qsizetype QString::lastIndexOf(const QString &str, qsizetype from, Qt::CaseSensitivity cs) const
+{
+    return lastIndexOf(QStringView(str.begin(), str.size()), from, cs);
+}
+qsizetype QString::lastIndexOf(QLatin1StringView str, qsizetype from, Qt::CaseSensitivity cs) const
+{
+    return QStringView(begin(), size()).lastIndexOf(str, from, cs);
 }
 #endif
 

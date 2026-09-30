@@ -1021,6 +1021,12 @@
 #define Q_DECL_ENUMERATOR_DEPRECATED Q_DECL_DEPRECATED
 #define Q_DECL_ENUMERATOR_DEPRECATED_X(x) Q_DECL_DEPRECATED_X(x)
 
+#ifdef Q_CC_CLANG /* preferred, since Clang's supports `text` and MSVC's doesn't */
+#  define Q_DECL_DEPRECATED_MACRO(macro, text) QT_DO_PRAGMA(clang deprecated(macro, text))
+#elif defined(Q_CC_MSVC)
+#  define Q_DECL_DEPRECATED_MACRO(macro, text) __pragma(deprecated(#macro))
+#endif
+
 #ifndef Q_DECL_CONSTEXPR_DTOR
 #  if __cpp_constexpr >= 201907L
 #    define Q_DECL_CONSTEXPR_DTOR constexpr
@@ -1056,6 +1062,30 @@
 #  else
 #    define Q_LIKELY_BRANCH
 #    define Q_UNLIKELY_BRANCH
+#  endif
+#endif
+
+#ifndef Q_DECL_NONBLOCKING_FUNCTION
+#  if defined(__cplusplus)
+#    if __has_cpp_attribute(clang::nonblocking)
+#      define Q_DECL_NONBLOCKING_FUNCTION [[clang::nonblocking]]
+#    else
+#      define Q_DECL_NONBLOCKING_FUNCTION
+#    endif
+#  else
+#    define Q_DECL_NONBLOCKING_FUNCTION
+#  endif
+#endif
+
+#ifndef Q_DECL_NONALLOCATING_FUNCTION
+#  if defined(__cplusplus)
+#    if __has_cpp_attribute(clang::nonallocating)
+#      define Q_DECL_NONALLOCATING_FUNCTION [[clang::nonallocating]]
+#    else
+#      define Q_DECL_NONALLOCATING_FUNCTION
+#    endif
+#  else
+#    define Q_DECL_NONALLOCATING_FUNCTION
 #  endif
 #endif
 
@@ -1101,6 +1131,9 @@
 #endif
 #ifndef Q_DECL_DEPRECATED_X
 #  define Q_DECL_DEPRECATED_X(text) Q_DECL_DEPRECATED
+#endif
+#ifndef Q_DECL_DEPRECATED_MACRO
+#  define Q_DECL_DEPRECATED_MACRO(macro, text)
 #endif
 #ifndef Q_DECL_EXPORT
 #  define Q_DECL_EXPORT
@@ -1238,6 +1271,11 @@
 #  define QT_WARNING_DISABLE_FLOAT_COMPARE
 #  define QT_WARNING_DISABLE_INVALID_OFFSETOF
 #endif
+/* GCC and (older) Clang differ in the name of frame-larger-than: */
+#define QT_WARNING_DISABLE_LARGE_STACK_FRAME \
+    QT_WARNING_DISABLE_CLANG("-Wframe-larger-than") \
+    QT_WARNING_DISABLE_GCC("-Wframe-larger-than=") \
+    /* end */
 
 #ifndef QT_IGNORE_DEPRECATIONS
 #define QT_IGNORE_DEPRECATIONS(statement) \

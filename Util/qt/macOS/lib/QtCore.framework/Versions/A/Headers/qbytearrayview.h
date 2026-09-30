@@ -5,6 +5,7 @@
 #define QBYTEARRAYVIEW_H
 
 #include <QtCore/qbytearrayalgorithms.h>
+#include <QtCore/qchar.h>
 #include <QtCore/qcompare.h>
 #include <QtCore/qcontainerfwd.h>
 #include <QtCore/qstringfwd.h>
@@ -194,7 +195,18 @@ public:
     { return QByteArrayView(data, Size); }
     [[nodiscard]] inline QByteArray toByteArray() const; // defined in qbytearray.h
 
-    [[nodiscard]] constexpr qsizetype size() const noexcept { return m_size; }
+    [[nodiscard]] static constexpr qsizetype maxSize() noexcept
+    {
+        // -1 to deal with the pointer one-past-the-end;
+        return QtPrivate::MaxAllocSize - 1;
+    }
+
+    [[nodiscard]] constexpr qsizetype size() const noexcept
+    {
+        constexpr size_t MaxSize = maxSize();
+        Q_PRESUME(size_t(m_size) <= MaxSize);
+        return m_size;
+    }
     [[nodiscard]] constexpr const_pointer data() const noexcept { return m_data; }
     [[nodiscard]] constexpr const_pointer constData() const noexcept { return data(); }
 
@@ -275,17 +287,35 @@ public:
     }
 
     [[nodiscard]] bool startsWith(QByteArrayView other) const noexcept
-    { return QtPrivate::startsWith(*this, other); }
+    {
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+        if (__builtin_constant_p(other.m_size) && other.m_size == 1)
+            return startsWith(other.front());
+#endif
+        return QtPrivate::startsWith(*this, other);
+    }
     [[nodiscard]] constexpr bool startsWith(char c) const noexcept
     { return !empty() && front() == c; }
 
     [[nodiscard]] bool endsWith(QByteArrayView other) const noexcept
-    { return QtPrivate::endsWith(*this, other); }
+    {
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+        if (__builtin_constant_p(other.m_size) && other.m_size == 1)
+            return endsWith(other.front());
+#endif
+        return QtPrivate::endsWith(*this, other);
+    }
     [[nodiscard]] constexpr bool endsWith(char c) const noexcept
     { return !empty() && back() == c; }
 
     [[nodiscard]] qsizetype indexOf(QByteArrayView a, qsizetype from = 0) const noexcept
-    { return QtPrivate::findByteArray(*this, from, a); }
+    {
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+        if (__builtin_constant_p(a.m_size) && a.m_size == 1)
+            return indexOf(a.front(), from);
+#endif
+        return QtPrivate::findByteArray(*this, from, a);
+    }
     [[nodiscard]] qsizetype indexOf(char ch, qsizetype from = 0) const noexcept
     { return QtPrivate::findByteArray(*this, from, ch); }
 
@@ -297,16 +327,29 @@ public:
     [[nodiscard]] qsizetype lastIndexOf(QByteArrayView a) const noexcept
     { return lastIndexOf(a, size()); }
     [[nodiscard]] qsizetype lastIndexOf(QByteArrayView a, qsizetype from) const noexcept
-    { return QtPrivate::lastIndexOf(*this, from, a); }
+    {
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+        if (__builtin_constant_p(a.m_size) && a.m_size == 1)
+            return lastIndexOf(a.front(), from);
+#endif
+        return QtPrivate::lastIndexOf(*this, from, a);
+    }
     [[nodiscard]] qsizetype lastIndexOf(char ch, qsizetype from = -1) const noexcept
     { return QtPrivate::lastIndexOf(*this, from, ch); }
 
     [[nodiscard]] qsizetype count(QByteArrayView a) const noexcept
-    { return QtPrivate::count(*this, a); }
+    {
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+        if (__builtin_constant_p(a.m_size) && a.m_size == 1)
+            return count(a.front());
+#endif
+        return QtPrivate::count(*this, a);
+    }
     [[nodiscard]] qsizetype count(char ch) const noexcept
     { return QtPrivate::count(*this, QByteArrayView(&ch, 1)); }
 
-    inline int compare(QByteArrayView a, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept;
+    inline int compare(QByteArrayView a) const noexcept;
+    inline int compare(QByteArrayView a, Qt::CaseSensitivity) const noexcept;
 
     [[nodiscard]] inline bool isValidUtf8() const noexcept { return QtPrivate::isValidUtf8(*this); }
 
@@ -341,12 +384,6 @@ public:
     [[nodiscard]] constexpr char first() const { return front(); }
     [[nodiscard]] constexpr char last()  const { return back(); }
 
-    [[nodiscard]] static constexpr qsizetype maxSize() noexcept
-    {
-        // -1 to deal with the pointer one-past-the-end;
-        return QtPrivate::MaxAllocSize - 1;
-    }
-
 private:
     Q_ALWAYS_INLINE constexpr void verify([[maybe_unused]] qsizetype pos = 0,
                                           [[maybe_unused]] qsizetype n = 1) const
@@ -358,10 +395,27 @@ private:
     }
 
     friend bool
+    comparesEqual(const QByteArrayView &lhs, char rhs) noexcept
+    {
+        return lhs.size() == 1 && lhs[0] == rhs;
+    }
+    friend bool
     comparesEqual(const QByteArrayView &lhs, const QByteArrayView &rhs) noexcept
     {
         return lhs.size() == rhs.size()
                 && (!lhs.size() || memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
+    }
+    friend Qt::strong_ordering
+    compareThreeWay(const QByteArrayView &lhs, char rhs) noexcept
+    {
+        if (lhs.size() >= 1) {
+            if (int diff = uchar(lhs[0]) - uchar(rhs))
+                return Qt::compareThreeWay(diff, 0);
+        }
+        // the first char matched
+        // so the longer one is lexically after the shorter one
+        const int res = lhs.size() == 1 ? 0 : lhs.size() > 1 ? 1 : -1;
+        return Qt::compareThreeWay(res, 0);
     }
     friend Qt::strong_ordering
     compareThreeWay(const QByteArrayView &lhs, const QByteArrayView &rhs) noexcept
@@ -370,6 +424,7 @@ private:
         return Qt::compareThreeWay(res, 0);
     }
     Q_DECLARE_STRONGLY_ORDERED(QByteArrayView)
+    Q_DECLARE_STRONGLY_ORDERED(QByteArrayView, char)
 
     // defined in qstring.cpp
     friend Q_CORE_EXPORT bool
@@ -400,9 +455,23 @@ template<typename QByteArrayLike,
 [[nodiscard]] inline QByteArrayView qToByteArrayViewIgnoringNull(const QByteArrayLike &b) noexcept
 { return QByteArrayView(b.begin(), b.size()); }
 
+inline int QByteArrayView::compare(QByteArrayView a) const noexcept
+{
+#if defined(Q_CC_GNU) || __has_builtin(__builtin_constant_p)
+    if (__builtin_constant_p(a.m_size) && a.m_size == 1) {
+        if (isEmpty())
+            return -1;
+        if (int diff = uchar(front()) - uchar(a.front()))
+            return diff;
+        return size() > 1 ? 1 : 0;
+    }
+#endif
+    return QtPrivate::compareMemory(*this, a);
+}
+
 inline int QByteArrayView::compare(QByteArrayView a, Qt::CaseSensitivity cs) const noexcept
 {
-    return cs == Qt::CaseSensitive ? QtPrivate::compareMemory(*this, a) :
+    return cs == Qt::CaseSensitive ? compare(a) :
                                      qstrnicmp(data(), size(), a.data(), a.size());
 }
 

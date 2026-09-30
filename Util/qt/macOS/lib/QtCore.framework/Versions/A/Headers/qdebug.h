@@ -44,6 +44,10 @@
 #  include <QtCore/qvarlengtharray.h>
 #endif
 
+#ifdef Q_OS_DARWIN
+Q_FORWARD_DECLARE_OBJC_CLASS(NSString);
+#endif
+
 QT_BEGIN_NAMESPACE
 
 class QT6_ONLY(Q_CORE_EXPORT) QDebug : public QIODeviceBase
@@ -318,6 +322,10 @@ private:
         debug.putQtOrdering(QtOrderingPrivate::orderingFlagsFor(t), Qt::partial_ordering(t));
         return debug;
     }
+
+#ifdef Q_OS_DARWIN
+    Q_CORE_EXPORT friend QDebug operator<<(QDebug, const NSString *);
+#endif
 };
 
 Q_DECLARE_SHARED(QDebug)

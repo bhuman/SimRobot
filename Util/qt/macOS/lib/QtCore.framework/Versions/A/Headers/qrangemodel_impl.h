@@ -17,12 +17,14 @@
 #endif
 
 #include <QtCore/qabstractitemmodel.h>
+#include <QtCore/qcollator.h>
 #include <QtCore/qquasivirtual_impl.h>
 #include <QtCore/qmetaobject.h>
 #include <QtCore/qvariant.h>
 #include <QtCore/qmap.h>
 #include <QtCore/qscopedvaluerollback.h>
 #include <QtCore/qset.h>
+#include <QtCore/qregularexpression.h>
 #include <QtCore/qvarlengtharray.h>
 
 #include <algorithm>
@@ -88,8 +90,10 @@ namespace QRangeModelDetails
                                            QExplicitlySharedDataPointer, QSharedDataPointer>;
 
     template <typename T>
-    using is_owning_or_raw_pointer = std::disjunction<is_any_shared_ptr<T>, is_any_unique_ptr<T>,
-                                                      std::is_pointer<T>>;
+    using is_any_owning_ptr = std::disjunction<is_any_shared_ptr<T>, is_any_unique_ptr<T>>;
+
+    template <typename T>
+    using is_owning_or_raw_pointer = std::disjunction<is_any_owning_ptr<T>, std::is_pointer<T>>;
 
     template <typename T>
     static auto pointerTo(T&& t) {
@@ -392,28 +396,63 @@ namespace QRangeModelDetails
     // Detect an ItemAccess specialization with static read/writeRole members
     template <typename T> struct QRangeModelItemAccess;
 
-    template <typename T, typename = void>
-    struct item_access : std::false_type {};
-
     template <typename T>
-    struct item_access<T,
-        std::void_t<decltype(QRangeModelItemAccess<T>::readRole(std::declval<const std::remove_pointer_t<T>&>(),
-                                                                Qt::DisplayRole)),
-                    decltype(QRangeModelItemAccess<T>::writeRole(std::declval<std::remove_pointer_t<T>&>(),
-                                                                 std::declval<QVariant>(),
-                                                                 Qt::DisplayRole))
-                   >
-        > : std::true_type
+    struct item_access
     {
-        using ItemAccess = QRangeModelItemAccess<std::remove_pointer_t<T>>;
-        static_assert(std::is_invocable_r_v<bool,
-            decltype(ItemAccess::writeRole), std::remove_pointer_t<T>&, QVariant, Qt::ItemDataRole>,
-            "The return type of the ItemAccess::writeRole implementation "
-            "needs to be convertible to a bool!");
-        static_assert(std::is_invocable_r_v<QVariant,
-            decltype(ItemAccess::readRole), const std::remove_pointer_t<T>&, Qt::ItemDataRole>,
-            "The return type of the ItemAccess::readRole implementation "
-            "needs to be convertible to QVariant!");
+        using ItemType = std::remove_pointer_t<T>;
+        using ItemAccess = QRangeModelItemAccess<ItemType>;
+
+        template <typename Access, typename Test>
+        using hasReadRole_test = decltype(Access::readRole(std::declval<const Test &>(),
+                                                           Qt::DisplayRole));
+        static constexpr bool hasReadRole = qxp::is_detected_v<hasReadRole_test, ItemAccess, ItemType>;
+
+        template <typename Access, typename Test>
+        using hasWriteRole_test = decltype(Access::writeRole(std::declval<Test&>(),
+                                                             std::declval<QVariant>(), Qt::DisplayRole));
+        static constexpr bool hasWriteRole = qxp::is_detected_v<hasWriteRole_test, ItemAccess, ItemType>;
+
+        template <typename Access, typename Test>
+        using hasFlags_test = decltype(Access::flags(std::declval<const Test&>()));
+
+        static constexpr bool hasFlags = qxp::is_detected_v<hasFlags_test, ItemAccess, ItemType>;
+
+        template <typename Access, typename Test>
+        using hasMimeTypes_test = decltype(Access::mimeTypes());
+        static constexpr bool hasMimeTypes = qxp::is_detected_v<hasMimeTypes_test, ItemAccess, ItemType>;
+
+        template <typename Access, typename Test>
+        using hasMimeData_test = decltype(Access::mimeData(std::declval<QSpan<const Test>>()));
+        static constexpr bool hasMimeData = qxp::is_detected_v<hasMimeData_test, ItemAccess, ItemType>;
+
+        template <typename Access>
+        using hasCanDropMimeData_test = decltype(Access::canDropMimeData(
+            std::declval<const QMimeData *>()
+        ));
+        static constexpr bool hasCanDropMimeData = qxp::is_detected_v<hasCanDropMimeData_test, ItemAccess>;
+        template <typename Access, typename Test>
+        using hasDropMimeData_test = decltype(Access::dropMimeData(
+            std::declval<const QMimeData *>(),
+            std::declval<std::back_insert_iterator<std::vector<Test>>>())
+        );
+        static constexpr bool hasDropMimeData = qxp::is_detected_v<hasDropMimeData_test,
+                                                                   ItemAccess, ItemType>;
+
+        // full versions with all parameters
+        template <typename Access>
+        using hasCanDropMimeDataFull_test = decltype(Access::canDropMimeData(
+            std::declval<const QMimeData *>(), Qt::CopyAction, 0, 0, std::declval<const QModelIndex &>()
+        ));
+        static constexpr bool hasCanDropMimeDataFull = qxp::is_detected_v<hasCanDropMimeDataFull_test,
+                                                                          ItemAccess>;
+        template <typename Access, typename Test>
+        using hasDropMimeDataFull_test = decltype(Access::dropMimeData(
+            std::declval<const QMimeData *>(),
+            Qt::CopyAction, 0, 0, std::declval<const QModelIndex &>(),
+            std::declval<std::back_insert_iterator<std::vector<Test>>>()
+        ));
+        static constexpr bool hasDropMimeDataFull = qxp::is_detected_v<hasDropMimeDataFull_test,
+                                                                       ItemAccess, ItemType>;
     };
 
     // Detect which options are set to override default heuristics. Since
@@ -423,7 +462,7 @@ namespace QRangeModelDetails
     template <typename T, typename = void>
     struct row_category : std::false_type
     {
-        static constexpr bool isMultiRole = item_access<std::remove_pointer_t<T>>::value;
+        static constexpr bool isMultiRole = item_access<std::remove_pointer_t<T>>::hasReadRole;
     };
 
     template <typename T>
@@ -434,6 +473,68 @@ namespace QRangeModelDetails
         using RowCategory = decltype(rowCategory);
         static constexpr bool isMultiRole = rowCategory == RowCategory::MultiRoleItem;
     };
+
+    template <typename RowOptions>
+    using hasHeaderData_test = decltype(RowOptions::headerData(0, Qt::DisplayRole));
+    template <typename row_type>
+    static constexpr bool hasHeaderData = qxp::is_detected_v<hasHeaderData_test, QRangeModelRowOptions<row_type>>;
+
+    template <typename row_type>
+    using hasRowFlags_test = decltype(QRangeModelRowOptions<row_type>::flags(std::declval<const row_type &>()));
+    template <typename row_type>
+    static constexpr bool hasRowFlags = qxp::is_detected_v<hasRowFlags_test, row_type>;
+
+    // drag'n'drop handling
+    template <typename row_type>
+    using hasMimeTypes_test = decltype(QRangeModelRowOptions<row_type>::mimeTypes());
+    template <typename row_type>
+    static constexpr bool hasMimeTypes = qxp::is_detected_v<hasMimeTypes_test, row_type>;
+    template <typename row_type>
+    using hasMimeDataIndexList_test = decltype(QRangeModelRowOptions<row_type>::mimeData(
+        std::declval<const QModelIndexList &>())
+    );
+    template <typename row_type>
+    static constexpr bool hasMimeDataIndexList = qxp::is_detected_v<hasMimeDataIndexList_test, row_type>;
+    template <typename row_type>
+    using hasMimeDataRowSpan_test = decltype(QRangeModelRowOptions<row_type>::mimeData(
+        // we don't call it with a QSpan, but with a range type. QSpan is a close enough match.
+        std::declval<QSpan<const row_type>>())
+    );
+    template <typename row_type>
+    static constexpr bool hasMimeDataRowSpan = qxp::is_detected_v<hasMimeDataRowSpan_test, row_type>;
+
+    // we allow simplified versions of (can)DropMimeData
+    template <typename row_type>
+    using hasCanDropMimeData_test = decltype(QRangeModelRowOptions<row_type>::canDropMimeData(
+        std::declval<const QMimeData *>()
+    ));
+    template <typename row_type>
+    static constexpr bool hasCanDropMimeData = qxp::is_detected_v<hasCanDropMimeData_test, row_type>;
+    template <typename row_type>
+    using hasDropMimeData_test = decltype(QRangeModelRowOptions<row_type>::dropMimeData(
+        std::declval<const QMimeData *>(),
+        std::declval<std::back_insert_iterator<std::vector<row_type>>>()
+    ));
+    template <typename row_type>
+    static constexpr bool hasDropMimeData = qxp::is_detected_v<hasDropMimeData_test, row_type>;
+
+    // the full versions get all the parameters
+    template <typename row_type>
+    using hasCanDropMimeDataFull_test = decltype(QRangeModelRowOptions<row_type>::canDropMimeData(
+        std::declval<const QMimeData *>(), Qt::CopyAction, 0, 0, std::declval<const QModelIndex &>()
+    ));
+    template <typename row_type>
+    static constexpr bool hasCanDropMimeDataFull = qxp::is_detected_v<hasCanDropMimeDataFull_test,
+                                                                      row_type>;
+    template <typename row_type>
+    using hasDropMimeDataFull_test = decltype(QRangeModelRowOptions<row_type>::dropMimeData(
+        std::declval<const QMimeData *>(),
+        Qt::CopyAction, 0, 0, std::declval<const QModelIndex &>(),
+        std::declval<std::back_insert_iterator<std::vector<row_type>>>()
+    ));
+    template <typename row_type>
+    static constexpr bool hasDropMimeDataFull = qxp::is_detected_v<hasDropMimeDataFull_test,
+                                                                   row_type>;
 
     // Find out how many fixed elements can be retrieved from a row element.
     // main template for simple values and ranges. Specializing for ranges
@@ -456,12 +557,12 @@ namespace QRangeModelDetails
         }
 
         template <typename C, typename Fn>
-        static void for_element_at(C &&container, std::size_t idx, Fn &&fn)
+        static bool for_element_at(C &&container, std::size_t idx, Fn &&fn)
         {
             if constexpr (is_range)
-                std::forward<Fn>(fn)(*QRangeModelDetails::pos(std::forward<C>(container), idx));
+                return std::forward<Fn>(fn)(*QRangeModelDetails::pos(std::forward<C>(container), idx));
             else
-                std::forward<Fn>(fn)(std::forward<C>(container));
+                return std::forward<Fn>(fn)(std::forward<C>(container));
         }
 
         template <typename Fn>
@@ -507,8 +608,8 @@ namespace QRangeModelDetails
             using type = q20::remove_cvref_t<QRangeModelDetails::wrapped_t<C>>;
             constexpr size_t size = std::tuple_size_v<type>;
             Q_ASSERT(idx < size);
-            QtPrivate::applyIndexSwitch<size>(idx, [&](auto idxConstant) {
-                function(get<idxConstant>(QRangeModelDetails::refTo(std::forward<C>(container))));
+            return QtPrivate::applyIndexSwitch<size>(idx, [&](auto idxConstant) {
+                return function(get<idxConstant>(QRangeModelDetails::refTo(std::forward<C>(container))));
             });
         }
 
@@ -560,7 +661,7 @@ namespace QRangeModelDetails
         static auto for_element_at(C &&container, std::size_t idx, F &&function)
         {
             Q_ASSERT(idx < size(QRangeModelDetails::refTo(std::forward<C>(container))));
-            function(QRangeModelDetails::refTo(std::forward<C>(container))[idx]);
+            return function(QRangeModelDetails::refTo(std::forward<C>(container))[idx]);
         }
 
         static QVariant column_name(int section)
@@ -608,7 +709,7 @@ namespace QRangeModelDetails
         template <typename C, typename F>
         static auto for_element_at(C &&container, std::size_t, F &&function)
         {
-            std::forward<F>(function)(std::forward<C>(container));
+            return std::forward<F>(function)(std::forward<C>(container));
         }
 
         static QVariant column_name(int section)
@@ -827,6 +928,128 @@ namespace QRangeModelDetails
         static constexpr bool is_default = is_any_of<protocol, ListProtocol, TableProtocol, DefaultTreeProtocol>();
     };
 
+    // Helpers for drag'n'drop:
+    // MimeDataEntry gives customisations access to a pair of either a row or
+    // an item (in form of the underlying type, i.e. unwrapped, as that's what
+    // customizations specialize RowOptions and ItemAccess for), and the
+    // corresponding index, with decomposition support for easy iteration.
+    template <typename Entry>
+    struct MimeDataEntry
+    {
+        using entry_type = q20::remove_cvref_t<Entry>;
+        using wrapped_entry = QRangeModelDetails::wrapped_t<entry_type>;
+        template<typename T, typename = void>
+        struct is_constexpr_default_constructible : std::false_type {};
+
+#ifndef Q_CC_MSVC // MSVC selects this even for non-constexpr types
+        template<typename T>
+        struct is_constexpr_default_constructible<T, std::void_t<int(*)[(T(), 1)]>> : std::true_type {};
+#endif
+
+        bool isValid() const { return QRangeModelDetails::isValid(m_entry); }
+        const wrapped_entry &entry() const
+        {
+            if constexpr (QRangeModelDetails::is_owning_or_raw_pointer<entry_type>()) {
+                // While we mark null-items or indexes in null-rows as not draggable,
+                // client code might override that, or explicitly call QRM::mimeData()
+                // with indexes that point at null-rows or -items.
+                if (Q_UNLIKELY(!QRangeModelDetails::isValid(m_entry))) {
+#ifndef QT_NO_DEBUG
+                    qDebug("QRangeModel::mimeData: null-entry, test with isValid before accessing");
+#endif
+                    constexpr bool is_constexpr_default_constructible_v =
+                                        is_constexpr_default_constructible<wrapped_entry>::value;
+                    if constexpr (is_constexpr_default_constructible_v) {
+                        Q_CONSTINIT static const wrapped_entry emptyDefault;
+                        return QRangeModelDetails::refTo(emptyDefault);
+                    } else {
+                        // known to cause runtime initialization
+                        static const wrapped_entry emptyDefault;
+                        return QRangeModelDetails::refTo(emptyDefault);
+                    }
+                }
+            }
+            return std::as_const(QRangeModelDetails::refTo(m_entry));
+        }
+
+        const QModelIndex &index() const { return m_index; }
+
+        template <std::size_t N>
+        friend decltype(auto) get(const MimeDataEntry &entry)
+        {
+            if constexpr (N == 0)
+                return entry.entry();
+            else if constexpr (N == 1)
+                return entry.index();
+        }
+        const Entry &m_entry;
+        const QModelIndex m_index;
+    };
+} // namespace QRangeModelDetails
+
+QT_END_NAMESPACE
+
+// decomposition protocol
+namespace std {
+template <typename T>
+struct tuple_size<QT_PREPEND_NAMESPACE(QRangeModelDetails::MimeDataEntry<T>)>
+    : std::integral_constant<std::size_t, 2> {};
+template <typename T>
+struct tuple_element<0, QT_PREPEND_NAMESPACE(QRangeModelDetails::MimeDataEntry<T>)>
+{ using type = QT_PREPEND_NAMESPACE(QRangeModelDetails)::wrapped_t<T>; };
+template <typename T>
+struct tuple_element<1, QT_PREPEND_NAMESPACE(QRangeModelDetails::MimeDataEntry<T>)>
+{ using type = QT_PREPEND_NAMESPACE(QModelIndex); };
+}  // namespace QRangeModelDetails
+
+QT_BEGIN_NAMESPACE
+
+namespace QRangeModelDetails {
+    // Helper types for drop-support. Client code populates a sequence of
+    // dropped things via an insertion iterator, and those get wrapped in a
+    // DroppedEntry, which allows user code to also specify the position of the
+    // thing in the target model.
+
+    struct DroppedEntryCell {
+        int m_row;
+        int m_column;
+
+        // implicit conversion from a single int is intentional
+        Q_IMPLICIT DroppedEntryCell() noexcept : m_row(-1), m_column(-1)  {}
+        Q_IMPLICIT DroppedEntryCell(int row, int column = 0) noexcept
+            : m_row(row), m_column(column)
+        {}
+
+        friend bool operator==(const DroppedEntryCell &lhs, const DroppedEntryCell &rhs) noexcept
+        {
+            return lhs.m_row == rhs.m_row && lhs.m_column == rhs.m_column;
+        }
+        friend bool operator!=(const DroppedEntryCell &lhs, const DroppedEntryCell &rhs) noexcept
+        {
+            return !(lhs == rhs);
+        }
+    };
+
+    template <typename Entry>
+    struct DroppedEntry
+    {
+        using Cell = DroppedEntryCell;
+
+        // implicit conversion from and to entry is intentional
+        Q_IMPLICIT DroppedEntry(Entry &&entry)
+            : m_entry(std::move(entry)), m_cell{-1, -1}
+        {}
+        Q_IMPLICIT DroppedEntry(Entry &&entry, Cell cell)
+            : m_entry(std::move(entry)), m_cell(cell)
+        {}
+
+        // we only move the actual data out
+        operator Entry&&() && { return std::move(m_entry); }
+
+        Entry m_entry;
+        Cell m_cell;
+    };
+
     class Q_CORE_EXPORT AutoConnectContext : public QObject
     {
         Q_DISABLE_COPY_MOVE(AutoConnectContext)
@@ -958,6 +1181,16 @@ public:
         OnRead,
     };
 
+    // keep in sync with QRangeModel::DropOperation
+    enum class DropOperation {
+        DontDrop,
+        Automatic,
+        OverwriteAndIgnore,
+        OverwriteAndExtend,
+        InsertAsSiblings,
+        InsertAsChildren,
+    };
+
     // overridable prototypes (quasi-pure-virtual methods)
     void invalidateCaches();
     bool setHeaderData(int section, Qt::Orientation orientation, const QVariant &data, int role);
@@ -986,6 +1219,18 @@ public:
     void setAutoConnectPolicy();
 
     void interfaceVersion(int &version) const;
+    void sort(int column, Qt::SortOrder order);
+    QModelIndexList match(const QModelIndex &start, int role, const QVariant &value,
+                          int hits, Qt::MatchFlags flags) const;
+
+    Qt::DropActions adjustSupportedDragActions(Qt::DropActions dragActions);
+    Qt::DropActions adjustSupportedDropActions(Qt::DropActions dropActions);
+    QStringList mimeTypes() const;
+    bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                         const QModelIndex &parent) const;
+    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                      const QModelIndex &parent);
+    QMimeData *mimeData(const QModelIndexList &indexes) const;
 
     // bindings for overriding
 
@@ -1015,9 +1260,18 @@ public:
     // 6.11
     using MultiData = Method<&Self::multiData>;
     using SetAutoConnectPolicy = Method<&Self::setAutoConnectPolicy>;
-    
+
     // 6.12
     using InterfaceVersion = Method<&Self::interfaceVersion>;
+    using Sort = Method<&Self::sort>;
+    using Match = Method<&Self::match>;
+    using AdjustSupportedDragActions = Method<&Self::adjustSupportedDragActions>;
+    using AdjustSupportedDropActions = Method<&Self::adjustSupportedDropActions>;
+
+    using MimeTypes = Method<&Self::mimeTypes>;
+    using CanDropMimeData = Method<&Self::canDropMimeData>;
+    using DropMimeData = Method<&Self::dropMimeData>;
+    using MimeData = Method<&Self::mimeData>;
 
     template <typename C>
     using MethodTemplates = std::tuple<
@@ -1045,7 +1299,15 @@ public:
         typename C::RoleNames,
         typename C::MultiData,
         typename C::SetAutoConnectPolicy,
-        typename C::InterfaceVersion
+        typename C::InterfaceVersion,
+        typename C::Sort,
+        typename C::Match,
+        typename C::AdjustSupportedDragActions,
+        typename C::AdjustSupportedDropActions,
+        typename C::MimeTypes,
+        typename C::CanDropMimeData,
+        typename C::DropMimeData,
+        typename C::MimeData
     >;
 
     static Q_CORE_EXPORT QRangeModelImplBase *getImplementation(QRangeModel *model);
@@ -1064,7 +1326,7 @@ protected:
 
     inline QModelIndex createIndex(int row, int column, const void *ptr = nullptr) const;
     inline QModelIndexList persistentIndexList() const;
-    inline void changePersistentIndexList(const QModelIndexList &from, const QModelIndexList &to);
+    inline void changePersistentIndex(const QModelIndex &from, const QModelIndex &to);
     inline void dataChanged(const QModelIndex &from, const QModelIndex &to,
                             const QList<int> &roles);
     inline void beginResetModel();
@@ -1083,7 +1345,11 @@ protected:
     inline bool beginMoveRows(const QModelIndex &sourceParent, int sourceFirst, int sourceLast,
                               const QModelIndex &destParent, int destRow);
     inline void endMoveRows();
+    inline void beginLayoutChange();
+    inline void endLayoutChange();
     inline AutoConnectPolicy autoConnectPolicy() const;
+    inline static Qt::weak_ordering compareData(const QVariant &lhs, const QVariant &rhs,
+                                                const QCollator *collator);
 
 public:
     inline QAbstractItemModel &itemModel();
@@ -1112,6 +1378,20 @@ protected:
     Q_CORE_EXPORT static bool connectPropertiesConst(const QModelIndex &index, const QObject *item,
                                                      QRangeModelDetails::AutoConnectContext *context,
                                                      const QHash<int, QMetaProperty> &properties);
+    Q_CORE_EXPORT int sortRole() const;
+    Q_CORE_EXPORT const QCollator *sortCollator() const;
+
+    Q_CORE_EXPORT static QVariant convertMatchValue(const QVariant &value, Qt::MatchFlags flags);
+    Q_CORE_EXPORT static bool matchValue(const QString &itemData, const QVariant &value,
+                                         Qt::MatchFlags flags);
+    static bool matchValue(const QVariant &itemData, const QVariant &value, Qt::MatchFlags flags)
+    {
+        if ((flags & Qt::MatchTypeMask) == Qt::MatchExactly)
+            return itemData == value;
+        return matchValue(itemData.toString(), value, flags);
+    }
+
+    Q_CORE_EXPORT bool dropDataOnItem(const QMimeData *data, const QModelIndex &index);
 };
 
 template <typename Structure, typename Range,
@@ -1243,6 +1523,7 @@ protected:
                   "The range holding a move-only row-type must support insert(pos, start, end)");
 
     using AutoConnectPolicy = typename Ancestor::AutoConnectPolicy;
+    using DropOperation = typename Ancestor::DropOperation;
 
 public:
     static constexpr bool isMutable()
@@ -1290,7 +1571,8 @@ public:
         if (row == index.row() && column == index.column())
             return index;
 
-        if (column < 0 || column >= this->columnCount({}))
+        // we use indexes at column -1 in drag'n'drop handling to mark full rows
+        if (column >= this->columnCount({}))
             return {};
 
         if (row == index.row())
@@ -1305,12 +1587,65 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex &index) const
     {
-        if (!index.isValid())
-            return Qt::NoItemFlags;
+        if (!index.isValid()) {
+            if constexpr (isMutable())
+                return Qt::ItemIsDropEnabled;
+            else
+                return Qt::NoItemFlags;
+        }
 
-        Qt::ItemFlags f = Structure::defaultFlags();
+        // try customization
+        std::optional<Qt::ItemFlags> customFlags = std::nullopt;
+        if constexpr (QRangeModelDetails::hasRowFlags<wrapped_row_type>) {
+            const_row_reference row = rowData(index);
+            if (QRangeModelDetails::isValid(row)) {
+                customFlags = QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>::flags(
+                    QRangeModelDetails::refTo(row)
+                );
+            }
+        }
+
+        readAt(index, [&customFlags](auto &&ref){
+            Q_UNUSED(ref);
+            using wrapped_value_type = q20::remove_cvref_t<QRangeModelDetails::wrapped_t<decltype(ref)>>;
+            if constexpr (QRangeModelDetails::item_access<wrapped_value_type>::hasFlags) {
+                using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<wrapped_value_type>;
+                if (QRangeModelDetails::isValid(ref)) {
+                    customFlags = ItemAccess::flags(QRangeModelDetails::refTo(ref));
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        Qt::ItemFlags f = customFlags ? *customFlags : Structure::defaultFlags();
+        // adjust custom flags based on what is not possible
+        if constexpr (!isMutable())
+            f &= ~(Qt::ItemIsEditable | Qt::ItemIsDropEnabled);
+        if (index.column())
+            f |= Qt::ItemNeverHasChildren;
+        if (customFlags)
+            return f;
+
+        // compute flags ourselves
+        if (!this->itemModel().mimeTypes().isEmpty()) {
+            f |= Qt::ItemIsDragEnabled;
+            if constexpr (isMutable())
+                f |= Qt::ItemIsDropEnabled;
+        }
+
+        if constexpr (QRangeModelDetails::is_owning_or_raw_pointer<row_type>()) {
+            // pointer rows might be null
+            const_row_reference row = rowData(index);
+            if (!QRangeModelDetails::isValid(row))
+                f &= ~Qt::ItemIsDragEnabled;
+        }
 
         if constexpr (isMutable()) {
+            // Note: Read-only items are still droppable - we can't know here
+            // whether the model will insert data as new rows or children, or if
+            // it will overwrite the data of the dropped-on item. So we allow
+            // dropping on items that are not editable.
             if constexpr (row_traits::hasMetaObject) {
                 if (index.column() < row_traits::fixed_size()) {
                     const QMetaObject mo = wrapped_row_type::staticMetaObject;
@@ -1319,6 +1654,12 @@ public:
                         f |= Qt::ItemIsEditable;
                 }
             } else if constexpr (static_column_count <= 0) {
+                using item_type = typename row_traits::item_type;
+                if constexpr (QRangeModelDetails::is_owning_or_raw_pointer<item_type>()) {
+                    // pointer items might be null
+                    if (!readAt(index, [](auto &&i){ return QRangeModelDetails::isValid(i); }))
+                        f &= ~Qt::ItemIsDragEnabled;
+                }
                 f |= Qt::ItemIsEditable;
             } else if constexpr (std::is_reference_v<row_reference> && !std::is_const_v<row_reference>) {
                 // we want to know if the elements in the tuple are const; they'd always be, if
@@ -1328,6 +1669,11 @@ public:
                 if (QRangeModelDetails::isValid(mutableRow)) {
                     row_traits::for_element_at(mutableRow, index.column(), [&f](auto &&ref){
                         using target_type = decltype(ref);
+                        if constexpr (QRangeModelDetails::is_owning_or_raw_pointer<target_type>()) {
+                            // pointer items might be null
+                            if (!QRangeModelDetails::isValid(ref))
+                                f &= ~Qt::ItemIsDragEnabled;
+                        }
                         if constexpr (std::is_const_v<std::remove_reference_t<target_type>>)
                             f &= ~Qt::ItemIsEditable;
                         else if constexpr (std::is_lvalue_reference_v<target_type>)
@@ -1335,7 +1681,7 @@ public:
                     });
                 } else {
                     // If there's no usable value stored in the row, then we can't
-                    // do anything with this item.
+                    // do anything with this item, except perhaps drop data into it
                     f &= ~Qt::ItemIsEditable;
                 }
             }
@@ -1346,6 +1692,16 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role) const
     {
         QVariant result;
+        if constexpr (QRangeModelDetails::hasHeaderData<wrapped_row_type>) {
+            if (orientation == Qt::Horizontal) {
+                result = QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>::headerData(
+                    section, role
+                );
+                if (result.isValid())
+                    return result;
+            }
+        }
+
         if (role != Qt::DisplayRole || orientation != Qt::Horizontal
          || section < 0 || section >= columnCount({})) {
             return this->itemModel().QAbstractItemModel::headerData(section, orientation, role);
@@ -1383,16 +1739,14 @@ public:
         QMap<int, QVariant> result;
 
         if (index.isValid()) {
-            bool tried = false;
-
             // optimisation for items backed by a QMap<int, QVariant> or equivalent
-            readAt(index, [&result, &tried](const auto &value) {
+            if (!readAt(index, [&result](const auto &value) {
                 if constexpr (std::is_convertible_v<decltype(value), decltype(result)>) {
-                    tried = true;
                     result = value;
+                    return true;
                 }
-            });
-            if (!tried) {
+                return false;
+            })) {
                 const auto roles = this->itemModel().roleNames().keys();
                 QVarLengthArray<QModelRoleData, 16> roleDataArray;
                 roleDataArray.reserve(roles.size());
@@ -1413,13 +1767,11 @@ public:
         return result;
     }
 
-    void multiData(const QModelIndex &index, QModelRoleDataSpan roleDataSpan) const
+    struct ItemReader
     {
-        bool tried = false;
-        readAt(index, [this, &index, roleDataSpan, &tried](const auto &value) {
-            Q_UNUSED(this);
-            Q_UNUSED(index);
-            using value_type = q20::remove_cvref_t<decltype(value)>;
+        template <typename value_type>
+        bool operator()(const value_type &value) const
+        {
             using multi_role = QRangeModelDetails::is_multi_role<value_type>;
             using wrapped_value_type = QRangeModelDetails::wrapped_t<value_type>;
 
@@ -1450,9 +1802,8 @@ public:
                 return true;
             };
 
-            if constexpr (QRangeModelDetails::item_access<wrapped_value_type>()) {
+            if constexpr (QRangeModelDetails::item_access<wrapped_value_type>::hasReadRole) {
                 using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<wrapped_value_type>;
-                tried = true;
                 for (auto &roleData : roleDataSpan) {
                     if (!readModelData(roleData)) {
                         roleData.setData(ItemAccess::readRole(QRangeModelDetails::refTo(value),
@@ -1460,11 +1811,10 @@ public:
                     }
                 }
             } else if constexpr (multi_role()) {
-                tried = true;
                 const auto roleNames = [this]() -> QHash<int, QByteArray> {
                     Q_UNUSED(this);
                     if constexpr (!multi_role::int_key)
-                        return this->itemModel().roleNames();
+                        return that->itemModel().roleNames();
                     else
                         return {};
                 }();
@@ -1484,27 +1834,24 @@ public:
                 }
             } else if constexpr (has_metaobject<value_type>) {
                 if (row_traits::fixed_size() <= 1) {
-                    tried = true;
                     for (auto &roleData : roleDataSpan) {
                         if (!readModelData(roleData)) {
-                            roleData.setData(readRole(index, roleData.role(),
-                                                      QRangeModelDetails::pointerTo(value)));
+                            roleData.setData(that->readRole(index, roleData.role(),
+                                                            QRangeModelDetails::pointerTo(value)));
                         }
                     }
                 } else if (index.column() <= row_traits::fixed_size()) {
-                    tried = true;
                     for (auto &roleData : roleDataSpan) {
                         const int role = roleData.role();
                         if (isPrimaryRole(role)) {
-                            roleData.setData(readProperty(index,
-                                                          QRangeModelDetails::pointerTo(value)));
+                            roleData.setData(that->readProperty(index,
+                                                                QRangeModelDetails::pointerTo(value)));
                         } else {
                             roleData.clearData();
                         }
                     }
                 }
             } else {
-                tried = true;
                 for (auto &roleData : roleDataSpan) {
                     const int role = roleData.role();
                     if (isPrimaryRole(role) || isRangeModelRole(role))
@@ -1513,9 +1860,20 @@ public:
                         roleData.clearData();
                 }
             }
-        });
+            return true;
+        }
 
-        Q_ASSERT(tried);
+        const QModelIndex &index;
+        QModelRoleDataSpan roleDataSpan;
+        const QRangeModelImpl * const that;
+    };
+
+    void multiData(const QModelIndex &index, QModelRoleDataSpan roleDataSpan) const
+    {
+        if (!readAt(index, ItemReader{index, roleDataSpan, this})) {
+            for (auto &roleData : roleDataSpan)
+                roleData.clearData();
+        }
     }
 
     bool setData(const QModelIndex &index, const QVariant &data, int role)
@@ -1523,15 +1881,12 @@ public:
         if (!index.isValid())
             return false;
 
-        bool success = false;
         if constexpr (isMutable()) {
-            auto emitDataChanged = qScopeGuard([&success, this, &index, role]{
-                if (success) {
-                    Q_EMIT this->dataChanged(index, index,
-                                       role == Qt::EditRole || role == Qt::RangeModelDataRole
-                                    || role == Qt::RangeModelAdapterRole
-                                            ? QList<int>{} : QList<int>{role});
-                }
+            auto emitDataChanged = qScopeGuard([this, &index, role]{
+                Q_EMIT this->dataChanged(index, index,
+                                    role == Qt::EditRole || role == Qt::RangeModelDataRole
+                                || role == Qt::RangeModelAdapterRole
+                                        ? QList<int>{} : QList<int>{role});
             });
             // we emit dataChanged at the end, block dispatches from auto-connected properties
             [[maybe_unused]] auto dataChangedBlocker = maybeBlockDataChangedDispatch();
@@ -1540,6 +1895,12 @@ public:
                 using value_type = q20::remove_cvref_t<decltype(target)>;
                 using wrapped_value_type = QRangeModelDetails::wrapped_t<value_type>;
                 using multi_role = QRangeModelDetails::is_multi_role<value_type>;
+
+                if constexpr (std::conjunction_v<QRangeModelDetails::is_any_owning_ptr<value_type>,
+                                                 std::is_default_constructible<wrapped_value_type>>) {
+                    if (!QRangeModelDetails::isValid(target))
+                        target.reset(new wrapped_value_type);
+                }
 
                 auto setRangeModelDataRole = [&target, &data]{
                     constexpr auto targetMetaType = QMetaType::fromType<value_type>();
@@ -1596,7 +1957,7 @@ public:
                     return false;
                 };
 
-                if constexpr (QRangeModelDetails::item_access<wrapped_value_type>()) {
+                if constexpr (QRangeModelDetails::item_access<wrapped_value_type>::hasWriteRole) {
                     using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<wrapped_value_type>;
                     if (isRangeModelRole(role))
                         return setRangeModelDataRole();
@@ -1640,16 +2001,18 @@ public:
                 return false;
             };
 
-            success = writeAt(index, writeData);
-
-            if constexpr (itemsAreQObjects || rowsAreQObjects) {
-                if (success && isRangeModelRole(role) && this->autoConnectPolicy() == AutoConnectPolicy::Full) {
+            if (!writeAt(index, writeData)) {
+                emitDataChanged.dismiss();
+                return false;
+            } else if constexpr (itemsAreQObjects || rowsAreQObjects) {
+                if (isRangeModelRole(role) && this->autoConnectPolicy() == AutoConnectPolicy::Full) {
                     if (QObject *item = data.value<QObject *>())
                         Self::connectProperties(index, item, m_data.context, m_data.properties);
                 }
             }
+            return true;
         }
-        return success;
+        return false;
     }
 
     template <typename LHS, typename RHS>
@@ -1673,11 +2036,9 @@ public:
         if (!index.isValid() || data.isEmpty())
             return false;
 
-        bool success = false;
         if constexpr (isMutable()) {
-            auto emitDataChanged = qScopeGuard([&success, this, &index, &data]{
-                if (success)
-                    Q_EMIT this->dataChanged(index, index, data.keys());
+            auto emitDataChanged = qScopeGuard([this, &index, &data]{
+                Q_EMIT this->dataChanged(index, index, data.keys());
             });
             // we emit dataChanged at the end, block dispatches from auto-connected properties
             [[maybe_unused]] auto dataChangedBlocker = maybeBlockDataChangedDispatch();
@@ -1704,7 +2065,7 @@ public:
 
                 const auto roleNames = this->itemModel().roleNames();
 
-                if constexpr (QRangeModelDetails::item_access<wrapped_value_type>()) {
+                if constexpr (QRangeModelDetails::item_access<wrapped_value_type>::hasWriteRole) {
                     tried = true;
                     using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<wrapped_value_type>;
                     const auto roles = roleNames.keys();
@@ -1770,16 +2131,14 @@ public:
                 return false;
             };
 
-            success = writeAt(index, writeItemData);
-
-            if (!tried) {
-                // setItemData will emit the dataChanged signal
-                Q_ASSERT(!success);
+            if (!writeAt(index, writeItemData)) {
                 emitDataChanged.dismiss();
-                success = this->itemModel().QAbstractItemModel::setItemData(index, data);
+                if (!tried)
+                    return this->itemModel().QAbstractItemModel::setItemData(index, data);
             }
+            return true;
         }
-        return success;
+        return false;
     }
 
     bool clearItemData(const QModelIndex &index)
@@ -1787,11 +2146,9 @@ public:
         if (!index.isValid())
             return false;
 
-        bool success = false;
         if constexpr (isMutable()) {
-            auto emitDataChanged = qScopeGuard([&success, this, &index]{
-                if (success)
-                    Q_EMIT this->dataChanged(index, index, {});
+            auto emitDataChanged = qScopeGuard([this, &index]{
+                Q_EMIT this->dataChanged(index, index, {});
             });
 
             auto clearData = [column = index.column()](auto &&target) {
@@ -1809,9 +2166,13 @@ public:
                 return false;
             };
 
-            success = writeAt(index, clearData);
+            if (!writeAt(index, clearData)) {
+                emitDataChanged.dismiss();
+                return false;
+            }
+            return true;
         }
-        return success;
+        return false;
     }
 
     QHash<int, QByteArray> roleNames() const
@@ -1890,6 +2251,284 @@ public:
             qWarning("All items in the range must be QObject subclasses");
 #endif
         }
+    }
+
+    struct unordered {
+        friend constexpr bool operator<(unordered, QtPrivate::CompareAgainstLiteralZero) noexcept
+        { return false; }
+        friend constexpr bool operator>(unordered, QtPrivate::CompareAgainstLiteralZero) noexcept
+        { return false; }
+    };
+
+    struct Compare
+    {
+        template <typename C, typename LessThan>
+        using sortMember_test = decltype(std::declval<C&>().sort(std::declval<LessThan &&>()));
+        static constexpr bool hasSortMember = qxp::is_detected_v<sortMember_test, range_type, Compare>;
+
+        template <typename Stringish>
+        using collatedCompare_test = decltype(
+            std::declval<const QCollator&>().compare(std::declval<const Stringish&>(),
+                                                     std::declval<const Stringish&>())
+        );
+        template <typename Stringish>
+        static constexpr bool hasCollatedCompare = qxp::is_detected_v<collatedCompare_test,
+                                                                        Stringish>;
+
+
+        Compare(const QRangeModelImpl *impl, int column, Qt::SortOrder order)
+            : that(impl), m_index(impl->createIndex(-1, column, nullptr))
+            , collator(impl->sortCollator()), m_order(order), m_sortRole(impl->sortRole())
+        {
+        }
+
+        template <typename Item>
+        auto operator()(const Item &lhs, const Item &rhs) const
+        {
+            auto ordering = compare(lhs, rhs);
+            return m_order == Qt::AscendingOrder ? ordering < 0 : ordering > 0;
+        }
+
+        template <typename Item>
+        auto compare(const Item &lhs, const Item &rhs) const
+        {
+            using value_type = QRangeModelDetails::wrapped_t<Item>;
+            using multi_role = QRangeModelDetails::is_multi_role<value_type>;
+
+            if constexpr (QRangeModelDetails::item_access<value_type>::hasReadRole
+                        || multi_role() || has_metaobject<value_type>) {
+                QModelRoleData result(m_sortRole);
+                // Minor abuse of QModelIndex: the reader needs an index to implement
+                // lazy auto-connections, but we only have a column. So we construct
+                // an invalid QModelIndex that carries only that column value. That's
+                // enough for reading values, and the auto-connection logic skips for
+                // invalid indexes.
+                ItemReader reader{m_index, result, that};
+                Q_ASSERT(!reader.index.isValid());
+                reader(lhs);
+                const QVariant lhsVariant = std::move(result.data());
+                reader(rhs);
+                const QVariant rhsVariant = std::move(result.data());
+                return QRangeModelImplBase::compareData(lhsVariant, rhsVariant, collator);
+            } else if constexpr (std::is_same_v<QVariant, value_type>) {
+                return QRangeModelImplBase::compareData(lhs, rhs, collator);
+            } else if constexpr (QtOrderingPrivate::CompareThreeWayTester::hasCompareThreeWay_v
+                                                                            <value_type, value_type>) {
+                // all types supported by QCollator are also three-way comparable
+                if constexpr (hasCollatedCompare<value_type>) {
+                    if (collator) {
+                        using ordering = decltype(qCompareThreeWay(lhs, rhs));
+                        int res = collator->compare(lhs, rhs);
+                        if (res < 0)
+                            return ordering::less;
+                        if (res > 0)
+                            return ordering::greater;
+                        return ordering::equal;
+                    }
+                }
+                return qCompareThreeWay(lhs, rhs);
+            } else {
+                return unordered{};
+            }
+        }
+
+        bool checkComparable() const
+        {
+            return that->readAt(that->index(0, 0, {}), [this](const auto &item){
+                // before we call std::stable_sort, check that we can compare the
+                // types we'll ultimately get called with. This doesn't catch cases
+                // where we end up comparing QVariant, and we cannot make this a
+                // compile time check as long as readAt etc are not constexpr.
+                using ordering = decltype(compare(item, item));
+                if constexpr (std::is_same_v<ordering, unordered>) {
+#ifndef QT_NO_DEBUG
+                    const QMetaType itemtype = QMetaType::fromType<QRangeModelDetails::wrapped_t<
+                                                    q20::remove_cvref_t<decltype(item)>>
+                                                >();
+                    qCritical("QRangeModel: Cannot compare items of type %s in column %d!",
+                              itemtype.name(), m_index.column());
+#else
+                    Q_UNUSED(this);
+#endif
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+        }
+
+        template <typename Item>
+        static std::optional<bool> compareInvalid(const Item &lhs, const Item &rhs)
+        {
+            // invalid data > valid data
+            if (!QRangeModelDetails::isValid(lhs))
+                return false;
+            if (!QRangeModelDetails::isValid(rhs))
+                return true;
+            return std::nullopt;
+        }
+
+        const QRangeModelImpl * const that;
+        const QModelIndex m_index;
+        const QCollator * const collator;
+        const Qt::SortOrder m_order;
+        const int m_sortRole;
+    };
+
+    void sort(int column, Qt::SortOrder order)
+    {
+        if constexpr (isMutable() && std::is_swappable_v<row_type>) {
+            if (rowCount({}) < 2 || column >= columnCount({}))
+                return;
+            Compare compare(this, column, order);
+            if (!compare.checkComparable())
+                return;
+
+            this->beginLayoutChange();
+            QScopeGuard endLayoutChange([this]{ this->endLayoutChange(); });
+            that().sortImpl([&compare](const auto &leftRow, const auto &rightRow) {
+                if (auto anyInvalid = Compare::compareInvalid(leftRow, rightRow))
+                    return *anyInvalid;
+                return row_traits::for_element_at(leftRow, compare.m_index.column(),
+                                                  [&rightRow, &compare](const auto &leftItem){
+                    return row_traits::for_element_at(rightRow, compare.m_index.column(),
+                                                      [&leftItem, &compare](const auto &rightItem){
+                        // Called by std::stable_sort. Since "column" is a runtime value, we
+                        // can't statically assert that lhs and rhs are of the same type.
+                        if constexpr (std::is_same_v<decltype(leftItem), decltype(rightItem)>) {
+                            if (auto anyInvalid = Compare::compareInvalid(leftItem, rightItem))
+                                return *anyInvalid;
+                            return compare(QRangeModelDetails::refTo(leftItem),
+                                           QRangeModelDetails::refTo(rightItem));
+                        } else {
+                            Q_UNREACHABLE();
+                        }
+                        return false;
+                    });
+                });
+            });
+        }
+    }
+
+    template <typename LessThan>
+    void sortSubRange(range_type &range, row_ptr expectedParent, const LessThan &lessThan)
+    {
+        auto begin = QRangeModelDetails::adl_begin(range);
+        auto end = QRangeModelDetails::adl_end(range);
+        if (begin == end)
+            return;
+
+        QModelIndexList persistentIndexes = this->persistentIndexList();
+        that().prunePersistentIndexList(persistentIndexes, expectedParent);
+
+        if (persistentIndexes.isEmpty()) {
+            using It = typename range_features::iterator;
+            constexpr bool is_random_access = std::is_base_of_v<std::random_access_iterator_tag,
+                                                typename std::iterator_traits<It>::iterator_category>;
+            // fast path if we have no persistent indexes: sort the range in place
+            if constexpr (Compare::hasSortMember) {
+                range.sort(lessThan);
+                return;
+            } else if constexpr (is_random_access) {
+                std::stable_sort(begin, end, lessThan);
+                return;
+            }
+        }
+
+        // slow path: create an indexed version of the range by adding a
+        // column that records row movements.
+        struct SortTracker
+        {
+            row_type row;
+            int index;
+        };
+
+        const int rangeSize = size(range);
+        // Allocate all necessary memory here so that a potential exception
+        // gets thrown before we have made any modifications.
+        std::vector<SortTracker> tracked;
+        tracked.reserve(rangeSize);
+        std::vector<int> newRows;
+        newRows.resize(rangeSize);
+
+        // move all rows into that index paired with its unsorted position
+        int row = -1;
+        for (auto &&it = std::move_iterator(begin); it != std::move_iterator(end); ++it)
+            tracked.emplace_back(SortTracker{*it, ++row});
+
+        // sort the index based on a comparions of the data
+        std::stable_sort(tracked.begin(), tracked.end(),
+                            [&lessThan](const SortTracker &lhs, const SortTracker &rhs){
+            return lessThan(lhs.row, rhs.row);
+        });
+
+        // write the values back to the range in (now ordered) sequence,
+        // and create a mapping from old to new row
+        auto sorted = std::move_iterator(tracked.begin());
+        auto write = QRangeModelDetails::adl_begin(range);
+        qsizetype changedIndexCount = 0;
+        for (int newIndex = 0; newIndex < rangeSize; ++write, ++sorted, ++newIndex) {
+            auto &&tracker = *sorted;
+            changedIndexCount += (tracker.index != newIndex);
+            *write = std::move(tracker.row);
+            newRows[tracker.index] = newIndex;
+        }
+
+        // free memory from intermediate vector
+        tracked.clear();
+        tracked.shrink_to_fit();
+
+        // update relevant persistent model indexes
+        for (const auto &fromIndex : std::as_const(persistentIndexes)) {
+            const int newRow = newRows.at(fromIndex.row());
+            if (fromIndex.row() == newRow)
+                continue;
+            const QModelIndex toIndex = that().indexImpl(newRow,
+                                                         fromIndex.column(),
+                                                         fromIndex.parent());
+            this->changePersistentIndex(fromIndex, toIndex);
+        }
+    }
+
+    QModelIndexList match(const QModelIndex &start, int role, const QVariant &value, int hits,
+                          Qt::MatchFlags flags) const
+    {
+        return that().matchImpl(start, role,
+                                QRangeModelImplBase::convertMatchValue(value, flags), hits, flags);
+    }
+
+    bool matchRow(const_row_reference row, const QModelIndex &index, int role, const QVariant &value,
+                  Qt::MatchFlags flags) const
+    {
+        const uint matchType = (flags & Qt::MatchTypeMask).toInt();
+
+        return row_traits::for_element_at(row, index.column(), [&](const auto &element) {
+            using value_type = q20::remove_cvref_t<decltype(element)>;
+            using wrapped_value_type = QRangeModelDetails::wrapped_t<value_type>;
+            using multi_role = QRangeModelDetails::is_multi_role<value_type>;
+
+            if constexpr (QRangeModelDetails::item_access<wrapped_value_type>::hasReadRole
+                          || multi_role() || has_metaobject<value_type>) {
+                QModelRoleData roleData(role);
+                ItemReader reader{index, roleData, this};
+                reader(element);
+                return QRangeModelImplBase::matchValue(roleData.data(), value, flags);
+            } else if constexpr (std::is_same_v<wrapped_value_type, QVariant>) {
+                return QRangeModelImplBase::matchValue(element, value, flags);
+            } else {
+                constexpr QMetaType mt = QMetaType::fromType<wrapped_value_type>();
+                if (mt == value.metaType()) {
+                    if (matchType == Qt::MatchExactly)
+                        return mt.equals(QRangeModelDetails::pointerTo(element), value.constData());
+                    else if constexpr (std::is_same_v<wrapped_value_type, QString>)
+                        return QRangeModelImplBase::matchValue(element, value, flags);
+                } else {
+                    return QRangeModelImplBase::matchValue(QVariant::fromValue(QRangeModelDetails::refTo(element)),
+                                                           value, flags);
+                }
+            }
+            return false;
+        });
     }
 
     template <typename InsertFn>
@@ -2178,6 +2817,444 @@ public:
 
     void destroy() { delete std::addressof(that()); }
 
+    Qt::DropActions adjustSupportedDragActions(Qt::DropActions dragActions) {
+        if constexpr (!isMutable())
+            dragActions &= ~Qt::MoveAction;
+        return dragActions;
+    }
+    Qt::DropActions adjustSupportedDropActions(Qt::DropActions dropActions)
+    {
+        if constexpr (!isMutable())
+            dropActions = Qt::IgnoreAction;
+
+        return dropActions;
+    }
+
+    QStringList mimeTypes() const
+    {
+        using ItemType = QRangeModelDetails::wrapped_t<typename row_traits::item_type>;
+        if constexpr (QRangeModelDetails::item_access<ItemType>::hasMimeTypes)
+            return QRangeModelDetails::QRangeModelItemAccess<ItemType>::mimeTypes();
+        else if constexpr (QRangeModelDetails::hasMimeTypes<wrapped_row_type>)
+            return QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>::mimeTypes();
+        else
+            return this->itemModel().QAbstractItemModel::mimeTypes();
+    }
+
+    bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                         const QModelIndex &target) const
+    {
+        if constexpr (isMutable()) {
+            bool canDrop;
+            using RowOptions = QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>;
+            using ItemType = QRangeModelDetails::wrapped_t<typename row_traits::item_type>;
+            using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<ItemType>;
+            if constexpr (QRangeModelDetails::item_access<ItemType>::hasCanDropMimeDataFull) {
+                canDrop = ItemAccess::canDropMimeData(data, action, row, column, target);
+            } else if constexpr (QRangeModelDetails::hasCanDropMimeDataFull<wrapped_row_type>) {
+                canDrop = RowOptions::canDropMimeData(data, action, row, column, target);
+            } else {
+                canDrop = this->itemModel().QAbstractItemModel::canDropMimeData(data, action, row,
+                                                                                column, target);
+                if constexpr (QRangeModelDetails::item_access<ItemType>::hasCanDropMimeData)
+                    canDrop &= ItemAccess::canDropMimeData(data);
+                else if constexpr (QRangeModelDetails::hasCanDropMimeData<wrapped_row_type>)
+                    canDrop &= RowOptions::canDropMimeData(data);
+            }
+            return canDrop;
+        } else {
+            return false;
+        }
+    }
+
+    // orientation == vertical: we drop rows; otherwise we drop individual items
+    template <Qt::Orientation orient, typename Entry>
+    bool doDropMimeData(std::vector<QRangeModelDetails::DroppedEntry<Entry>> &droppedEntries,
+                        DropOperation dropOperation, int row, int column, const QModelIndex &target)
+    {
+        using DroppedEntry = QRangeModelDetails::DroppedEntry<Entry>;
+        using Cell = typename DroppedEntry::Cell;
+        if (dropOperation == DropOperation::DontDrop)
+            return false;
+
+        const bool dropOnTarget = row == -1 && column == -1 && target.isValid();
+        const QModelIndex parent = dropOperation == DropOperation::InsertAsChildren
+                                 ? target.siblingAtColumn(0) : target.parent();
+
+        Cell lastCell;
+        if constexpr (orient == Qt::Horizontal)
+            lastCell = {0, -1};
+        else
+            lastCell = {-1, 0};
+        int bottomRow = -1;
+        int rightColumn = -1;
+        // set the target cell for all dropped entries and find the bottom-right
+        // cell relative to the drop position
+        int maxColumn = that().columnCount(parent) - 1;
+        for (auto &droppedEntry : droppedEntries) {
+            if (droppedEntry.m_cell == Cell{-1, -1}) {
+                if constexpr (orient == Qt::Horizontal) {
+                    // auto-inserted items fill all columns before moving to
+                    // the next row
+                    droppedEntry.m_cell = {lastCell.m_row, lastCell.m_column + 1};
+                    if (droppedEntry.m_cell.m_column > maxColumn) {
+                        droppedEntry.m_cell.m_column = 0;
+                        ++droppedEntry.m_cell.m_row;
+                    }
+                } else {
+                    droppedEntry.m_cell = {lastCell.m_row + 1, lastCell.m_column};
+                }
+            }
+            lastCell = droppedEntry.m_cell;
+            bottomRow = std::max(lastCell.m_row, bottomRow);
+            rightColumn = std::max(lastCell.m_column, rightColumn);
+        }
+
+        if (dropOperation == DropOperation::InsertAsChildren) {
+            row = rowCount(parent);
+            column = 0;
+        } else if (dropOnTarget) {
+            row = target.row();
+            column = target.column();
+        } else {
+            if (row < 0)
+                row = rowCount(parent);
+            // dropping into empty space to the right of a table doesn't widen
+            if (column < 0)
+                column = 0;
+        }
+        const bool overwrite = dropOperation == DropOperation::OverwriteAndIgnore
+                            || dropOperation == DropOperation::OverwriteAndExtend;
+
+        // Compute if we need more rows, and try to add them. Abort if that fails.
+        const int overwriteRows = overwrite
+                                ? std::min(bottomRow + 1, rowCount(parent) - row)
+                                : 0;
+        const int newRows = dropOperation == DropOperation::OverwriteAndExtend
+                          ? bottomRow - overwriteRows + 1
+                          : (dropOperation == DropOperation::InsertAsChildren
+                             || dropOperation == DropOperation::InsertAsSiblings)
+                            ? bottomRow + 1
+                            : 0;
+        if (newRows > 0 && !insertRows(row, newRows, parent))
+            return false;
+
+        // Ditto for columns, but InsertAsSiblings/Children only applies to rows
+        const int overwriteColumns = overwrite
+                                   ? std::min(rightColumn + 1, columnCount(parent) - column)
+                                   : 0;
+        const int newColumns = dropOperation == DropOperation::OverwriteAndExtend
+                             ? rightColumn - overwriteColumns + 1 : 0;
+        if (newColumns > 0 && !insertColumns(column, newColumns, parent))
+            return false;
+
+        // access the target range
+        range_type *parentRange = that().childRange(parent);
+        if (!parentRange)
+            return false;
+        range_type &targetRange = *parentRange;
+
+        int maxRow = that().rowCount(parent) - 1;
+        maxColumn = that().columnCount(parent) - 1;
+        auto begin = std::move_iterator(droppedEntries.begin());
+        auto end = std::move_iterator(droppedEntries.end());
+        for (; begin != end; ++begin) {
+            DroppedEntry droppedEntry = *begin;
+            const Cell cell = {droppedEntry.m_cell.m_row + row, droppedEntry.m_cell.m_column + column};
+            if (cell.m_row > maxRow || cell.m_column > maxColumn) // Ignore
+                continue;
+            auto writeRow = QRangeModelDetails::pos(targetRange, cell.m_row);
+            if constexpr (orient == Qt::Vertical) { // complete rows
+                if constexpr (QRangeModelDetails::is_owning_or_raw_pointer<row_type>()) {
+                    if (!*writeRow)
+                        *writeRow = this->protocol().newRow();
+                    **writeRow = std::move(droppedEntry);
+                } else {
+                    *writeRow = std::move(droppedEntry);
+                }
+            } else {
+                row_traits::for_element_at(*writeRow, cell.m_column, [&](auto &item){
+                    using item_type = q20::remove_cvref_t<decltype(item)>;
+                    using wrapped_item_type = QRangeModelDetails::wrapped_t<item_type>;
+                    if constexpr (QRangeModelDetails::is_any_owning_ptr<item_type>()) {
+                        if (!QRangeModelDetails::isValid(item))
+                            item.reset(new wrapped_item_type{std::move(droppedEntry)});
+                        else
+                            *item = std::move(droppedEntry);
+                    } else if (!QRangeModelDetails::isValid(item)) {
+                        return false;
+                    } else {
+                        item = std::move(droppedEntry);
+                    }
+                    return true;
+                });
+            }
+        }
+
+        that().resetParentInChildren(&targetRange);
+
+        const QModelIndex topLeft = index(row, column, parent);
+        const QModelIndex bottomRight = orient == Qt::Horizontal
+                                      ? sibling(row + bottomRow, column + rightColumn, topLeft)
+                                      : sibling(row + bottomRow, maxColumn, topLeft);
+        this->dataChanged(topLeft, bottomRight, {});
+
+        return true;
+    }
+
+    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                      const QModelIndex &target)
+    {
+        if constexpr (isMutable()) {
+            if (!canDropMimeData(data, action, row, column, target))
+                return false;
+
+            const bool dropOnTarget = row == -1 && column == -1 && target.isValid();
+
+            auto automaticDropOption = [=](auto dropResult){
+                DropOperation dropOperation;
+                if constexpr (std::is_same_v<bool, decltype(dropResult)>) {
+                    dropOperation = dropResult ? DropOperation::Automatic
+                                               : DropOperation::DontDrop;
+                } else { // it's a QRangeModel::DropOperation
+                    dropOperation = static_cast<DropOperation>(dropResult);
+                }
+
+                if (dropOperation == DropOperation::Automatic) {
+                    if constexpr (!canInsertRows())
+                        dropOperation = DropOperation::OverwriteAndIgnore;
+                    else if (!dropOnTarget)
+                        dropOperation = DropOperation::InsertAsSiblings;
+                    else if (target.siblingAtColumn(0).flags().testFlag(Qt::ItemNeverHasChildren))
+                        dropOperation = DropOperation::OverwriteAndExtend;
+                    else
+                        dropOperation = DropOperation::InsertAsChildren;
+                }
+                return dropOperation;
+            };
+
+            using ItemType = QRangeModelDetails::wrapped_t<typename row_traits::item_type>;
+            if constexpr (QRangeModelDetails::item_access<ItemType>::hasDropMimeDataFull
+                       || QRangeModelDetails::item_access<ItemType>::hasDropMimeData) {
+                using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<ItemType>;
+                using DroppedItem = QRangeModelDetails::DroppedEntry<ItemType>;
+                std::vector<DroppedItem> droppedItems;
+                DropOperation dropOperation = automaticDropOption([&]{
+                    auto inserter = std::back_inserter(droppedItems);
+                    if constexpr (QRangeModelDetails::item_access<ItemType>::hasDropMimeDataFull)
+                        return ItemAccess::dropMimeData(data, action, row, column, target, inserter);
+                    else
+                        return ItemAccess::dropMimeData(data, inserter);
+                }());
+                if (doDropMimeData<Qt::Horizontal>(droppedItems, dropOperation, row, column, target))
+                    return true;
+                // fall through to try the default mime type
+            } else if constexpr (QRangeModelDetails::hasDropMimeDataFull<wrapped_row_type>
+                              || QRangeModelDetails::hasDropMimeData<wrapped_row_type>) {
+                using RowOptions = QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>;
+                using DroppedRow = QRangeModelDetails::DroppedEntry<wrapped_row_type>;
+                std::vector<DroppedRow> droppedRows;
+                DropOperation dropOperation = automaticDropOption([&]{
+                    auto inserter = std::back_inserter(droppedRows);
+                    if constexpr (QRangeModelDetails::hasDropMimeDataFull<wrapped_row_type>)
+                        return RowOptions::dropMimeData(data, action, row, column, target, inserter);
+                    else
+                        return RowOptions::dropMimeData(data, inserter);
+                }());
+                if (doDropMimeData<Qt::Vertical>(droppedRows, dropOperation, row, column, target))
+                    return true;
+            }
+            // default mime type handling: dropping on item -> try to set the data
+            if (dropOnTarget && that().dropOnItem(data, target))
+                return true;
+        }
+        return false;
+    }
+
+    // A bidirectional-iterator that, given a list of QModelIndex, dereferences
+    // to a list of rows or items, plus QModelIndex, without copying any data.
+    // For segments in indexes covering full rows, we skip over the individual
+    // indexes and give the dereferenced index a column value of -1.
+    struct MimeDataRowIterator
+    {
+        using base_iterator = QModelIndexList::const_iterator;
+        using difference_type = typename base_iterator::difference_type;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = QRangeModelDetails::MimeDataEntry<const_row_reference>;
+        using reference [[maybe_unused]] = value_type;
+        using const_reference = value_type;
+        using pointer [[maybe_unused]] = void;
+
+        MimeDataRowIterator() = default;
+        MimeDataRowIterator(base_iterator it, base_iterator begin, base_iterator end,
+                            const QRangeModelImpl *model)
+            : m_it(it), m_begin(begin), m_end(end), m_model(model)
+            , m_columnCount(model->columnCount({}))
+        {
+            updateCurrentIndexFullRow();
+        }
+
+        const_reference operator*() const
+        {
+            const QModelIndex &index = *m_it;
+            return {m_model->rowData(index),
+                    m_currentIndexIsFullRow
+                    ? m_model->createIndex(m_it->row(), -1, m_it->internalPointer()) : index};
+        }
+
+        MimeDataRowIterator &operator++() {
+            if (m_currentIndexIsFullRow)
+                m_it += m_columnCount;
+            else
+                ++m_it;
+            updateCurrentIndexFullRow();
+            return *this;
+        }
+        MimeDataRowIterator operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+
+        MimeDataRowIterator &operator--() {
+            --m_it;
+            m_currentIndexIsFullRow = false;
+            const int lastColumn = m_columnCount - 1;
+            if (m_it - m_begin >= lastColumn && m_it->column() == lastColumn) {
+                const QModelIndex &firstInRow = m_it[-lastColumn];
+                if (m_it->row() == firstInRow.row()
+                 && firstInRow.internalPointer() == m_it->internalPointer()) {
+                    m_currentIndexIsFullRow = true;
+                    m_it -= lastColumn;
+                }
+            }
+            return *this;
+        }
+        MimeDataRowIterator operator--(int) { auto tmp = *this; --(*this); return tmp; }
+
+        MimeDataRowIterator operator-(difference_type n) const
+        {
+            auto tmp = *this; tmp.m_it -= n; return tmp;
+        }
+
+        bool operator==(const MimeDataRowIterator &other) const { return m_it == other.m_it; }
+        bool operator!=(const MimeDataRowIterator &other) const { return m_it != other.m_it; }
+
+    private:
+        void updateCurrentIndexFullRow()
+        {
+            m_currentIndexIsFullRow = false;
+            if (m_it == m_end || m_it->column() || m_end - m_it < m_columnCount)
+                return;
+            const QModelIndex &lastInRow = m_it[m_columnCount - 1];
+            m_currentIndexIsFullRow = lastInRow.row() == m_it->row()
+                                   && lastInRow.internalPointer() == m_it->internalPointer();
+        }
+
+        base_iterator m_it;
+        base_iterator m_begin;
+        base_iterator m_end;
+        const QRangeModelImpl *m_model;
+        int m_columnCount = 0;
+        bool m_currentIndexIsFullRow = false;
+    };
+
+    struct MimeDataItemIterator
+    {
+        using base_iterator = QModelIndexList::const_iterator;
+        // row_traits::item_type is wrapped, and void if not the same for all columns
+        using item_type = std::conditional_t<std::is_void_v<typename row_traits::item_type>,
+                                            void *, typename row_traits::item_type>;
+        using difference_type = typename base_iterator::difference_type;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = QRangeModelDetails::MimeDataEntry<item_type>;
+        using reference [[maybe_unused]] = value_type;
+        using const_reference  = value_type;
+        using pointer [[maybe_unused]] = void;
+
+        const_reference operator*() const
+        {
+            const QModelIndex &index = *m_it;
+            // pointer to the item as stored, including wrapping
+            const item_type *pitem = nullptr;
+            const auto &row = m_model->rowData(index);
+            if (QRangeModelDetails::isValid(row)) {
+                row_traits::for_element_at(QRangeModelDetails::refTo(row), index.column(),
+                                           [&pitem](const auto &item){
+                    pitem = &item;
+                    return true;
+                });
+            }
+            if constexpr (std::disjunction_v<QRangeModelDetails::is_owning_or_raw_pointer<row_type>,
+                                             QRangeModelDetails::is_owning_or_raw_pointer<item_type>>) {
+                if (Q_UNLIKELY(!QRangeModelDetails::isValid(pitem))) {
+                    // no use in warning about invalid item here, as the user
+                    // can't check for validity without dereferencing the iterator.
+                    constexpr bool is_constexpr_default_constructible_v =
+                        value_type::template is_constexpr_default_constructible<item_type>::value;
+                    if constexpr (is_constexpr_default_constructible_v) {
+                        Q_CONSTINIT static const item_type emptyDefault;
+                        return {emptyDefault, index};
+                    } else {
+                        // known to cause runtime initialization
+                        static const item_type emptyDefault;
+                        return {emptyDefault, index};
+                    }
+                }
+            }
+            // this will decompose to a [wrapped_item_type, QModelIndex]
+            return {*pitem, index};
+        }
+        MimeDataItemIterator &operator++() { ++m_it; return *this; }
+        MimeDataItemIterator operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+
+        MimeDataItemIterator &operator--() { --m_it; return *this; }
+        MimeDataItemIterator operator--(int) { auto tmp = *this; --(*this); return tmp; }
+
+        MimeDataItemIterator operator-(difference_type n) const
+        {
+            auto tmp = *this; tmp.m_it -= n; return tmp;
+        }
+
+        bool operator==(const MimeDataItemIterator &other) const { return m_it == other.m_it; }
+        bool operator!=(const MimeDataItemIterator &other) const { return m_it != other.m_it; }
+
+        base_iterator m_it;
+        const QRangeModelImpl *m_model;
+    };
+
+    template <typename Iterator>
+    struct MimeDataRange {
+        Iterator begin() const { return m_begin; }
+        Iterator end() const { return m_end; }
+        auto rbegin() const { return std::reverse_iterator(m_end); }
+        auto rend() const { return std::reverse_iterator(m_begin); }
+        auto first() const { return *m_begin;}
+        auto last() const { return *(m_end - 1);}
+        bool isEmpty() const { return m_begin == m_end; }
+        bool empty() const { return m_begin == m_end; }
+        Iterator m_begin;
+        Iterator m_end;
+    };
+
+    QMimeData *mimeData(const QModelIndexList &indexes) const
+    {
+        QMimeData *result = nullptr;
+        using RowOptions = QRangeModelDetails::QRangeModelRowOptions<wrapped_row_type>;
+        using ItemType = QRangeModelDetails::wrapped_t<typename row_traits::item_type>;
+
+        if constexpr (QRangeModelDetails::item_access<ItemType>::hasMimeData) {
+            using ItemAccess = QRangeModelDetails::QRangeModelItemAccess<ItemType>;
+            const auto begin = MimeDataItemIterator{indexes.begin(), this};
+            const auto end = MimeDataItemIterator{indexes.end(), this};
+            result = ItemAccess::mimeData(MimeDataRange<MimeDataItemIterator>{begin, end});
+        } else if constexpr (QRangeModelDetails::hasMimeDataRowSpan<wrapped_row_type>) {
+            const auto begin = MimeDataRowIterator(indexes.begin(), indexes.begin(), indexes.end(), this);
+            const auto end = MimeDataRowIterator(indexes.end(), indexes.begin(), indexes.end(), this);
+            result = RowOptions::mimeData(MimeDataRange<MimeDataRowIterator>{begin, end});
+        } else if constexpr (QRangeModelDetails::hasMimeDataIndexList<wrapped_row_type>) {
+            result = RowOptions::mimeData(indexes);
+        }
+
+        return result;
+    }
+
     template <typename BaseMethod, typename BaseMethod::template Overridden<Self> overridden>
     using Override = typename Ancestor::template Override<BaseMethod, overridden>;
 
@@ -2210,6 +3287,17 @@ public:
                                           &Self::setAutoConnectPolicy>;
 
     using InterfaceVersion = Override<QRangeModelImplBase::InterfaceVersion, &Self::interfaceVersion>;
+    using Sort = Override<QRangeModelImplBase::Sort, &Self::sort>;
+    using Match = Override<QRangeModelImplBase::Match, &Self::match>;
+    using AdjustSupportedDragActions = Override<QRangeModelImplBase::AdjustSupportedDragActions,
+                                                &Self::adjustSupportedDragActions>;
+    using AdjustSupportedDropActions = Override<QRangeModelImplBase::AdjustSupportedDropActions,
+                                                &Self::adjustSupportedDropActions>;
+
+    using MimeTypes = Override<QRangeModelImplBase::MimeTypes, &Self::mimeTypes>;
+    using CanDropMimeData = Override<QRangeModelImplBase::CanDropMimeData, &Self::canDropMimeData>;
+    using DropMimeData = Override<QRangeModelImplBase::DropMimeData, &Self::dropMimeData>;
+    using MimeData = Override<QRangeModelImplBase::MimeData, &Self::mimeData>;
 
 protected:
     ~QRangeModelImpl()
@@ -2279,28 +3367,27 @@ protected:
     template <typename F>
     bool writeAt(const QModelIndex &index, F&& writer)
     {
-        bool result = false;
         row_reference row = rowData(index);
-
-        if (QRangeModelDetails::isValid(row)) {
-            row_traits::for_element_at(row, index.column(), [&writer, &result](auto &&target) {
-                using target_type = decltype(target);
-                // we can only assign to an lvalue reference
-                if constexpr (std::is_lvalue_reference_v<target_type>
-                           && !std::is_const_v<std::remove_reference_t<target_type>>) {
-                    result = writer(std::forward<target_type>(target));
-                }
-            });
-        }
-
-        return result;
+        if (!QRangeModelDetails::isValid(row))
+            return false;
+        return row_traits::for_element_at(row, index.column(), [&writer](auto &&target) {
+            using target_type = decltype(target);
+            // we can only assign to an lvalue reference
+            if constexpr (std::is_lvalue_reference_v<target_type>
+                        && !std::is_const_v<std::remove_reference_t<target_type>>) {
+                return writer(std::forward<target_type>(target));
+            } else {
+                return false;
+            }
+        });
     }
 
     template <typename F>
-    void readAt(const QModelIndex &index, F&& reader) const {
+    bool readAt(const QModelIndex &index, F&& reader) const {
         const_row_reference row = rowData(index);
-        if (QRangeModelDetails::isValid(row))
-            row_traits::for_element_at(row, index.column(), std::forward<F>(reader));
+        if (!QRangeModelDetails::isValid(row))
+            return false;
+        return row_traits::for_element_at(row, index.column(), std::forward<F>(reader));
     }
 
     template <typename Value>
@@ -2370,6 +3457,8 @@ protected:
     void connectPropertyOnRead(const QModelIndex &index, int role,
                                const QObject *gadget, const QMetaProperty &prop) const
     {
+        if (!index.isValid())
+            return;
         const typename ModelData::Connection connection = {gadget, role};
         if (prop.hasNotifySignal() && this->autoConnectPolicy() == AutoConnectPolicy::OnRead
                                    && !m_data.connections.contains(connection)) {
@@ -2802,12 +3891,6 @@ protected:
                 decltype(auto) maybeChildren = this->protocol().childRows(*it);
                 if (QRangeModelDetails::isValid(maybeChildren)) {
                     auto &childrenRef = QRangeModelDetails::refTo(maybeChildren);
-                    QModelIndexList fromIndexes;
-                    QModelIndexList toIndexes;
-                    if (changePersistentIndexes) {
-                        fromIndexes.reserve(Base::size(childrenRef) * (pmiToColumn - pmiFromColumn + 1));
-                        toIndexes.reserve(Base::size(childrenRef) * (pmiToColumn - pmiFromColumn + 1));
-                    }
                     auto *parentRow = QRangeModelDetails::pointerTo(*it);
 
                     int row = 0;
@@ -2816,16 +3899,14 @@ protected:
                         if (oldParent != parentRow) {
                             if (changePersistentIndexes) {
                                 for (int column = pmiFromColumn; column <= pmiToColumn; ++column) {
-                                    fromIndexes.append(this->createIndex(row, column, oldParent));
-                                    toIndexes.append(this->createIndex(row, column, parentRow));
+                                    this->changePersistentIndex(this->createIndex(row, column, oldParent),
+                                                                this->createIndex(row, column, parentRow));
                                 }
                             }
                             this->protocol().setParentRow(child, parentRow);
                         }
                         ++row;
                     }
-                    if (changePersistentIndexes)
-                        this->changePersistentIndexList(fromIndexes, toIndexes);
                     resetParentInChildrenRecursive(&childrenRef, pmiFromColumn, pmiToColumn);
                 }
             }
@@ -2906,11 +3987,90 @@ protected:
                    : *this->m_data.model();
     }
 
-private:
     range_type &childrenOf(row_ptr row)
     {
         return row ? QRangeModelDetails::refTo(this->protocol().childRows(*row))
                    : *this->m_data.model();
+    }
+
+    template <typename LessThan>
+    void sortImplRecursive(range_type &range, row_ptr parentRow, const LessThan &lessThan)
+    {
+        for (auto &row : range) {
+            decltype(auto) children = this->protocol().childRows(QRangeModelDetails::refTo(row));
+            if (QRangeModelDetails::isValid(children)) {
+                sortImplRecursive(QRangeModelDetails::refTo(children),
+                                  QRangeModelDetails::pointerTo(row), lessThan);
+            }
+        }
+        this->sortSubRange(range, parentRow, lessThan);
+    }
+
+    template <typename LessThan>
+    void sortImpl(const LessThan &lessThan)
+    {
+        sortImplRecursive(*this->m_data.model(), nullptr, lessThan);
+        resetParentInChildren(this->m_data.model());
+    }
+
+    void prunePersistentIndexList(QModelIndexList &list, row_ptr expectedParent)
+    {
+        erase_if(list, [expectedParent](const QModelIndex &index){
+            return static_cast<row_ptr>(index.internalPointer()) != expectedParent;
+        });
+    }
+
+    void matchImplRecursive(const range_type &range, const_row_ptr parentPtr, int from, int to,
+                            int role, const QVariant &value, int hits, Qt::MatchFlags flags, int column,
+                            QModelIndexList &result) const
+    {
+        auto it = QRangeModelDetails::pos(range, from);
+        auto end = QRangeModelDetails::adl_end(range);
+
+        const bool recurse = flags.testAnyFlag(Qt::MatchRecursive);
+        const bool allHits = (hits == -1);
+
+        for (int r = from; it != end && r < to && (allHits || result.size() < hits); ++it, ++r) {
+            const QModelIndex index = this->createIndex(r, column, parentPtr);
+            if (this->matchRow(*it, index, role, value, flags))
+                result.append(index);
+
+            if (recurse) {
+                decltype(auto) children = this->protocol().childRows(QRangeModelDetails::refTo(*it));
+
+                if (QRangeModelDetails::isValid(children)) {
+                    matchImplRecursive(QRangeModelDetails::refTo(children),
+                                       QRangeModelDetails::pointerTo(*it), 0,
+                                       int(QRangeModelDetails::size(QRangeModelDetails::refTo(children))),
+                                       role, value, hits, flags, column, result);
+                }
+            }
+        }
+    }
+
+    QModelIndexList matchImpl(const QModelIndex &start, int role, const QVariant &value, int hits,
+                   Qt::MatchFlags flags) const
+    {
+        QModelIndexList result;
+        const bool wrap = flags.testAnyFlag(Qt::MatchWrap);
+        const int column = start.column();
+        const int from = start.row();
+        const int to = this->rowCount(start.parent());
+
+        for (int i = 0; (wrap && i < 2) || (!wrap && i < 1); ++i) {
+            const int fromRow = (i == 0) ? from : 0;
+            const int toRow = (i == 0) ? to : from;
+            matchImplRecursive(*this->m_data.model(), nullptr, fromRow, toRow,
+                               role, value, hits, flags, column, result);
+        }
+        return result;
+    }
+
+    // tree models don't overwrite the data at index, but instead insert a
+    // child item
+    bool dropOnItem(const QMimeData *, const QModelIndex &)
+    {
+        return false;
     }
 };
 
@@ -2928,6 +4088,7 @@ public:
     using range_type = typename Base::range_type;
     using range_features = typename Base::range_features;
     using row_type = typename Base::row_type;
+    using row_ptr = typename Base::row_ptr;
     using const_row_ptr = typename Base::const_row_ptr;
     using row_traits = typename Base::row_traits;
     using row_features = typename Base::row_features;
@@ -3061,6 +4222,12 @@ protected:
         return *this->m_data.model();
     }
 
+    range_type &childrenOf(row_ptr row)
+    {
+        Q_ASSERT(!row);
+        return *this->m_data.model();
+    }
+
     void resetParentInChildren(range_type *)
     {
     }
@@ -3074,6 +4241,49 @@ protected:
             ++rowIndex;
         }
         return result;
+    }
+
+    template <typename LessThan>
+    void sortImpl(const LessThan &lessThan)
+    {
+        this->sortSubRange(*this->m_data.model(), nullptr, lessThan);
+    }
+
+    void prunePersistentIndexList(QModelIndexList &, typename Base::row_ptr) {}
+
+    QModelIndexList matchImpl(const QModelIndex &start, int role, const QVariant &value,
+                              int hits, Qt::MatchFlags flags) const
+    {
+        QModelIndexList result;
+        const bool wrap = flags.testAnyFlag(Qt::MatchWrap);
+        const bool allHits = (hits == -1);
+        const int column = start.column();
+        int from = start.row();
+        int to = this->rowCount({});
+        decltype(auto) siblings = *this->m_data.model();
+
+        for (int i = 0; (wrap && i < 2) || (!wrap && i < 1); ++i) {
+            auto it = QRangeModelDetails::pos(siblings, from);
+            auto end = QRangeModelDetails::adl_end(siblings);
+            for (int r = from; it != end && r < to && (allHits || result.size() < hits);
+                 ++it, ++r) {
+                if (!QRangeModelDetails::isValid(*it))
+                    continue;
+                const QModelIndex index = this->createIndex(r, column, nullptr);
+                if (this->matchRow(*it, index, role, value, flags))
+                    result.append(index);
+            }
+            from = 0;
+            to = start.row();
+        }
+
+        return result;
+    }
+
+    // flat models can overwrite data of the dropped-on item
+    bool dropOnItem(const QMimeData *data, const QModelIndex &index)
+    {
+        return this->dropDataOnItem(data, index);
     }
 };
 

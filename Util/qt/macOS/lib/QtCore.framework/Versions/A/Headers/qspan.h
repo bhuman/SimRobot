@@ -192,7 +192,7 @@ public:
     explicit constexpr QSpanBase(It first, qsizetype count)
         : m_data{q20::to_address(first)}
     {
-        Q_ASSERT(count == m_size);
+        Q_PRE(count == m_size);
     }
 
     template <typename It, typename End, typename Base::template if_compatible_iterator_and_sentinel<It, End> = true>
@@ -265,7 +265,10 @@ public:
 
     template <typename It, typename Base::template if_compatible_iterator<It> = true>
     Q_IMPLICIT constexpr QSpanBase(It first, qsizetype count)
-        : m_data{q20::to_address(first)}, m_size{count} {}
+        : m_data{q20::to_address(first)}, m_size{count}
+    {
+        Q_PRE(count >= 0);
+    }
 
     template <typename It, typename End, typename Base::template if_compatible_iterator_and_sentinel<It, End> = true>
     Q_IMPLICIT constexpr QSpanBase(It first, End last)

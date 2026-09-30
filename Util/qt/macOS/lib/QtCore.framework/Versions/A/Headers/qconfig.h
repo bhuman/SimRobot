@@ -59,18 +59,24 @@
 
 #define QT_FEATURE_opensslv30 1
 
+#define QT_FEATURE_static_compiler_runtime -1
+
 #define QT_FEATURE_test_gui 1
 
 #define QT_FEATURE_test_squish 1
 
+#define QT_FEATURE_test_auto 1
 
-#define QT_VERSION_STR "6.11.2"
+#define QT_FEATURE_test_baseline -1
+
+
+#define QT_VERSION_STR "6.12.0"
 
 #define QT_VERSION_MAJOR 6
 
-#define QT_VERSION_MINOR 11
+#define QT_VERSION_MINOR 12
 
-#define QT_VERSION_PATCH 2
+#define QT_VERSION_PATCH 0
 
 #define QT_COPYRIGHT "Copyright (C) The Qt Company Ltd. and other contributors."
 #define QT_MAC_FRAMEWORK_BUILD
@@ -101,6 +107,5 @@
 #define QT_COMPILER_SUPPORTS_SHA 1
 #define QT_COMPILER_SUPPORTS_NEON 1
 #define QT_GUI_TEST 1
-#define QT_SQUISH_TEST
 
 #endif // QT_FEATURES_GlobalConfig_src_corelib_global_qconfig_h_H

@@ -6,1557 +6,1571 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		GhgRRp8kMsr52ofiK5a4qf9W6UA=
+		Gnet+jA8O5jXPLofek0CRrLOC6U=
 		</data>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<data>
-		3kl0GqG1oObh2X1r++nsbMm/INA=
+		7Y7aQGcUd2iAp1PqGwsoXK96eL0=
 		</data>
 		<key>Resources/QtGui.prl</key>
 		<data>
-		oG7ZHhfquTgDl8kX6fI762iTBEE=
+		dSpUwKq4IQ7nn4tRNyT9W1LJy8A=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>Headers/6.11.2/QtGui/private/qabstractfileiconengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qabstractfileiconengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QMjkRx69NgXqJz1D7HAY+UxufvYwvki/+7Hjf0gdAsc=
+			eL35tQIaGMKQzSduN3o7X4drEzAVeAykWYHalcOz8Mg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qabstractfileiconprovider_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qabstractfileiconprovider_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qBqZx9K/G5U8P8CA540v72NpSlzTvwMAA1YqhEtD0Cs=
+			bPG1sqjhOycVMrmmsf4N0X/TBudU0IleiFlA0AIPdCE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qabstractlayoutstyleinfo_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qabstractlayoutstyleinfo_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			cZax0e4oWso9vcHlYynkPd0YO/0dcynbsbJnU0SkcGM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qabstracttextdocumentlayout_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qabstracttextdocumentlayout_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			1titgiH1GKWkKKbFcZKiTfr9G/NgK8Pn4mrVpoC+BZ4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qaccessibilityhints_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qaccessibilityhints_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4Rdf8qfcMUf5W4ix1VWVb68q8hYR+z5ylZYsbptXYzg=
+			iO2Fs5P4vbNQOE3EcDnycZWAFy/tw3fWs7SPCZQU/xo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qaccessiblebridgeutils_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qaccessiblebridgeutils_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			pzBvojefCCeKDbXDfVywVMuxdm+KyxiTKc8v1Fjuns8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qaccessiblecache_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qaccessiblecache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			okCrAndMKyRVplFy2ikBVJ2NNxb+atDGRNNDVENlE3Y=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qaccessiblehelper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qaccessiblehelper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			XJS1fU/mtaHRTLtDJE+N+2ZCIRSgp7l5k+aOwdQ/YtY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qaction_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qaction_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1wveZAZHDyWPDZMTgRZL+C2qqau/1hFf4uVr3nNKxJo=
+			o1zm+AlEf6zfzk5xrlCOIzNpGhk3HwRjuw1bmbVmLyQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qactiongroup_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qactiongroup_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4zjlslqPOb63eY1G/zQ2gDdsrfB2O0WB0kqrbwmo+wU=
+			+TWODoyjMA1C2idvQhIskcjbjqDB+xaDLi1454HbNms=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qapplefileiconengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qapplefileiconengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			RJFzvIfPSn0P6HSPCLrbbbCvWGnO4K5La1bzNq/o+Q0=
+			mYV2rQ1mREKC60Y/6R+2R8Nqw05L+kkAiYG7APfNPxA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qappleiconengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qappleiconengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Cmb1eKPXrywblHfAravpVcDNSfAfIHsauMsuH1/p/BY=
+			JHIiMJrEKLq2mPDWttlF83BVNrmoO0oIrbAyXC1vavI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qapplekeymapper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qapplekeymapper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			CrqDtflqGw78PDnHbJqU8+xSDYcX9X94K46ntMtOvUQ=
+			GBjrkKaqJzWonpjRBYmQq7/M1tdgI6k7R8LfwlXrO74=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qastchandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qastchandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			xMlJ9Noqe/UCx6w+zCwjlbuloD8hP/H8E0ZwvvGEP9w=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qbackingstoredefaultcompositor_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qbackingstoredefaultcompositor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Fv12ssjFbKXh72f69nLDI73FfyQsy/1y2elZzIWcC9g=
+			rVj7eAHTOzVHVU0pr/KxOouXJ7+ABU9au003ZYgMEvg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qbackingstorerhisupport_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qbackingstorerhisupport_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6lkce4fdslar6XZjju91bLMuZXS7GLe2bEHmv0VX5kU=
+			r0r9bTbf+xw1h/DwOpUoWERBeRx8zg/K5AtgfNXZeo8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qbezier_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qbezier_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uyq8cWmXTWQzrYJCO48jzzMlG3OrmBn+nWrcHT3f5MM=
+			yN/I6sVyIK3hvUBWwESLO/9sJDOXouRoOe12weCXafE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qblendfunctions_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qblendfunctions_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZtclQjMpySwoAIGwi5DsuVQaNY/7SAa6RmErMpq2eOQ=
+			TeTLqRj8AKKbNZeJbZyR5RrY3nECAZj8ignUEgfrf5k=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qblittable_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qblittable_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			aHHh0LAOK5rzyjdsxlXKwkVuPBGBpaGqoJ1oC2xfC1k=
+			5HFIGYCZCsIeXxB88ufSdQ8bN/s0xFoYP00vTrhvT3E=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qbmphandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qbmphandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			k5tqsYR+DaBlbDL1AGorjeVNw3yKhMFAIATOlGDta0I=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcmyk_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcmyk_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uwZugAxWafm9XnIHD3o8TXk2+l3UMHcv5i9lA14qvdU=
+			LKwZUoP/bhFVIhkaG57dRCLtTREdV+TB5+UUxnW/yL4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolor_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1D1PRv9z/AWz+4BIx+8FcBEkCwBVKQjygR6k6tAVOPA=
+			CQsA4YJVcYpA6bdEHa+fs3Q2vwgS4n2QYHu6W17aHV8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolorclut_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolorclut_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Bd9Tmswnv4MfDpKZvcmLwToJ/4D6nqtnuIqHQvcz2zE=
+			z5eJSUdgWlJjzdOycrcOBmgZVdZ31sC0/mRaImO2opw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolormatrix_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolormatrix_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			3pdXpAEtJ1A3c/Ho5TU04lELYD+VrOPTvxj5bSX4I6A=
+			l3MV/bsow45P3uenESqKmqL3KaOq5Ss0URytVe4RryQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolorspace_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolorspace_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			t/v5uYwv8JYO6r8tJIyWQtApug78kRt9AUP7Z9krqws=
+			S8sNf+uBKX67KNBWPudxn6WiZLFB1nyDAukKCvcEYnM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortransferfunction_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortransferfunction_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jLxNAP1T4wFKfNTrLkLE7sM6DqXVUzkXHhbK6IVsyNg=
+			p9TrEqqKX5lWCDky7nksbLwiVRmSVxXSWun/3SsBl0A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortransfergeneric_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortransfergeneric_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			BONaOo4OngN7Pud7m/AlRGeN0x/14cFOjgZtLKB+nII=
+			Gru3+bQBFYNz6bcP+EZ+AXGfGQeqW/tU45tYdXIXnL0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortransfertable_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortransfertable_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			qfZIwRJJ9JqI7hYyn2MDtkstoXTdO39QNmHN1KYeNM0=
+			V5qZyBil+50b86FK3KPMVn2QdkjzNVp8vGxJJpwZCyA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortransform_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortransform_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			cUzf+agOcyqbJZuBd0OubQxthYJegqmSxo5JXx0aL+Y=
+			70gZz9/5LTL1mfneePomAfR2aQNUZ7XibwhPAH5LCOQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortrc_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortrc_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nKbzKVFBcQE9E2905scLbOHId8qjVu4iSdRZ+pWmq1o=
+			Z2HOTdY9fw622+Q4PUoQn8CEi94/pwB4tlbbCtzm+bo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolortrclut_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolortrclut_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2YTnLtL0KFMoAT9iAhywTLh/M02nxjV5VSZ+ot5jVUU=
+			pfxMeBSNmwvIPGn/TXTzm1yVe3DUnXyty4S/SvWEE9U=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcolrpaintgraphrenderer_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcolrpaintgraphrenderer_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			Wnng32pwzrrsYkKF650KmfY5j2FpPShC9RgwoDze2jU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcoregraphics_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcoregraphics_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			SkqycNRwQ/+BPfIBFnkbN53MCvaoHUZrlc8N8CEnsXY=
+			Q2RDdHd6AwylktzGsmHF8LR7ZDW69gLFoOg1lQ6HFzk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcoretextfontdatabase_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcoretextfontdatabase_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zy0dqvAbPAHbinUk8EcgJZtszjOZkZoljFWpfZMBTxQ=
+			KksEKYpmsggOBUQ4Mc8GWir0snCUzh4YbGo4sv8VWs8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcosmeticstroker_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcosmeticstroker_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/Q+5NkBb0VH+yhkRvIeIHfqxvbBoeK1mnfDZKFrGxAE=
+			Tp6/ePCWTre9bb5/RvKNa1iIBewJCxhPSNPIbR/iHlQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcssparser_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcssparser_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			hi2ulrd0UUw6jrh/gF9B6d9zrRhV4goVk5KCLpKnV6w=
+			jWPWKV3UKhMkEsdHosEVqGmEDxSilbuZZag9dpQZWd0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcssutil_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcssutil_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tHdtiS4cwCteWfDzxI1c9CNDHIDpyPOrLHBXYukpUI8=
+			YJEDVeyNFU23bUGxh1F63VpkTSatI6w7gXKaJav5htU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qcursor_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qcursor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zMpLF0dunvy9DoGo+vyL9nPNt2mF7lUax0fRNtSl/lA=
+			smAMg1Dlea14d4P2UcMCaQuHAtjRJQHK+xOfClCSEYI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdatabuffer_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdatabuffer_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lHtLd6Z5KfaPVxTfWlTL1X7+Z8CFrcNTqtzC1+uNA7c=
+			Y9Dvw5pe4ZqCWTdBLmlnyK3/d1NvZGvLAsQ2NXQEo0A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdesktopunixservices_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdesktopunixservices_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zrq/sHaCJxvqtk1MZ9HDhm18V42Sc0XlbErk0XhlYhI=
+			fJ5ajPLpMLiczWLe5QXASIV0Uxlal0E3/z2o1rW9nNw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdistancefield_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdistancefield_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			tF90pqovW8iF4mZ7bTIdOd4Hbudt28y+ITQu6WQeit4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdnd_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdnd_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QO87S88tWFfBd9DU+7ENsqkwP0CVd9ASYz/Y54JwE4s=
+			xmwyLcjMHuWqxeqRNulz2ZYdhuNaQHOYe2qSTL3BLLI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawhelper_loongarch64_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawhelper_loongarch64_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			utUqCCwECSms4oTTDaPSBh3nFsbM4lwU0rhndnQDk1A=
+			NezaTu9FURTn0G/LtDHeoqwlHw/9Jcf2LqSMwIJ8S0A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawhelper_neon_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawhelper_neon_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			x0LnvB55xmaH6ZB990Og3qep8fNnoNcHkI4QR6MpKCs=
+			FnWr1zbqVz9cHsnnevpjvpzlbk1z5O6eeJ9nZmTwtwg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawhelper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawhelper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			WFOQdsfvDk1LDfeFqySvEwAvZnPhJuH6/79bjChXpbk=
+			KZv7omeSIGLWF6Oh7Ye6PHu7vfdHYUGf0upok8+MNYM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawhelper_x86_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawhelper_x86_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZMt3mrhiI1ez2Klr50Oh5/bAlSiGmYf6NZ39d72+LFk=
+			Frpuy+GCAIRtUUt2BahkYUJTPVMgvs6Q5LSi4Bixed8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawingprimitive_lsx_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawingprimitive_lsx_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jyIQHDKTSPGL7f/Ud/pjs3j/EeLtwM96M4ShfHIiHoo=
+			bHQidesEsgFmSk1hRt6J6Aao3Vo2eyI6DS5bgX3aqB4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qdrawingprimitive_sse2_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qdrawingprimitive_sse2_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			GXrZcY5q/axqtiJuT3GiQH8hD2p4Fe3tNdvUiXtRjns=
+			jG7iEC2tPwLJxF05db5/RG6pWXbY0MiFXCX4dR4kkhA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qemulationpaintengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qemulationpaintengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			M0MRQIsDFYrWgd2MwoNxHT72o57H0KcvDqwr7u+TaOg=
+			E+2AoIf5GkxawQfG4mh5S4XnrWt96i7HMTGmvE/B7Lc=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qevent_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qevent_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Cjk99fZVDdcPWAkz+NvJrnJ9+bRgWlCAyg7AQsn8vj8=
+			GNl6KV/VWHGCD1AxgtDGxkrXqfp/xfIfhS08Pi+Dk7U=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qeventpoint_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qeventpoint_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8wMXeRGsNWaxlYcldkAyiNd4tRYrITY+K7jCNCsuJoA=
+			MvS+rvpMop1wv2DjvmrfSvIFuOCQEau3ATMyhDuQ2vg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfileinfogatherer_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfileinfogatherer_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			MqpBUSB++qkmuW98JIYIwqF04vomDOoJGsYACCotTQw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfilesystemmodel_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfilesystemmodel_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			1xKSgTmAljN0Z2HPBfs7IHE2hjJrfjEvvdVavrSYKmI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfixed_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfixed_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tDVdWEWqJ4Ipcz6GgdzSwSkSt4dKE3Wq+5M9CP+xAbA=
+			SNO3UEFcmeTZEYqcodISyhXVyhCU3PtKY3ZsLQGtZlE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfont_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfont_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rW/5wE+0Y56YfVRy4/EYtHYxuS/4CA0od6zTHHQjH3o=
+			9zxR5Cz+Om8U2PoaToqfS4Tk+yymZifHRaYunF+SMhU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontdatabase_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontdatabase_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			Q6v6LsjhmpQlfCg2j4XWrZxyAaTzp6xc58AKEO5HUFQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontengine_coretext_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontengine_coretext_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			4705pSiVgnFVy7rQbg04Q2l+c4eLuIiJlF8X5boYce0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontengine_ft_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontengine_ft_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eOwVj7XTTwSzb6k3axs30yahhJGOKbQ+5e+5hiVEQNA=
+			5s2OCi8YyNQi3xc0pEWL4gH/yOIN+FJGNFzJ8YgBttU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			OHLz778JvmyPpcYPx63o2JlQlTkEi+5/6IJFyKJH1Nk=
+			OuWIm1lsaV3gCyA9rkIbGdxPYo7xWb5KRm8R5fuRbrw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontengineglyphcache_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontengineglyphcache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			MITFVIgSi1hbnOmAe4kVs6s6RXIOwNKiek14u/HtGGE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfonticonengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfonticonengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1b4F28dj0PI8ewMwxa9iMWgUJbD+NsFuviC/1y8SvdU=
+			+rVfbCvh49VcFbsHt99qdBEhko0sSuqosAktuJmF+A0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfontsubset_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfontsubset_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			e5rOI0+TmjqQUIWhB6Pi6gn6GeBIidtKATz8c7lKdgY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfragmentmap_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfragmentmap_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			EKBP76q62aex4+95HQYdzFVZLjAy259IOwW1UdCINvA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qfreetypefontdatabase_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qfreetypefontdatabase_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			+J/nTMrUSd0I21jmZBuO8ciHz+Aa7KAXCRpNvrB1WbE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgenericunixeventdispatcher_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgenericunixeventdispatcher_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			K1GaXjgziimH58lKsdHqqA4EdNhmq+Jp7wQUelPlDQs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qglyphrun_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qglyphrun_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			5bPU1zX0lTA0PaxpIcPiBhZhfyWLePQxR1IuxbIJ788=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgraphicsframecapture_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgraphicsframecapture_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			uu101hVOruWocLYP+7XaLZKLJRYsg7gefQAjnhvshV8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgraphicsframecapture_p_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgraphicsframecapture_p_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			gb6xj/KEiixLx2aOIAIoYwqkU5foNdmi+K8lRD0KR1w=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgraphicsframecapturemetal_p_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgraphicsframecapturemetal_p_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			oUQMhZ7F+nuA9sMnyakrFgaYk1TeFcSQxyjOViHhbUY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgrayraster_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgrayraster_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			S1Od1Qpws4Z6h/0SZL9BMTrRoRXvRbbf91+HeoR9DP8=
+			At4mQpfniOKUv+3+kQ2msq2tvbcDgRUs1wFgXLqL5zg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qgridlayoutengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qgridlayoutengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			YQdP2/WrnIuWOa5yJKGGEnX3gOszVeTN8tA/GMagM+s=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qguiapplication_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qguiapplication_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			oBhv+rIshwYuZPtZJhmpJydIn5hIN2RxeKONjiFLUDU=
+			2ELhGmgLp8fHcmGSf8KbZITRHrLAqwva3U8IO8HP9cI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qharfbuzzng_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qguisvg_p.h</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			3Ur8GNlswmR/Ex4XL54Pu1p2tUQ8acMjo/cM/BiZkDs=
+			</data>
+		</dict>
+		<key>Headers/6.12.0/QtGui/private/qharfbuzzng_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			CMCNHYDSwwcUUUVjh1gGzF2iwWatT2T8ZqWIT6iHpSo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qhexstring_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qhexstring_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			G2QiiB1cnHP9TZ6WgWmqSrxRvRmXadxJhhQi1KwMqEs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qhighdpiscaling_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qhighdpiscaling_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+sVeIR43idvQQaL6k4IzcOxFVS6Mg+U68CRQkrD+KJo=
+			wOJxOcZk3sE7XOhfgwjx/o5dju5Y/s+R976Ymg/Xa9g=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qicc_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qicc_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			E9BE2eWv3FaFD+7Pcy8ox2ojd6zmSHBQKVRO8S8W1to=
+			sdUtPn1eSIXIZGN1FpBwNMczE28ZFpiWhjh1M/KvmQo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qicon_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qicon_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rCgGivpLJGoQxtiPYL7iH27HFZuV2UVMBDM+luWubCU=
+			xRFxuCbqtAeS1XGAEGFzi868Au4CQrTOrmMojj89CRk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qiconengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qiconengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			an1y3Fad0XKMuzW7my2zRUJVz/8CzQ3q2uvKHaTe/CU=
+			zoqaFVYbcEnyi4PDGdv/RIGrFm9rS8s8EEco0qt+FOI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qiconloader_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qiconloader_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VDMkjawzigO54L1RPFMTikaYIDcVlKyi7VG5awdB0po=
+			Ry+4UOFaSKjVSmegNGhcxtNL9nYPU/uKt73FuDEFhQQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qimage_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qimage_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			cl2NRYt64P5Wrkh4H3m6Ow28v4H+0ePDZjJlBSptpqs=
+			as1SUNFKoeJdqjFJds8WLRyqXrtdjs1aosI1tNxFBEE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qimagepixmapcleanuphooks_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qimagepixmapcleanuphooks_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DAjrWhgdspyeU7Y0jSUCCF5adc/oTq92WZG2Z2mNTsI=
+			TyHlBigOb27HBprHoJBmw36A0e1WPXOTaeyhz0zVlak=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qimagereaderwriterhelpers_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qimagereaderwriterhelpers_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rJkT/sxj3O4AvfDb0W0tloVdLT8CBWYpu0sSw8CIrN4=
+			mVQ2UId6FXcGFX0rduoxxjoIsuJ4z3kTTkvgwuH5Wgs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qimagescale_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qimagescale_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Qt+O6FnzrbZVtA1ZSDUb+BvPQ+cehHql45xn7EPYkpA=
+			QkaOLjGBxIJK3WR5AGmomf11pzKniSjqS4KZd6mFOaM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinputcontrol_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinputcontrol_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			I7nCI+VQLUxI0wPrdAKhXXN1H7NvMh1K97Tbxw2u22M=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinputdevice_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinputdevice_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1HCeiFQtt2s4PmM95qkFHM/ULchOY0zLv+ftCjPdeWw=
+			kGKRAg8pL5PXTIvazJIXQycoANBrmAdl84G3mnTx28A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinputdevicemanager_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinputdevicemanager_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FxMBJmRW8oVEHcd7ONBfWe2UBGkajLKlkFk/EHom0d0=
+			k8Jjc1sq12rm291uSeSKPw8Wp9IqNwM1gkajhhwjtBg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinputdevicemanager_p_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinputdevicemanager_p_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			RkW5sJccZX9PZHLZiA6VSrrNwXwfG9FF3lW5IYR9AeQ=
+			UfzV5HcaP+m3HjGcvSvntO/bXAnqdwhfNDe+d5fyk5o=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinputmethod_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinputmethod_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			U7KxFUpkFDUVU0kkpk9BS7q4I3OiiZrDtmN5dy0TE8k=
+			hbM0Ufu+wuE9XSiHS6l2DW3xRMODTKsm0UaLH/XqLo4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qinternalmimedata_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qinternalmimedata_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QPxRAw59tKisKbl1ce1+ULXUgZBCmkzE8IAhqS1B4zw=
+			3dIcRLKEL5rw/y1zpalhl+2EqJ/Ci+mQx+f9OzeQtxY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qkeymapper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qkeymapper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lzuS5E4sF1kxkBLdy4nmEaQSqhqrHZH0P5dW80ubAZ0=
+			o/Ngth1TLB3hnnYPYerCNPPHLc7WdBnyCAQVteseq2k=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qkeysequence_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qkeysequence_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			D/blSgbqvt6bFy3y0QNDaa1pZN9J/DOjmblEU3i1FXc=
+			1HPrGugYw55VrSh2DlojmJ3n7CmIvAkKd7BnOhR+jQ4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qktxhandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qktxhandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			8+RK72LB11Pvk2+bG/fHCMO+1MyrX76HLgqIGYOWnPE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qlayoutpolicy_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qlayoutpolicy_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			ijbq4eG+LPpoQg7LI8FNcxCiI0j0DdjePhbEvZMDRro=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qmacmimeregistry_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qmacmimeregistry_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ptjFnCRSnrpwqsqf1fE8IRuar8v348FKMPELb/EfOXo=
+			ZhL1kZ0bBERkGR2rM1UIKugTqGUOuNgmIUBn6PWETEQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qmacstyle_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qmacstyle_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			gnT53qtJTp5UrMrNQDoN+yup2OIyJB0BpqF4Zk1HfKw=
+			cQ4h+Lvp4VUes+FEBoRNItSWzpBTKAJQ8p1dLlcViTo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qmath_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qmath_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZuBv37kQQIuXKEMRqvqQk+9C22kcgPU+qkJhiBr9GPE=
+			2nCe7HWtjGsx69o3bJcvoLipCemVCImvdhQ5wtggSq4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qmemrotate_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qmemrotate_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VLW+nLBvOI/RcAiX6y5epF47Q3EYxOsfhUiQr1+GCWY=
+			FH+NRrZwj2jUYT6Nj3OemkDdHLKmD+DkfvPyA0JpZ4k=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qmetallayer_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qmetallayer_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zG1RDtIqPwtoBog1uoWdcG3MWC5m8t51NNzSiooa50E=
+			3yl47UiHBjN9c8bIURty+6ekvL9iGD+LbMfAgxLZ6g0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qoffscreensurface_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qoffscreensurface_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			/zBsn+6hiFBDL64QPSaSCDIGXBQ6rRZm8EI96g6FioU=
+			Vg6yJWBxoLKAz4LmBPULCUFkqS9Xz7S/RCk/Kp/q6Ok=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qopengl_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qopengl_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			9QqdeAhWuaJclSKSdpH3UUKi5JemCQTjJ6cZCygcoq4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qopenglcontext_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qopenglcontext_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6Zzi04aDIv5GKD6shJCFsyg12dU/yJOqyy9m80NWI08=
+			L7ZZpYlv6tw2/3t8SUbp5qmURNDG4NnLoPbv1+vk5uo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qopenglextensions_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qopenglextensions_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			iBW0fugVxu0AEN1N8MkTngaPK7qshO9zP+eB9JQDxeI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qopenglprogrambinarycache_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qopenglprogrambinarycache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ut4+Wd17He7WrzubC2jEUTe9q32wHR3MZw0rbyfxCO8=
+			qfiAEBINC+BvFNHSAo5w8izDwn/T3936s2PxjQ7tPnc=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qoutlinemapper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qoutlinemapper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ztPPQ+g9k9/EtWZjVjW1d8ydWShOfNzFKSOBVdD3y9o=
+			8LRYoZsHfNjoroBTEe50+OP0Y8KbZJokFyxNX+xE/aI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpagedpaintdevice_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpagedpaintdevice_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lyYmgUs6rBQibzeP4Z3+qsDu4ErF/pSfLvzT7J+m+Qk=
+			fgIF9aQxjPxAE2fz0oLVh8tntJynGT/wbBv3MccSyzo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpageranges_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpageranges_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			yOXdX9PSi7pXnU4mz5N7khcQ+JO7qbsahvnOgFIWxlk=
+			iowzk8NpwDAPnbWss8HAPkCZuMcwOJVPkN1qG/DdT6A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintdevicewindow_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintdevicewindow_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			0UGLMGcIML1ilUlTZpFfwA1y5zJ8pTpEHxVX5teZVBg=
+			M2qsn9tyKagEesNJvTbncSgbVzs9cfErntUCzMTLHWo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintengine_blitter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintengine_blitter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			S/6NFqdTqIsrBXSHYg7HrNGIhTRjSiSuNX8jGc6y2pA=
+			jJvo49ttrKPFpQzl2TAcikNLPXZEIKerCSfyYFz3834=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1QFbBGzq66V4lxiZGtYfW3GwPdvj0pV/C/6HkNDqYoY=
+			ev25jzgE1gKVzCDPr1lvty83F+QE14uD+sDGmV2JD3Q=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintengine_pic_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintengine_pic_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rMhwfHXMptx9WBrIxukfQuQ/KRmPvSQeRQLEY8jEWiw=
+			48SqHh6VLAKPEUE+gtcRXAngeBlabiaHkQ9oGrELZxU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintengine_raster_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintengine_raster_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DOZkXedwgwvX/PnQkRJqsk6MKVOkiK2NsiUjTEa0WzM=
+			Er85sXYPB4fK4Jz6q59hKIFui4gK9vnXrpVTYvXKAe0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpaintengineex_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpaintengineex_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			jzHRE9bAR5vmpI7BoulPxSkPzX5SJkNlhVQX4OGrmUo=
+			vNd3XZqRQi6ON1HrWYcIHtiXew0FNz7AMsV1gjdM+zY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpainter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpainter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			LyDJd5fiHQO+JCnNljKftkMXeXpFz3zLKv3nY2pYqIA=
+			IY+jlKyhHTCwViGir3AahXah220iXddkFyNL2YiJKsI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpainterpath_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpainterpath_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Ys5rccJ4RnpDbHj6R/QSlAgpKUWga5zHCg7ijgA7GgA=
+			kMI46n8oRQIU5Ly6qkABfmJ73O4Ey3jtMVtLn1E9zNw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpalette_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpalette_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Jwo7YU3ubSxMKsjEzqCNavkDh/I7ry6R77R14PPGt8w=
+			0NVkJU6Yr5bprmtEzCDy/D+OTOrOmmNTq4GN5m2DmAg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpathclipper_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpathclipper_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			b/qeTvQG1VsYsCcFM3syKkQa1SpzGgfvJuG4HueX75g=
+			YZJL4FbocF7lL+mzGRLbDLNf6wPdserJlgwt+akM8Qs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpathsimplifier_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpathsimplifier_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Bye48pTmQCEhGVS2j4WvdZXW3Pv3TngvmejAFe2/Fz8=
+			ITsHd9fsT1/q3TG1jQXx+tBfEbFJ8r0aQ4RImDh8ino=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpdf_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpdf_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			sjDTAGz/1H/iQ6uLnefivtqk48sKzwKGhckJZZ4o8FU=
+			pIIDHhvVJtHa4a8kPkUpuCz7A1M1NXFrblJxGcjtSBk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpen_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpen_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			wAx1wqs/CbiV+SJS98aY1k+h0b4OzAD44yG7SwGrbyE=
+			eY06NKk5vKOrOWWNif2HCdRJjMX3kN9na11d2nrgvTg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpicture_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpicture_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			BlAU4xCFInyeiIVdSL672WKcNfjNxdb7eufFzBfxFAQ=
+			R0EdP3KS1FKHqv6yC3nTXHu/WGVJCuKPkWG+9XAZ1iU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpixellayout_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpixellayout_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			kcttNREiBMIjSNbfJKkxcgR6CbM2ADA1H7AYnSpEu5E=
+			8td6PC/C9DQVoj0jOoPHpNxbi2bmCH/ymyLjf+5qPXo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpixmap_blitter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpixmap_blitter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			n7rf7LmbGqh1hlokK5Q34ULWSAtdFQCigoz1hCofMRA=
+			do8YXB/uhgDQR3aXd5w2Ze52+Vq/sEGJtHX5Arfb0Y0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpixmap_raster_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpixmap_raster_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			TKOjm2uTMUaM6en/LRTPbd9sR+GPthOzckLe7I+lDwM=
+			9/su3NrV0ct4Mgt2151FwdWrw5d/LHXzn+bC6R53Rt8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpixmapcache_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpixmapcache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Xg8z7tYJ+CjP1rsU9aUn/WRVugXDKC9TxhmHn5SeAVk=
+			Y69B0qz/OCf9EyPz5Dqa6q45rRje7yrZkxpA0Bx3DTA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpkmhandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpkmhandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			2ayNAwj9zWL1NXuNxUjLddOGpBAIxI4NwiVwQJtf448=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpnghandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpnghandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			j4q1Otpov9ovcVuBA0a4B4DTvxkBmbGbxhPC5vurgJc=
+			7d87tNjQ0uLUIO43ArZBMI4/vvKm9YbawpUMNa/Hz1g=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qpointingdevice_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qpointingdevice_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tdH9TSqFRRaKllXzhRKt6xYJIytcj8TzIyMKvXu9Dqw=
+			+LqCufQXGFjuzaQWTgWOUcC+v657F+jc8trkrqOeTBE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qppmhandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qppmhandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			AiaXFALGJbpB0YCHNnp2fEYGEOXp8zSJ9WhpeQ1687M=
+			6xx4vRrGNBkPGnsgvK313nLqjvw8vR9xfM8xkMMyOEc=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrasterbackingstore_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrasterbackingstore_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			483wYGnQ3cQhEyazPX1KJiqycaPd4UMFiMerJdtp+aY=
+			xgUR3SC9YrSjVrd2wZEFxyT8tA+I7/qrS1FGebXNaHM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrasterdefs_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrasterdefs_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			893VSv/p+p/a/vVlo3UQ2i6twDsSffsXiYz+nqVHzYo=
+			8F+Lxni+dj0kMGr+GByH+DUbgO/yMJLaBuMdVwWozeQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrasterizer_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrasterizer_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			WzdAXgl1VURqGa15qqQyY/gRfWTLHCyXuQgNoB/OaVY=
+			oTjbyCZQpyptk9sEkVsVsR984+PTymOl2+dTcHwbqJY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrawfont_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrawfont_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			/8KJ43AV8VdhB4WuZqr7HJPrZscflavK1Jngt+tIA78=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrbtree_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrbtree_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VNcZX3NqkhHGvxTmwCNDRW11tnxcUJbOvkeY8nT99bY=
+			x5G6yCEj7sWwe7RIO2D76QjpsHMP/8FC3st4G3lUGZM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrgba64_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrgba64_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xWu3dFWoqJbIlEOV7CoCm14lBXSUzl43R9o6c/Gve5o=
+			PEh2g8Pgp+AFH1sTLnkkGd4TQxqDVDoNeevt3H3G8vI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrhi_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhi_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			IzMHHZptLWMP/T6FkXR53pmpO15irvmLETNcIlBgX8U=
+			VLFL0pQVMOieDtUx95QlNjEFsAfpnixIb+x/WNs2pno=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrhibackingstore_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhibackingstore_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			7y+AHXSzwkZxLJukFsl4nyEzpCtrsclEPP2njI+EiTQ=
+			OVudEwVWzLZj7F7LGNY615iyemanAAfSAWFsu2vAUhg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrhigles2_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhigles2_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			RaF4zzkrlzF8AROXWT6aIUiWLPub1P7IEgUavI4nw2g=
+			rwH5qs3eidhnBduvjrMf8vDTc3U2/3Pq/NopF8situw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrhimetal_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhimetal_icb_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			i5K4Vz2ID2raN2ca9HuARD1sNO0xr9aWpVf/ktspxzc=
+			9QHj9QUVWCdacwsTCoqMwrBQccSfNwEoMfra2/E32sU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qrhinull_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhimetal_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			W+8mbAn7NDrqDiTdbKzw2aA1vowihOOasYjNDho1qtw=
+			wt0a5mAnCPDzlA5mk3fTAZAicqaIfsnlRHckue+Pgzs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qscreen_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qrhinull_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			W2JpHXKFmc9YN1Bo8qF3/rU1AGE+MuOKB0bgDPuQuQ8=
+			BAlScFn9PF0RDHZsynXb7ZE24cvnJS7EoGVUyPrwVX8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qsessionmanager_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qscreen_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			WuQfa247Bqv6v0hwKI+VlmbCwPpPJSVYQ7Czr9A66Ss=
+			sab7QKyUD3v1gVBlWdEBsvrukej384fF4ujZ/COfNEE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qshader_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qsessionmanager_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			cN79JUIruN1AWioJZY0sUP2ckc/bChorVrh4x3CGuTE=
+			8XRNI02KexC57KjmIHOgaKRQColV9PMG9zZQVILX5N4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qshaderdescription_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qshader_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			7aRpM2yKC257zzmiHqkg/Gxy8nNox+GVjzEYI1SLpqY=
+			4Kwzrh1e/w7nsg3n/dPhp+odOR+hAG2rM/fzD3IXh/8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qshapedpixmapdndwindow_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qshaderdescription_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			03/gmNEcY0KBCW878Cga8ncYtLWb4gS2B/CjILIOh7A=
+			du8OzTwTQ3GoQiRCWJBmyn3RJaKi18OjEPv7ZflVxRI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qshortcut_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qshapedpixmapdndwindow_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4Fn/BXBjCswW0hfCe+Akhq8Tv7kz7ENHBt7ciqlc9Bg=
+			6aH5j46w9cW0IeKhcEyOSVnh/7zkYoJEKdHWx9CWMxQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qshortcutmap_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qshortcut_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			tHp3Imri0oKG1aykA4FBlXbUKt7BMM2i7v/L+nYiyGs=
+			BIMQF1fHb4VBfjagbmNM39zaWPn2ScE9dqp/wJsihKI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qsimpledrag_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qshortcutmap_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5ZY9+IX4inVldvxkYnfeo/YOLhlqbfAGKXaArh/jOfU=
+			xf9WzRGITImjUUi+weCiTxElCWVU7cQ51gXeyNYK/h8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qstandarditemmodel_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qsimpledrag_p.h</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			TzOsTBOqky0DUnnUKRS/mi3fUQPqUWVTwmWPVYqzKa4=
+			</data>
+		</dict>
+		<key>Headers/6.12.0/QtGui/private/qstandarditemmodel_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			fF2vwMkWGY861ahCSuqkuPOvIMypGsVO5iwFyVlhl0g=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qstatictext_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qstatictext_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			ffQoz+riJeBO7dUwws5BE6p477T30pmjVItrUVMs6yw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qstroker_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qstroker_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Yeu65pwxXHsIGmOd/SsgyFrwodJ90BrB+13iued99rw=
+			lLC7WHZxjLUuX76YCS2AQIbO23iSo33WCsFCIIOJRTA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qstylehints_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qstylehints_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6ZwCtodoq8YeWOfosACjs7s/B8pJ72QHMeTZX28+5zo=
+			KV75wLrZGA2cHYcXUW2KZVomztFsjaYz+kP645TGvmc=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextcursor_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextcursor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			ZwwygsRaJvxyMLN0xmVugA1obQ1QNbJVj8jVO4TZJw4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextdocument_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextdocument_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			j3nDopX4PqpnTHx31V+yad8zYxqXSS1L4aGA175FLEI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextdocumentfragment_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextdocumentfragment_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			jGvRRyv/N+thDaIXwZ9mfIXxqApzg7bLgib6qx6OBno=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextdocumentlayout_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextdocumentlayout_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			oiTWq2YjcUKOE8VlESiTKEk4gk1anSz5wmjrFwcsIfM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextengine_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextengine_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			oOXK2mkU2mNKisl8HjV6lLl+OYAlViZvm0vD1QwT2KM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextformat_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextformat_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			o4pmhvpCEcuhQ20wVckChoRHFTEP5BOgA03dtm75Znk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtexthtmlparser_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtexthtmlparser_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			IgDuL1eK3urn1/WycVvBlAQCWUkGuNnlmGg4pqXBzm4=
+			o6R0jmqnlJUs8azpk6RrlhGg8ongGywHvK45CgghaWM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextimagehandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextimagehandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			jdao/qZky5+s/0dfdk6YvOY+SSH5/J2Ey/rB7tp7zaQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextmarkdownimporter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextmarkdownimporter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			kGvljuWNE1EFZ/9qWV26qnUUvnqQMt8CbV2RzOyEF0c=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextmarkdownwriter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextmarkdownwriter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			K3jB3Xv0vnn/+lT6vZBCDYHHeRgwj7m9pWrqwhxa/Dw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextobject_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextobject_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			WXu0FclJ05EDfhBZoKEPFtmXGNDrSgfwF4kFoPrSpyY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextodfwriter_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextodfwriter_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			7ZrmLeg/c9CRb7hbNMSIfyxjXtUefohwm81f+l5bnuc=
+			6mQU6u4SWI6MDnXBd419Psp0UzDZjBpRr3pZ4le4Dd4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtexttable_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtexttable_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			R7id6RXt8wAnwbIORszSvp67nXZ8oQqAaaT7VwlerB8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtexturefiledata_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtexturefiledata_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			Zvos4fcddMWvaIqgWZ2+WE1QC0s6PVqjyjYxtOC83HU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtexturefilehandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtexturefilehandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			wg4SMNc7CW9JqtNOQs9V8OPm7zqhtYkbHtRj5s7KVo0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtexturefilereader_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtexturefilereader_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			tqyhLJGgzzTCjpTTbc/yLgXrdVpyCJ0Nol6o8O42kSg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtextureglyphcache_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtextureglyphcache_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			njACBZ7tJDLVDc4asPt92osJDCu2OIwj0KACAm77d+A=
+			+OEsjKu1SIr30QHrS/wztdDJwQVuxc2sjMgToS3on8s=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtgui-config_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtgui-config_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			MuBLDoyakYFtls37Kjb3y1azwZp3Yke8pmoXPT/55Pc=
+			9UTAoDKSrjsJU0auxMW6tvbhgSbp0g/blseKoXpL7ws=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtguiglobal_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtguiglobal_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			d15gx65mEq24Lasl4wF7MUiytdBnrEztvy+IVzKRon8=
+			tQeUoSj+Q3L0DOvLGkjp95wI7QPdudy2NsCrJN0vneo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtriangulatingstroker_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtriangulatingstroker_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+aynwj2SFZhJg5375EIPnp6P7Ya/PYu0CBnPolFTTI0=
+			YVD7XasT6OJcrUO4/TcG+Dvg+m/VJplgmxl8QwuSkRs=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qtriangulator_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qtriangulator_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DQTotMO6K5WtpMnO/QlGhNIS8PRXGvQ0iWO7g3Qkmj8=
+			9r6n7/jhLSW8aiLgQi7+7Knj0Y92vpdiexVzW9HGFaw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qundostack_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qundostack_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			lZtfSAjvQcPAtrnEeQqBHMWkFevvAzFHJElclZyxtVg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qunixeventdispatcher_qpa_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qunixeventdispatcher_qpa_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			swCuxtEB+gUmlqyOYK/iRdBTOeIz8UNELhSUfd+fzoo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qvectorpath_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qvectorpath_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			dOoHp0lbr79l/ExgcN0TdtPuGokuyURHnl5UHRtjX1A=
+			A1JkOZzjAeXOeFzoioA5tB3jgLhS9Jc5zWDDXFFxnDo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qwindow_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qwindow_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			fhdwhAnN+5ixF/ds3NcwSvL2PS5fHkdMFW3WnQc6+WA=
+			dS7hnjpPha8V1GKxKMFhh+5uNw26wimoxRJMBL2GW5U=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qxbmhandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qxbmhandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2j9kUKNus+D/MCqNyvek8yvxFERQ6j3zED+vM8sQtuI=
+			v5m/ZqHfwrYupz939cU/VrAjVPX3LgYIxSGc41p7akY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/private/qxpmhandler_p.h</key>
+		<key>Headers/6.12.0/QtGui/private/qxpmhandler_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iO45CzGtthDktK3lroond1V7IlX6UJjN9NnL83W+wmE=
+			4Qxq+OdT7t5fxlai/kMWWyFKcc9FSy2+0F/yFGVk3t8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformaccessibility.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformaccessibility.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			1151gEYDQOp67AKrGxvLyAxu2BAINAMzX9Bq0XCNLpI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformbackingstore.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformbackingstore.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mMqeyo2Qfz8pegHl8hTkgBbMB2RV0h4VidcBdTQD4uQ=
+			zwz4KUtylksD+49u7k1yqHY/EPXUmrmyqgY5uSQfgzQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformclipboard.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformclipboard.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			fsMkhqUZtkatVW+5tnnbPvsVn8d8uPjVKGdD8L2kjf8=
+			L6xsx2Ts+5TXYA9QgWUiPRv9sIya04mX7l8mCftBhVo=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformcursor.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformcursor.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			v65FyvIkps5H5APMlRJTvWGZ2u3BXvAphsbRs0w/Ya8=
+			41/8asN/UBy6vNFz0ioaoB9o3qM2SGI6wuQNuiv546o=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformdialoghelper.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformdialoghelper.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XOGIYuwG4YQimE3SvprdQNV5MH+G778IbiJKKjsTtoM=
+			X1D88cumqEy50SKR9hHYuQ4m0BeH2/fYYK69EOQEMN0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformdrag.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformdrag.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iMsh6NMzww1xcVGQKm/3fLeqwR02bSnyJjXeuGJbPl0=
+			u9IQ6QLUpnqqOWppVukCqeCQiNefH8q5MP7bLP58VdA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformfontdatabase.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformfontdatabase.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			OwNWBeXTY6G5ZGVXWq+i9YhkcMfvIGXvPX9kStRAc4c=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformgraphicsbuffer.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformgraphicsbuffer.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			leEJANCZ2UIPegFmgwUYKDJUlrPyRDHCM66du6GGE1Y=
+			ENmmtptlf01jI/kQKLl40EUsRRqli1E5HoKWbU7gdQE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformgraphicsbufferhelper.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformgraphicsbufferhelper.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			m9NOOfTCcegz0ltFU2JOZgjB3jmrECrekM8Ire7Q1vc=
+			x3pDVrdpMeAWA24kSZmlRlsBbYbA9AphVVrFgt7qPqU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatforminputcontext.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatforminputcontext.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4VMVgaJLUDD9v4g4CDMy1/UBdEI2hs+xG5/gx50TFfw=
+			XzOOHISLOLUltSfGaD+SKYl2ISKR6NWlSmDFJHH1nCY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatforminputcontext_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatforminputcontext_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			HxtxZ+pB3u1LEzZCRBqTgMoZN6gS97dL0S1Pcb6hthU=
+			Ie63AyxmpmpQj6k4kaDO1hQIE2R1cxC5e7TXUj4TAlY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatforminputcontextfactory_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatforminputcontextfactory_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			R42JDjuY9rWR8SqH89Pde8QHJ0IOrw60H3NENGW8+9Y=
+			ZaqOCjIONTiJ1sOVqtejQT1XCALWpAyFEsBW7MBozMU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatforminputcontextplugin_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatforminputcontextplugin_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			z/M/rNlxr065RYCzne5yg1vMgWNKeWbcAC/tOCERFAw=
+			BTOK9tgHAHmzEbBptgvXLK1NrXzPHgNkJs4iMKeaWUM=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformintegration.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformintegration.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			y3PzPVSq2igUvP9JnfbW3Bc26f7SPZS5a38laPqYhXY=
+			VDeWwYao+bLZJwGXWsgbTDe6hMKhAFzzLTOoQYenqks=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformintegrationfactory_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformintegrationfactory_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			yelP+PK6I0H1RQVFhKAbY0xxCacCD8p9gdA20VbeS7Y=
+			Gb0klP2DS77EIYwcv3q6YPfh5S/9hbzQsZlu6IVHtGk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformintegrationplugin.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformintegrationplugin.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			sRzzopDQSVXGFd1gIZ7Id7MZRlm3BkJjTUh3WzXVudk=
+			6xweV1Fs4V5acSZEQ97vLFNgd/hlin22uVUHpejAF+s=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformkeymapper.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformkeymapper.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			3baKWJlISctYhSJqNCibz6n26QBYXj07Xr5XgSGYUQQ=
+			NofLo9lxeY8UFgKsLieFWplKkMO2E2+Pj/u3Ek2t3T0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformmenu.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformmenu.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			J/gOioP03z9pIGQiyg7NLRElCFb1mp+mVmycfzaz/q4=
+			tUX2Wkj6e3i3Tz/mEGhrXISz5ke0PIprzdt+9FgZ3Ks=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformmenu_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformmenu_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			oMzif0sSfHyXqJpYCo0I54+YIaCpTAN9lNuyACRFr4E=
+			QhBhAwb67VqeTMbgTaeTxLCeQ2ZqH0S5b7NbOCLLVus=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformnativeinterface.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformnativeinterface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ahrEprDNyZ5wgrJXdPWXHvafgV9vTrFDfh4Xoz78sQM=
+			y9uAqqKb8Sjjl1XhLBycG4IzcJH/uTSLhjI6mx/FL1Y=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformoffscreensurface.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformoffscreensurface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			r0kWXeZ8CxOMNV27nqG5aCRaZjIw0fiVQW7G8vkaJQA=
+			fhcNQsBkJe3ykFNfKwXG8QN60Z8GaTIh2n+5yqSNfWk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformopenglcontext.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformopenglcontext.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			nl5fIqANTEgCDZ8IErf0AOfV5z1oJjMk4AkIsnLz7G0=
+			cxPA0qM19CpewGsW0ccDfAcz9oGVnm99E06B9ACrE7Y=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformpixmap.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformpixmap.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Oh5Reoy56LSIvBbwmYBtLeoToGGUD0FWW77s8JDotvg=
+			vM6MXCkzzjm9qMEBDDvSHRHwRrHPdN0MUuSiQ8/QDok=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformscreen.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformscreen.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			GwS/4+eMedGJqReTD4bO/Q6YOP2GFSNC8mp7d6fdUGU=
+			of6aJNZW6DBhUCi57PTsxQQyq9bj9KvfKGRqec/PX1A=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformscreen_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformscreen_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			yuN2kHApqnoOwc9+Nipzea8ly90VbJ60y/VLGyg7cBI=
+			SOIMDF+MWnt0UALheW3n4lCvfIZU3eNggErZ//4jUJ8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformservices.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformservices.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			pGQooozt9cAEQJmM0YE93zvRWvz5Iqa/lZvq45lIauc=
+			0un8RfmOV2i1EexrLCqlRFUFvYbTf2SbIjoyC0lg8Bk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformsessionmanager.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformsessionmanager.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9VJloIE7BO+yaetUAd9yUgL+hOZ7gD2yw5nCUOKeGHU=
+			ftR6zrTK0uIawrsWhRa0WQY9610LWClbwYc4goA7rdE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformsharedgraphicscache.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformsharedgraphicscache.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xEOY8zLa7owyiS5vC7WivJ/HyFN9KpgUjeJloZepAhY=
+			XX7WBcRCd1b2XwxhsS7OYMlHMtr7YdX2grH2ZS6466k=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformsurface.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformsurface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZSEmbBbO4+C7nGEK87trScPgsQZIsEl++wBTkoY8q+U=
+			fCuKnhX7gv6m9WoUnEUoK+Myt5vHQjjij9e/VzCNdoU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformsystemtrayicon.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformsystemtrayicon.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			hYFun8N4uFRIW/l2fgnc66kfc8Gy95HPYEH+RzLdEHY=
+			CyJI02ZxsC6o+DPiY7vtlbJwLRuj87FEk7A5g2GE3cY=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformtheme.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformtheme.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			YUTlFRXOXFLXNMyzxwWFHy22lJC+/ifSYzE/Gqif4Rk=
+			+POD5/MDpYtBWFbBeU+l5LnIBMq6O5buuZNU1B2xEBE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformtheme_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformtheme_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iVj3o3aDhL/6/k5k+SR+V0WTnaJKC1SwPR1cHrdETNc=
+			LjnYkP8gnxYgOcH4I1mCiNmuWbi5ZFpMZj57zWBo1nA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformthemefactory_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformthemefactory_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			YFE8lsLZ1tukW0AjJTufAgNQke2je1ApALwqs4JC4Sk=
+			D7OVASyU14erBicMFfPfOjZPzxrzF2CzFUdoM2GHVc4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformthemeplugin.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformthemeplugin.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8vG3x/1Or/kVMXZ01ZpW6g7DmHdOg+HxyeCLTdK+lIU=
+			fZYXwEk0YmsJhWtlGXdIO0v/wr2Qp+zrn9hUIU656yg=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformwindow.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformwindow.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			yFdtWcEkMzhOaRUQk9DetBGBu5i11sFjfi6QD8F91NE=
+			J5lzlUZLzCEEYG1u7EMZnc29Y6KP+PCeYqFoG3/tSxI=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qplatformwindow_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qplatformwindow_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			pyz8lJ1AjOEqykovUkGGWhFvXAsloWnMvV1CgreFq5g=
+			8XbvrXNluD/5Ux2xEYDdSwdz+8oeg8pGtE/vMMDKgTE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qwindowsysteminterface.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qwindowsysteminterface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lJhBSvPsmi3KMLt3ukkY2Yc8UNY8a4LCDKhGLIh7jyQ=
+			+2Bz0jBeeBI7fAcq6w/dMiKTWvKBHnKAxIzqEvGeGoQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/qpa/qwindowsysteminterface_p.h</key>
+		<key>Headers/6.12.0/QtGui/qpa/qwindowsysteminterface_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Mh4ZW8NUkWpApAlBqWNFelwFSCN5v5b/dXGIB2OqAsE=
+			y5lk1RtWVOjnuunq0O8XyKlnvHLyW7aQ66nUxq7VR68=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/rhi/qrhi.h</key>
+		<key>Headers/6.12.0/QtGui/rhi/qrhi.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			p9ec6NW5w4KlkiqjpPMPvQzt7TWs4EAzrawx3S0+isI=
+			bZiQpqfPUZkE6hjBFGSXFZtt+LbxROHDgAmO8GQazEA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/rhi/qrhi_platform.h</key>
+		<key>Headers/6.12.0/QtGui/rhi/qrhi_platform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QB0PKU/rfSCRF0iHhjVygluKSaYWRRGLVhfz4REJU7k=
+			72N2dSXiQFxyp5TktF2CCuotxQEJ81g/k8mC6r3cmcw=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/rhi/qshader.h</key>
+		<key>Headers/6.12.0/QtGui/rhi/qshader.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			x9Dqa6KR7krUZs1FhYiJWUckCln0KwBf+XmQa3E9iOQ=
+			ZMaGkB7Smjz8Fv+GGqxEY5wbsgUWB0Nctn1MpIi8JAA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtGui/rhi/qshaderdescription.h</key>
+		<key>Headers/6.12.0/QtGui/rhi/qshaderdescription.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			u/DfeYIem8vizjTj+qik2n0/VyglylGqsrLyZbrwMZM=
+			/xn+7evxf5fzB8ti9brG5l9CpUoSQroCaGMXvzDFG/k=
 			</data>
 		</dict>
 		<key>Headers/QAbstractFileIconProvider</key>
@@ -1770,6 +1784,13 @@
 			</data>
 		</dict>
 		<key>Headers/QAccessibleValueInterface</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			HglLJZmS++wVYDsBW3O0r6IA89J67m/aoC9LVyBU1GM=
+			</data>
+		</dict>
+		<key>Headers/QAccessibleViewportInterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
@@ -3152,7 +3173,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			P81S91OsPOysgIRbwNqZ1W3GyDRdJYVaGryPK3FXPdU=
+			+UBmH7lW7KSiVe+6SNGSYnDab7GGqTvQJpvH5wJ4jFM=
 			</data>
 		</dict>
 		<key>Headers/qabstracttextdocumentlayout.h</key>
@@ -3166,21 +3187,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			4IlQiLpkSXmp1lxcaG0Wm8JjpM/ce3oKBFpQv+FeY/A=
+			GuMNttGChiQRFDK02mloHPnPht1btqxCglB1/JL8Wc4=
 			</data>
 		</dict>
 		<key>Headers/qaccessible.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FOftCAO8nE5wzhw7QKz9VlC9STtSsModtPgsHGzWEkc=
+			vejKVdX632kKqX7VPci5gerZzy77hfqQmiwNuw6Gj5I=
 			</data>
 		</dict>
 		<key>Headers/qaccessible_base.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			THmbNdK0NQrPzUEOcAMFKt6HUqpTQ6tjjuuzFLqIn8g=
+			aN51BCxRgOlzyqy/jO6B3YpHB6bF31+yQmTuG/1A3Vc=
 			</data>
 		</dict>
 		<key>Headers/qaccessiblebridge.h</key>
@@ -3208,70 +3229,70 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0dDEbyWLk+Eqh2lc9zYeftJlEeksZtZgLnoeMurCIfg=
+			4zklZbZ2F0BM07loBw01EAl1P8m/q5foyZ95rXV0Wx4=
 			</data>
 		</dict>
 		<key>Headers/qactiongroup.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			alzAyEpPHObOAoyqpv9xkbZfVgnIvn+Ovnlp1Y3jlcI=
+			BOepAGiCYX6vQgarEQ8aYcHPOhaFF4U3n6Wdz3Ppgak=
 			</data>
 		</dict>
 		<key>Headers/qbackingstore.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5HUyerd9rTjLdNXreChdPD6vB88DeVsEwRXO38DpSJA=
+			o6K3Noz0+OXm+/YkZRbC2zXoejaOH33Ta1BkXxL1ytI=
 			</data>
 		</dict>
 		<key>Headers/qbitmap.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			dolLiJoRAa+nM3x+jt8qy/NKENxKbcijnfz6MuP2Ano=
+			0m2zBuzdpud1k+wAdGVHXmQIM8a+JBKSibYUdSOzsZo=
 			</data>
 		</dict>
 		<key>Headers/qbrush.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			W3W6dLGP9aWf1DxGkz4a5DVFfRbLo3zVLLzJ1dznT5M=
+			BOG7Wr4xGYVNCYs689Or3W/KWhml+Z75YTmHVVLbGBM=
 			</data>
 		</dict>
 		<key>Headers/qclipboard.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			z9cSZaUfBSqiUbEpN7dhPzqWMcHyVPO3Pa5gq6tsfQY=
+			kvDgfRrMFikJetf3yUrV1ecveQwOqy7d39/+/mj+7po=
 			</data>
 		</dict>
 		<key>Headers/qcolor.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			a1Q9VqabULlp5jgTonHD8c7f9omEjlJ+FjP7SP/Za2g=
+			14niNhSLYIfjTs1Za4hH0xuooiBpgT+7NypxBHzHiNQ=
 			</data>
 		</dict>
 		<key>Headers/qcolorspace.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			CFCMlydlPX8U5RXQIUKjpfHldOx4EoODIfxWCqBp8KE=
+			vgRU6bDGbrOeQb1WtH6fUfbx2pCHxScpKfiBSU2XZHI=
 			</data>
 		</dict>
 		<key>Headers/qcolortransform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			I+eNgZIrJRObbejafxG1e00UoD+GcmqPlSQtLg47gP4=
+			wMbdh+cfMoaDpXOHk+0sqmfigCKXXMpIpu+e4BKb2wI=
 			</data>
 		</dict>
 		<key>Headers/qcursor.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Gk/QCk+1SBHDGaY8WBszVp00mDKM3oFTsH+ca3j0oxE=
+			QGf4vkSlivwEkq3zFQoStqcDzAGWgoJMvUwfTf9ZQe4=
 			</data>
 		</dict>
 		<key>Headers/qdesktopservices.h</key>
@@ -3285,21 +3306,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0Gbcm+6iCz3rErqxqohhYh9pNHLm1YdgoXKbyGXva1M=
+			Gap7usndoneSBbwHZqIiSedxV3qB1UChRvYpxoWd4t0=
 			</data>
 		</dict>
 		<key>Headers/qevent.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			pjnS6xB+/nIlT9AZDSTGWTI+PrRgWH6zdPwQj9yXfMo=
+			MV7gD6VP1V50sGJ4/AeMU7CcU6orKb5en20KLupydB8=
 			</data>
 		</dict>
 		<key>Headers/qeventpoint.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			79hq+tbKzlepc+/Am141y/BVZFmdMeV7hi3ua2uJwd0=
+			C8bAijNwfaCvt+IdCgIFmEwXBjJy+KthXm8/hmPbRRI=
 			</data>
 		</dict>
 		<key>Headers/qfilesystemmodel.h</key>
@@ -3313,7 +3334,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			xQwBt5hMnXe0plAlt4Z6LLS50CEVuEvGGNEQa9b+ROk=
+			nCPkvknXr+EeQARUtEULKMHLvtbvXqe3cvm8AAkqpJw=
 			</data>
 		</dict>
 		<key>Headers/qfontdatabase.h</key>
@@ -3327,14 +3348,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			AyY1QpRoXIROb5z12cl3oUrWtzfqMWbg7bGj/XMTJDk=
+			QeAjrH11xvmp42n5kPeoXhXN0RvEkBBiVHxfit/qqCs=
 			</data>
 		</dict>
 		<key>Headers/qfontmetrics.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			w6t55DmHFPUgaM0JyOSos0YTk1PNgHH3qK/ZBOOTvj4=
+			9xCb3k3BAEDSgMYC+NrJkIi51fgOG+zuQmjPdWvhBOw=
 			</data>
 		</dict>
 		<key>Headers/qfontvariableaxis.h</key>
@@ -3348,21 +3369,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			GDlFRv8j69PiB2LM8zNxPgdUGVr+2xhvNWeXk+bsXNA=
+			ghqBslLnDxf4QF+13PcAmiAweVWCLfa9aA/QAz3WPx4=
 			</data>
 		</dict>
 		<key>Headers/qgenericplugin.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			NcuxVSGmaHJvkTVPCu1WVlN/jQOA3szMLdfJIrcgC3E=
+			hD0mtZaY6SxOHPyDm3oZ53yPXNI3jco3HeWetUuJ/o8=
 			</data>
 		</dict>
 		<key>Headers/qgenericpluginfactory.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			UchPTLX3XYSl4CsGmDYaDJaKFW63zzcMe1dKSpLTH24=
+			CeWB4Km6v78GRviKd8K8avpqEG8E3bXNJ5b4rH99MDQ=
 			</data>
 		</dict>
 		<key>Headers/qglyphrun.h</key>
@@ -3376,133 +3397,133 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			LpX1Vf/uaRPGdnN4dwW1Bp/s2aORgqIOugD1rEBwWaI=
+			BMmRSbhwXVXK2lK3fZWRCkp3WDfa7ZxyMGCCRDpdYPk=
 			</data>
 		</dict>
 		<key>Headers/qguiapplication_platform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			CeBDRnVp8/FoDCAWEpOcL/ymA4ORw7op7lLYV+cVmYg=
+			yNRvQFdya1pL3emsil9LkegWBhUOdQxnnnOiyv/ECN4=
 			</data>
 		</dict>
 		<key>Headers/qicon.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			peh2/jLxJxD2uJ/zWGc2bMwGkpSBQ6LnfKN/ZCu/lNY=
+			rjou2+Zgt5/Yp4UdpQ0ZibMlu5XIz2YXmINlhVQH0Kc=
 			</data>
 		</dict>
 		<key>Headers/qiconengine.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			5ZBA/JQnjCztesV7WaBz4jml9XmbpPMZSGwjTwzgwdA=
+			c7sHEMbVrf5YCyZOo7spVTWNY40dbxwiyWGpPoCj2xI=
 			</data>
 		</dict>
 		<key>Headers/qiconengineplugin.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			80d04FjK4qIk2pG1ig4F1ULGXDGLRzAghxb0lb/feSQ=
+			fD3tJV4jxD4CtL2yoMOUuvbdt06HQCkrOUkhmZKs3lY=
 			</data>
 		</dict>
 		<key>Headers/qimage.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			iG8Ox6uL0RkOigUd8O+hP4/ZZGuGqhiwL53ElZGL6U0=
+			ckS3u3uIHwX9ufr8Vw7Rk13pHl5fMLo1WlGI8yJdpvk=
 			</data>
 		</dict>
 		<key>Headers/qimageiohandler.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2DPBznWq6uiGk8GsAe6zulShbbdQpxm8rV1X7RHGa5E=
+			a4EXiV2O56IV51VzOL3UX9ZtJqn1pd15ljHsXMUW62s=
 			</data>
 		</dict>
 		<key>Headers/qimagereader.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ttHmawdCqiydRufP/sF/gfm6PuXXUBlPN9kNXH3Y6bw=
+			tk8BJoxwYTqs3U8xFf51FUAohD3dCj38gHhz3nlP+i0=
 			</data>
 		</dict>
 		<key>Headers/qimagewriter.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			mCqHfWQx1N/3gfh0nmVb01dBwhcW88Vgbkwgt0CU0ig=
+			jYrIrxAvSdmnUSVd86YEGEImP2RoEhGZNpXDOdu49Mw=
 			</data>
 		</dict>
 		<key>Headers/qinputdevice.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			8ioKoGIb2B3KrTIsx2QOVeK0JwxbrcdDTMZoiUD0elM=
+			QSlK8TS+XTJKe7HxMsEppC0rlFC1snwgA4UxaEQAuCo=
 			</data>
 		</dict>
 		<key>Headers/qinputmethod.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			X0Qrm/DNsqje8jGeo1FvLBOa0MPhrsNRDC/g7TYwjUQ=
+			AzJXz8v+ZIfI9lEnriUXNiL1qjBiprfa0J6n+Od7i3A=
 			</data>
 		</dict>
 		<key>Headers/qkeysequence.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			oHfk/mISI8BeVfEjSaQU54/nr2uUzh+MmXfJcNAnSow=
+			oPxgCcIKRpzyid/VcEOu4J3Ee79LuPtx4wPtlBk7lUU=
 			</data>
 		</dict>
 		<key>Headers/qmatrix4x4.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			LmJy3I4dpqbp7oxLnOy7lmj7UD+AN+l6Yz6mhqlDMjY=
+			B9yR85mBH77A86iZqxsffAlPs3DUDjBL8VKf/cEfqnI=
 			</data>
 		</dict>
 		<key>Headers/qmovie.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uz/ZI1U0zH21hlFXFa+xSil1SpaZrOqXPJ6ZDO3y6lI=
+			ZkfqqhC4TGCj9igwLICcIkjIP4THL4dBrXfW+hZA1D8=
 			</data>
 		</dict>
 		<key>Headers/qoffscreensurface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9vGRFEA+5xTLRjwAmpBnsxxxtKZtgVYZrm7KIj3FAJk=
+			31D4KrdoKn0LSQrRakUzCU8rJtFzMFhBUH6d5Cq3Ivw=
 			</data>
 		</dict>
 		<key>Headers/qoffscreensurface_platform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			WrhN6/pjZBuaUpcawZoipikyAmP0WAn5R4L5dTG1XbQ=
+			OvwloMMvPeh14J6JoN546k0Hchbmt9OYWUj6I1CNEEw=
 			</data>
 		</dict>
 		<key>Headers/qopengl.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			M+HXui6S2VVIuKbdgGQ+PEUrSxyPMBQFzOQuyeLdgdk=
+			vyEgEwB08Bu3J80KuAhaE1dSmo4K0AYxFdYbmPWTyRM=
 			</data>
 		</dict>
 		<key>Headers/qopenglcontext.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			C/8G0voCtyPR7PIsgH+grZOmUNmCBiX3iBLgV4DlGmw=
+			iUJZYm74wz2PG68/s5zjm0LDdgnZVR0pBDhXc3NRGu4=
 			</data>
 		</dict>
 		<key>Headers/qopenglcontext_platform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			6hTERLKA7qpxSvmoWjzo0iTlf+5XLwSnhJykO2jSqZg=
+			CyJ1sR0u96PXbcAkLpkjZOBUAPnX2crY2E5i/G8Lj1E=
 			</data>
 		</dict>
 		<key>Headers/qopenglext.h</key>
@@ -3530,154 +3551,154 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			bAzwRv8FOVPsJNroMJhi6xd12fgShJNcaLv0N3gyVP0=
+			W9OjSGAgTjkl4c8FwABFDCMpC4YXM+PPIv0wBHDU310=
 			</data>
 		</dict>
 		<key>Headers/qpagelayout.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Gzuzye4liusXSY0dIgRzPW8tXktP5a6E+88CG5bJZxE=
+			DGz+aBCZpp60shWQNkYvjLeImwJ3XHqujArwyZCloWc=
 			</data>
 		</dict>
 		<key>Headers/qpageranges.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			T9k90yrhEURZsP618LIe8+X/rdxOnP/2/HTNJLShzJU=
+			u6qY2O/EXiRlY0P1tP4iUpALKYYCPPq20NLfrj2iheI=
 			</data>
 		</dict>
 		<key>Headers/qpagesize.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			OWAeBs0s5vDaLP/haqXiNf6M9gcOt80C67QoWP/V7og=
+			PHJoTMTYabMbYOk2DHLOOCpK3yPxaTLDF7i58pbbooU=
 			</data>
 		</dict>
 		<key>Headers/qpaintdevice.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			NSjtG+omViaaxiOBbOOd5+YnpyXto66u0wqUYHhN/Xc=
+			WTLml/l82PH94kXR1/a0utbE2RMs9YlTH9P41WrZSZA=
 			</data>
 		</dict>
 		<key>Headers/qpaintdevicewindow.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			KL1J3m/wxKmDqI/pV/3dF10OXbo4fySRNduR/4Djrrs=
+			uGRQ6GzT1x6yMKA/Ym5G9YaMduAaFa6wBEOhUFMUGIw=
 			</data>
 		</dict>
 		<key>Headers/qpaintengine.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			sGuI6t4+RrWTpIqYaWL2GHMOg+G24TiuMY6w3pq4E8c=
+			55stUeSeSYt5W0DrMQ8tGSKFRKZkXAdkTiqvCYrNooA=
 			</data>
 		</dict>
 		<key>Headers/qpainter.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			79WK9Gzb7rzNQW/qatEUSbsAHt/Z3j1cszoYssSMpHc=
+			eUomH8f12wwwiY2X9qnPdIPyg+lytVDkP6pDNvjOriE=
 			</data>
 		</dict>
 		<key>Headers/qpainterpath.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ylOpeQf02mfHLotEVlrMQ0Mv+9l46yf/Hqob7vPjgCw=
+			gAzlkF9OXLbO8mlULrXji1XW6v/nWOArCVlP9yD4YRw=
 			</data>
 		</dict>
 		<key>Headers/qpainterstateguard.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2jJjNHCP/Tw4dmNHvXbKVpU84oytZ02sScUvYIVHDj0=
+			eN1cKFtVATGA34HoDyz7Wkv083LBiwZNGsRBaTZTCWw=
 			</data>
 		</dict>
 		<key>Headers/qpalette.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VAT3ObTqOaYULIcEaBvIvsRIyQa4DHRKyQzZSJAJirw=
+			26Hfb0l2EQ3mAYtbgFHHhXYolCdw7ZlZz1mLD26vq/U=
 			</data>
 		</dict>
 		<key>Headers/qpdfoutputintent.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			flQIuStb6aHQa1GA4Bqtlhx4uB6aN6idUgr+jG+wY2I=
+			v7uzcPTjWHa0ABWPlfRa8mQzuo71ZvEuGXIIt9xKrN0=
 			</data>
 		</dict>
 		<key>Headers/qpdfwriter.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xv0ue+WMdUk6xEvEk1r4FaBFGUhIzkTw+jxSPaerFIc=
+			uXARYQn7HGP9fz242F747bMbcD/akrJHR2Iled55f5E=
 			</data>
 		</dict>
 		<key>Headers/qpen.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uvp3xdqN5ZBiV5YaqKU5wQ9mNMFe8hFccSr6cgrGKcg=
+			IcM5yJ4WeR0sjDI7ji29nRK/1kCYwvStR67b92OmRLA=
 			</data>
 		</dict>
 		<key>Headers/qpicture.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Y9idjVs2EkcDj0coBPHB30+H3j2h6FyTa2j5zjUVfZg=
+			6U4n2I/1hfEXm9c/trnHIxAaTOb+Q1y5uwwR2Lq5ybg=
 			</data>
 		</dict>
 		<key>Headers/qpixelformat.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4NAGj4b6mctLE6zyKZ5huyahi6TNxcxN7TucXBGZagk=
+			PwBSIb55F7B5GWznk6xgAFR758nyB3Dya3OiEPwjGQE=
 			</data>
 		</dict>
 		<key>Headers/qpixmap.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XK431XPlOrlH67MB+Xi/131Vy+pI+lBVfyJuXQXUglY=
+			1vpe5OofN0QRwCBJVrJ0H+C2jJjufOOebJ9zB2zsQks=
 			</data>
 		</dict>
 		<key>Headers/qpixmapcache.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VuG0jESvZmvVd1mtwy6iaFdfsEH6MQHietixz4yIyeo=
+			pOn53yFGbrhp6/FhEXEX04GkL6zjgx9HcMwmehZRet4=
 			</data>
 		</dict>
 		<key>Headers/qpointingdevice.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			7TQ70FvKYnhqeaXqXFMIXuapegsBEeIAtOnj7O+OMc0=
+			zBlAOEsQrkQjlLithX9S0uqBXnqn9ZY+axTz3ySU8Oc=
 			</data>
 		</dict>
 		<key>Headers/qpolygon.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uJaEhnO8xB9yVwqwCIew3p8O6CK/wNX3TrfVrq76+bA=
+			W7l1IIYzt+wnQ+j3lK93VETCnQ0OVSBEhQWgm+h5A1Y=
 			</data>
 		</dict>
 		<key>Headers/qquaternion.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Orj1w7qbaViZfmGsoobr1NUxXgazqTHfuvHZqcWLZDw=
+			1CMJ8ztcDjhJhXq1SdASZp/wC3Pz4zqfhrvx3ktTf6Q=
 			</data>
 		</dict>
 		<key>Headers/qrasterwindow.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			w2okXb5+AUq3bJKvYh4lV7XPxYsuKvjM3J757oQOnJM=
+			PuRVWlaicFrcFypOyOSdvWfSjL3GXvGZ+cdXgHsP5e4=
 			</data>
 		</dict>
 		<key>Headers/qrawfont.h</key>
@@ -3691,56 +3712,56 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			e4TPpCK8IYMbLhvZ03LQedWmw2xZDUP2AW1b6RSKLeo=
+			4K1xdm5D/yDXGTd2M/NYd4y44fmjQ2VnNvsHiEpukVY=
 			</data>
 		</dict>
 		<key>Headers/qrgb.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lN5DmkMgC+bs+/8qtGn17kSOAj6k7mCYOtx9uriPopQ=
+			OPG+46Fpr/m78Xudbgh47MWLUtC0JoDcqCnpt8DGAEU=
 			</data>
 		</dict>
 		<key>Headers/qrgba64.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ThsNtQTxyz4Hbgw/sD2hfKNitHCqvqZnS76xiEdVy1Y=
+			T3dxAH6jGHw6c59uymyPIhXLxqwzkXPu8dpmqbJT2yg=
 			</data>
 		</dict>
 		<key>Headers/qrgbafloat.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			k+bnae3FW27Xh01cyp/x+OkX4HW5S5TjB1p/am6e5YA=
+			bF6qZUX6wKPJoXbkcfi56hSvUYqt9LTI5NG68Wu3XWg=
 			</data>
 		</dict>
 		<key>Headers/qscreen.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			FEsRN46NPXp0RlEk7MrLUc+7FonfQWJRGOHu5v24tR8=
+			mcN6lSIcRHK8AETmZXRw8UBN1VoGpcVsEdAu2Q+JtmA=
 			</data>
 		</dict>
 		<key>Headers/qscreen_platform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			dHkYowHyizz/9//u0UTRsC/SUZtU/jCtwAPDZ2iOwyg=
+			WPF56jkBAh0C5GxfgQMbKuiJm/WmD69XcAsktrn8hlM=
 			</data>
 		</dict>
 		<key>Headers/qsessionmanager.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9MnuoKDw7jQUvNfWeaQ2NLSMh6t7ipkKQxt3vBxiTgY=
+			BBxLe6N34urNFWv84uP08x4I3Dy9712OGDY4iANLgzY=
 			</data>
 		</dict>
 		<key>Headers/qshortcut.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			N05WIUUdVXn7wBInFgWb9rZQ5VwGczm/IKoHDVAFztY=
+			Y0g+OYL/TUAIvqhy7vILCemsqyrdHyw1q4hYjJIxPeU=
 			</data>
 		</dict>
 		<key>Headers/qstandarditemmodel.h</key>
@@ -3761,21 +3782,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			TVGB3m1+KJu3XGlSiBFSkYBvOJ0AJImmXeI77rMaojs=
+			cP8/SRU+dgQ4odME0qmwOU8DXTxPUfQQWgaDYhc3Y0M=
 			</data>
 		</dict>
 		<key>Headers/qsurface.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			AgRCDgPBRIgdJYD8evAdd/VTDRSzF60dUfGz4tjebzc=
+			9FKfVtEbwpnfkBq8bHQVTVjNGZmyIgIQQqQz/5X2Fls=
 			</data>
 		</dict>
 		<key>Headers/qsurfaceformat.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zyf6KstMlAHzcoAy6/nPyl5oON8HzqqwpRpd2Wkbpqg=
+			PpRtvqWxu8fxCa9FPhJDMCV2fX5LGpTIe/5oQ4kLuEM=
 			</data>
 		</dict>
 		<key>Headers/qsyntaxhighlighter.h</key>
@@ -3789,7 +3810,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			1h4VrVlnw8R87/5RgjxG0qkTZxqHhoJx3k4cVez6cJg=
+			XLp96AdP7UOb5YmFX6wqvy/yNm8FsIW+BjcqwU+SNfc=
 			</data>
 		</dict>
 		<key>Headers/qtextcursor.h</key>
@@ -3880,21 +3901,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			tdvoaZOvKE/na4yw3msxi2HyVpJYALglmdqFE+7pm0I=
+			WnRnVADtY6zyjqLvo5wFWflWQiWkWKI7oz7xSpaZAgA=
 			</data>
 		</dict>
 		<key>Headers/qtguiversion.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			lUfRv6SqxLp3VyFiMVuwk6XH89DbwEf1UsGhUG5fW+g=
+			S0Bdv6KEDSG17ah7vOnl+p3vHCeNRM+4qC3lFnEEV70=
 			</data>
 		</dict>
 		<key>Headers/qtransform.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ixvWxx9R2oZJ4UE0UtUtdup+jDEPFK3PcJPesH2HnTs=
+			+7DYt4/xHyOIP/jyMG7tJBDBKCBLUFxmM03u0pGy9yU=
 			</data>
 		</dict>
 		<key>Headers/qundogroup.h</key>
@@ -3915,7 +3936,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			vxgSYXLCwp/c2hMBikFb4ezbnIbqlURdEjgv8gN0nWE=
+			GZlvhTCGYH3TeuHmbPMviZhJlpTAlShN2z/H9sk6AGY=
 			</data>
 		</dict>
 		<key>Headers/qvalidator.h</key>
@@ -3929,63 +3950,63 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			A7QrCYGB33myzzkeWv+Q1+HKhdHwxjePXU5Spst8gRA=
+			AlJG4mGXVCI2ApbtJ9pG+6MBW8+E0meXa/37tC36ORE=
 			</data>
 		</dict>
 		<key>Headers/qvector3d.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			A7QrCYGB33myzzkeWv+Q1+HKhdHwxjePXU5Spst8gRA=
+			AlJG4mGXVCI2ApbtJ9pG+6MBW8+E0meXa/37tC36ORE=
 			</data>
 		</dict>
 		<key>Headers/qvector4d.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			A7QrCYGB33myzzkeWv+Q1+HKhdHwxjePXU5Spst8gRA=
+			AlJG4mGXVCI2ApbtJ9pG+6MBW8+E0meXa/37tC36ORE=
 			</data>
 		</dict>
 		<key>Headers/qvectornd.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			L9aLyXMr1SYC4EtukW0x1u7N7caOLKQBjBSOHFx5zDM=
+			qfeEzEChp6iNlFOil9nPFfMy5gsiK4advUnHIPad4tM=
 			</data>
 		</dict>
 		<key>Headers/qwindow.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XSO+hvUQIk7GoOE4AxzeMGvkrjuXZ80q49NgEQKMQPM=
+			NQktx9P3qA4B99ZP2HLg+vfkEPErfaR07hcrgKJ2qY4=
 			</data>
 		</dict>
 		<key>Headers/qwindowdefs.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			LDw3shnYXYWHqLUceaeHdxbABXxfBuDaXiCLqICL80A=
+			N74HvW7J97f/BuLi0AJXXQXCgzTo3x1pcm6fnbIne90=
 			</data>
 		</dict>
 		<key>Resources/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			9ksThwaH2DO9eMjLYFK7eP1gCjS/eKa3gj83elEUjug=
+			SGYug9YeHsMPB9hNdGKWDnM2ncNTwdLCJQSohLIUFSg=
 			</data>
 		</dict>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			CJpSorItmap/uxVjfEO5/o3xSZOSTK8J/pUFpcaCy5w=
+			MtiOEc1RFoeV196Lcm4x1nDXUG0tZwDpUI4ke45TGZs=
 			</data>
 		</dict>
 		<key>Resources/QtGui.prl</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			HpBAFG8J/ai/A0F7AA8j+I9sKGIyJcBDx2Zw9ezLJdQ=
+			srHTMZ1+japAXXrdNQjaGaMzz/wGBaOafJ0jy0CEnC0=
 			</data>
 		</dict>
 	</dict>

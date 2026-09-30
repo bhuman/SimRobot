@@ -180,7 +180,17 @@ public:
     [[nodiscard]] Q_CORE_EXPORT NSString *toNSString() const Q_DECL_NS_RETURNS_AUTORELEASED;
 #endif
 
-    [[nodiscard]] constexpr qsizetype size() const noexcept { return m_size; }
+    [[nodiscard]] static constexpr qsizetype maxSize() noexcept
+    {
+        // -1 to deal with the pointer one-past-the-end;
+        return QtPrivate::MaxAllocSize / sizeof(storage_type) - 1;
+    }
+    [[nodiscard]] constexpr qsizetype size() const noexcept
+    {
+        constexpr size_t MaxSize = maxSize();
+        Q_PRESUME(size_t(m_size) <= MaxSize);
+        return m_size;
+    }
     [[nodiscard]] const_pointer data() const noexcept { return reinterpret_cast<const_pointer>(m_data); }
     [[nodiscard]] const_pointer constData() const noexcept { return data(); }
     [[nodiscard]] constexpr const storage_type *utf16() const noexcept { return m_data; }
@@ -474,12 +484,6 @@ public:
     { return size(); }
     [[nodiscard]] constexpr QChar first() const { return front(); }
     [[nodiscard]] constexpr QChar last()  const { return back(); }
-
-    [[nodiscard]] static constexpr qsizetype maxSize() noexcept
-    {
-        // -1 to deal with the pointer one-past-the-end;
-        return QtPrivate::MaxAllocSize / sizeof(storage_type) - 1;
-    }
 private:
 #if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0) || defined(QT_BOOTSTRAPPED)
     const storage_type *m_data = nullptr;
@@ -525,22 +529,6 @@ template <typename QStringLike, typename std::enable_if<
     bool>::type = true>
 inline QStringView qToStringViewIgnoringNull(const QStringLike &s) noexcept
 { return QStringView(s.begin(), s.size()); }
-
-// QChar inline functions:
-
-[[nodiscard]] constexpr auto QChar::fromUcs4(char32_t c) noexcept
-{
-    struct R {
-        char16_t chars[2];
-        [[nodiscard]] constexpr operator QStringView() const noexcept { return {begin(), end()}; }
-        [[nodiscard]] constexpr qsizetype size() const noexcept { return chars[1] ? 2 : 1; }
-        [[nodiscard]] constexpr const char16_t *begin() const noexcept { return chars; }
-        [[nodiscard]] constexpr const char16_t *end() const noexcept { return begin() + size(); }
-    };
-    return requiresSurrogates(c) ? R{{QChar::highSurrogate(c),
-                                      QChar::lowSurrogate(c)}} :
-                                   R{{char16_t(c), u'\0'}} ;
-}
 
 qsizetype QtPrivate::findString(QStringView str, qsizetype from, QChar ch, Qt::CaseSensitivity cs) noexcept
 {

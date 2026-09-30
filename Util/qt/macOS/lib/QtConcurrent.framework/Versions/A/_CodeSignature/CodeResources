@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		0NtYXEsWKyXTVZQJFwp23Fm6Pho=
+		m/9DbyTqELcP0ZejmYZFCrjzZJs=
 		</data>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<data>
@@ -14,7 +14,7 @@
 		</data>
 		<key>Resources/QtConcurrent.prl</key>
 		<data>
-		Z60jrO/bRd6Au8g8X26I8xLVoso=
+		cqLjyq9F6WFEYTwiABhEZBq/mFU=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -184,21 +184,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			KxLhOQRElo6OVZ09xyxcQr7nwt9atFPk6i0x26CDfsc=
+			xkQtwtTG69N/POUfVZyMqi+YDZVJg8/29hBrXBuKCwo=
 			</data>
 		</dict>
 		<key>Headers/qtconcurrentversion.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			B7kNcy16vvUBBQ9uiM3Ikt5/Ki+a2EtfBX5l7ex81T0=
+			/MpGC3kXGlWDt6lXE4tVvZPxS57/kmPF/EkzEy5tCNU=
 			</data>
 		</dict>
 		<key>Resources/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4yVjrgnj0A6HdIAS3vUw+pbr+V9PPMOwEkYxrwU88aY=
+			eYRfcwNjAZYShLMspMbuAXYsLR3zkKAjELiijRh3Os0=
 			</data>
 		</dict>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
@@ -212,7 +212,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			MDygDSSMqCru2LaQYRC+MgKgEd9PM6PGwOfcMFEaYd0=
+			oN78QoRL6f2EinNelgLFXDYFbOZEX0MOhRihisy/eog=
 			</data>
 		</dict>
 	</dict>

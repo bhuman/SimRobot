@@ -14,7 +14,9 @@ QT_BEGIN_NAMESPACE
 
 class QUntypedBindable;
 
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
 #define Q_METAMETHOD_INVOKE_MAX_ARGS 10
+#endif
 
 class Q_CORE_EXPORT QMetaMethod
 {
@@ -352,7 +354,7 @@ public:
     QT_WARNING_POP
 #endif
     int userType() const { return typeId(); }
-    int typeId() const { return metaType().id(); }
+    int typeId() const { return metaType().rawId(); }
     QMetaType metaType() const;
     int propertyIndex() const;
     int relativePropertyIndex() const;

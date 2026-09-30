@@ -151,22 +151,23 @@ public:
     QT_CORE_INLINE_SINCE(6, 8)
     qsizetype indexOf(char c, qsizetype from = 0) const;
     qsizetype indexOf(QByteArrayView bv, qsizetype from = 0) const
-    { return QtPrivate::findByteArray(qToByteArrayViewIgnoringNull(*this), from, bv); }
+    { return QByteArrayView(begin(), size()).indexOf(bv, from); }
 
     QT_CORE_INLINE_SINCE(6, 8)
     qsizetype lastIndexOf(char c, qsizetype from = -1) const;
     qsizetype lastIndexOf(QByteArrayView bv) const
     { return lastIndexOf(bv, size()); }
     qsizetype lastIndexOf(QByteArrayView bv, qsizetype from) const
-    { return QtPrivate::lastIndexOf(qToByteArrayViewIgnoringNull(*this), from, bv); }
+    { return QByteArrayView(begin(), size()).lastIndexOf(bv, from); }
 
     inline bool contains(char c) const;
     inline bool contains(QByteArrayView bv) const;
     qsizetype count(char c) const;
     qsizetype count(QByteArrayView bv) const
-    { return QtPrivate::count(qToByteArrayViewIgnoringNull(*this), bv); }
+    { return QByteArrayView(begin(), size()).count(bv); }
 
-    inline int compare(QByteArrayView a, Qt::CaseSensitivity cs = Qt::CaseSensitive) const noexcept;
+    inline int compare(QByteArrayView a) const noexcept;
+    inline int compare(QByteArrayView a, Qt::CaseSensitivity cs) const noexcept;
 
 #if QT_CORE_REMOVED_SINCE(6, 7)
     QByteArray left(qsizetype len) const;
@@ -233,12 +234,12 @@ public:
 #endif
 
     bool startsWith(QByteArrayView bv) const
-    { return QtPrivate::startsWith(qToByteArrayViewIgnoringNull(*this), bv); }
+    { return QByteArrayView(begin(), size()).startsWith(bv); }
     bool startsWith(char c) const { return size() > 0 && front() == c; }
 
     bool endsWith(char c) const { return size() > 0 && back() == c; }
     bool endsWith(QByteArrayView bv) const
-    { return QtPrivate::endsWith(qToByteArrayViewIgnoringNull(*this), bv); }
+    { return QByteArrayView(begin(), size()).endsWith(bv); }
 
     bool isUpper() const;
     bool isLower() const;
@@ -544,8 +545,15 @@ public:
     QByteArray &nullTerminate();
 
 private:
+    friend bool comparesEqual(const QByteArray &lhs, char rhs) noexcept
+    { return QByteArrayView(lhs) == rhs; }
     friend bool comparesEqual(const QByteArray &lhs, const QByteArrayView &rhs) noexcept
     { return QByteArrayView(lhs) == rhs; }
+    friend Qt::strong_ordering
+    compareThreeWay(const QByteArray &lhs, char rhs) noexcept
+    {
+        return compareThreeWay(QByteArrayView(lhs), rhs);
+    }
     friend Qt::strong_ordering
     compareThreeWay(const QByteArray &lhs, const QByteArrayView &rhs) noexcept
     {
@@ -553,6 +561,7 @@ private:
         return Qt::compareThreeWay(res, 0);
     }
     Q_DECLARE_STRONGLY_ORDERED(QByteArray)
+    Q_DECLARE_STRONGLY_ORDERED(QByteArray, char)
     Q_DECLARE_STRONGLY_ORDERED(QByteArray, const char *)
 #if defined(__GLIBCXX__) && defined(__cpp_lib_three_way_comparison)
     // libstdc++ has a bug [0] when `operator const void *()` is preferred over
@@ -696,10 +705,13 @@ inline bool QByteArray::contains(char c) const
 { return indexOf(c) != -1; }
 inline bool QByteArray::contains(QByteArrayView bv) const
 { return indexOf(bv) != -1; }
+inline int QByteArray::compare(QByteArrayView a) const noexcept
+{
+    return QByteArrayView(*this).compare(a);
+}
 inline int QByteArray::compare(QByteArrayView a, Qt::CaseSensitivity cs) const noexcept
 {
-    return cs == Qt::CaseSensitive ? QtPrivate::compareMemory(*this, a) :
-                                     qstrnicmp(data(), size(), a.data(), a.size());
+    return QByteArrayView(*this).compare(a, cs);
 }
 #if !defined(QT_USE_QSTRINGBUILDER)
 inline QByteArray operator+(const QByteArray &a1, const QByteArray &a2)
@@ -798,6 +810,7 @@ public:
     QByteArray &operator*() & noexcept { return decoded; }
     const QByteArray &operator*() const & noexcept { return decoded; }
     QByteArray &&operator*() && noexcept { return std::move(decoded); }
+    const QByteArray &&operator*() const && noexcept { return std::move(decoded); }
 
     friend inline bool operator==(const QByteArray::FromBase64Result &lhs, const QByteArray::FromBase64Result &rhs) noexcept
     {

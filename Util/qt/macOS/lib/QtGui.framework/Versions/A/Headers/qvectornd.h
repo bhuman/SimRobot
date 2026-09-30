@@ -1,11 +1,14 @@
 // Copyright (C) 2020 The Qt Company Ltd.
 // Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QVECTORND_H
 #define QVECTORND_H
 
 #include <QtGui/qtguiglobal.h>
+
+#include <QtCore/qhashfunctions.h>
 #include <QtCore/qpoint.h>
 #include <QtCore/qrect.h>
 #include <QtCore/qmath.h>
@@ -83,6 +86,10 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector2D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y());
+    }
 
     constexpr friend inline QVector2D operator+(QVector2D v1, QVector2D v2) noexcept
     {
@@ -231,6 +238,10 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1] || v1.v[2] != v2.v[2];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector3D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y(), key.z());
+    }
     float distanceToPoint(QVector3D point) const noexcept;
     constexpr float distanceToPlane(QVector3D plane, QVector3D normal) const noexcept;
     float distanceToPlane(QVector3D plane1, QVector3D plane2, QVector3D plane3) const noexcept;
@@ -385,6 +396,11 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1] || v1.v[2] != v2.v[2] || v1.v[3] != v2.v[3];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector4D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y(), key.z(), key.w());
+    }
+
     constexpr friend inline QVector4D operator+(QVector4D v1, QVector4D v2) noexcept
     {
         return QVector4D(v1.v[0] + v2.v[0], v1.v[1] + v2.v[1], v1.v[2] + v2.v[2], v1.v[3] + v2.v[3]);

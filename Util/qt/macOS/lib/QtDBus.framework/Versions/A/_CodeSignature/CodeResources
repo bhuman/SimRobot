@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		8m4Iv2Jwe+HFm9oQvg6FASRyUqA=
+		HOC/pqwWSrkcNMJ3aYtQQPEE26g=
 		</data>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
 		<data>
@@ -14,138 +14,138 @@
 		</data>
 		<key>Resources/QtDBus.prl</key>
 		<data>
-		Ub1M+Z0s4GLVtuVmhxsH/yq5Z3w=
+		XmCpSYMmMDpYppQTWQovrQ+5Fts=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
-		<key>Headers/6.11.2/QtDBus/private/dbus_minimal_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/dbus_minimal_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			9DCz5zZoIB+x9lIFOStIOSTqCKj0SMHfJA4IsHel3hk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbus_symbols_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbus_symbols_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			Umu32jlnrvtr2qLXXKKBJcC275/r6MVubVu+e1sD+1U=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusabstractadaptor_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusabstractadaptor_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			QBeUsyYN9LT5zeshyHWIGq81AWym4G7zwwUlD0QyEq8=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusabstractinterface_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusabstractinterface_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			qIsvCwi6DUZNVNI+OOu7Wbc0P3UTk3ml80VyPg/zlGA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusargument_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusargument_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			neDxMbJVIQilzboHks+6GvhKh90mkwJCptq6ZpdMAA4=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusconnection_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusconnection_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			r4CKuqiUKhHpQ/di0IKdTnT8fX9OQfSZqknNzveZQjQ=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusconnectionmanager_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusconnectionmanager_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			esFDD2Prbvh8kM9IHkEz557dGxsWb4H9qiWxfWcYqO0=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbuscontext_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbuscontext_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			FcfAT3Oe5zxazAb0oYfFfgx7DBteCDSSBYGyFM8iSkE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusintegrator_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusintegrator_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			gya51fI/Rk5W692ltPtNV/O37LzP7L2dfvSIt82tQpU=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusinterface_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusinterface_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			V3nKF7KvFGqAQ6O2O4RbgZsSMuxjqkxA1sFheA0NV7c=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusintrospection_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusintrospection_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			IfwsdGiIV9gzvL3m0ZWDGCbdZfStgb+vOp6gscg8z5Q=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusmessage_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusmessage_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			BC0peXGZt4HcTZSNJaz7E3RxEw3dJNbNEXJI7diyp1Y=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusmetaobject_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusmetaobject_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			ux1YomKPdG4DNciIGsXw8GUYNmFr6oCWTFtobICXEMk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusmetatype_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusmetatype_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			dqGW7hdckTNsa+w8lPVP+1XzeyF9C8yHtGqeCcjtZGk=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbuspendingcall_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbuspendingcall_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			3W9kBGWj76oeZxYbPrC4TVBW/t5HYo9k+tT8wIQU/xE=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusthreaddebug_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusthreaddebug_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			NN8l59mMTArvI9Pve/ibZsQjMTwumROsw76hczZF0QA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusutil_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusutil_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			6kcflFQG8XOiBabHU3rUFrbpfy4vN+2jERFi6dh4XjA=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qdbusxmlparser_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qdbusxmlparser_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			edgBg8CpEsThNzt+PQ5nPWu7fmJLozkE+DPUC7Giw7g=
 			</data>
 		</dict>
-		<key>Headers/6.11.2/QtDBus/private/qtdbusglobal_p.h</key>
+		<key>Headers/6.12.0/QtDBus/private/qtdbusglobal_p.h</key>
 		<dict>
 			<key>hash2</key>
 			<data>
@@ -380,7 +380,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			pxLq4vLWctKAomxgNahQ7G9QUw0JtnjZsiCDgVoBZ7c=
+			9EcOMYduO7NMmmwJq2MxmIx2zgcpdWZArE6WskU11Cw=
 			</data>
 		</dict>
 		<key>Headers/qdbusextratypes.h</key>
@@ -478,14 +478,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			KdT0rQASYGwK1HRqkp8/N8XLfgcmRsqZLxZzoLJs82w=
+			Iul8D9cgx+l+MiIfSsYnYAAVeZqurvKziAU4CZA62ek=
 			</data>
 		</dict>
 		<key>Resources/Info.plist</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			F9biUK31sxyaY8+TWOGm23+dqkWaMncVqAP5mNSHGMA=
+			WYsxy7mxwW65EO0cYxeLHWSEx49ZzXG0NzrdC59Pees=
 			</data>
 		</dict>
 		<key>Resources/PrivacyInfo.xcprivacy</key>
@@ -499,7 +499,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			o3DJQ7kWj+b1H9dR2VzyZB/FzIZeR7pRP88z1GvID+g=
+			efPvnLvlbPGQ/PbdPNKzl9CMoo+SkZtQTLhGZsy6MLQ=
 			</data>
 		</dict>
 	</dict>

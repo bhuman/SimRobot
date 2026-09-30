@@ -1,5 +1,6 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QMATRIX4X4_H
 #define QMATRIX4X4_H
@@ -185,6 +186,7 @@ private:
     Flags flagBits;
 
     QMatrix4x4 orthonormalInverse() const;
+    void toGenericMatrix_impl(float *dst, int n, int m) const;
 
     friend class ::tst_QMatrixNxN; // for access to flagBits
 };
@@ -214,17 +216,7 @@ QGenericMatrix<N, M, float> QMatrix4x4::toGenericMatrix() const
 {
     Q_DECL_UNINITIALIZED
     QGenericMatrix<N, M, float> result(Qt::Uninitialized);
-    float *values = result.data();
-    for (int matrixCol = 0; matrixCol < N; ++matrixCol) {
-        for (int matrixRow = 0; matrixRow < M; ++matrixRow) {
-            if (matrixCol < 4 && matrixRow < 4)
-                *values++ = m[matrixCol][matrixRow];
-            else if (matrixCol == matrixRow)
-                *values++ = 1.0f;
-            else
-                *values++ = 0.0f;
-        }
-    }
+    toGenericMatrix_impl(result.data(), N, M);
     return result;
 }
 

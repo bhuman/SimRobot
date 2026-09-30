@@ -5,6 +5,7 @@
 #include <QtCore/qtcoreglobal.h>
 #include <QtCore/q17memory.h>
 #include <QtCore/q20algorithm.h>
+#include <QtCore/q20atomic.h>
 #include <QtCore/q20bit.h>
 #include <QtCore/q20chrono.h>
 #include <QtCore/q20functional.h>

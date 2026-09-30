@@ -29,27 +29,28 @@ public:
     typedef typename std::conditional<pass_parameter_by_value, T, const T &>::type parameter_type;
 
     Q_NODISCARD_CTOR
-    constexpr QArrayDataPointer() noexcept
-        : d(nullptr), ptr(nullptr), size(0)
-    {
-    }
+    constexpr QArrayDataPointer() = default;
 
     Q_NODISCARD_CTOR
     QArrayDataPointer(const QArrayDataPointer &other) noexcept
-        : d(other.d), ptr(other.ptr), size(other.size)
+        : QArrayDataPointer(other.d, other.ptr, other.size)
     {
         ref();
     }
 
     Q_NODISCARD_CTOR
     constexpr QArrayDataPointer(Data *header, T *adata, qsizetype n = 0) noexcept
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0) || defined(QT_BOOTSTRAPPED)
+        : ptr(adata), size(n), d(header)
+#else
         : d(header), ptr(adata), size(n)
+#endif
     {
     }
 
     Q_NODISCARD_CTOR
     explicit QArrayDataPointer(QTypedArrayAllocationResult<T> adata, qsizetype n = 0) noexcept
-        : d(adata.header), ptr(adata.ptr), size(n)
+        : QArrayDataPointer(adata.header, adata.ptr, n)
     {
     }
 
@@ -76,9 +77,9 @@ public:
 
     Q_NODISCARD_CTOR
     QArrayDataPointer(QArrayDataPointer &&other) noexcept
-        : d(std::exchange(other.d, nullptr)),
-          ptr(std::exchange(other.ptr, nullptr)),
-          size(std::exchange(other.size, 0))
+        : QArrayDataPointer(std::exchange(other.d, nullptr),
+                            std::exchange(other.ptr, nullptr),
+                            std::exchange(other.size, 0))
     {
     }
 
@@ -107,8 +108,8 @@ public:
         return !ptr;
     }
 
-    T *data() noexcept { return ptr; }
-    const T *data() const noexcept { return ptr; }
+    T *data() noexcept { T *p = ptr; if (size) Q_PRESUME(p); return p; }
+    const T *data() const noexcept { T *p = ptr; if (size) Q_PRESUME(p); return p; }
 
     T *begin() noexcept { return data(); }
     T *end() noexcept { return data() + size; }
@@ -412,9 +413,14 @@ public:
         return lhs.data() != rhs.data() || lhs.size != rhs.size;
     }
 
-    Data *d;
-    T *ptr;
-    qsizetype size;
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED)
+    Data *d = nullptr;
+#endif
+    T *ptr = nullptr;
+    qsizetype size = 0;
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0) || defined(QT_BOOTSTRAPPED)
+    Data *d = nullptr;
+#endif
 };
 
 template <class T>
@@ -422,6 +428,9 @@ inline void swap(QArrayDataPointer<T> &p1, QArrayDataPointer<T> &p2) noexcept
 {
     p1.swap(p2);
 }
+
+template <class T>
+Q_DECLARE_TYPEINFO_BODY(QArrayDataPointer<T>, Q_RELOCATABLE_TYPE);
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Q_ARRAY_LITERAL
