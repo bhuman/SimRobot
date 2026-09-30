@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QPROMISE_H
 #define QPROMISE_H
@@ -75,17 +40,30 @@ public:
         // potential waits
         if (d.d && !(d.loadState() & QFutureInterfaceBase::State::Finished)) {
             d.cancelAndFinish(); // cancel and finalize the state
-            d.cleanContinuation();
+            d.runContinuation();
         }
+        d.cleanContinuation();
     }
 
     // Core QPromise APIs
     QFuture<T> future() const { return d.future(); }
-    template<typename U, typename = QtPrivate::EnableIfSameOrConvertible<U, T>>
+    template<typename...Args, std::enable_if_t<std::is_constructible_v<T, Args...>, bool> = true>
+    bool emplaceResultAt(int index, Args&&...args)
+    {
+        return d.reportAndEmplaceResult(index, std::forward<Args>(args)...);
+    }
+    template<typename...Args, std::enable_if_t<std::is_constructible_v<T, Args...>, bool> = true>
+    bool emplaceResult(Args&&...args)
+    {
+        return d.reportAndEmplaceResult(-1, std::forward<Args>(args)...);
+    }
+    template<typename U = T, typename = QtPrivate::EnableIfSameOrConvertible<U, T>>
     bool addResult(U &&result, int index = -1)
     {
-        return d.reportResult(std::forward<U>(result), index);
+        return d.reportAndEmplaceResult(index, std::forward<U>(result));
     }
+    bool addResults(const QList<T> &result)
+    { return d.reportResults(result); }
 #ifndef QT_NO_EXCEPTIONS
     void setException(const QException &e) { d.reportException(e); }
 #if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
@@ -114,7 +92,7 @@ public:
         d.swap(other.d);
     }
 
-#if defined(Q_CLANG_QDOC)  // documentation-only simplified signatures
+#if defined(Q_QDOC)  // documentation-only simplified signatures
     bool addResult(const T &result, int index = -1) { }
     bool addResult(T &&result, int index = -1) { }
 #endif

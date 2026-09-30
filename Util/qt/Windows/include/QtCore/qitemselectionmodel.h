@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QITEMSELECTIONMODEL_H
 #define QITEMSELECTIONMODEL_H
@@ -78,27 +43,25 @@ public:
 
     inline bool contains(const QModelIndex &index) const
     {
-        return (parent() == index.parent()
-                && tl.row() <= index.row() && tl.column() <= index.column()
-                && br.row() >= index.row() && br.column() >= index.column());
+        return contains(index.row(), index.column(), index.parent());
     }
 
     inline bool contains(int row, int column, const QModelIndex &parentIndex) const
     {
-        return (parent() == parentIndex
-                && tl.row() <= row && tl.column() <= column
-                && br.row() >= row && br.column() >= column);
+        return (br.row() >= row && br.column() >= column &&
+                tl.row() <= row && tl.column() <= column &&
+                parent() == parentIndex);
     }
 
     bool intersects(const QItemSelectionRange &other) const;
     QItemSelectionRange intersected(const QItemSelectionRange &other) const;
 
-
+#if QT_CORE_REMOVED_SINCE(6, 8)
     inline bool operator==(const QItemSelectionRange &other) const
-        { return (tl == other.tl && br == other.br); }
+    { return comparesEqual(*this, other); }
     inline bool operator!=(const QItemSelectionRange &other) const
-        { return !operator==(other); }
-
+    { return !operator==(other); }
+#endif
     inline bool isValid() const
     {
         return (tl.isValid() && br.isValid() && tl.parent() == br.parent()
@@ -110,6 +73,12 @@ public:
     QModelIndexList indexes() const;
 
 private:
+    friend bool comparesEqual(const QItemSelectionRange &lhs,
+                              const QItemSelectionRange &rhs) noexcept
+    {
+        return comparesEqual(lhs.tl, rhs.tl) && comparesEqual(lhs.br, rhs.br);
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QItemSelectionRange)
     QPersistentModelIndex tl, br;
 };
 Q_DECLARE_TYPEINFO(QItemSelectionRange, Q_RELOCATABLE_TYPE);
@@ -201,13 +170,6 @@ protected:
 
 private:
     Q_DISABLE_COPY(QItemSelectionModel)
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsAboutToBeRemoved(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsAboutToBeRemoved(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_columnsAboutToBeInserted(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_rowsAboutToBeInserted(const QModelIndex&, int, int))
-    Q_PRIVATE_SLOT(d_func(), void _q_layoutAboutToBeChanged(const QList<QPersistentModelIndex> &parents = QList<QPersistentModelIndex>(), QAbstractItemModel::LayoutChangeHint hint = QAbstractItemModel::NoHint))
-    Q_PRIVATE_SLOT(d_func(), void _q_layoutChanged(const QList<QPersistentModelIndex> &parents = QList<QPersistentModelIndex>(), QAbstractItemModel::LayoutChangeHint hint = QAbstractItemModel::NoHint))
-    Q_PRIVATE_SLOT(d_func(), void _q_modelDestroyed())
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QItemSelectionModel::SelectionFlags)

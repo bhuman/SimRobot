@@ -1,1 +1,1 @@
-#include "qcborstreamwriter.h"
+#include <QtCore/qcborstreamwriter.h> // IWYU pragma: export

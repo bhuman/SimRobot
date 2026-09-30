@@ -1,1 +1,1 @@
-#include "qgraphicsanchorlayout.h"
+#include <QtWidgets/qgraphicsanchorlayout.h> // IWYU pragma: export

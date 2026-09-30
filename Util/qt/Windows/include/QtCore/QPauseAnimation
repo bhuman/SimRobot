@@ -1,1 +1,1 @@
-#include "qpauseanimation.h"
+#include <QtCore/qpauseanimation.h> // IWYU pragma: export

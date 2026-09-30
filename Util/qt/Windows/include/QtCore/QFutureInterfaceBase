@@ -1,1 +1,1 @@
-#include "qfutureinterface.h"
+#include <QtCore/qfutureinterface.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qbackingstore.h"
+#include <QtGui/qbackingstore.h> // IWYU pragma: export

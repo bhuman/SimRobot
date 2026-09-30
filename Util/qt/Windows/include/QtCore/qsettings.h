@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSETTINGS_H
 #define QSETTINGS_H
@@ -67,7 +32,7 @@ class Q_CORE_EXPORT QSettings
 #ifndef QT_NO_QOBJECT
     Q_OBJECT
 #else
-    QScopedPointer<QSettingsPrivate> d_ptr;
+    std::unique_ptr<QSettingsPrivate> d_ptr;
 #endif
     Q_DECLARE_PRIVATE(QSettings)
 
@@ -82,12 +47,17 @@ public:
 #endif
 
     enum Format {
-        NativeFormat,
-        IniFormat,
+        NativeFormat = 0,
+        IniFormat = 1,
 
-#if defined(Q_OS_WIN) || defined(Q_CLANG_QDOC)
-        Registry32Format,
-        Registry64Format,
+#if defined(Q_OS_WIN) || defined(Q_QDOC)
+        Registry32Format = 2,
+        Registry64Format = 3,
+#endif
+
+#if defined(Q_OS_WASM) || defined(Q_QDOC)
+        WebLocalStorageFormat = 4,
+        WebIndexedDBFormat = 5,
 #endif
 
         InvalidFormat = 16,
@@ -148,12 +118,19 @@ public:
     bool isAtomicSyncRequired() const;
     void setAtomicSyncRequired(bool enable);
 
+#if QT_CORE_REMOVED_SINCE(6, 4)
     void beginGroup(const QString &prefix);
+#endif
+    void beginGroup(QAnyStringView prefix);
     void endGroup();
     QString group() const;
 
+#if QT_CORE_REMOVED_SINCE(6, 4)
     int beginReadArray(const QString &prefix);
     void beginWriteArray(const QString &prefix, int size = -1);
+#endif
+    int beginReadArray(QAnyStringView prefix);
+    void beginWriteArray(QAnyStringView prefix, int size = -1);
     void endArray();
     void setArrayIndex(int i);
 
@@ -162,12 +139,21 @@ public:
     QStringList childGroups() const;
     bool isWritable() const;
 
+#if QT_CORE_REMOVED_SINCE(6, 4)
     void setValue(const QString &key, const QVariant &value);
     QVariant value(const QString &key, const QVariant &defaultValue) const;
     QVariant value(const QString &key) const;
+#endif
+    void setValue(QAnyStringView key, const QVariant &value);
+    QVariant value(QAnyStringView key, const QVariant &defaultValue) const;
+    QVariant value(QAnyStringView key) const;
 
+#if QT_CORE_REMOVED_SINCE(6, 4)
     void remove(const QString &key);
     bool contains(const QString &key) const;
+#endif
+    void remove(QAnyStringView key);
+    bool contains(QAnyStringView key) const;
 
     void setFallbacksEnabled(bool b);
     bool fallbacksEnabled() const;

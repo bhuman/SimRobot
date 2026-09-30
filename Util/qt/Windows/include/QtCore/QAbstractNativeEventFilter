@@ -1,1 +1,1 @@
-#include "qabstractnativeeventfilter.h"
+#include <QtCore/qabstractnativeeventfilter.h> // IWYU pragma: export

@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2017 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2017 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QVULKANINSTANCE_H
 #define QVULKANINSTANCE_H
@@ -47,12 +12,12 @@
 #pragma qt_sync_skip_header_check
 #endif
 
-#if QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+#if QT_CONFIG(vulkan) || defined(Q_QDOC)
 
 #ifndef VK_NO_PROTOTYPES
 #define VK_NO_PROTOTYPES
 #endif
-#if !defined(Q_CLANG_QDOC) && __has_include(<vulkan/vulkan.h>)
+#if !defined(Q_QDOC) && __has_include(<vulkan/vulkan.h>)
 #include <vulkan/vulkan.h>
 #else
 // QT_CONFIG(vulkan) implies vulkan.h being available at Qt build time, but it
@@ -72,6 +37,7 @@ typedef void* VkPhysicalDevice;
 typedef void* VkDevice;
 // enums
 typedef int VkResult;
+typedef int VkFormat;
 typedef int VkImageLayout;
 typedef int VkDebugReportFlagsEXT;
 typedef int VkDebugReportObjectTypeEXT;
@@ -80,16 +46,17 @@ typedef int VkDebugReportObjectTypeEXT;
 // QVulkanInstance itself is only applicable if vulkan.h is available, or if
 // it's qdoc. An application that is built on a vulkan.h-less system against a
 // Vulkan-enabled Qt gets the dummy typedefs but not QVulkan*.
-#if __has_include(<vulkan/vulkan.h>) || defined(Q_CLANG_QDOC)
+#if __has_include(<vulkan/vulkan.h>) || defined(Q_QDOC)
 
 #include <QtCore/qbytearraylist.h>
-#include <QtCore/qdebug.h>
 #include <QtCore/qhashfunctions.h>
 #include <QtCore/qlist.h>
 #include <QtCore/qscopedpointer.h>
 #include <QtCore/qversionnumber.h>
 
 QT_BEGIN_NAMESPACE
+
+class QDebug;
 
 class QVulkanInstancePrivate;
 class QPlatformVulkanInstance;
@@ -115,7 +82,7 @@ inline bool operator!=(const QVulkanLayer &lhs, const QVulkanLayer &rhs) noexcep
 
 inline size_t qHash(const QVulkanLayer &key, size_t seed = 0) noexcept
 {
-    QtPrivate::QHashCombine hash;
+    QtPrivate::QHashCombine hash(seed);
     seed = hash(seed, key.name);
     seed = hash(seed, key.version);
     seed = hash(seed, key.specVersion);
@@ -138,7 +105,7 @@ inline bool operator!=(const QVulkanExtension &lhs, const QVulkanExtension &rhs)
 
 inline size_t qHash(const QVulkanExtension &key, size_t seed = 0) noexcept
 {
-    QtPrivate::QHashCombine hash;
+    QtPrivate::QHashCombine hash(seed);
     seed = hash(seed, key.name);
     seed = hash(seed, key.version);
     return seed;
@@ -170,7 +137,8 @@ public:
     ~QVulkanInstance();
 
     enum Flag {
-        NoDebugOutputRedirect = 0x01
+        NoDebugOutputRedirect = 0x01,
+        NoPortabilityDrivers = 0x02
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 
@@ -222,17 +190,39 @@ public:
     void installDebugOutputFilter(DebugFilter filter);
     void removeDebugOutputFilter(DebugFilter filter);
 
+    enum DebugMessageSeverityFlag {
+        VerboseSeverity = 0x01,
+        InfoSeverity = 0x02,
+        WarningSeverity = 0x04,
+        ErrorSeverity = 0x08
+    };
+    Q_DECLARE_FLAGS(DebugMessageSeverityFlags, DebugMessageSeverityFlag)
+
+    enum DebugMessageTypeFlag {
+        GeneralMessage = 0x01,
+        ValidationMessage = 0x02,
+        PerformanceMessage = 0x04
+    };
+    Q_DECLARE_FLAGS(DebugMessageTypeFlags, DebugMessageTypeFlag)
+
+    using DebugUtilsFilter = std::function<bool(DebugMessageSeverityFlags severity, DebugMessageTypeFlags type, const void *message)>;
+    void installDebugOutputFilter(DebugUtilsFilter filter);
+    void clearDebugOutputFilters();
+
 private:
+    friend class QVulkanInstancePrivate;
     QScopedPointer<QVulkanInstancePrivate> d_ptr;
     Q_DISABLE_COPY(QVulkanInstance)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QVulkanInstance::Flags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QVulkanInstance::DebugMessageTypeFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(QVulkanInstance::DebugMessageSeverityFlags)
 
 QT_END_NAMESPACE
 
-#endif // __has_include(<vulkan/vulkan.h>) || defined(Q_CLANG_QDOC)
+#endif // __has_include(<vulkan/vulkan.h>) || defined(Q_QDOC)
 
-#endif // QT_CONFIG(vulkan) || defined(Q_CLANG_QDOC)
+#endif // QT_CONFIG(vulkan) || defined(Q_QDOC)
 
 #endif // QVULKANINSTANCE_H

@@ -1,1 +1,1 @@
-#include "qsvgrenderer.h"
+#include <QtSvg/qsvgrenderer.h> // IWYU pragma: export

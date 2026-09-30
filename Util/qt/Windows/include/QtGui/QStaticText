@@ -1,1 +1,1 @@
-#include "qstatictext.h"
+#include <QtGui/qstatictext.h> // IWYU pragma: export

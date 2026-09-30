@@ -1,1 +1,1 @@
-#include "qkeysequence.h"
+#include <QtGui/qkeysequence.h> // IWYU pragma: export

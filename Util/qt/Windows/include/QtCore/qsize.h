@@ -1,48 +1,17 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSIZE_H
 #define QSIZE_H
 
+#include <QtCore/qcheckedint_impl.h>
 #include <QtCore/qnamespace.h>
 #include <QtCore/qhashfunctions.h>
 #include <QtCore/qmargins.h>
+
+#include <QtCore/q20type_traits.h>
+#include <QtCore/q23utility.h>
 
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
 struct CGSize;
@@ -50,6 +19,9 @@ struct CGSize;
 
 QT_BEGIN_NAMESPACE
 
+// QT_ENABLE_P0846_SEMANTICS_FOR(get) // from qmargins.h
+
+class QSizeF;
 
 class Q_CORE_EXPORT QSize
 {
@@ -77,9 +49,9 @@ public:
     [[nodiscard]] constexpr inline QSize boundedTo(const QSize &) const noexcept;
 
     [[nodiscard]] constexpr QSize grownBy(QMargins m) const noexcept
-    { return {width() + m.left() + m.right(), height() + m.top() + m.bottom()}; }
+    { return {wd + m.left() + m.right(), ht + m.top() + m.bottom()}; }
     [[nodiscard]] constexpr QSize shrunkBy(QMargins m) const noexcept
-    { return {width() - m.left() - m.right(), height() - m.top() - m.bottom()}; }
+    { return {wd - m.left() - m.right(), ht - m.top() - m.bottom()}; }
 
     constexpr inline int &rwidth() noexcept;
     constexpr inline int &rheight() noexcept;
@@ -89,40 +61,52 @@ public:
     constexpr inline QSize &operator*=(qreal c) noexcept;
     inline QSize &operator/=(qreal c);
 
-    friend inline constexpr bool operator==(const QSize &s1, const QSize &s2) noexcept
+private:
+    friend constexpr bool comparesEqual(const QSize &s1, const QSize &s2) noexcept
     { return s1.wd == s2.wd && s1.ht == s2.ht; }
-    friend inline constexpr bool operator!=(const QSize &s1, const QSize &s2) noexcept
-    { return s1.wd != s2.wd || s1.ht != s2.ht; }
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QSize)
     friend inline constexpr QSize operator+(const QSize &s1, const QSize &s2) noexcept
     { return QSize(s1.wd + s2.wd, s1.ht + s2.ht); }
     friend inline constexpr QSize operator-(const QSize &s1, const QSize &s2) noexcept
     { return QSize(s1.wd - s2.wd, s1.ht - s2.ht); }
     friend inline constexpr QSize operator*(const QSize &s, qreal c) noexcept
-    { return QSize(qRound(s.wd * c), qRound(s.ht * c)); }
+    { return QSize(QtPrivate::qSaturateRound(s.width() * c), QtPrivate::qSaturateRound(s.height() * c)); }
     friend inline constexpr QSize operator*(qreal c, const QSize &s) noexcept
     { return s * c; }
     friend inline QSize operator/(const QSize &s, qreal c)
-    { Q_ASSERT(!qFuzzyIsNull(c)); return QSize(qRound(s.wd / c), qRound(s.ht / c)); }
+    {
+        Q_ASSERT(!qFuzzyIsNull(c));
+        return QSize(QtPrivate::qSaturateRound(s.width() / c), QtPrivate::qSaturateRound(s.height() / c));
+    }
     friend inline constexpr size_t qHash(const QSize &, size_t) noexcept;
 
+public:
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
     [[nodiscard]] CGSize toCGSize() const noexcept;
 #endif
 
+    [[nodiscard]] inline constexpr QSizeF toSizeF() const noexcept;
+
 private:
-    int wd;
-    int ht;
+    using Representation = QtPrivate::QCheckedIntegers::QCheckedInt<int>;
+
+    constexpr QSize(Representation w, Representation h) noexcept
+        : wd(w), ht(h)
+    {}
+
+    Representation wd;
+    Representation ht;
 
     template <std::size_t I,
               typename S,
               std::enable_if_t<(I < 2), bool> = true,
-              std::enable_if_t<std::is_same_v<std::decay_t<S>, QSize>, bool> = true>
+              std::enable_if_t<std::is_same_v<q20::remove_cvref_t<S>, QSize>, bool> = true>
     friend constexpr decltype(auto) get(S &&s) noexcept
     {
         if constexpr (I == 0)
-            return (std::forward<S>(s).wd);
+            return q23::forward_like<S>(s.wd).as_underlying();
         else if constexpr (I == 1)
-            return (std::forward<S>(s).ht);
+            return q23::forward_like<S>(s.ht).as_underlying();
     }
 };
 Q_DECLARE_TYPEINFO(QSize, Q_RELOCATABLE_TYPE);
@@ -155,16 +139,16 @@ constexpr inline bool QSize::isValid() const noexcept
 { return wd >= 0 && ht >= 0; }
 
 constexpr inline int QSize::width() const noexcept
-{ return wd; }
+{ return wd.value(); }
 
 constexpr inline int QSize::height() const noexcept
-{ return ht; }
+{ return ht.value(); }
 
 constexpr inline void QSize::setWidth(int w) noexcept
-{ wd = w; }
+{ wd.setValue(w); }
 
 constexpr inline void QSize::setHeight(int h) noexcept
-{ ht = h; }
+{ ht.setValue(h); }
 
 constexpr inline QSize QSize::transposed() const noexcept
 { return QSize(ht, wd); }
@@ -179,10 +163,10 @@ inline QSize QSize::scaled(int w, int h, Qt::AspectRatioMode mode) const noexcep
 { return scaled(QSize(w, h), mode); }
 
 constexpr inline int &QSize::rwidth() noexcept
-{ return wd; }
+{ return wd.as_underlying(); }
 
 constexpr inline int &QSize::rheight() noexcept
-{ return ht; }
+{ return ht.as_underlying(); }
 
 constexpr inline QSize &QSize::operator+=(const QSize &s) noexcept
 {
@@ -200,19 +184,19 @@ constexpr inline QSize &QSize::operator-=(const QSize &s) noexcept
 
 constexpr inline QSize &QSize::operator*=(qreal c) noexcept
 {
-    wd = qRound(wd * c);
-    ht = qRound(ht * c);
+    wd.setValue(QtPrivate::qSaturateRound(width() * c));
+    ht.setValue(QtPrivate::qSaturateRound(height() * c));
     return *this;
 }
 
 constexpr inline size_t qHash(const QSize &s, size_t seed = 0) noexcept
-{ return qHashMulti(seed, s.wd, s.ht); }
+{ return qHashMulti(seed, s.width(), s.height()); }
 
 inline QSize &QSize::operator/=(qreal c)
 {
     Q_ASSERT(!qFuzzyIsNull(c));
-    wd = qRound(wd / c);
-    ht = qRound(ht / c);
+    wd.setValue(QtPrivate::qSaturateRound(width() / c));
+    ht.setValue(QtPrivate::qSaturateRound(height() / c));
     return *this;
 }
 
@@ -270,16 +254,20 @@ public:
     constexpr inline QSizeF &operator*=(qreal c) noexcept;
     inline QSizeF &operator/=(qreal c);
 
-    QT_WARNING_PUSH
-    QT_WARNING_DISABLE_FLOAT_COMPARE
-    friend constexpr inline bool operator==(const QSizeF &s1, const QSizeF &s2)
+private:
+    friend constexpr bool qFuzzyCompare(const QSizeF &s1, const QSizeF &s2) noexcept
     {
-        return ((!s1.wd || !s2.wd) ? qFuzzyIsNull(s1.wd - s2.wd) : qFuzzyCompare(s1.wd, s2.wd))
-            && ((!s1.ht || !s2.ht) ? qFuzzyIsNull(s1.ht - s2.ht) : qFuzzyCompare(s1.ht, s2.ht));
+        return QtPrivate::fuzzyCompare(s1.wd, s2.wd)
+            && QtPrivate::fuzzyCompare(s1.ht, s2.ht);
     }
-    QT_WARNING_POP
-    friend constexpr inline bool operator!=(const QSizeF &s1, const QSizeF &s2)
-    { return !(s1 == s2); }
+    friend constexpr bool qFuzzyIsNull(const QSizeF &size) noexcept
+    { return qFuzzyIsNull(size.wd) && qFuzzyIsNull(size.ht); }
+    friend constexpr bool comparesEqual(const QSizeF &lhs, const QSizeF &rhs) noexcept
+    { return qFuzzyCompare(lhs, rhs); }
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QSizeF)
+    friend constexpr bool comparesEqual(const QSizeF &lhs, const QSize &rhs) noexcept
+    { return comparesEqual(lhs, rhs.toSizeF()); }
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QSizeF, QSize)
     friend constexpr inline QSizeF operator+(const QSizeF &s1, const QSizeF &s2) noexcept
     { return QSizeF(s1.wd + s2.wd, s1.ht + s2.ht); }
     friend constexpr inline QSizeF operator-(const QSizeF &s1, const QSizeF &s2) noexcept
@@ -291,6 +279,7 @@ public:
     friend inline QSizeF operator/(const QSizeF &s, qreal c)
     { Q_ASSERT(!qFuzzyIsNull(c)); return QSizeF(s.wd / c, s.ht / c); }
 
+public:
     constexpr inline QSize toSize() const noexcept;
 
 #if defined(Q_OS_DARWIN) || defined(Q_QDOC)
@@ -305,13 +294,13 @@ private:
     template <std::size_t I,
               typename S,
               std::enable_if_t<(I < 2), bool> = true,
-              std::enable_if_t<std::is_same_v<std::decay_t<S>, QSizeF>, bool> = true>
+              std::enable_if_t<std::is_same_v<q20::remove_cvref_t<S>, QSizeF>, bool> = true>
     friend constexpr decltype(auto) get(S &&s) noexcept
     {
         if constexpr (I == 0)
-            return (std::forward<S>(s).wd);
+            return q23::forward_like<S>(s.wd);
         else if constexpr (I == 1)
-            return (std::forward<S>(s).ht);
+            return q23::forward_like<S>(s.ht);
     }
 };
 Q_DECLARE_TYPEINFO(QSizeF, Q_RELOCATABLE_TYPE);
@@ -417,8 +406,10 @@ constexpr inline QSizeF QSizeF::boundedTo(const QSizeF &otherSize) const noexcep
 
 constexpr inline QSize QSizeF::toSize() const noexcept
 {
-    return QSize(qRound(wd), qRound(ht));
+    return QSize(QtPrivate::qSaturateRound(wd), QtPrivate::qSaturateRound(ht));
 }
+
+constexpr QSizeF QSize::toSizeF() const noexcept { return *this; }
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QSizeF &);

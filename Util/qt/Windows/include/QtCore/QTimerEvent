@@ -1,1 +1,1 @@
-#include "qcoreevent.h"
+#include <QtCore/qcoreevent.h> // IWYU pragma: export

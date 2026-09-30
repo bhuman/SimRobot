@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTEMPORARYFILE_H
 #define QTEMPORARYFILE_H
@@ -50,7 +15,7 @@
 QT_BEGIN_NAMESPACE
 
 
-#ifndef QT_NO_TEMPORARYFILE
+#if QT_CONFIG(temporaryfile)
 
 class QTemporaryFilePrivate;
 class QLockFilePrivate;
@@ -68,25 +33,62 @@ public:
 #ifndef QT_NO_QOBJECT
     explicit QTemporaryFile(QObject *parent);
     QTemporaryFile(const QString &templateName, QObject *parent);
-#endif
+
+#  if QT_CONFIG(cxx17_filesystem) || defined(Q_QDOC)
+    Q_WEAK_OVERLOAD
+    explicit QTemporaryFile(const std::filesystem::path &templateName, QObject *parent = nullptr)
+        : QTemporaryFile(QtPrivate::fromFilesystemPath(templateName), parent)
+    {
+    }
+#  endif // QT_CONFIG(cxx17_filesystem)
+#endif // !QT_NO_QOBJECT
+
     ~QTemporaryFile();
 
     bool autoRemove() const;
     void setAutoRemove(bool b);
 
     // ### Hides open(flags)
-    bool open() { return open(QIODevice::ReadWrite); }
+    QFILE_MAYBE_NODISCARD bool open() { return open(QIODevice::ReadWrite); }
 
     QString fileName() const override;
     QString fileTemplate() const;
     void setFileTemplate(const QString &name);
+#if QT_CONFIG(cxx17_filesystem) || defined(Q_QDOC)
+    Q_WEAK_OVERLOAD
+    void setFileTemplate(const std::filesystem::path &name)
+    {
+        return setFileTemplate(QtPrivate::fromFilesystemPath(name));
+    }
+#endif // QT_CONFIG(cxx17_filesystem)
 
     // Hides QFile::rename
     bool rename(const QString &newName);
+    bool renameOverwrite(const QString &newName);
+
+#if QT_CONFIG(cxx17_filesystem) || defined(Q_QDOC)
+    Q_WEAK_OVERLOAD
+    bool rename(const std::filesystem::path &newName)
+    {
+        return rename(QtPrivate::fromFilesystemPath(newName));
+    }
+    Q_WEAK_OVERLOAD
+    bool renameOverwrite(const std::filesystem::path &newName)
+    { return renameOverwrite(QtPrivate::fromFilesystemPath(newName)); }
+#endif // QT_CONFIG(cxx17_filesystem)
 
     inline static QTemporaryFile *createNativeFile(const QString &fileName)
         { QFile file(fileName); return createNativeFile(file); }
     static QTemporaryFile *createNativeFile(QFile &file);
+
+#if QT_CONFIG(cxx17_filesystem) || defined(Q_QDOC)
+    Q_WEAK_OVERLOAD
+    static QTemporaryFile *createNativeFile(const std::filesystem::path &fileName)
+    {
+        QFile file(fileName);
+        return createNativeFile(file);
+    }
+#endif // QT_CONFIG(cxx17_filesystem)
 
 protected:
     bool open(OpenMode flags) override;
@@ -97,7 +99,7 @@ private:
     Q_DISABLE_COPY(QTemporaryFile)
 };
 
-#endif // QT_NO_TEMPORARYFILE
+#endif // QT_CONFIG(temporaryfile)
 
 QT_END_NAMESPACE
 

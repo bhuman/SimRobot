@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QBITARRAY_H
 #define QBITARRAY_H
@@ -47,25 +12,70 @@ QT_BEGIN_NAMESPACE
 class QBitRef;
 class Q_CORE_EXPORT QBitArray
 {
+    Q_CORE_EXPORT friend QBitArray operator&(const QBitArray &a1, const QBitArray &a2);
+    friend QBitArray operator&(QBitArray &&a1, const QBitArray &a2)
+    { return a1 &= a2; }
+    friend QBitArray operator&(const QBitArray &a1, QBitArray &&a2)
+    { return a2 &= a1; }
+    friend QBitArray operator&(QBitArray &&a1, QBitArray &&a2)
+    { return a1 &= a2; }
+
+    Q_CORE_EXPORT friend QBitArray operator|(const QBitArray &a1, const QBitArray &a2);
+    friend QBitArray operator|(QBitArray &&a1, const QBitArray &a2)
+    { return a1 |= a2; }
+    friend QBitArray operator|(const QBitArray &a1, QBitArray &&a2)
+    { return a2 |= a1; }
+    friend QBitArray operator|(QBitArray &&a1, QBitArray &&a2)
+    { return a1 |= a2; }
+
+    Q_CORE_EXPORT friend QBitArray operator^(const QBitArray &a1, const QBitArray &a2);
+    friend QBitArray operator^(QBitArray &&a1, const QBitArray &a2)
+    { return a1 ^= a2; }
+    friend QBitArray operator^(const QBitArray &a1, QBitArray &&a2)
+    { return a2 ^= a1; }
+    friend QBitArray operator^(QBitArray &&a1, QBitArray &&a2)
+    { return a1 ^= a2; }
+
 #ifndef QT_NO_DATASTREAM
     friend Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QBitArray &);
     friend Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QBitArray &);
 #endif
     friend Q_CORE_EXPORT size_t qHash(const QBitArray &key, size_t seed) noexcept;
+    friend QBitArray operator~(QBitArray a)
+    { return std::move(a).inverted_inplace(); }
     QByteArray d;
+
+    QBitArray(QByteArrayData &&dd) : d(std::move(dd)) {}
+
+    template <typename BitArray> static auto bitLocation(BitArray &ba, qsizetype i)
+    {
+        Q_ASSERT(size_t(i) < size_t(ba.size()));
+        struct R {
+            decltype(ba.d[1]) byte;
+            uchar bitMask;
+        };
+        qsizetype byteIdx = i >> 3;
+        qsizetype bitIdx = i & 7;
+        return R{ ba.d[1 + byteIdx], uchar(1U << bitIdx) };
+    }
+
+    QBitArray inverted_inplace() &&;
 
 public:
     inline QBitArray() noexcept {}
     explicit QBitArray(qsizetype size, bool val = false);
-    QBitArray(const QBitArray &other) : d(other.d) {}
-    inline QBitArray &operator=(const QBitArray &other) { d = other.d; return *this; }
+    // Rule Of Zero applies
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
+    QBitArray(const QBitArray &other) noexcept : d(other.d) {}
+    inline QBitArray &operator=(const QBitArray &other) noexcept { d = other.d; return *this; }
     inline QBitArray(QBitArray &&other) noexcept : d(std::move(other.d)) {}
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QBitArray)
+#endif // Qt 6
 
     void swap(QBitArray &other) noexcept { d.swap(other.d); }
 
-    inline qsizetype size() const { return (d.size() << 3) - *d.constData(); }
-    inline qsizetype count() const { return (d.size() << 3) - *d.constData(); }
+    qsizetype size() const { return qsizetype((size_t(d.size()) << 3) - *d.constData()); }
+    qsizetype count() const { return size(); }
     qsizetype count(bool on) const;
 
     inline bool isEmpty() const { return d.isEmpty(); }
@@ -77,25 +87,43 @@ public:
     inline bool isDetached() const { return d.isDetached(); }
     inline void clear() { d.clear(); }
 
-    bool testBit(qsizetype i) const;
-    void setBit(qsizetype i);
-    void setBit(qsizetype i, bool val);
-    void clearBit(qsizetype i);
-    bool toggleBit(qsizetype i);
+    bool testBit(qsizetype i) const
+    { auto r = bitLocation(*this, i); return r.byte & r.bitMask; }
+    void setBit(qsizetype i)
+    { auto r = bitLocation(*this, i); r.byte |= r.bitMask; }
+    void setBit(qsizetype i, bool val)
+    { if (val) setBit(i); else clearBit(i); }
+    void clearBit(qsizetype i)
+    { auto r = bitLocation(*this, i); r.byte &= ~r.bitMask; }
+    bool toggleBit(qsizetype i)
+    {
+        auto r = bitLocation(*this, i);
+        bool cl = r.byte & r.bitMask;
+        r.byte ^= r.bitMask;
+        return cl;
+    }
 
-    bool at(qsizetype i) const;
-    QBitRef operator[](qsizetype i);
-    bool operator[](qsizetype i) const;
+    bool at(qsizetype i) const { return testBit(i); }
+    inline QBitRef operator[](qsizetype i);
+    bool operator[](qsizetype i) const { return testBit(i); }
 
+    QBitArray &operator&=(QBitArray &&);
+    QBitArray &operator|=(QBitArray &&);
+    QBitArray &operator^=(QBitArray &&);
     QBitArray &operator&=(const QBitArray &);
     QBitArray &operator|=(const QBitArray &);
     QBitArray &operator^=(const QBitArray &);
+#if QT_CORE_REMOVED_SINCE(6, 7)
     QBitArray operator~() const;
+#endif
 
-    inline bool operator==(const QBitArray &other) const { return d == other.d; }
-    inline bool operator!=(const QBitArray &other) const { return d != other.d; }
+#if QT_CORE_REMOVED_SINCE(6, 8)
+    inline bool operator==(const QBitArray &other) const { return comparesEqual(d, other.d); }
+    inline bool operator!=(const QBitArray &other) const { return !operator==(other); }
+#endif
 
-    inline bool fill(bool val, qsizetype size = -1);
+    bool fill(bool aval, qsizetype asize = -1)
+    { *this = QBitArray((asize < 0 ? this->size() : asize), aval); return true; }
     void fill(bool val, qsizetype first, qsizetype last);
 
     inline void truncate(qsizetype pos) { if (pos < size()) resize(pos); }
@@ -108,39 +136,17 @@ public:
 public:
     typedef QByteArray::DataPointer DataPtr;
     inline DataPtr &data_ptr() { return d.data_ptr(); }
+    inline const DataPtr &data_ptr() const { return d.data_ptr(); }
+
+private:
+    friend bool comparesEqual(const QBitArray &lhs, const QBitArray &rhs) noexcept
+    {
+        return lhs.d == rhs.d;
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QBitArray)
 };
 
-inline bool QBitArray::fill(bool aval, qsizetype asize)
-{ *this = QBitArray((asize < 0 ? this->size() : asize), aval); return true; }
-
-Q_CORE_EXPORT QBitArray operator&(const QBitArray &, const QBitArray &);
-Q_CORE_EXPORT QBitArray operator|(const QBitArray &, const QBitArray &);
-Q_CORE_EXPORT QBitArray operator^(const QBitArray &, const QBitArray &);
-
-inline bool QBitArray::testBit(qsizetype i) const
-{ Q_ASSERT(size_t(i) < size_t(size()));
- return (*(reinterpret_cast<const uchar*>(d.constData())+1+(i>>3)) & (1 << (i & 7))) != 0; }
-
-inline void QBitArray::setBit(qsizetype i)
-{ Q_ASSERT(size_t(i) < size_t(size()));
- *(reinterpret_cast<uchar*>(d.data())+1+(i>>3)) |= uchar(1 << (i & 7)); }
-
-inline void QBitArray::clearBit(qsizetype i)
-{ Q_ASSERT(size_t(i) < size_t(size()));
- *(reinterpret_cast<uchar*>(d.data())+1+(i>>3)) &= ~uchar(1 << (i & 7)); }
-
-inline void QBitArray::setBit(qsizetype i, bool val)
-{ if (val) setBit(i); else clearBit(i); }
-
-inline bool QBitArray::toggleBit(qsizetype i)
-{ Q_ASSERT(size_t(i) < size_t(size()));
- uchar b = uchar(1<<(i&7)); uchar* p = reinterpret_cast<uchar*>(d.data())+1+(i>>3);
- uchar c = uchar(*p&b); *p^=b; return c!=0; }
-
-inline bool QBitArray::operator[](qsizetype i) const { return testBit(i); }
-inline bool QBitArray::at(qsizetype i) const { return testBit(i); }
-
-class Q_CORE_EXPORT QBitRef
+class QT6_ONLY(Q_CORE_EXPORT) QBitRef
 {
 private:
     QBitArray &a;
@@ -155,7 +161,7 @@ public:
     QBitRef &operator=(bool val) { a.setBit(i, val); return *this; }
 };
 
-inline QBitRef QBitArray::operator[](qsizetype i)
+QBitRef QBitArray::operator[](qsizetype i)
 { Q_ASSERT(i >= 0); return QBitRef(*this, i); }
 
 #ifndef QT_NO_DATASTREAM

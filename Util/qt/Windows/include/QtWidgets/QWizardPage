@@ -1,1 +1,1 @@
-#include "qwizard.h"
+#include <QtWidgets/qwizard.h> // IWYU pragma: export

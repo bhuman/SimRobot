@@ -1,48 +1,16 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QMETACONTAINER_H
 #define QMETACONTAINER_H
 
 #include <QtCore/qcontainerinfo.h>
+#include <QtCore/qcompare.h>
 #include <QtCore/qflags.h>
 #include <QtCore/qglobal.h>
+
+#include <iterator>
 
 QT_BEGIN_NAMESPACE
 
@@ -54,6 +22,11 @@ constexpr const QMetaTypeInterface *qMetaTypeInterfaceForType();
 }
 
 namespace QtMetaContainerPrivate {
+
+class Sequence;
+class SequentialIterator;
+class Association;
+class AssociativeIterator;
 
 enum IteratorCapability : quint8 {
     InputCapability         = 1 << 0,
@@ -955,9 +928,60 @@ protected:
     const QtMetaContainerPrivate::QMetaContainerInterface *d_ptr = nullptr;
 };
 
+// ### Qt7: Move this to qmetasequence.h, including QtMetaContainerPrivate parts above.
 class Q_CORE_EXPORT QMetaSequence : public QMetaContainer
 {
 public:
+#ifdef Q_QDOC
+    class Iterable : public QIterable<QMetaSequence>
+    {
+    public:
+        class Iterator : public QIterator<QMetaSequence>
+        {
+        public:
+            QVariant::Reference<Iterator> operator*() const;
+            QVariant::Pointer<Iterator> operator->() const;
+            QVariant::Reference<Iterator> operator[](qsizetype n) const;
+        };
+
+        class ConstIterator : public QConstIterator<QMetaSequence>
+        {
+        public:
+            QVariant operator*() const;
+            QVariant::ConstPointer<ConstIterator> operator->() const;
+            QVariant operator[](qsizetype n) const;
+        };
+
+        using RandomAccessIterator = Iterator;
+        using BidirectionalIterator = Iterator;
+        using ForwardIterator = Iterator;
+        using InputIterator = Iterator;
+
+        using RandomAccessConstIterator = ConstIterator;
+        using BidirectionalConstIterator = ConstIterator;
+        using ForwardConstIterator = ConstIterator;
+        using InputConstIterator = ConstIterator;
+
+        ConstIterator begin() const;
+        ConstIterator end() const;
+
+        ConstIterator constBegin() const;
+        ConstIterator constEnd() const;
+
+        Iterator mutableBegin();
+        Iterator mutableEnd();
+
+        QVariant at(qsizetype idx) const;
+        void setAt(qsizetype idx, const QVariant &value);
+        void append(const QVariant &value);
+        void prepend(const QVariant &value);
+        void removeLast();
+        void removeFirst();
+    };
+#else
+    using Iterable = QtMetaContainerPrivate::Sequence;
+#endif
+
     QMetaSequence() = default;
     explicit QMetaSequence(const QtMetaContainerPrivate::QMetaSequenceInterface *d) : QMetaContainer(d) {}
 
@@ -1009,16 +1033,15 @@ public:
     bool canGetValueAtConstIterator() const;
     void valueAtConstIterator(const void *iterator, void *result) const;
 
-    friend bool operator==(const QMetaSequence &a, const QMetaSequence &b)
-    {
-        return a.d() == b.d();
-    }
-    friend bool operator!=(const QMetaSequence &a, const QMetaSequence &b)
-    {
-        return a.d() != b.d();
-    }
+    const QtMetaContainerPrivate::QMetaSequenceInterface *iface() const { return d(); }
 
 private:
+    friend bool comparesEqual(const QMetaSequence &lhs, const QMetaSequence &rhs) noexcept
+    {
+        return lhs.d() == rhs.d();
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QMetaSequence)
+
     template<typename T>
     struct MetaSequence
     {
@@ -1033,9 +1056,67 @@ private:
     }
 };
 
+// ### Qt7: Move this to qmetaassociation.h, including QtMetaContainerPrivate parts above.
 class Q_CORE_EXPORT QMetaAssociation : public QMetaContainer
 {
 public:
+#ifdef Q_QDOC
+    class Iterable : public QIterable<QMetaAssociation>
+    {
+    public:
+        class Iterator : public QIterator<QMetaAssociation>
+        {
+        public:
+            QVariant key() const;
+            QVariant value() const;
+
+            QVariant::Reference<Iterator> operator*() const;
+            QVariant::Pointer<Iterator> operator->() const;
+        };
+
+        class ConstIterator : public QConstIterator<QMetaAssociation>
+        {
+        public:
+            QVariant key() const;
+            QVariant value() const;
+
+            QVariant operator*() const;
+            QVariant::ConstPointer<ConstIterator> operator->() const;
+        };
+
+        using RandomAccessIterator = Iterator;
+        using BidirectionalIterator = Iterator;
+        using ForwardIterator = Iterator;
+        using InputIterator = Iterator;
+
+        using RandomAccessConstIterator = ConstIterator;
+        using BidirectionalConstIterator = ConstIterator;
+        using ForwardConstIterator = ConstIterator;
+        using InputConstIterator = ConstIterator;
+
+        ConstIterator begin() const;
+        ConstIterator end() const;
+
+        ConstIterator constBegin() const;
+        ConstIterator constEnd() const;
+
+        Iterator mutableBegin();
+        Iterator mutableEnd();
+
+        ConstIterator find(const QVariant &key) const;
+        ConstIterator constFind(const QVariant &key) const;
+        Iterator mutableFind(const QVariant &key);
+
+        bool containsKey(const QVariant &key) const;
+        void insertKey(const QVariant &key);
+        void removeKey(const QVariant &key);
+        QVariant value(const QVariant &key) const;
+        void setValue(const QVariant &key, const QVariant &mapped);
+    };
+#else
+    using Iterable = QtMetaContainerPrivate::Association;
+#endif
+
     QMetaAssociation() = default;
     explicit QMetaAssociation(const QtMetaContainerPrivate::QMetaAssociationInterface *d) : QMetaContainer(d) {}
 
@@ -1203,16 +1284,15 @@ public:
         return nullptr;
     }
 
-    friend bool operator==(const QMetaAssociation &a, const QMetaAssociation &b)
-    {
-        return a.d() == b.d();
-    }
-    friend bool operator!=(const QMetaAssociation &a, const QMetaAssociation &b)
-    {
-        return a.d() != b.d();
-    }
+    const QtMetaContainerPrivate::QMetaAssociationInterface *iface() const { return d(); }
 
 private:
+    friend bool comparesEqual(const QMetaAssociation &lhs, const QMetaAssociation &rhs) noexcept
+    {
+        return lhs.d() == rhs.d();
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QMetaAssociation)
+
     template<typename T>
     struct MetaAssociation
     {

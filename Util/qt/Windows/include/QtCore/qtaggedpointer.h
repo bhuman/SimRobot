@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTAGGEDPOINTER_H
 #define QTAGGEDPOINTER_H
@@ -57,11 +22,11 @@ namespace QtPrivate {
         static_assert((alignment & (alignment - 1)) == 0,
             "Alignment of template parameter must be power of two");
 
-        static constexpr quint8 tagBits = QtPrivate::qConstexprCountTrailingZeroBits(alignment);
+        static constexpr quint8 tagBits = quint8(qCountTrailingZeroBits(alignment));
         static_assert(tagBits > 0,
             "Alignment of template parameter does not allow any tags");
 
-        static constexpr size_t tagSize = QtPrivate::qConstexprNextPowerOfTwo(nextByteSize(tagBits));
+        static constexpr size_t tagSize = qNextPowerOfTwo(nextByteSize(tagBits));
         static_assert(tagSize < sizeof(quintptr),
             "Alignment of template parameter allows tags masking away pointer");
 
@@ -79,10 +44,10 @@ public:
     static constexpr quintptr tagMask() { return QtPrivate::TagInfo<T>::alignment - 1; }
     static constexpr quintptr pointerMask() { return ~tagMask(); }
 
-    constexpr QTaggedPointer() noexcept : d(0) {}
-    constexpr QTaggedPointer(std::nullptr_t) noexcept : QTaggedPointer() {}
+    Q_NODISCARD_CTOR constexpr QTaggedPointer() noexcept : d(0) {}
+    Q_NODISCARD_CTOR constexpr QTaggedPointer(std::nullptr_t) noexcept : QTaggedPointer() {}
 
-    explicit QTaggedPointer(T *pointer, Tag tag = Tag()) noexcept
+    Q_NODISCARD_CTOR explicit QTaggedPointer(T *pointer, Tag tag = Tag()) noexcept
         : d(quintptr(pointer) | quintptr(tag))
     {
         static_assert(sizeof(Type*) == sizeof(QTaggedPointer));
@@ -108,11 +73,30 @@ public:
         return !isNull();
     }
 
-    QTaggedPointer &operator=(T *other) noexcept
+#ifdef Q_QDOC
+    QTaggedPointer &operator=(T *other) noexcept;
+#else
+    // Disables the usage of `ptr = {}`, which would go through this operator
+    // (rather than using the implicitly-generated assignment operator).
+    // The operators have different semantics: the ones here leave the tag intact,
+    // the implicitly-generated one overwrites it.
+    template <typename U,
+              std::enable_if_t<std::is_convertible_v<U *, T *>, bool> = false>
+    QTaggedPointer &operator=(U *other) noexcept
     {
-        d = reinterpret_cast<quintptr>(other) | (d & tagMask());
+        T *otherT = other;
+        d = reinterpret_cast<quintptr>(otherT) | (d & tagMask());
         return *this;
     }
+
+    template <typename U,
+              std::enable_if_t<std::is_null_pointer_v<U>, bool> = false>
+    QTaggedPointer &operator=(U) noexcept
+    {
+        d = reinterpret_cast<quintptr>(static_cast<T *>(nullptr)) | (d & tagMask());
+        return *this;
+    }
+#endif
 
     static constexpr Tag maximumTag() noexcept
     {
@@ -121,8 +105,10 @@ public:
 
     void setTag(Tag tag)
     {
-        Q_ASSERT_X((static_cast<typename QtPrivate::TagInfo<T>::TagType>(tag) & pointerMask()) == 0,
-            "QTaggedPointer<T, Tag>::setTag", "Tag is larger than allowed by number of available tag bits");
+        Q_ASSERT_X(
+                (static_cast<quintptr>(tag) & pointerMask()) == 0,
+                "QTaggedPointer<T, Tag>::setTag",
+                "Tag is larger than allowed by number of available tag bits");
 
         d = (d & pointerMask()) | static_cast<quintptr>(tag);
     }

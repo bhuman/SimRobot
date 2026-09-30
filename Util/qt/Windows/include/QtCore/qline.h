@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QLINE_H
 #define QLINE_H
@@ -44,6 +9,8 @@
 
 QT_BEGIN_NAMESPACE
 
+class QDataStream;
+class QLineF;
 
 /*******************************************************************************
  * class QLine
@@ -70,8 +37,8 @@ public:
     constexpr inline int dx() const;
     constexpr inline int dy() const;
 
-    inline void translate(const QPoint &p);
-    inline void translate(int dx, int dy);
+    constexpr inline void translate(const QPoint &p);
+    constexpr inline void translate(int dx, int dy);
 
     [[nodiscard]] constexpr inline QLine translated(const QPoint &p) const;
     [[nodiscard]] constexpr inline QLine translated(int dx, int dy) const;
@@ -83,13 +50,23 @@ public:
     inline void setPoints(const QPoint &p1, const QPoint &p2);
     inline void setLine(int x1, int y1, int x2, int y2);
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     constexpr inline bool operator==(const QLine &d) const noexcept;
-    constexpr inline bool operator!=(const QLine &d) const noexcept { return !(*this == d); }
+    constexpr inline bool operator!=(const QLine &d) const noexcept { return !operator==(d); }
+#endif
+
+    [[nodiscard]] constexpr inline QLineF toLineF() const noexcept;
 
 private:
+    friend constexpr bool comparesEqual(const QLine &lhs, const QLine &rhs) noexcept
+    { return lhs.pt1 == rhs.pt1 && lhs.pt2 == rhs.pt2; }
+#if !QT_CORE_REMOVED_SINCE(6, 8)
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QLine)
+#endif
+
     QPoint pt1, pt2;
 };
-Q_DECLARE_TYPEINFO(QLine, Q_RELOCATABLE_TYPE);
+Q_DECLARE_TYPEINFO(QLine, Q_PRIMITIVE_TYPE);
 
 /*******************************************************************************
  * class QLine inline members
@@ -138,21 +115,21 @@ constexpr inline QPoint QLine::p2() const
 
 constexpr inline int QLine::dx() const
 {
-    return pt2.x() - pt1.x();
+    return (pt2.xp - pt1.xp).value();
 }
 
 constexpr inline int QLine::dy() const
 {
-    return pt2.y() - pt1.y();
+    return (pt2.yp - pt1.yp).value();
 }
 
-inline void QLine::translate(const QPoint &point)
+constexpr inline void QLine::translate(const QPoint &point)
 {
     pt1 += point;
     pt2 += point;
 }
 
-inline void QLine::translate(int adx, int ady)
+constexpr inline void QLine::translate(int adx, int ady)
 {
     this->translate(QPoint(adx, ady));
 }
@@ -194,10 +171,12 @@ inline void QLine::setLine(int aX1, int aY1, int aX2, int aY2)
     pt2 = QPoint(aX2, aY2);
 }
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
 constexpr inline bool QLine::operator==(const QLine &d) const noexcept
 {
-    return pt1 == d.pt1 && pt2 == d.pt2;
+    return comparesEqual(*this, d);
 }
+#endif
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_CORE_EXPORT QDebug operator<<(QDebug d, const QLine &p);
@@ -253,8 +232,8 @@ public:
     IntersectionType intersects(const QLineF &l, QPointF *intersectionPoint = nullptr) const;
 
     constexpr inline QPointF pointAt(qreal t) const;
-    inline void translate(const QPointF &p);
-    inline void translate(qreal dx, qreal dy);
+    constexpr inline void translate(const QPointF &p);
+    constexpr inline void translate(qreal dx, qreal dy);
 
     [[nodiscard]] constexpr inline QLineF translated(const QPointF &p) const;
     [[nodiscard]] constexpr inline QLineF translated(qreal dx, qreal dy) const;
@@ -266,15 +245,33 @@ public:
     inline void setPoints(const QPointF &p1, const QPointF &p2);
     inline void setLine(qreal x1, qreal y1, qreal x2, qreal y2);
 
+#if QT_CORE_REMOVED_SINCE(6, 8)
     constexpr inline bool operator==(const QLineF &d) const;
-    constexpr inline bool operator!=(const QLineF &d) const { return !(*this == d); }
+    constexpr inline bool operator!=(const QLineF &d) const { return !operator==(d); }
+#endif
 
     constexpr QLine toLine() const;
 
 private:
+    friend constexpr bool comparesEqual(const QLineF &lhs, const QLineF &rhs) noexcept
+    { return lhs.pt1 == rhs.pt1 && lhs.pt2 == rhs.pt2; }
+#if !QT_CORE_REMOVED_SINCE(6, 8)
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QLineF)
+#endif
+
+    friend constexpr bool comparesEqual(const QLineF &lhs, const QLine &rhs) noexcept
+    { return comparesEqual(lhs, rhs.toLineF()); }
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QLineF, QLine)
+
+    friend constexpr bool qFuzzyCompare(const QLineF &lhs, const QLineF &rhs) noexcept
+    { return qFuzzyCompare(lhs.pt1, rhs.pt1) && qFuzzyCompare(lhs.pt2, rhs.pt2); }
+
+    friend constexpr bool qFuzzyIsNull(const QLineF &line) noexcept
+    { return qFuzzyCompare(line.pt1, line.pt2); }
+
     QPointF pt1, pt2;
 };
-Q_DECLARE_TYPEINFO(QLineF, Q_RELOCATABLE_TYPE);
+Q_DECLARE_TYPEINFO(QLineF, Q_PRIMITIVE_TYPE);
 
 /*******************************************************************************
  * class QLineF inline members
@@ -316,7 +313,7 @@ constexpr inline qreal QLineF::y2() const
 
 constexpr inline bool QLineF::isNull() const
 {
-    return qFuzzyCompare(pt1.x(), pt2.x()) && qFuzzyCompare(pt1.y(), pt2.y());
+    return qFuzzyCompare(pt1, pt2);
 }
 
 constexpr inline QPointF QLineF::p1() const
@@ -344,13 +341,13 @@ constexpr inline QLineF QLineF::normalVector() const
     return QLineF(p1(), p1() + QPointF(dy(), -dx()));
 }
 
-inline void QLineF::translate(const QPointF &point)
+constexpr inline void QLineF::translate(const QPointF &point)
 {
     pt1 += point;
     pt2 += point;
 }
 
-inline void QLineF::translate(qreal adx, qreal ady)
+constexpr inline void QLineF::translate(qreal adx, qreal ady)
 {
     this->translate(QPointF(adx, ady));
 }
@@ -386,6 +383,8 @@ constexpr inline QPointF QLineF::pointAt(qreal t) const
     return QPointF(pt1.x() + (pt2.x() - pt1.x()) * t, pt1.y() + (pt2.y() - pt1.y()) * t);
 }
 
+constexpr inline QLineF QLine::toLineF() const noexcept { return *this; }
+
 constexpr inline QLine QLineF::toLine() const
 {
     return QLine(pt1.toPoint(), pt2.toPoint());
@@ -414,12 +413,12 @@ inline void QLineF::setLine(qreal aX1, qreal aY1, qreal aX2, qreal aY2)
     pt2 = QPointF(aX2, aY2);
 }
 
-
+#if QT_CORE_REMOVED_SINCE(6, 8)
 constexpr inline bool QLineF::operator==(const QLineF &d) const
 {
-    return pt1 == d.pt1 && pt2 == d.pt2;
+    return comparesEqual(*this, d);
 }
-
+#endif
 
 
 #ifndef QT_NO_DEBUG_STREAM

@@ -1,51 +1,14 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFILESYSTEMMODEL_H
 #define QFILESYSTEMMODEL_H
 
 #include <QtGui/qtguiglobal.h>
 #include <QtCore/qabstractitemmodel.h>
-#include <QtCore/qpair.h>
 #include <QtCore/qdir.h>
 #include <QtGui/qicon.h>
-#include <QtCore/qdiriterator.h>
 
 QT_REQUIRE_CONFIG(filesystemmodel);
 
@@ -71,9 +34,19 @@ Q_SIGNALS:
 public:
     enum Roles {
         FileIconRole = Qt::DecorationRole,
+
+        FileInfoRole = Qt::FileInfoRole, // New values go before, -5, -6 ..etc
+        QT7_ONLY(
+        FilePathRole = Qt::UserRole - 3,
+        FileNameRole = Qt::UserRole - 2,
+        FilePermissions = Qt::UserRole - 1,
+        )
+
+        QT6_ONLY(
         FilePathRole = Qt::UserRole + 1,
         FileNameRole = Qt::UserRole + 2,
-        FilePermissions = Qt::UserRole + 3
+        FilePermissions = Qt::UserRole + 3,
+        )
     };
 
     enum Option
@@ -149,7 +122,9 @@ public:
     bool isDir(const QModelIndex &index) const;
     qint64 size(const QModelIndex &index) const;
     QString type(const QModelIndex &index) const;
+
     QDateTime lastModified(const QModelIndex &index) const;
+    QDateTime lastModified(const QModelIndex &index, const QTimeZone &tz) const;
 
     QModelIndex mkdir(const QModelIndex &parent, const QString &name);
     bool rmdir(const QModelIndex &index);
@@ -168,18 +143,13 @@ private:
     Q_DECLARE_PRIVATE(QFileSystemModel)
     Q_DISABLE_COPY(QFileSystemModel)
 
-    Q_PRIVATE_SLOT(d_func(), void _q_directoryChanged(const QString &directory, const QStringList &list))
-    Q_PRIVATE_SLOT(d_func(), void _q_performDelayedSort())
-    Q_PRIVATE_SLOT(d_func(),
-                   void _q_fileSystemChanged(const QString &path,
-                                             const QList<QPair<QString, QFileInfo>> &))
-    Q_PRIVATE_SLOT(d_func(), void _q_resolvedName(const QString &fileName, const QString &resolvedName))
-
     friend class QFileDialogPrivate;
 };
 
 inline QString QFileSystemModel::fileName(const QModelIndex &aindex) const
-{ return aindex.data(Qt::DisplayRole).toString(); }
+{
+    return aindex.data(FileNameRole).toString();
+}
 inline QIcon QFileSystemModel::fileIcon(const QModelIndex &aindex) const
 { return qvariant_cast<QIcon>(aindex.data(Qt::DecorationRole)); }
 

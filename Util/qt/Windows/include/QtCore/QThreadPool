@@ -1,1 +1,1 @@
-#include "qthreadpool.h"
+#include <QtCore/qthreadpool.h> // IWYU pragma: export

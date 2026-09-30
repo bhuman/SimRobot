@@ -1,1 +1,1 @@
-#include "qline.h"
+#include <QtCore/qline.h> // IWYU pragma: export

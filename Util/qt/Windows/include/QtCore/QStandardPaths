@@ -1,1 +1,1 @@
-#include "qstandardpaths.h"
+#include <QtCore/qstandardpaths.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qtooltip.h"
+#include <QtWidgets/qtooltip.h> // IWYU pragma: export

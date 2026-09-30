@@ -1,1 +1,1 @@
-#include "qsortfilterproxymodel.h"
+#include <QtCore/qsortfilterproxymodel.h> // IWYU pragma: export

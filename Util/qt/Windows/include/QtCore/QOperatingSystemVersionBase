@@ -1,1 +1,1 @@
-#include "qoperatingsystemversion.h"
+#include <QtCore/qoperatingsystemversion.h> // IWYU pragma: export

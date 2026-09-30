@@ -1,49 +1,20 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2021 Intel Corporation.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2021 Intel Corporation.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QPLUGIN_H
 #define QPLUGIN_H
 
+#if 0
+#pragma qt_class(QtPlugin)
+#endif
+
 #include <QtCore/qobject.h>
 #include <QtCore/qpointer.h>
 #include <QtCore/qjsonobject.h>
+
+#include <QtCore/q20algorithm.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -74,10 +45,8 @@ struct QPluginMetaData
     template <size_t OSize, typename OO, size_t ISize, typename II>
     static constexpr void copy(OO (&out)[OSize], II (&in)[ISize])
     {
-        // std::copy is not constexpr until C++20
         static_assert(OSize <= ISize, "Output would not be fully initialized");
-        for (size_t i = 0; i < OSize; ++i)
-            out[i] = in[i];
+        q20::copy_n(in, OSize, out);
     }
 
     static constexpr quint8 archRequirements()
@@ -159,7 +128,7 @@ void Q_CORE_EXPORT qRegisterStaticPluginFunction(QStaticPlugin staticPlugin);
 #if defined(Q_OF_ELF) || (defined(Q_OS_WIN) && (defined (Q_CC_GNU) || defined(Q_CC_CLANG)))
 #  define QT_PLUGIN_METADATA_SECTION \
     __attribute__ ((section (".qtmetadata"))) __attribute__((used))
-#elif defined(Q_OS_MAC)
+#elif defined(Q_OS_DARWIN)
 #  define QT_PLUGIN_METADATA_SECTION \
     __attribute__ ((section ("__TEXT,qtmetadata"))) __attribute__((used))
 #elif defined(Q_CC_MSVC)
@@ -223,15 +192,17 @@ public:
     }
 };
 
-#define Q_IMPORT_PLUGIN(PLUGIN) \
-        extern const QT_PREPEND_NAMESPACE(QStaticPlugin) qt_static_plugin_##PLUGIN(); \
-        class Static##PLUGIN##PluginInstance{ \
-        public: \
-                Static##PLUGIN##PluginInstance() { \
-                    qRegisterStaticPluginFunction(qt_static_plugin_##PLUGIN()); \
-                } \
-        }; \
-       static Static##PLUGIN##PluginInstance static##PLUGIN##Instance;
+#define Q_IMPORT_PLUGIN(PLUGIN)                                                                            \
+        extern const QT_PREPEND_NAMESPACE(QStaticPlugin) QT_MANGLE_NAMESPACE(qt_static_plugin_##PLUGIN)(); \
+        namespace {                                                                                        \
+            struct Static##PLUGIN##PluginInstance {                                                        \
+                Static##PLUGIN##PluginInstance() {                                                         \
+                    qRegisterStaticPluginFunction(QT_MANGLE_NAMESPACE(qt_static_plugin_##PLUGIN)());       \
+                }                                                                                          \
+            };                                                                                             \
+        } /* namespace */                                                                                  \
+        /* QTBUG-139615: static, to work around bug in clazy-non-pod-global-static */                      \
+        static Static##PLUGIN##PluginInstance static##PLUGIN##Instance;                                    \
 
 #if defined(QT_PLUGIN_RESOURCE_INIT_FUNCTION)
 #  define QT_PLUGIN_RESOURCE_INIT \
@@ -252,11 +223,11 @@ public:
         }
 
 #if defined(QT_STATICPLUGIN)
-#  define QT_MOC_EXPORT_PLUGIN_COMMON(PLUGINCLASS, MANGLEDNAME)                                 \
-    static QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance_##MANGLEDNAME()                    \
-    Q_PLUGIN_INSTANCE(PLUGINCLASS)                                                              \
-    const QT_PREPEND_NAMESPACE(QStaticPlugin) qt_static_plugin_##MANGLEDNAME()                  \
-    { return { qt_plugin_instance_##MANGLEDNAME, qt_plugin_query_metadata_##MANGLEDNAME}; }     \
+#  define QT_MOC_EXPORT_PLUGIN_COMMON(PLUGINCLASS, MANGLEDNAME)                                     \
+    static QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance_##MANGLEDNAME()                        \
+    Q_PLUGIN_INSTANCE(PLUGINCLASS)                                                                  \
+    const QT_PREPEND_NAMESPACE(QStaticPlugin) QT_MANGLE_NAMESPACE(qt_static_plugin_##MANGLEDNAME)() \
+    { return { qt_plugin_instance_##MANGLEDNAME, qt_plugin_query_metadata_##MANGLEDNAME}; }         \
     /**/
 
 #  define QT_MOC_EXPORT_PLUGIN(PLUGINCLASS, PLUGINCLASSNAME) \

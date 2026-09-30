@@ -1,1 +1,1 @@
-#include "qstorageinfo.h"
+#include <QtCore/qstorageinfo.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qmimetype.h"
+#include <QtCore/qmimetype.h> // IWYU pragma: export

@@ -1,1 +1,1 @@
-#include "qcolor.h"
+#include <QtGui/qcolor.h> // IWYU pragma: export

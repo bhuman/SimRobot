@@ -1,52 +1,24 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QVECTORND_H
 #define QVECTORND_H
 
 #include <QtGui/qtguiglobal.h>
+
+#include <QtCore/qhashfunctions.h>
 #include <QtCore/qpoint.h>
 #include <QtCore/qrect.h>
 #include <QtCore/qmath.h>
 
+#include <QtCore/q20type_traits.h>
+#include <QtCore/q23utility.h>
+
 QT_BEGIN_NAMESPACE
+
+// QT_ENABLE_P0846_SEMANTICS_FOR(get) // from qpoint.h
 
 class QVector2D;
 class QVector3D;
@@ -114,6 +86,10 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector2D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y());
+    }
 
     constexpr friend inline QVector2D operator+(QVector2D v1, QVector2D v2) noexcept
     {
@@ -181,13 +157,10 @@ private:
     template <std::size_t I,
               typename V,
               std::enable_if_t<(I < 2), bool> = true,
-              std::enable_if_t<std::is_same_v<std::decay_t<V>, QVector2D>, bool> = true>
+              std::enable_if_t<std::is_same_v<q20::remove_cvref_t<V>, QVector2D>, bool> = true>
     friend constexpr decltype(auto) get(V &&vec) noexcept
     {
-        if constexpr (I == 0)
-            return (std::forward<V>(vec).v[0]);
-        else if constexpr (I == 1)
-            return (std::forward<V>(vec).v[1]);
+        return q23::forward_like<V>(vec.v[I]);
     }
 };
 
@@ -265,6 +238,10 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1] || v1.v[2] != v2.v[2];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector3D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y(), key.z());
+    }
     float distanceToPoint(QVector3D point) const noexcept;
     constexpr float distanceToPlane(QVector3D plane, QVector3D normal) const noexcept;
     float distanceToPlane(QVector3D plane1, QVector3D plane2, QVector3D plane3) const noexcept;
@@ -343,15 +320,10 @@ private:
     template <std::size_t I,
               typename V,
               std::enable_if_t<(I < 3), bool> = true,
-              std::enable_if_t<std::is_same_v<std::decay_t<V>, QVector3D>, bool> = true>
+              std::enable_if_t<std::is_same_v<q20::remove_cvref_t<V>, QVector3D>, bool> = true>
     friend constexpr decltype(auto) get(V &&vec) noexcept
     {
-        if constexpr (I == 0)
-            return (std::forward<V>(vec).v[0]);
-        else if constexpr (I == 1)
-            return (std::forward<V>(vec).v[1]);
-        else if constexpr (I == 2)
-            return (std::forward<V>(vec).v[2]);
+        return q23::forward_like<V>(vec.v[I]);
     }
 };
 
@@ -424,6 +396,11 @@ QT_WARNING_DISABLE_FLOAT_COMPARE
         return v1.v[0] != v2.v[0] || v1.v[1] != v2.v[1] || v1.v[2] != v2.v[2] || v1.v[3] != v2.v[3];
     }
 QT_WARNING_POP
+    constexpr friend size_t qHash(QVector4D key, size_t seed = 0) noexcept
+    {
+        return qHashMulti(seed, key.x(), key.y(), key.z(), key.w());
+    }
+
     constexpr friend inline QVector4D operator+(QVector4D v1, QVector4D v2) noexcept
     {
         return QVector4D(v1.v[0] + v2.v[0], v1.v[1] + v2.v[1], v1.v[2] + v2.v[2], v1.v[3] + v2.v[3]);
@@ -500,17 +477,10 @@ private:
     template <std::size_t I,
               typename V,
               std::enable_if_t<(I < 4), bool> = true,
-              std::enable_if_t<std::is_same_v<std::decay_t<V>, QVector4D>, bool> = true>
+              std::enable_if_t<std::is_same_v<q20::remove_cvref_t<V>, QVector4D>, bool> = true>
     friend constexpr decltype(auto) get(V &&vec) noexcept
     {
-        if constexpr (I == 0)
-            return (std::forward<V>(vec).v[0]);
-        else if constexpr (I == 1)
-            return (std::forward<V>(vec).v[1]);
-        else if constexpr (I == 2)
-            return (std::forward<V>(vec).v[2]);
-        else if constexpr (I == 3)
-            return (std::forward<V>(vec).v[3]);
+        return q23::forward_like<V>(vec.v[I]);
     }
 };
 

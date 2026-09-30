@@ -1,1 +1,1 @@
-#include "qfilesystemmodel.h"
+#include <QtGui/qfilesystemmodel.h> // IWYU pragma: export

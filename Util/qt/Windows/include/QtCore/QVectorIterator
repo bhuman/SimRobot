@@ -1,1 +1,1 @@
-#include "qvector.h"
+#include <QtCore/qvector.h> // IWYU pragma: export

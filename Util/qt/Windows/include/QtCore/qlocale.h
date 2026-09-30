@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:trivial-impl-only
 
 #ifndef QLOCALE_H
 #define QLOCALE_H
@@ -72,6 +37,8 @@ class Q_CORE_EXPORT QLocale
     friend class QTextStreamPrivate;
 
 public:
+    static constexpr int DefaultTwoDigitBaseYear = 1900;
+
 // see qlocale_data_p.h for more info on generated data
 // GENERATED PART STARTS HERE
     enum Language : ushort {
@@ -405,6 +372,25 @@ public:
         Zulu = 327,
         Kaingang = 328,
         Nheengatu = 329,
+        Haryanvi = 330,
+        NorthernFrisian = 331,
+        Rajasthani = 332,
+        Moksha = 333,
+        TokiPona = 334,
+        Pijin = 335,
+        Obolo = 336,
+        Baluchi = 337,
+        Ligurian = 338,
+        Rohingya = 339,
+        Torwali = 340,
+        Anii = 341,
+        Kangri = 342,
+        Venetian = 343,
+        Kuvi = 344,
+        KaraKalpak = 345,
+        SwampyCree = 346,
+        Ladin = 347,
+        Shan = 348,
 
         Afan = Oromo,
         Bengali = Bangla,
@@ -426,7 +412,7 @@ public:
         Uigur = Uyghur,
         Walamo = Wolaytta,
 
-        LastLanguage = Nheengatu
+        LastLanguage = Shan
     };
 
     enum Script : ushort {
@@ -572,6 +558,7 @@ public:
         VaiScript = 139,
         VarangKshitiScript = 140,
         YiScript = 141,
+        HanifiScript = 142,
 
         BengaliScript = BanglaScript,
         MendeKikakuiScript = MendeScript,
@@ -579,7 +566,7 @@ public:
         SimplifiedChineseScript = SimplifiedHanScript,
         TraditionalChineseScript = TraditionalHanScript,
 
-        LastScript = YiScript
+        LastScript = HanifiScript
     };
 
     // ### Qt 7: Rename to Territory
@@ -892,6 +879,7 @@ public:
     Q_ENUM(MeasurementSystem)
 
     enum FormatType { LongFormat, ShortFormat, NarrowFormat };
+    Q_ENUM(FormatType)
     enum NumberOption {
         DefaultNumberOptions = 0x0,
         OmitGroupSeparator = 0x01,
@@ -902,16 +890,21 @@ public:
         RejectTrailingZeroesAfterDot = 0x20
     };
     Q_DECLARE_FLAGS(NumberOptions, NumberOption)
+    Q_FLAG(NumberOptions)
 
     enum FloatingPointPrecisionOption {
         FloatingPointShortest = -128
     };
+
+    enum class TagSeparator : char { Dash = '-', Underscore = '_' };
+    Q_ENUM(TagSeparator)
 
     enum CurrencySymbolFormat {
         CurrencyIsoCode,
         CurrencySymbol,
         CurrencyDisplayName
     };
+    Q_ENUM(CurrencySymbolFormat)
 
     enum DataSizeFormat {
         // Single-bit values, for internal use.
@@ -927,15 +920,14 @@ public:
     Q_FLAG(DataSizeFormats)
 
     QLocale();
-#if QT_STRINGVIEW_LEVEL < 2
+    QT_CORE_INLINE_SINCE(6, 4)
     explicit QLocale(const QString &name);
-#endif
     explicit QLocale(QStringView name);
     QLocale(Language language, Territory territory);
     QLocale(Language language, Script script = AnyScript, Territory territory = AnyTerritory);
-    QLocale(const QLocale &other);
+    QLocale(const QLocale &other) noexcept;
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QLocale)
-    QLocale &operator=(const QLocale &other);
+    QLocale &operator=(const QLocale &other) noexcept;
     ~QLocale();
 
     void swap(QLocale &other) noexcept { d.swap(other.d); }
@@ -947,9 +939,14 @@ public:
     QT_DEPRECATED_VERSION_X_6_6("Use territory() instead")
     Country country() const;
 #endif
-    QString name() const;
 
+#if QT_CORE_REMOVED_SINCE(6, 7)
+    QString name() const;
     QString bcp47Name() const;
+#endif
+    QString name(TagSeparator separator = TagSeparator::Underscore) const;
+    QString bcp47Name(TagSeparator separator = TagSeparator::Dash) const;
+
     QString nativeLanguageName() const;
     QString nativeTerritoryName() const;
 #if QT_DEPRECATED_SINCE(6, 6)
@@ -957,7 +954,6 @@ public:
     QString nativeCountryName() const;
 #endif
 
-#if QT_STRINGVIEW_LEVEL < 2
     short toShort(const QString &s, bool *ok = nullptr) const
     { return toShort(qToStringViewIgnoringNull(s), ok); }
     ushort toUShort(const QString &s, bool *ok = nullptr) const
@@ -978,7 +974,6 @@ public:
     { return toFloat(qToStringViewIgnoringNull(s), ok); }
     double toDouble(const QString &s, bool *ok = nullptr) const
     { return toDouble(qToStringViewIgnoringNull(s), ok); }
-#endif
 
     short toShort(QStringView s, bool *ok = nullptr) const;
     ushort toUShort(QStringView s, bool *ok = nullptr) const;
@@ -999,23 +994,36 @@ public:
     QString toString(ushort i) const { return toString(qulonglong(i)); }
     QString toString(int i) const { return toString(qlonglong(i)); }
     QString toString(uint i) const { return toString(qulonglong(i)); }
+    QString toString(qlonglong number, int fieldWidth, char32_t fillChar) const;
+    QString toString(qulonglong number, int fieldWidth, char32_t fillChar) const;
+    QString toString(int number, int fieldWidth, char32_t fillChar) const
+    { return toString(qlonglong(number), fieldWidth, fillChar); }
+    QString toString(uint number, int fieldWidth, char32_t fillChar) const
+    { return toString(qulonglong(number), fieldWidth, fillChar); }
+    QString toString(long number, int fieldWidth, char32_t fillChar) const
+    { return toString(qlonglong(number), fieldWidth, fillChar); }
+    QString toString(ulong(number), int fieldWidth, char32_t fillChar) const
+    { return toString(qulonglong(number), fieldWidth, fillChar); }
+    QString toString(short number, int fieldWidth, char32_t fillChar) const
+    { return toString(qlonglong(number), fieldWidth, fillChar); }
+    QString toString(ushort number, int fieldWidth, char32_t fillChar) const
+    { return toString(qulonglong(number), fieldWidth, fillChar); }
     QString toString(double f, char format = 'g', int precision = 6) const;
     QString toString(float f, char format = 'g', int precision = 6) const
     { return toString(double(f), format, precision); }
 
-#if QT_STRINGVIEW_LEVEL < 2
     // (Can't inline first two: passing by value doesn't work when only forward-declared.)
     QString toString(QDate date, const QString &format) const;
     QString toString(QTime time, const QString &format) const;
     QString toString(const QDateTime &dateTime, const QString &format) const
     { return toString(dateTime, qToStringViewIgnoringNull(format)); }
-#endif
     QString toString(QDate date, QStringView format) const;
     QString toString(QTime time, QStringView format) const;
     QString toString(const QDateTime &dateTime, QStringView format) const;
     QString toString(QDate date, FormatType format = LongFormat) const;
     QString toString(QTime time, FormatType format = LongFormat) const;
     QString toString(const QDateTime &dateTime, FormatType format = LongFormat) const;
+
     /* We can't pass a default for QCalendar (its declaration mentions
      * QLocale::FormatType, so it has to #include this header, which thus can't
      * #include its, so we can't instantiate QCalendar() as default). This
@@ -1029,18 +1037,39 @@ public:
     QString dateFormat(FormatType format = LongFormat) const;
     QString timeFormat(FormatType format = LongFormat) const;
     QString dateTimeFormat(FormatType format = LongFormat) const;
+    // QCalendar's header has to #include QLocale's, preventing the reverse, so
+    // QCalendar parameters can't have defaults here.
 #if QT_CONFIG(datestring)
-    QDate toDate(const QString &string, FormatType = LongFormat) const;
     QTime toTime(const QString &string, FormatType = LongFormat) const;
-    QDateTime toDateTime(const QString &string, FormatType format = LongFormat) const;
-    QDate toDate(const QString &string, const QString &format) const;
     QTime toTime(const QString &string, const QString &format) const;
+#  if QT_CORE_REMOVED_SINCE(6, 7)
+    QDate toDate(const QString &string, FormatType = LongFormat) const;
+    QDate toDate(const QString &string, const QString &format) const;
+    QDateTime toDateTime(const QString &string, FormatType format = LongFormat) const;
     QDateTime toDateTime(const QString &string, const QString &format) const;
     // Calendar-aware API
     QDate toDate(const QString &string, FormatType format, QCalendar cal) const;
-    QDateTime toDateTime(const QString &string, FormatType format, QCalendar cal) const;
     QDate toDate(const QString &string, const QString &format, QCalendar cal) const;
+    QDateTime toDateTime(const QString &string, FormatType format, QCalendar cal) const;
     QDateTime toDateTime(const QString &string, const QString &format, QCalendar cal) const;
+#  endif
+    QDate toDate(const QString &string, FormatType = LongFormat,
+                 int baseYear = DefaultTwoDigitBaseYear) const;
+    QDate toDate(const QString &string, const QString &format,
+                 int baseYear = DefaultTwoDigitBaseYear) const;
+    QDateTime toDateTime(const QString &string, FormatType format = LongFormat,
+                         int baseYear = DefaultTwoDigitBaseYear) const;
+    QDateTime toDateTime(const QString &string, const QString &format,
+                         int baseYear = DefaultTwoDigitBaseYear) const;
+    // Calendar-aware API
+    QDate toDate(const QString &string, FormatType format, QCalendar cal,
+                 int baseYear = DefaultTwoDigitBaseYear) const;
+    QDate toDate(const QString &string, const QString &format, QCalendar cal,
+                 int baseYear = DefaultTwoDigitBaseYear) const;
+    QDateTime toDateTime(const QString &string, FormatType format, QCalendar cal,
+                         int baseYear = DefaultTwoDigitBaseYear) const;
+    QDateTime toDateTime(const QString &string, const QString &format, QCalendar cal,
+                         int baseYear = DefaultTwoDigitBaseYear) const;
 #endif
 
     QString decimalPoint() const;
@@ -1086,7 +1115,10 @@ public:
 
     QString formattedDataSize(qint64 bytes, int precision = 2, DataSizeFormats format = DataSizeIecFormat) const;
 
+#if QT_CORE_REMOVED_SINCE(6, 7)
     QStringList uiLanguages() const;
+#endif
+    QStringList uiLanguages(TagSeparator separator = TagSeparator::Dash) const;
 
     enum LanguageCodeType {
         ISO639Part1 = 1 << 0,
@@ -1103,6 +1135,7 @@ public:
         AnyLanguageCode = -1
     };
     Q_DECLARE_FLAGS(LanguageCodeTypes, LanguageCodeType)
+    Q_FLAG(LanguageCodeTypes)
 
 #if QT_CORE_REMOVED_SINCE(6, 3)
     static QString languageToCode(Language language);
@@ -1131,7 +1164,7 @@ public:
     static QString scriptToString(Script script);
     static void setDefault(const QLocale &locale);
 
-    static QLocale c() { return QLocale(C); }
+    static QLocale c() noexcept;
     static QLocale system();
 
     static QList<QLocale> matchingLocales(QLocale::Language language, QLocale::Script script,
@@ -1145,6 +1178,7 @@ public:
     NumberOptions numberOptions() const;
 
     enum QuotationStyle { StandardQuotation, AlternateQuotation };
+    Q_ENUM(QuotationStyle)
     QString quoteString(const QString &str, QuotationStyle style = StandardQuotation) const
     { return quoteString(QStringView(str), style); }
     QString quoteString(QStringView str, QuotationStyle style = StandardQuotation) const;
@@ -1153,21 +1187,33 @@ public:
 
 private:
     QLocale(QLocalePrivate &dd);
-    bool equals(const QLocale &other) const;
+    bool equals(const QLocale &other) const noexcept;
     friend class QLocalePrivate;
     friend class QSystemLocale;
+    friend class QTimeZonePrivate;
     friend class QCalendarBackend;
-    friend class QGregorianCalendar;
+    friend class QRomanCalendar;
     friend Q_CORE_EXPORT size_t qHash(const QLocale &key, size_t seed) noexcept;
 
-    friend bool operator==(const QLocale &lhs, const QLocale &rhs) { return lhs.equals(rhs); }
-    friend bool operator!=(const QLocale &lhs, const QLocale &rhs) { return !lhs.equals(rhs); }
+    friend bool comparesEqual(const QLocale &lhs, const QLocale &rhs) noexcept
+    {
+        return lhs.equals(rhs);
+    }
+    Q_DECLARE_EQUALITY_COMPARABLE(QLocale)
+
+    friend Q_CORE_EXPORT bool comparesEqual(const QLocale &lhs, Language rhs);
+    Q_DECLARE_EQUALITY_COMPARABLE_NON_NOEXCEPT(QLocale, Language)
 
     QSharedDataPointer<QLocalePrivate> d;
 };
 Q_DECLARE_SHARED(QLocale)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QLocale::NumberOptions)
 Q_DECLARE_OPERATORS_FOR_FLAGS(QLocale::LanguageCodeTypes)
+
+#if QT_CORE_INLINE_IMPL_SINCE(6, 4)
+QLocale::QLocale(const QString &name)
+    : QLocale(qToStringViewIgnoringNull(name)) {}
+#endif
 
 #ifndef QT_NO_DATASTREAM
 Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QLocale &);

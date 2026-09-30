@@ -1,1 +1,1 @@
-#include "qitemdelegate.h"
+#include <QtWidgets/qitemdelegate.h> // IWYU pragma: export

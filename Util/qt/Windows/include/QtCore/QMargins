@@ -1,1 +1,1 @@
-#include "qmargins.h"
+#include <QtCore/qmargins.h> // IWYU pragma: export

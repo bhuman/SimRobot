@@ -1,1 +1,1 @@
-#include "qdatetimeedit.h"
+#include <QtWidgets/qdatetimeedit.h> // IWYU pragma: export

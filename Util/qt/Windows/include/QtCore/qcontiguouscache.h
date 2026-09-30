@@ -1,47 +1,20 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QCONTIGUOUSCACHE_H
 #define QCONTIGUOUSCACHE_H
 
 #include <QtCore/qatomic.h>
-#include <limits.h>
+#include <QtCore/qassert.h>
+#include <QtCore/qtclasshelpermacros.h>
+#include <QtCore/qtcoreexports.h>
+#include <QtCore/qminmax.h>
+#include <QtCore/qttypetraits.h>
+#include <QtCore/qtypeinfo.h>
+
+#include <climits>
+#include <limits>
 #include <new>
 
 QT_BEGIN_NAMESPACE
@@ -99,7 +72,7 @@ public:
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QContiguousCache)
     void swap(QContiguousCache &other) noexcept { qt_ptr_swap(d, other.d); }
 
-#ifndef Q_CLANG_QDOC
+#ifndef Q_QDOC
     template <typename U = T>
     QTypeTraits::compare_eq_result<U> operator==(const QContiguousCache<T> &other) const
     {
@@ -121,7 +94,7 @@ public:
 #else
     bool operator==(const QContiguousCache &other) const;
     bool operator!=(const QContiguousCache &other) const;
-#endif // Q_CLANG_QDOC
+#endif // Q_QDOC
 
     inline qsizetype capacity() const {return d->alloc; }
     inline qsizetype count() const { return d->count; }
@@ -180,7 +153,6 @@ template <typename T>
 void QContiguousCache<T>::detach_helper()
 {
     Data *x = allocateData(d->alloc);
-    x->ref.storeRelaxed(1);
     x->count = d->count;
     x->start = d->start;
     x->offset = d->offset;
@@ -212,7 +184,6 @@ void QContiguousCache<T>::setCapacity(qsizetype asize)
         return;
     detach();
     Data *x = allocateData(asize);
-    x->ref.storeRelaxed(1);
     x->alloc = asize;
     x->count = qMin(d->count, asize);
     x->offset = d->offset + d->count - x->count;
@@ -259,7 +230,6 @@ void QContiguousCache<T>::clear()
         d->count = d->start = d->offset = 0;
     } else {
         Data *x = allocateData(d->alloc);
-        x->ref.storeRelaxed(1);
         x->alloc = d->alloc;
         x->count = x->start = x->offset = 0;
         if (!d->ref.deref())
@@ -279,7 +249,6 @@ QContiguousCache<T>::QContiguousCache(qsizetype cap)
 {
     Q_ASSERT(cap >= 0);
     d = allocateData(cap);
-    d->ref.storeRelaxed(1);
     d->alloc = cap;
     d->count = d->start = d->offset = 0;
 }

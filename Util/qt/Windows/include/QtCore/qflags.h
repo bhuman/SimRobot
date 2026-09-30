@@ -1,53 +1,19 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
-#include <QtCore/qglobal.h>
-#include <QtCore/qcompare_impl.h>
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QFLAGS_H
 #define QFLAGS_H
 
+#include <QtCore/qcompare_impl.h>
+#include <QtCore/qtypeinfo.h>
+
+#include <algorithm>
 #include <initializer_list>
 
 QT_BEGIN_NAMESPACE
 
-class QDataStream;
+template<typename Enum> class QFlags;
 
 class QFlag
 {
@@ -60,7 +26,7 @@ public:
     // Microsoft Visual Studio has buggy behavior when it comes to
     // unsigned enums: even if the enum is unsigned, the enum tags are
     // always signed
-#  if !defined(__LP64__) && !defined(Q_CLANG_QDOC)
+#  if !defined(__LP64__) && !defined(Q_QDOC)
     constexpr inline Q_IMPLICIT QFlag(long value) noexcept : i(int(value)) {}
     constexpr inline Q_IMPLICIT QFlag(ulong value) noexcept : i(int(long(value))) {}
 #  endif
@@ -83,37 +49,84 @@ Q_DECLARE_TYPEINFO(QIncompatibleFlag, Q_PRIMITIVE_TYPE);
 
 constexpr inline QIncompatibleFlag::QIncompatibleFlag(int value) noexcept : i(value) {}
 
+namespace QtPrivate {
+template <typename T> struct IsQFlags : std::false_type {};
+template <typename E> struct IsQFlags<QFlags<E>> : std::true_type {};
 
 template<typename Enum>
-class QFlags
+class QFlagsStorage
 {
-    static_assert((sizeof(Enum) <= sizeof(int)),
-                  "QFlags uses an int as storage, so an enum with underlying "
-                  "long long will overflow.");
+    static_assert(sizeof(Enum) <= sizeof(quint64),
+                  "Only enumerations 64 bits or smaller are supported.");
     static_assert((std::is_enum<Enum>::value), "QFlags is only usable on enumeration types.");
 
-public:
-#if defined(Q_CC_MSVC) || defined(Q_CLANG_QDOC)
-    // see above for MSVC
-    // the definition below is too complex for qdoc
-    typedef int Int;
-#else
+    static constexpr size_t IntegerSize = (std::max)(sizeof(Enum), sizeof(int));
+    using Integers = QIntegerForSize<IntegerSize>;
+
+protected:
     typedef typename std::conditional<
             std::is_unsigned<typename std::underlying_type<Enum>::type>::value,
-            unsigned int,
-            signed int
+            typename Integers::Unsigned,
+            typename Integers::Signed
         >::type Int;
+
+    Int i = 0;
+
+    QT_DECLARE_RO5_SMF_AS_DEFAULTED(QFlagsStorage)
+public:
+    constexpr inline QFlagsStorage() noexcept = default;
+    constexpr inline explicit QFlagsStorage(std::in_place_t, Int v) : i(v) {}
+};
+
+template <typename Enum, int Size = sizeof(QFlagsStorage<Enum>)>
+struct QFlagsStorageHelper : QFlagsStorage<Enum>
+{
+    using QFlagsStorage<Enum>::QFlagsStorage;
+protected:
+    QT_DECLARE_RO5_SMF_AS_DEFAULTED(QFlagsStorageHelper)
+};
+template <typename Enum> struct QFlagsStorageHelper<Enum, sizeof(int)> : QFlagsStorage<Enum>
+{
+    using QFlagsStorage<Enum>::QFlagsStorage;
+
+    // For compatibility with Qt 3, moc goes through QFlag in order to
+    // read/write properties of type QFlags; so a conversion to QFlag is also
+    // needed here. (It otherwise goes through a QFlags->int->QFlag conversion
+    // sequence.)
+    constexpr inline Q_IMPLICIT QFlagsStorageHelper(QFlag flag) noexcept
+        : QFlagsStorage<Enum>(std::in_place, flag) {}
+#ifdef QT_TYPESAFE_FLAGS
+    constexpr inline explicit operator QFlag() const noexcept { return QFlag(this->i); }
 #endif
+protected:
+    QT_DECLARE_RO5_SMF_AS_DEFAULTED(QFlagsStorageHelper)
+};
+} // namespace QtPrivate
+
+template<typename Enum>
+class QFlags : public QtPrivate::QFlagsStorageHelper<Enum>
+{
+    using Base = QtPrivate::QFlagsStorageHelper<Enum>;
+public:
     typedef Enum enum_type;
+    using Int = typename Base::Int;
+    using Base::Base;
+
     // compiler-generated copy/move ctor/assignment operators are fine!
-    constexpr inline QFlags() noexcept : i(0) {}
-    constexpr inline Q_IMPLICIT QFlags(Enum flags) noexcept : i(Int(flags)) {}
-    constexpr inline Q_IMPLICIT QFlags(QFlag flag) noexcept : i(flag) {}
+    constexpr inline QFlags() noexcept = default;
+
+    constexpr inline Q_IMPLICIT QFlags(Enum flags) noexcept : Base(std::in_place, Int(flags)) {}
+
+#ifdef Q_QDOC
+    constexpr inline Q_IMPLICIT QFlags(std::in_place_t, Int flags) noexcept;
+    constexpr inline Q_IMPLICIT QFlags(QFlag flag) noexcept
+        requires(sizeof(Enum) == sizeof(int));
+#endif
 
     constexpr inline QFlags(std::initializer_list<Enum> flags) noexcept
-        : i(initializer_list_helper(flags.begin(), flags.end())) {}
+        : Base(std::in_place, initializer_list_helper(flags.begin(), flags.end())) {}
 
-    constexpr static inline QFlags fromInt(Int i) noexcept { return QFlags(QFlag(i)); }
+    constexpr static inline QFlags fromInt(Int i) noexcept { return QFlags(std::in_place, i); }
     constexpr inline Int toInt() const noexcept { return i; }
 
 #ifndef QT_TYPESAFE_FLAGS
@@ -130,27 +143,22 @@ public:
 #ifdef QT_TYPESAFE_FLAGS
     constexpr inline explicit operator Int() const noexcept { return i; }
     constexpr inline explicit operator bool() const noexcept { return i; }
-    // For some reason, moc goes through QFlag in order to read/write
-    // properties of type QFlags; so a conversion to QFlag is also
-    // needed here. (It otherwise goes through a QFlags->int->QFlag
-    // conversion sequence.)
-    constexpr inline explicit operator QFlag() const noexcept { return QFlag(i); }
 #else
     constexpr inline Q_IMPLICIT operator Int() const noexcept { return i; }
     constexpr inline bool operator!() const noexcept { return !i; }
 #endif
 
-    constexpr inline QFlags operator|(QFlags other) const noexcept { return QFlags(QFlag(i | other.i)); }
-    constexpr inline QFlags operator|(Enum other) const noexcept { return QFlags(QFlag(i | Int(other))); }
-    constexpr inline QFlags operator^(QFlags other) const noexcept { return QFlags(QFlag(i ^ other.i)); }
-    constexpr inline QFlags operator^(Enum other) const noexcept { return QFlags(QFlag(i ^ Int(other))); }
+    constexpr inline QFlags operator|(QFlags other) const noexcept { return QFlags(std::in_place, i | other.i); }
+    constexpr inline QFlags operator|(Enum other) const noexcept { return QFlags(std::in_place, i | Int(other)); }
+    constexpr inline QFlags operator^(QFlags other) const noexcept { return QFlags(std::in_place, i ^ other.i); }
+    constexpr inline QFlags operator^(Enum other) const noexcept { return QFlags(std::in_place, i ^ Int(other)); }
 #ifndef QT_TYPESAFE_FLAGS
-    constexpr inline QFlags operator&(int mask) const noexcept { return QFlags(QFlag(i & mask)); }
-    constexpr inline QFlags operator&(uint mask) const noexcept { return QFlags(QFlag(i & mask)); }
+    constexpr inline QFlags operator&(int mask) const noexcept { return QFlags(std::in_place, i & mask); }
+    constexpr inline QFlags operator&(uint mask) const noexcept { return QFlags(std::in_place, i & mask); }
 #endif
-    constexpr inline QFlags operator&(QFlags other) const noexcept { return QFlags(QFlag(i & other.i)); }
-    constexpr inline QFlags operator&(Enum other) const noexcept { return QFlags(QFlag(i & Int(other))); }
-    constexpr inline QFlags operator~() const noexcept { return QFlags(QFlag(~i)); }
+    constexpr inline QFlags operator&(QFlags other) const noexcept { return QFlags(std::in_place, i & other.i); }
+    constexpr inline QFlags operator&(Enum other) const noexcept { return QFlags(std::in_place, i & Int(other)); }
+    constexpr inline QFlags operator~() const noexcept { return QFlags(std::in_place, ~i); }
 
     constexpr inline void operator+(QFlags other) const noexcept = delete;
     constexpr inline void operator+(Enum other) const noexcept = delete;
@@ -203,7 +211,7 @@ private:
         return (it == end ? Int(0) : (Int(*it) | initializer_list_helper(it + 1, end)));
     }
 
-    Int i;
+    using Base::i;
 };
 
 #ifndef Q_MOC_RUN
@@ -215,26 +223,35 @@ typedef QFlags<Enum> Flags;
 
 // These are opt-in, for backwards compatibility
 #define QT_DECLARE_TYPESAFE_OPERATORS_FOR_FLAGS_ENUM(Flags) \
+[[maybe_unused]] \
 constexpr inline Flags operator~(Flags::enum_type e) noexcept \
 { return ~Flags(e); } \
+[[maybe_unused]] \
 constexpr inline void operator|(Flags::enum_type f1, int f2) noexcept = delete;
 #else
 #define QT_DECLARE_TYPESAFE_OPERATORS_FOR_FLAGS_ENUM(Flags) \
+[[maybe_unused]] \
 constexpr inline QIncompatibleFlag operator|(Flags::enum_type f1, int f2) noexcept \
 { return QIncompatibleFlag(int(f1) | f2); }
 #endif
 
 #define Q_DECLARE_OPERATORS_FOR_FLAGS(Flags) \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator|(Flags::enum_type f1, Flags::enum_type f2) noexcept \
 { return QFlags<Flags::enum_type>(f1) | f2; } \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator|(Flags::enum_type f1, QFlags<Flags::enum_type> f2) noexcept \
 { return f2 | f1; } \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator&(Flags::enum_type f1, Flags::enum_type f2) noexcept \
 { return QFlags<Flags::enum_type>(f1) & f2; } \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator&(Flags::enum_type f1, QFlags<Flags::enum_type> f2) noexcept \
 { return f2 & f1; } \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator^(Flags::enum_type f1, Flags::enum_type f2) noexcept \
 { return QFlags<Flags::enum_type>(f1) ^ f2; } \
+[[maybe_unused]] \
 constexpr inline QFlags<Flags::enum_type> operator^(Flags::enum_type f1, QFlags<Flags::enum_type> f2) noexcept \
 { return f2 ^ f1; } \
 constexpr inline void operator+(Flags::enum_type f1, Flags::enum_type f2) noexcept = delete; \
@@ -254,6 +271,7 @@ QT_DECLARE_TYPESAFE_OPERATORS_FOR_FLAGS_ENUM(Flags)
 #if __cplusplus > 201702L // assume compilers don't warn if in C++17 mode
   // in C++20 mode, provide user-defined operators to override the deprecated operations:
 # define Q_DECLARE_MIXED_ENUM_OPERATOR(op, Ret, LHS, RHS) \
+    [[maybe_unused]] \
     constexpr inline Ret operator op (LHS lhs, RHS rhs) noexcept \
     { return static_cast<Ret>(qToUnderlying(lhs) op qToUnderlying(rhs)); } \
     /* end */

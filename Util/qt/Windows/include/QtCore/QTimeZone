@@ -1,1 +1,1 @@
-#include "qtimezone.h"
+#include <QtCore/qtimezone.h> // IWYU pragma: export

@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QSTYLEOPTION_H
 #define QSTYLEOPTION_H
@@ -229,6 +194,7 @@ protected:
     QStyleOptionHeader(int version);
 };
 
+// ### Qt7: merge with QStyleOptionHeader
 class Q_WIDGETS_EXPORT QStyleOptionHeaderV2 : public QStyleOptionHeader
 {
 public:
@@ -279,11 +245,11 @@ public:
     enum StyleOptionType { Type = SO_Tab };
     enum StyleOptionVersion { Version = 1 };
 
-    enum TabPosition { Beginning, Middle, End, OnlyOneTab };
+    enum TabPosition { Beginning, Middle, End, OnlyOneTab, Moving };
     enum SelectedPosition { NotAdjacent, NextIsSelected, PreviousIsSelected };
     enum CornerWidget { NoCornerWidgets = 0x00, LeftCornerWidget = 0x01,
                         RightCornerWidget = 0x02 };
-    enum TabFeature { None = 0x00, HasFrame = 0x01 };
+    enum TabFeature { None = 0x00, HasFrame = 0x01, MinimumSizeHint = 0x02 };
     Q_DECLARE_FLAGS(CornerWidgets, CornerWidget)
     Q_DECLARE_FLAGS(TabFeatures, TabFeature)
 
@@ -371,8 +337,11 @@ public:
     enum StyleOptionType { Type = SO_MenuItem };
     enum StyleOptionVersion { Version = 1 };
 
-    enum MenuItemType { Normal, DefaultItem, Separator, SubMenu, Scroller, TearOff, Margin,
-                        EmptyArea };
+    enum MenuItemType { Normal, DefaultItem, Separator, SubMenu, Scroller, TearOff,
+#if QT_DEPRECATED_SINCE(6, 11)
+                        Margin Q_DECL_ENUMERATOR_DEPRECATED_X("Not used anywhere"),
+#endif
+                        EmptyArea = TearOff + 2 };
     enum CheckType { NotCheckable, Exclusive, NonExclusive };
 
     MenuItemType menuItemType;
@@ -392,6 +361,23 @@ public:
 
 protected:
     QStyleOptionMenuItem(int version);
+};
+
+// ### Qt7: merge with QStyleOptionMenuItem
+class QStyleOptionMenuItemV2 : public QStyleOptionMenuItem
+{
+public:
+    enum StyleOptionVersion { Version = 2 };
+
+    QStyleOptionMenuItemV2() : QStyleOptionMenuItemV2(Version) {}
+    QStyleOptionMenuItemV2(const QStyleOptionMenuItemV2 &other) : QStyleOptionMenuItem(Version) { *this = other; }
+    QStyleOptionMenuItemV2 &operator=(const QStyleOptionMenuItemV2 &) = default;
+
+    bool mouseDown : 1;
+    Q_DECL_UNUSED_MEMBER
+    int unused : 31;
+protected:
+    Q_WIDGETS_EXPORT QStyleOptionMenuItemV2(int version);
 };
 
 class Q_WIDGETS_EXPORT QStyleOptionDockWidget : public QStyleOption
@@ -438,7 +424,9 @@ public:
         Alternate = 0x02,
         HasCheckIndicator = 0x04,
         HasDisplay = 0x08,
-        HasDecoration = 0x10
+        HasDecoration = 0x10,
+        IsDecoratedRootColumn = 0x20,
+        IsDecorationForRootColumn = 0x40,
     };
     Q_DECLARE_FLAGS(ViewItemFeatures, ViewItemFeature)
 
@@ -575,6 +563,7 @@ protected:
 };
 #endif // QT_CONFIG(spinbox)
 
+#if QT_CONFIG(toolbutton)
 class Q_WIDGETS_EXPORT QStyleOptionToolButton : public QStyleOptionComplex
 {
 public:
@@ -603,6 +592,7 @@ protected:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionToolButton::ToolButtonFeatures)
+#endif  // QT_CONFIG(toolbutton)
 
 class Q_WIDGETS_EXPORT QStyleOptionComboBox : public QStyleOptionComplex
 {

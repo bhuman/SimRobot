@@ -1,1 +1,1 @@
-#include "qmutex.h"
+#include <QtCore/qmutex.h> // IWYU pragma: export

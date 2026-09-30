@@ -1,1 +1,1 @@
-#include "qstatusbar.h"
+#include <QtWidgets/qstatusbar.h> // IWYU pragma: export

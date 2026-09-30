@@ -1,1 +1,1 @@
-#include "qthread.h"
+#include <QtCore/qthread.h> // IWYU pragma: export

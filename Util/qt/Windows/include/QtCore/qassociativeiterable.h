@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QASSOCIATIVEITERABLE_H
 #define QASSOCIATIVEITERABLE_H
@@ -45,7 +10,12 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q_CORE_EXPORT QAssociativeIterator : public QIterator<QMetaAssociation>
+#if QT_DEPRECATED_SINCE(6, 15)
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
+
+// Keep this a single long line, otherwise syncqt doesn't create a class forwarding header
+class Q_CORE_EXPORT QT_DEPRECATED_VERSION_X_6_15("Use QMetaAssociation's iterables and iterators instead.") QAssociativeIterator : public QIterator<QMetaAssociation>
 {
 public:
     using key_type = QVariant;
@@ -64,7 +34,8 @@ public:
     QVariantPointer<QAssociativeIterator> operator->() const;
 };
 
-class Q_CORE_EXPORT QAssociativeConstIterator : public QConstIterator<QMetaAssociation>
+// Keep this a single long line, otherwise syncqt doesn't create a class forwarding header
+class Q_CORE_EXPORT QT_DEPRECATED_VERSION_X_6_15("Use QMetaAssociation's iterables and iterators instead.") QAssociativeConstIterator : public QConstIterator<QMetaAssociation>
 {
 public:
     using key_type = QVariant;
@@ -83,7 +54,8 @@ public:
     QVariantConstPointer operator->() const;
 };
 
-class Q_CORE_EXPORT QAssociativeIterable : public QIterable<QMetaAssociation>
+// Keep this a single long line, otherwise syncqt doesn't create a class forwarding header
+class Q_CORE_EXPORT QT_DEPRECATED_VERSION_X_6_15("Use QMetaAssociation's iterables and iterators instead.") QAssociativeIterable : public QIterable<QMetaAssociation>
 {
 public:
     using iterator = QTaggedIterator<QAssociativeIterator, void>;
@@ -122,14 +94,12 @@ public:
     {
     }
 
-    // ### Qt7: Pass QMetaType as value rather than const ref.
     QAssociativeIterable(const QMetaAssociation &metaAssociation, const QMetaType &metaType,
                          void *iterable)
         : QIterable(metaAssociation, metaType.alignOf(), iterable)
     {
     }
 
-    // ### Qt7: Pass QMetaType as value rather than const ref.
     QAssociativeIterable(const QMetaAssociation &metaAssociation, const QMetaType &metaType,
                          const void *iterable)
         : QIterable(metaAssociation, metaType.alignOf(), iterable)
@@ -163,6 +133,10 @@ public:
 
     QVariant value(const QVariant &key) const;
     void setValue(const QVariant &key, const QVariant &mapped);
+
+    // Random access iteration is broken on QAssociativeIterator.
+    // That's why this class is deprecated after all.
+    constexpr bool canRandomAccessIterate() const { return false; }
 };
 
 template<>
@@ -176,10 +150,12 @@ inline QVariantRef<QAssociativeIterator>::operator QVariant() const
     if (!metaType.isValid())
         return m_pointer->key();
 
+    return [&] {
     QVariant v(metaType);
     metaAssociation.mappedAtIterator(m_pointer->constIterator(),
                                      metaType == QMetaType::fromType<QVariant>() ? &v : v.data());
     return v;
+    }();
 }
 
 template<>
@@ -203,6 +179,9 @@ inline QVariantRef<QAssociativeIterator> &QVariantRef<QAssociativeIterator>::ope
 Q_DECLARE_TYPEINFO(QAssociativeIterable, Q_RELOCATABLE_TYPE);
 Q_DECLARE_TYPEINFO(QAssociativeIterable::iterator, Q_RELOCATABLE_TYPE);
 Q_DECLARE_TYPEINFO(QAssociativeIterable::const_iterator, Q_RELOCATABLE_TYPE);
+
+QT_WARNING_POP
+#endif // QT_DEPRECATED_SINCE(6, 15)
 
 QT_END_NAMESPACE
 

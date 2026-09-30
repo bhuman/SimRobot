@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtWidgets module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QTREEWIDGET_H
 #define QTREEWIDGET_H
@@ -129,10 +94,22 @@ public:
         { return qvariant_cast<QFont>(data(column, Qt::FontRole)); }
     inline void setFont(int column, const QFont &font);
 
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
     inline int textAlignment(int column) const
         { return data(column, Qt::TextAlignmentRole).toInt(); }
+#else
+    inline Qt::Alignment textAlignment(int column) const
+    { return qvariant_cast<Qt::Alignment>(data(column, Qt::TextAlignmentRole)); }
+#endif
+#if QT_DEPRECATED_SINCE(6, 4)
+    QT_DEPRECATED_VERSION_X_6_4("Use the overload taking Qt::Alignment")
     inline void setTextAlignment(int column, int alignment)
         { setData(column, Qt::TextAlignmentRole, alignment); }
+    inline void setTextAlignment(int column, Qt::AlignmentFlag alignment)
+        { setData(column, Qt::TextAlignmentRole, QVariant::fromValue(Qt::Alignment(alignment))); }
+#endif
+    inline void setTextAlignment(int column, Qt::Alignment alignment)
+        { setData(column, Qt::TextAlignmentRole, QVariant::fromValue(alignment)); }
 
     inline QBrush background(int column) const
         { return qvariant_cast<QBrush>(data(column, Qt::BackgroundRole)); }
@@ -145,7 +122,7 @@ public:
         { setData(column, Qt::ForegroundRole, brush.style() != Qt::NoBrush ? QVariant(brush) : QVariant()); }
 
     inline Qt::CheckState checkState(int column) const
-        { return static_cast<Qt::CheckState>(data(column, Qt::CheckStateRole).toInt()); }
+        { return qvariant_cast<Qt::CheckState>(data(column, Qt::CheckStateRole)); }
     inline void setCheckState(int column, Qt::CheckState state)
         { setData(column, Qt::CheckStateRole, state); }
 
@@ -172,8 +149,8 @@ public:
         executePendingSort();
         return children.at(index);
     }
-    inline int childCount() const { return children.count(); }
-    inline int columnCount() const { return values.count(); }
+    inline int childCount() const { return int(children.size()); }
+    inline int columnCount() const { return int(values.size()); }
     inline int indexOfChild(QTreeWidgetItem *child) const;
 
     void addChild(QTreeWidgetItem *child);
@@ -237,7 +214,7 @@ inline void QTreeWidgetItem::setFont(int column, const QFont &afont)
 { setData(column, Qt::FontRole, afont); }
 
 inline int QTreeWidgetItem::indexOfChild(QTreeWidgetItem *achild) const
-{ executePendingSort(); return children.indexOf(achild); }
+{ executePendingSort(); return int(children.indexOf(achild)); }
 
 #ifndef QT_NO_DATASTREAM
 Q_WIDGETS_EXPORT QDataStream &operator<<(QDataStream &out, const QTreeWidgetItem &item);
@@ -251,6 +228,9 @@ class Q_WIDGETS_EXPORT QTreeWidget : public QTreeView
     Q_OBJECT
     Q_PROPERTY(int columnCount READ columnCount WRITE setColumnCount)
     Q_PROPERTY(int topLevelItemCount READ topLevelItemCount)
+#if QT_CONFIG(draganddrop)
+    Q_PROPERTY(Qt::DropActions supportedDragActions READ supportedDragActions WRITE setSupportedDragActions)
+#endif
 
     friend class QTreeModel;
     friend class QTreeWidgetItem;
@@ -312,6 +292,11 @@ public:
 
     void setSelectionModel(QItemSelectionModel *selectionModel) override;
 
+#if QT_CONFIG(draganddrop)
+    Qt::DropActions supportedDragActions() const;
+    void setSupportedDragActions(Qt::DropActions actions);
+#endif
+
 public Q_SLOTS:
     void scrollToItem(const QTreeWidgetItem *item,
                       QAbstractItemView::ScrollHint hint = EnsureVisible);
@@ -347,19 +332,6 @@ private:
 
     Q_DECLARE_PRIVATE(QTreeWidget)
     Q_DISABLE_COPY(QTreeWidget)
-
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemPressed(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemClicked(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemDoubleClicked(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemActivated(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemEntered(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemChanged(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemExpanded(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitItemCollapsed(const QModelIndex &index))
-    Q_PRIVATE_SLOT(d_func(), void _q_emitCurrentItemChanged(const QModelIndex &previous, const QModelIndex &current))
-    Q_PRIVATE_SLOT(d_func(), void _q_sort())
-    Q_PRIVATE_SLOT(d_func(), void _q_dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight))
-    Q_PRIVATE_SLOT(d_func(), void _q_selectionChanged(const QItemSelection &selected, const QItemSelection &deselected))
 };
 
 inline void QTreeWidget::removeItemWidget(QTreeWidgetItem *item, int column)

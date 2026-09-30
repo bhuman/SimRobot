@@ -1,1 +1,1 @@
-#include "qwhatsthis.h"
+#include <QtWidgets/qwhatsthis.h> // IWYU pragma: export

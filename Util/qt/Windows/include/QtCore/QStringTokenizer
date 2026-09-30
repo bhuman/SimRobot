@@ -1,1 +1,1 @@
-#include "qstringtokenizer.h"
+#include <QtCore/qstringtokenizer.h> // IWYU pragma: export

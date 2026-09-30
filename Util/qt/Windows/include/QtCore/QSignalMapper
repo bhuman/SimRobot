@@ -1,1 +1,1 @@
-#include "qsignalmapper.h"
+#include <QtCore/qsignalmapper.h> // IWYU pragma: export

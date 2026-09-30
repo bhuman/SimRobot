@@ -1,2 +1,1 @@
-#include "qvulkanfunctions.h"
-
+#include <QtGui/qvulkanfunctions.h> // IWYU pragma: export

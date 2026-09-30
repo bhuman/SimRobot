@@ -1,1 +1,1 @@
-#include "qopenglfunctions_3_1.h"
+#include <QtOpenGL/qopenglfunctions_3_1.h> // IWYU pragma: export

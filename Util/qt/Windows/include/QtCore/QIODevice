@@ -1,1 +1,1 @@
-#include "qiodevice.h"
+#include <QtCore/qiodevice.h> // IWYU pragma: export

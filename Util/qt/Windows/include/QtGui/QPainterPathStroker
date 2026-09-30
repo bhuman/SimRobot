@@ -1,1 +1,1 @@
-#include "qpainterpath.h"
+#include <QtGui/qpainterpath.h> // IWYU pragma: export

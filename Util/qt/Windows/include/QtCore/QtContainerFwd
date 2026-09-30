@@ -1,1 +1,1 @@
-#include "qcontainerfwd.h"
+#include <QtCore/qcontainerfwd.h> // IWYU pragma: export

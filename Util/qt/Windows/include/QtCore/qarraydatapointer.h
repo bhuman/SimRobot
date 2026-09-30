@@ -1,41 +1,6 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QARRAYDATAPOINTER_H
 #define QARRAYDATAPOINTER_H
@@ -54,33 +19,49 @@ private:
 
 public:
     enum {
-        pass_parameter_by_value =
-                std::is_arithmetic<T>::value || std::is_pointer<T>::value || std::is_enum<T>::value
+        pass_parameter_by_value = std::disjunction_v<
+                                    std::is_arithmetic<T>,
+                                    std::is_pointer<T>,
+                                    std::is_enum<T>
+                                  >,
     };
 
     typedef typename std::conditional<pass_parameter_by_value, T, const T &>::type parameter_type;
 
-    constexpr QArrayDataPointer() noexcept
-        : d(nullptr), ptr(nullptr), size(0)
-    {
-    }
+    Q_NODISCARD_CTOR
+    constexpr QArrayDataPointer() = default;
 
+    Q_NODISCARD_CTOR
     QArrayDataPointer(const QArrayDataPointer &other) noexcept
-        : d(other.d), ptr(other.ptr), size(other.size)
+        : QArrayDataPointer(other.d, other.ptr, other.size)
     {
         ref();
     }
 
+    Q_NODISCARD_CTOR
     constexpr QArrayDataPointer(Data *header, T *adata, qsizetype n = 0) noexcept
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0) || defined(QT_BOOTSTRAPPED)
+        : ptr(adata), size(n), d(header)
+#else
         : d(header), ptr(adata), size(n)
+#endif
     {
     }
 
-    explicit QArrayDataPointer(QPair<QTypedArrayData<T> *, T *> adata, qsizetype n = 0) noexcept
-        : d(adata.first), ptr(adata.second), size(n)
+    Q_NODISCARD_CTOR
+    explicit QArrayDataPointer(QTypedArrayAllocationResult<T> adata, qsizetype n = 0) noexcept
+        : QArrayDataPointer(adata.header, adata.ptr, n)
     {
     }
 
+    Q_NODISCARD_CTOR explicit
+    QArrayDataPointer(qsizetype alloc, qsizetype n = 0,
+                      QArrayData::AllocationOption option = QArrayData::KeepSize)
+        : QArrayDataPointer(Data::allocate(alloc, option), n)
+    {
+    }
+
+    Q_NODISCARD_CTOR
     static QArrayDataPointer fromRawData(const T *rawData, qsizetype length) noexcept
     {
         Q_ASSERT(rawData || !length);
@@ -94,34 +75,24 @@ public:
         return *this;
     }
 
+    Q_NODISCARD_CTOR
     QArrayDataPointer(QArrayDataPointer &&other) noexcept
-        : d(other.d), ptr(other.ptr), size(other.size)
+        : QArrayDataPointer(std::exchange(other.d, nullptr),
+                            std::exchange(other.ptr, nullptr),
+                            std::exchange(other.size, 0))
     {
-        other.d = nullptr;
-        other.ptr = nullptr;
-        other.size = 0;
     }
 
     QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_MOVE_AND_SWAP(QArrayDataPointer)
 
-    DataOps &operator*() noexcept
+    DataOps operator*() noexcept
     {
-        return *static_cast<DataOps *>(this);
+        return DataOps(*this);
     }
 
-    DataOps *operator->() noexcept
+    DataOps operator->() noexcept
     {
-        return static_cast<DataOps *>(this);
-    }
-
-    const DataOps &operator*() const noexcept
-    {
-        return *static_cast<const DataOps *>(this);
-    }
-
-    const DataOps *operator->() const noexcept
-    {
-        return static_cast<const DataOps *>(this);
+        return DataOps(*this);
     }
 
     ~QArrayDataPointer()
@@ -132,13 +103,13 @@ public:
         }
     }
 
-    bool isNull() const noexcept
+    constexpr bool isNull() const noexcept
     {
         return !ptr;
     }
 
-    T *data() noexcept { return ptr; }
-    const T *data() const noexcept { return ptr; }
+    T *data() noexcept { T *p = ptr; if (size) Q_PRESUME(p); return p; }
+    const T *data() const noexcept { T *p = ptr; if (size) Q_PRESUME(p); return p; }
 
     T *begin() noexcept { return data(); }
     T *end() noexcept { return data() + size; }
@@ -164,6 +135,28 @@ public:
     {
         if (needsDetach())
             reallocateAndGrow(QArrayData::GrowsAtEnd, 0, old);
+    }
+
+    /*! \internal
+
+        Reinterprets the data of this QArrayDataPointer to type X. It's the
+        caller's responsibility to ensure that the data contents are valid and
+        properly aligned, particularly if T and X are not trivial types (i.e,
+        don't do that). The current size is kept and the allocated capacity is
+        updated to account for the difference in the element type's size.
+
+        This is used in QString::fromLatin1 to perform in-place conversion of
+        QString to QByteArray.
+    */
+    template <typename X> QArrayDataPointer<X> reinterpreted() &&
+    {
+        if (sizeof(T) != sizeof(X)) {
+            Q_ASSERT(!d->isShared());
+            d->alloc = d->alloc * sizeof(T) / sizeof(X);
+        }
+        auto od = reinterpret_cast<QTypedArrayData<X> *>(std::exchange(d, nullptr));
+        auto optr = reinterpret_cast<X *>(std::exchange(ptr, nullptr));
+        return { od, optr, std::exchange(size, 0) };
     }
 
     /*! \internal
@@ -314,9 +307,42 @@ public:
         T *res = this->ptr + offset;
         QtPrivate::q_relocate_overlap_n(this->ptr, this->size, res);
         // first update data pointer, then this->ptr
-        if (data && QtPrivate::q_points_into_range(*data, this->begin(), this->end()))
+        if (data && QtPrivate::q_points_into_range(*data, *this))
             *data += offset;
         this->ptr = res;
+    }
+
+    QArrayDataPointer sliced(qsizetype pos, qsizetype n) const &
+    {
+        QArrayDataPointer result(n);
+        std::uninitialized_copy_n(begin() + pos, n, result.begin());
+        result.size = n;
+        return result;
+    }
+
+    QArrayDataPointer sliced(qsizetype pos, qsizetype n) &&
+    {
+        if (needsDetach())
+            return sliced(pos, n);
+        T *newBeginning = begin() + pos;
+        std::destroy(begin(), newBeginning);
+        std::destroy(newBeginning + n, end());
+        setBegin(newBeginning);
+        size = n;
+        return std::move(*this);
+    }
+
+    void appendInitialize(qsizetype newSize)
+    {
+        Q_ASSERT(this->isMutable());
+        Q_ASSERT(!this->isShared());
+        Q_ASSERT(newSize > this->size);
+        Q_ASSERT(newSize - this->size <= this->freeSpaceAtEnd());
+
+        T *const b = this->begin() + this->size;
+        T *const e = this->begin() + newSize;
+        q17::uninitialized_value_construct(b, e);
+        this->size = newSize;
     }
 
     // forwards from QArrayData
@@ -324,7 +350,7 @@ public:
     qsizetype constAllocatedCapacity() const noexcept { return d ? d->constAllocatedCapacity() : 0; }
     void ref() noexcept { if (d) d->ref(); }
     bool deref() noexcept { return !d || d->deref(); }
-    bool isMutable() const noexcept { return d; }
+    bool isMutable() const noexcept { return d; } // Returns false if this object is fromRawData()
     bool isShared() const noexcept { return !d || d->isShared(); }
     bool isSharedWith(const QArrayDataPointer &other) const noexcept { return d && d == other.d; }
     bool needsDetach() const noexcept { return !d || d->needsDetach(); }
@@ -387,9 +413,14 @@ public:
         return lhs.data() != rhs.data() || lhs.size != rhs.size;
     }
 
-    Data *d;
-    T *ptr;
-    qsizetype size;
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0) && !defined(QT_BOOTSTRAPPED)
+    Data *d = nullptr;
+#endif
+    T *ptr = nullptr;
+    qsizetype size = 0;
+#if QT_VERSION >= QT_VERSION_CHECK(7, 0, 0) || defined(QT_BOOTSTRAPPED)
+    Data *d = nullptr;
+#endif
 };
 
 template <class T>
@@ -397,6 +428,9 @@ inline void swap(QArrayDataPointer<T> &p1, QArrayDataPointer<T> &p2) noexcept
 {
     p1.swap(p2);
 }
+
+template <class T>
+Q_DECLARE_TYPEINFO_BODY(QArrayDataPointer<T>, Q_RELOCATABLE_TYPE);
 
 ////////////////////////////////////////////////////////////////////////////////
 //  Q_ARRAY_LITERAL

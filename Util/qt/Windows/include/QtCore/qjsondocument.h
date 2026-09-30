@@ -1,82 +1,28 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:critical reason:data-parser
 
 #ifndef QJSONDOCUMENT_H
 #define QJSONDOCUMENT_H
 
+#include <QtCore/qcompare.h>
+#include <QtCore/qjsonparseerror.h>
+#if (QT_VERSION >= QT_VERSION_CHECK(7, 0, 0)) || defined(QT_BOOTSTRAPPED)
 #include <QtCore/qjsonvalue.h>
+#endif
+#include <QtCore/qlatin1stringview.h>
 #include <QtCore/qscopedpointer.h>
-
-#include <memory>
+#include <QtCore/qstringview.h>
 
 QT_BEGIN_NAMESPACE
 
 class QDebug;
 class QCborValue;
+class QJsonArray;
+class QJsonObject;
+class QJsonValue;
 
 namespace QJsonPrivate { class Parser; }
-
-struct Q_CORE_EXPORT QJsonParseError
-{
-    enum ParseError {
-        NoError = 0,
-        UnterminatedObject,
-        MissingNameSeparator,
-        UnterminatedArray,
-        MissingValueSeparator,
-        IllegalValue,
-        TerminationByNumber,
-        IllegalNumber,
-        IllegalEscapeSequence,
-        IllegalUTF8String,
-        UnterminatedString,
-        MissingObject,
-        DeepNesting,
-        DocumentTooLarge,
-        GarbageAtEnd
-    };
-
-    QString    errorString() const;
-
-    int        offset = -1;
-    ParseError error = NoError;
-};
 
 class QJsonDocumentPrivate;
 class Q_CORE_EXPORT QJsonDocument
@@ -90,35 +36,43 @@ public:
 
     QJsonDocument();
     explicit QJsonDocument(const QJsonObject &object);
+    explicit QJsonDocument(QJsonObject &&object);
     explicit QJsonDocument(const QJsonArray &array);
+    explicit QJsonDocument(QJsonArray &&array);
     ~QJsonDocument();
 
     QJsonDocument(const QJsonDocument &other);
     QJsonDocument &operator =(const QJsonDocument &other);
 
+    QT_CORE_INLINE_SINCE(6, 12)
     QJsonDocument(QJsonDocument &&other) noexcept;
+    QT_MOVE_ASSIGNMENT_OPERATOR_IMPL_VIA_PURE_SWAP(QJsonDocument)
 
-    QJsonDocument &operator =(QJsonDocument &&other) noexcept
-    {
-        swap(other);
-        return *this;
-    }
-
+    QT_CORE_INLINE_SINCE(6, 12)
     void swap(QJsonDocument &other) noexcept;
 
     static QJsonDocument fromVariant(const QVariant &variant);
     QVariant toVariant() const;
 
+#if (QT_VERSION < QT_VERSION_CHECK(7, 0, 0)) && !defined(QT_BOOTSTRAPPED)
     enum JsonFormat {
         Indented,
         Compact
     };
+#else
+    using JsonFormat = QJsonValue::JsonFormat;
+#  ifdef __cpp_using_enum
+    using enum QJsonValue::JsonFormat;
+#  else
+    // keep in sync with qjsonvalue.h
+    static constexpr auto Indented = JsonFormat::Indented;
+    static constexpr auto Compact = JsonFormat::Compact;
+#  endif
+#endif
 
     static QJsonDocument fromJson(const QByteArray &json, QJsonParseError *error = nullptr);
 
-#if !defined(QT_JSON_READONLY) || defined(Q_CLANG_QDOC)
-    QByteArray toJson(JsonFormat format = Indented) const;
-#endif
+    QByteArray toJson(JsonFormat format = JsonFormat::Indented) const;
 
     bool isEmpty() const;
     bool isArray() const;
@@ -130,31 +84,44 @@ public:
     void setObject(const QJsonObject &object);
     void setArray(const QJsonArray &array);
 
-#if QT_STRINGVIEW_LEVEL < 2
     const QJsonValue operator[](const QString &key) const;
-#endif
     const QJsonValue operator[](QStringView key) const;
-    const QJsonValue operator[](QLatin1String key) const;
+    const QJsonValue operator[](QLatin1StringView key) const;
     const QJsonValue operator[](qsizetype i) const;
-
+#if QT_CORE_REMOVED_SINCE(6, 8)
     bool operator==(const QJsonDocument &other) const;
-    bool operator!=(const QJsonDocument &other) const { return !(*this == other); }
-
+    bool operator!=(const QJsonDocument &other) const { return !operator==(other); }
+#endif
     bool isNull() const;
 
 private:
     friend class QJsonValue;
     friend class QJsonPrivate::Parser;
     friend Q_CORE_EXPORT QDebug operator<<(QDebug, const QJsonDocument &);
+    friend Q_CORE_EXPORT bool comparesEqual(const QJsonDocument &lhs,
+                                            const QJsonDocument &rhs) noexcept;
+    Q_DECLARE_EQUALITY_COMPARABLE(QJsonDocument)
 
-    QJsonDocument(const QCborValue &data);
+    inline explicit QJsonDocument(QCborValue data);
 
-    std::unique_ptr<QJsonDocumentPrivate> d;
+    QJsonDocumentPrivate *d = nullptr;
 };
 
 Q_DECLARE_SHARED(QJsonDocument)
 
-#if !defined(QT_NO_DEBUG_STREAM) && !defined(QT_JSON_READONLY)
+#if QT_CORE_INLINE_IMPL_SINCE(6, 12)
+QJsonDocument::QJsonDocument(QJsonDocument &&other) noexcept
+    : d(std::exchange(other.d, nullptr))
+{
+}
+
+void QJsonDocument::swap(QJsonDocument &other) noexcept
+{
+    qt_ptr_swap(d, other.d);
+}
+#endif
+
+#if !defined(QT_NO_DEBUG_STREAM)
 Q_CORE_EXPORT QDebug operator<<(QDebug, const QJsonDocument &);
 #endif
 

@@ -1,1 +1,1 @@
-#include "qpropertyanimation.h"
+#include <QtCore/qpropertyanimation.h> // IWYU pragma: export

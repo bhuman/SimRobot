@@ -1,1 +1,1 @@
-#include "qsvggenerator.h"
+#include <QtSvg/qsvggenerator.h> // IWYU pragma: export

@@ -1,41 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2021 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtGui module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2021 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 #ifndef QTEXTFORMAT_H
 #define QTEXTFORMAT_H
@@ -50,6 +14,7 @@
 #include <QtCore/qlist.h>
 #include <QtCore/qshareddata.h>
 #include <QtCore/qvariant.h>
+#include <QtCore/qmap.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -195,7 +160,9 @@ public:
         FontStrikeOut = 0x2007,
         FontFixedPitch = 0x2008,
         FontPixelSize = 0x2009,
-        LastFontProperty = FontPixelSize,
+        FontFeatures = 0x2010, // Note: Same as OldTextUnderlineColor
+        FontVariableAxes = 0x2011,
+        LastFontProperty = FontVariableAxes,
 
         TextUnderlineColor = 0x2020,
         TextVerticalAlignment = 0x2021,
@@ -215,6 +182,7 @@ public:
         OldFontLetterSpacingType = 0x2033,
         OldFontStretch = 0x2034,
         OldTextUnderlineColor = 0x2010,
+        OldFontFamily = 0x2000, // same as FontFamily
 
         ObjectType = 0x2f00,
 
@@ -223,6 +191,7 @@ public:
         ListIndent = 0x3001,
         ListNumberPrefix = 0x3002,
         ListNumberSuffix = 0x3003,
+        ListStart = 0x3004,
 
         // table and frame properties
         FrameBorder = 0x4000,
@@ -275,6 +244,7 @@ public:
         ImageWidth = 0x5010,
         ImageHeight = 0x5011,
         ImageQuality = 0x5014,
+        ImageMaxWidth = 0x5015,
 
         // internal
         /*
@@ -551,6 +521,11 @@ public:
         return static_cast<QFont::HintingPreference>(intProperty(FontHintingPreference));
     }
 
+    void setFontFeatures(const QMap<QFont::Tag, quint32> &fontFeatures);
+    QMap<QFont::Tag, quint32> fontFeatures() const;
+    void setFontVariableAxes(const QMap<QFont::Tag, float> &fontVariableAxes);
+    QMap<QFont::Tag, float> fontVariableAxes() const;
+
     inline void setFontKerning(bool enable)
     { setProperty(FontKerning, enable); }
     inline bool fontKerning() const
@@ -709,7 +684,7 @@ public:
     { return boolProperty(BlockNonBreakableLines); }
 
     inline void setPageBreakPolicy(PageBreakFlags flags)
-    { setProperty(PageBreakPolicy, int(flags)); }
+    { setProperty(PageBreakPolicy, int(flags.toInt())); }
     inline PageBreakFlags pageBreakPolicy() const
     { return PageBreakFlags(intProperty(PageBreakPolicy)); }
 
@@ -731,7 +706,7 @@ protected:
 Q_DECLARE_SHARED(QTextBlockFormat)
 
 inline void QTextBlockFormat::setAlignment(Qt::Alignment aalignment)
-{ setProperty(BlockAlignment, int(aalignment)); }
+{ setProperty(BlockAlignment, int(aalignment.toInt())); }
 
 inline void QTextBlockFormat::setIndent(int aindent)
 { setProperty(BlockIndent, aindent); }
@@ -788,6 +763,9 @@ public:
     inline QString numberSuffix() const
     { return stringProperty(ListNumberSuffix); }
 
+    inline void setStart(int indent);
+    inline int start() const { return intProperty(ListStart); }
+
 protected:
     explicit QTextListFormat(const QTextFormat &fmt);
     friend class QTextFormat;
@@ -807,6 +785,11 @@ inline void QTextListFormat::setNumberPrefix(const QString &np)
 inline void QTextListFormat::setNumberSuffix(const QString &ns)
 { setProperty(ListNumberSuffix, ns); }
 
+inline void QTextListFormat::setStart(int astart)
+{
+    setProperty(ListStart, astart);
+}
+
 class Q_GUI_EXPORT QTextImageFormat : public QTextCharFormat
 {
 public:
@@ -821,6 +804,10 @@ public:
     inline void setWidth(qreal width);
     inline qreal width() const
     { return doubleProperty(ImageWidth); }
+
+    inline void setMaximumWidth(QTextLength maxWidth);
+    inline QTextLength maximumWidth() const
+    { return lengthProperty(ImageMaxWidth); }
 
     inline void setHeight(qreal height);
     inline qreal height() const
@@ -848,6 +835,9 @@ inline void QTextImageFormat::setName(const QString &aname)
 
 inline void QTextImageFormat::setWidth(qreal awidth)
 { setProperty(ImageWidth, awidth); }
+
+inline void QTextImageFormat::setMaximumWidth(QTextLength maxWidth)
+{ setProperty(ImageMaxWidth, maxWidth); }
 
 inline void QTextImageFormat::setHeight(qreal aheight)
 { setProperty(ImageHeight, aheight); }
@@ -935,7 +925,7 @@ public:
     { return lengthProperty(FrameHeight); }
 
     inline void setPageBreakPolicy(PageBreakFlags flags)
-    { setProperty(PageBreakPolicy, int(flags)); }
+    { setProperty(PageBreakPolicy, int(flags.toInt())); }
     inline PageBreakFlags pageBreakPolicy() const
     { return PageBreakFlags(intProperty(PageBreakPolicy)); }
 
@@ -1035,7 +1025,7 @@ inline void QTextTableFormat::setCellPadding(qreal apadding)
 { setProperty(TableCellPadding, apadding); }
 
 inline void QTextTableFormat::setAlignment(Qt::Alignment aalignment)
-{ setProperty(BlockAlignment, int(aalignment)); }
+{ setProperty(BlockAlignment, int(aalignment.toInt())); }
 
 class Q_GUI_EXPORT QTextTableCellFormat : public QTextCharFormat
 {

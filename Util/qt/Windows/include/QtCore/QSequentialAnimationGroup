@@ -1,1 +1,1 @@
-#include "qsequentialanimationgroup.h"
+#include <QtCore/qsequentialanimationgroup.h> // IWYU pragma: export

@@ -1,47 +1,18 @@
-/****************************************************************************
-**
-** Copyright (C) 2020 The Qt Company Ltd.
-** Copyright (C) 2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the QtCore module of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 3 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL3 included in the
-** packaging of this file. Please review the following information to
-** ensure the GNU Lesser General Public License version 3 requirements
-** will be met: https://www.gnu.org/licenses/lgpl-3.0.html.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 2.0 or (at your option) the GNU General
-** Public license version 3 or any later version approved by the KDE Free
-** Qt Foundation. The licenses are as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-2.0.html and
-** https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
+// Copyright (C) 2020 The Qt Company Ltd.
+// Copyright (C) 2020 Klaralvdalens Datakonsult AB, a KDAB Group company, info@kdab.com, author Giuseppe D'Angelo <giuseppe.dangelo@kdab.com>
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 #ifndef QNAMESPACE_H
 #define QNAMESPACE_H
 
+#if 0
+#pragma qt_class(Qt)
+#endif
+
 #include <QtCore/qglobal.h>
+#include <QtCore/qcompare.h>
+#include <QtCore/qtclasshelpermacros.h>
 #include <QtCore/qtmetamacros.h>
 
 #if defined(__OBJC__) && !defined(__cplusplus)
@@ -76,6 +47,22 @@ namespace Qt {
         darkMagenta,
         darkYellow,
         transparent
+    };
+
+    enum class ColorScheme {
+        Unknown,
+        Light,
+        Dark,
+    };
+
+    enum class ContrastPreference {
+        NoPreference,
+        HighContrast,
+    };
+
+    enum class MotionPreference {
+        NoPreference,
+        ReducedMotion,
     };
 
     enum MouseButton {
@@ -237,8 +224,11 @@ namespace Qt {
         Tool = Popup | Dialog,
         ToolTip = Popup | Sheet,
         SplashScreen = ToolTip | Dialog,
-        Desktop = 0x00000010 | Window,
-        SubWindow = 0x00000012,
+#if QT_DEPRECATED_SINCE(6, 11)
+        Desktop Q_DECL_ENUMERATOR_DEPRECATED_X("This flag has been a no-op since Qt 6.")
+                = 0x00000010 | Window,
+#endif
+        SubWindow = 0x00000012, // Note QTBUG-115729 before using
         ForeignWindow = 0x00000020 | Window,
         CoverWindow = 0x00000040 | Window,
 
@@ -259,12 +249,20 @@ namespace Qt {
         WindowTransparentForInput = 0x00080000,
         WindowOverridesSystemGestures = 0x00100000,
         WindowDoesNotAcceptFocus = 0x00200000,
-        MaximizeUsingFullscreenGeometryHint = 0x00400000,
+#if QT_DEPRECATED_SINCE(6, 13)
+        MaximizeUsingFullscreenGeometryHint Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "Use Qt::ExpandedClientAreaHint instead") = 0x00400000,
+#endif
+        ExpandedClientAreaHint = 0x00400000,
+        NoTitleBarBackgroundHint = 0x00800000,
 
         CustomizeWindowHint = 0x02000000,
         WindowStaysOnBottomHint = 0x04000000,
         WindowCloseButtonHint = 0x08000000,
-        MacWindowToolBarButtonHint = 0x10000000,
+#if QT_DEPRECATED_SINCE(6, 9)
+        MacWindowToolBarButtonHint Q_DECL_ENUMERATOR_DEPRECATED_X(
+            "This flag has been a no-op since Qt 5") = 0x10000000,
+#endif
         BypassGraphicsProxyWidget = 0x20000000,
         NoDropShadowWindowHint = 0x40000000,
         WindowFullscreenButtonHint = 0x80000000
@@ -448,7 +446,7 @@ namespace Qt {
     enum ApplicationAttribute
     {
         // AA_ImmediateWidgetCreation = 0,
-        // AA_MSWindowsUseDirect3DByDefault = 1,
+        AA_QtQuickUseDefaultSizePolicy = 1,
         AA_DontShowIconsInMenus = 2,
         AA_NativeWindows = 3,
         AA_DontCreateNativeWidgetSiblings = 4,
@@ -457,7 +455,7 @@ namespace Qt {
         AA_MacDontSwapCtrlAndMeta = 7,
         AA_Use96Dpi = 8,
         AA_DisableNativeVirtualKeyboard = 9,
-        // AA_X11InitThreads = 10,
+        AA_DontUseNativeMenuWindows = 10,
         AA_SynthesizeTouchForUnhandledMouseEvents = 11,
         AA_SynthesizeMouseForUnhandledTouchEvents = 12,
 #if QT_DEPRECATED_SINCE(6, 0)
@@ -487,7 +485,7 @@ namespace Qt {
         AA_DisableShaderDiskCache = 27,
         AA_DontShowShortcutsInContextMenus = 28,
         AA_CompressTabletEvents = 29,
-        // AA_DisableWindowContextHelpButton = 30,
+        // AA_DisableWindowContextHelpButton = 30, (in Qt 5)
         AA_DisableSessionManager = 31,
 
         // Add new attributes before this line
@@ -628,7 +626,11 @@ namespace Qt {
         Key_twosuperior = 0x0b2,
         Key_threesuperior = 0x0b3,
         Key_acute = 0x0b4,
-        Key_mu = 0x0b5,
+        Key_micro = 0x0b5,
+#if QT_DEPRECATED_SINCE(6, 11)
+        Key_mu Q_DECL_ENUMERATOR_DEPRECATED_X("This key was misnamed, use Key_micro instead")
+            = Key_micro,
+#endif
         Key_paragraph = 0x0b6,
         Key_periodcentered = 0x0b7,
         Key_cedilla = 0x0b8,
@@ -1024,6 +1026,8 @@ namespace Qt {
         Key_MicVolumeUp   = 0x0100011d,
         Key_MicVolumeDown = 0x0100011e,
 
+        Key_Keyboard = 0x0100011f,
+
         Key_New      = 0x01000120,
         Key_Open     = 0x01000121,
         Key_Find     = 0x01000122,
@@ -1197,8 +1201,13 @@ namespace Qt {
         DragMoveCursor,
         DragLinkCursor,
         LastCursor = DragLinkCursor,
+#if QT_VERSION < QT_VERSION_CHECK(7, 0, 0)
         BitmapCursor = 24,
-        CustomCursor = 25
+        CustomCursor = 25,
+#else
+        BitmapCursor = 0x100,
+        CustomCursor = 0x101,
+#endif
     };
 
     enum TextFormat {
@@ -1377,6 +1386,11 @@ namespace Qt {
         PreventContextMenu
     };
 
+    enum class ContextMenuTrigger {
+        Press,
+        Release,
+    };
+
     enum InputMethodQuery {
         ImEnabled = 0x1,
         ImCursorRectangle = 0x2,
@@ -1425,6 +1439,7 @@ namespace Qt {
 
         ImhNoEditMenu = 0x800,
         ImhNoTextHandles = 0x1000,
+        ImhNoFullscreen = 0x2000,
 
         ImhDigitsOnly = 0x10000,
         ImhFormattedNumbersOnly = 0x20000,
@@ -1434,6 +1449,7 @@ namespace Qt {
         ImhEmailCharactersOnly = 0x200000,
         ImhUrlCharactersOnly = 0x400000,
         ImhLatinOnly = 0x800000,
+        ImhDecimalNumbersOnly = 0x1000000,
 
         ImhExclusiveInputMask = 0xffff0000
     };
@@ -1523,8 +1539,18 @@ namespace Qt {
         ToolTipPropertyRole = 29,
         StatusTipPropertyRole = 30,
         WhatsThisPropertyRole = 31,
+        // QRangeModel support for QML's required property var modelData
+        RangeModelDataRole = 40,
+        // QRangeModelAdapter support for accessing entire multi-role objects
+        RangeModelAdapterRole = 41,
+
         // Reserved
-        UserRole = 0x0100
+        UserRole = 0x0100,
+
+        // Used by Qt models
+        StandardItemFlagsRole = UserRole - 1,  // QStandardItemModel
+        FileInfoRole = UserRole - 4,           // QFileSystemModel
+        RemoteObjectsCacheRole = UserRole - 1, // QtRemoteObjects::QAbstractItemModelReplica
     };
 
     enum ItemFlag {
@@ -1612,6 +1638,8 @@ namespace Qt {
     };
     inline constexpr Initialization Uninitialized = Initialization::Uninitialized;
 
+    inline QT_DEFINE_TAG(Disambiguated);
+
     enum CoordinateSystem {
         DeviceCoordinates,
         LogicalCoordinates
@@ -1672,7 +1700,8 @@ namespace Qt {
 
 #endif // QT_NO_GESTURES
 
-    enum NavigationMode
+#if QT_DEPRECATED_SINCE(6, 12)
+    enum Q_DECL_DEPRECATED_X("This enumeration has no effect since Qt 6.") NavigationMode
     {
         NavigationModeNone,
         NavigationModeKeypadTabOrder,
@@ -1680,6 +1709,7 @@ namespace Qt {
         NavigationModeCursorAuto,
         NavigationModeCursorForceVisible
     };
+#endif
 
     enum CursorMoveStyle {
         LogicalMoveStyle,
@@ -1690,6 +1720,10 @@ namespace Qt {
         PreciseTimer,
         CoarseTimer,
         VeryCoarseTimer
+    };
+
+    enum class TimerId {
+        Invalid = 0,
     };
 
     enum ScrollPhase {
@@ -1729,6 +1763,12 @@ namespace Qt {
         PassThrough
     };
 
+    enum class PermissionStatus {
+        Undetermined,
+        Granted,
+        Denied,
+    };
+
     // QTBUG-48701
     enum ReturnByValueConstant { ReturnByValue }; // ### Qt 7: Remove me
 
@@ -1737,6 +1777,7 @@ namespace Qt {
     Q_ENUM_NS(ScrollBarPolicy)
     Q_ENUM_NS(FocusPolicy)
     Q_ENUM_NS(ContextMenuPolicy)
+    Q_ENUM_NS(ContextMenuTrigger)
     Q_ENUM_NS(ArrowType)
     Q_ENUM_NS(ToolButtonStyle)
     Q_ENUM_NS(PenStyle)
@@ -1772,6 +1813,9 @@ namespace Qt {
     Q_ENUM_NS(DayOfWeek)
     Q_ENUM_NS(CursorShape)
     Q_ENUM_NS(GlobalColor)
+    Q_ENUM_NS(ColorScheme)
+    Q_ENUM_NS(ContrastPreference)
+    Q_ENUM_NS(MotionPreference)
     Q_ENUM_NS(AspectRatioMode)
     Q_ENUM_NS(TransformationMode)
     Q_FLAG_NS(ImageConversionFlags)
@@ -1817,12 +1861,14 @@ namespace Qt {
 #endif
     Q_ENUM_NS(CursorMoveStyle)
     Q_ENUM_NS(TimerType)
+    Q_ENUM_NS(TimerId)
     Q_ENUM_NS(ScrollPhase)
     Q_ENUM_NS(MouseEventSource)
     Q_FLAG_NS(MouseEventFlags)
     Q_ENUM_NS(ChecksumType)
     Q_ENUM_NS(HighDpiScaleFactorRoundingPolicy)
     Q_ENUM_NS(TabFocusBehavior)
+    Q_ENUM_NS(PermissionStatus)
 #endif // Q_DOC
 
 }
@@ -1856,6 +1902,16 @@ public:
         TopDock,
         BottomDock,
         DockCount
+    };
+
+    enum CallMode {
+        Testing,
+        Live,
+    };
+
+    enum SaveStateRule {
+        KeepSavedState,
+        ClearSavedState,
     };
 
     enum Callback {
@@ -1913,22 +1969,19 @@ public:
         return combination;
     }
 #endif
-
-    friend constexpr bool operator==(QKeyCombination lhs, QKeyCombination rhs) noexcept
+    bool operator<(QKeyCombination) const = delete;
+private:
+    friend constexpr bool comparesEqual(const QKeyCombination &lhs,
+                                        const QKeyCombination &rhs) noexcept
     {
         return lhs.combination == rhs.combination;
     }
-
-    friend constexpr bool operator!=(QKeyCombination lhs, QKeyCombination rhs) noexcept
-    {
-        return lhs.combination != rhs.combination;
-    }
-
-    bool operator<(QKeyCombination) const = delete;
+    Q_DECLARE_EQUALITY_COMPARABLE_LITERAL_TYPE(QKeyCombination)
 };
 
 Q_DECLARE_TYPEINFO(QKeyCombination, Q_RELOCATABLE_TYPE);
 
+namespace Qt {
 constexpr QKeyCombination operator|(Qt::Modifier modifier, Qt::Key key) noexcept
 {
     return QKeyCombination(modifier, key);
@@ -2018,6 +2071,7 @@ constexpr QKeyCombination operator+(Qt::Key key, Qt::KeyboardModifiers modifiers
     return QKeyCombination(modifiers, key);
 }
 #endif
+}
 
 QT_END_NAMESPACE
 

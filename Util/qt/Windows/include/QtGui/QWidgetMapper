@@ -1,1 +1,1 @@
-#include "qwindowdefs.h"
+#include <QtGui/qwindowdefs.h> // IWYU pragma: export
