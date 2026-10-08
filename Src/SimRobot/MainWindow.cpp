@@ -29,6 +29,9 @@
 #include <Windows.h>
 #elif defined MACOS
 #include <mach/mach_time.h>
+#ifdef FIX_MACOS_TOOLBAR_WIDGET_NOT_CLOSING
+#include <QWidgetAction>
+#endif
 #else
 #include <ctime>
 #endif
@@ -651,6 +654,14 @@ void MainWindow::updateViewMenu(QMenu* menu)
 
 void MainWindow::updateMenuAndToolBar()
 {
+#ifdef FIX_MACOS_TOOLBAR_WIDGET_NOT_CLOSING
+  for(QAction* action : toolBar->actions())
+  {
+    QWidgetAction* widgetAction = qobject_cast<QWidgetAction*>(action);
+    if(widgetAction)
+      widgetAction->defaultWidget()->setParent(this);
+  }
+#endif
   toolBar->clear();
 #ifdef MACOS
   QColor hover(128, 128, 128, Theme::isDarkMode(this) ? 64 : 32);
