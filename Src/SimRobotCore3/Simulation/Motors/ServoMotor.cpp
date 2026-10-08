@@ -61,9 +61,9 @@ void ServoMotor::act()
            Simulation::simulation->model->jnt_type[joint->jointIndex] == mjJNT_SLIDE);
     isInitialized = true;
 
-    Simulation::simulation->model->dof_damping[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.01f;
-    Simulation::simulation->model->dof_armature[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.01f;
-    Simulation::simulation->model->dof_frictionloss[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.0f;
+    Simulation::simulation->model->dof_damping[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.f;
+    Simulation::simulation->model->dof_armature[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = armature;
+    Simulation::simulation->model->dof_frictionloss[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.f;
     for(unsigned i = 0; i < targetSize; i++)
       target[i] = { static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]), static_cast<float>(Simulation::simulation->simulatedTime) };
   }

@@ -43,6 +43,7 @@ public:
   float maxVelocity = 0.f;
   float maxForce = 0.f;
   float delay = 1;
+  float armature = 0.01f;
   bool isInitialized = false;
   float velocityLowPassFactor = 1.f;
   float currentAngularVelocity = 0.f;
