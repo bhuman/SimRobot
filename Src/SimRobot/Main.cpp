@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QLocale>
 #include <QSurfaceFormat>
+#include <QTimer>
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 extern void qt_registerDefaultPlatformBackingStoreOpenGLSupport();
@@ -123,11 +124,6 @@ int main(int argc, char* argv[])
   for(int i = 1; i < argc; i++)
     noWindow |= strcmp(argv[i], "-noWindow") == 0;
 
-#ifdef MACOS
-  if(!noWindow)
-    mainWindow.show();
-#endif
-
   // open file from commandline
   for(int i = 1; i < argc; i++)
     if(*argv[i] != '-' && strcmp(argv[i], "YES"))
@@ -136,8 +132,14 @@ int main(int argc, char* argv[])
       break;
     }
 
-#ifndef MACOS
   if(!noWindow)
+#ifdef MACOS
+    QTimer::singleShot(10, &mainWindow, [&mainWindow]
+    {
+      if(!mainWindow.isVisible())
+        mainWindow.show();
+    });
+#else
     mainWindow.show();
 #endif
 
