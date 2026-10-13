@@ -38,8 +38,8 @@ void SensorWidget::paintEvent(QPaintEvent*)
     case SimRobotCore3::SensorPort::floatSensor:
     {
       float sensorValue = sensor->getValue().floatValue;
-      char str_val[32];
-      sprintf(str_val, "%.03f", sensorValue);
+      char strVal[32];
+      snprintf(strVal, sizeof(strVal), "%.03f", sensorValue);
       if(hasMinAndMax)
       {
         sensorValue -= minValue;
@@ -54,7 +54,7 @@ void SensorWidget::paintEvent(QPaintEvent*)
       }
       painter.drawRect(0, 0, this->width(), this->height());
       painter.setPen(pen);
-      painter.drawText(this->width() / 2, this->height() / 2, tr(str_val));
+      painter.drawText(this->width() / 2, this->height() / 2, tr(strVal));
       break;
     }
     case SimRobotCore3::SensorPort::floatArraySensor:
@@ -315,7 +315,7 @@ void SensorWidget::setClipboardText(QMimeData& mimeData)
     for(int x = 0; x < dimSize[0]; x++)
     {
       float d = *pData;
-      sprintf(sBuffer, "%g", d);
+      snprintf(sBuffer, sizeof(sBuffer), "%g", d);
       for(char* str = sBuffer; *str; ++str)
         if(*str == '.')
           text += locale.decimalPoint();

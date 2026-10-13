@@ -72,7 +72,7 @@ bool CoreModule::compile()
       {
         lastStep = step;
         char buf[33];
-        sprintf(buf, "%u steps", step);
+        snprintf(buf, sizeof(buf), "%u steps", step);
         setText(buf);
       }
     }
@@ -89,7 +89,7 @@ bool CoreModule::compile()
       {
         lastFps = fps;
         char buf[33];
-        sprintf(buf, "%u steps/s", fps);
+        snprintf(buf, sizeof(buf), "%u steps/s", fps);
         setText(buf);
       }
     }
@@ -106,7 +106,7 @@ bool CoreModule::compile()
       {
         lastCols = cols;
         char buf[33];
-        sprintf(buf, "%u collisions", cols);
+        snprintf(buf, sizeof(buf), "%u collisions", cols);
         setText(buf);
       }
     }

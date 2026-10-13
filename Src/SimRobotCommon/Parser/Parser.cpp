@@ -707,7 +707,7 @@ float Parser::getFloatMinMax(const char* key, bool required, float defaultValue,
   if(value < min || value > max)
   {
     char msg[256];
-    sprintf(msg, "Expected a value between %g and %g instead of %g", min, max, value);
+    snprintf(msg, sizeof(msg), "Expected a value between %g and %g instead of %g", min, max, value);
     handleError(msg, attributes->find(key)->second.valueLocation);
     return defaultValue;
   }
