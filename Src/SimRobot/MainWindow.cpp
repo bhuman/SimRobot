@@ -80,12 +80,13 @@ SimRobot::Application* MainWindow::application;
 #define PATH_SEPARATOR "/"
 #endif
 
-MainWindow::MainWindow(int, char* argv[]) :
-  appPath(getAppPath(argv[0])),
+MainWindow::MainWindow(char* argv0, bool headless) :
+  appPath(getAppPath(argv0)),
   appString(QString("SimRobot" PATH_SEPARATOR "%1").arg(getAppLocationSum(appPath))),
   settings("B-Human", appString),
   layoutSettings("B-Human", appString + PATH_SEPARATOR "Layouts"),
-  recentFiles(settings.value("RecentFiles").toStringList())
+  recentFiles(settings.value("RecentFiles").toStringList()),
+  headless(headless)
 {
   application = this;
 
@@ -956,10 +957,13 @@ void MainWindow::openFile(const QString& fileName)
 
   // add file path to recent file list
   const QString& baseName = fileInfo.baseName();
-  recentFiles.prepend(filePath);
-  while(recentFiles.count() > 8)
-    recentFiles.removeLast();
-  settings.setValue("RecentFiles", recentFiles);
+  if(!headless)
+  {
+    recentFiles.prepend(filePath);
+    while(recentFiles.count() > 8)
+      recentFiles.removeLast();
+    settings.setValue("RecentFiles", recentFiles);
+  }
   setWindowTitle(baseName + " - " + tr("SimRobot"));
 
   // open layout settings
@@ -973,16 +977,19 @@ void MainWindow::openFile(const QString& fileName)
   connect(sceneGraphDockWidget, &SceneGraphDockWidget::activatedObject, this, static_cast<void (MainWindow::*)(const QString& fullName, const SimRobot::Module* module, SimRobot::Object* object, int flags)>(&MainWindow::openObject));
   connect(sceneGraphDockWidget, &SceneGraphDockWidget::deactivatedObject, this, static_cast<void (MainWindow::*)(const QString&)>(&MainWindow::closeObject));
 
-  // load all other windows
-  const QVariant& openedObjectsVar = layoutSettings.value("OpenedObjects");
-  if(openedObjectsVar.isValid())
+  // load all other windows (not without a window, where nobody would look at them)
+  if(!headless)
   {
-    for(const QString& object : openedObjectsVar.toStringList())
-      openObject(object, 0, 0, 0);
+    const QVariant& openedObjectsVar = layoutSettings.value("OpenedObjects");
+    if(openedObjectsVar.isValid())
+    {
+      for(const QString& object : openedObjectsVar.toStringList())
+        openObject(object, 0, 0, 0);
+    }
+    restoreGeometry(layoutSettings.value("Geometry").toByteArray());
+    restoreState(layoutSettings.value("WindowState").toByteArray());
+    statusBar->setVisible(layoutSettings.value("ShowStatus", true).toBool());
   }
-  restoreGeometry(layoutSettings.value("Geometry").toByteArray());
-  restoreState(layoutSettings.value("WindowState").toByteArray());
-  statusBar->setVisible(layoutSettings.value("ShowStatus", true).toBool());
   manuallyLoadedModules = layoutSettings.value("LoadedModules").toStringList();
   guiUpdateRate = layoutSettings.value("GuiUpdateRate", -1).toInt();
   if(guiUpdateRate < 0)
@@ -1050,8 +1057,8 @@ bool MainWindow::closeFile()
   filePath.clear();
   layoutRestored = false;
 
-  // save layout
-  if(wasOpened)
+  // save layout (not without a window, whose layout was neither restored nor seen)
+  if(wasOpened && !headless)
   {
     layoutSettings.setValue("Geometry", saveGeometry());
     layoutSettings.setValue("WindowState", saveState());

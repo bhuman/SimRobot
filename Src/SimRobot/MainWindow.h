@@ -26,7 +26,11 @@ class MainWindow : public QMainWindow, public SimRobot::Application
 public:
   static SimRobot::Application* application;
 
-  MainWindow(int argc, char* argv[]);
+  /**
+   * @param argv0 The 0-th command line argument (locates the application).
+   * @param headless Run without a window (see \c headless).
+   */
+  MainWindow(char* argv0, bool headless);
 
   QMenu* createSimMenu();
 
@@ -81,6 +85,7 @@ private:
   QSettings layoutSettings;
   QStringList recentFiles;
 
+  const bool headless; /**< Started with --headless: the layout is neither restored nor saved, and the file is not remembered as recent. */
   bool opened = false;
   bool compiled = false;
   bool running = false;

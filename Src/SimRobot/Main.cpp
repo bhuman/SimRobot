@@ -85,7 +85,11 @@ int main(int argc, char* argv[])
 #ifndef WINDOWS
   setlocale(LC_NUMERIC, "C");
 #endif
-  MainWindow mainWindow(argc, argv);
+  bool headless = false;
+  for(int i = 1; i < argc; i++)
+    headless |= strcmp(argv[i], "-noWindow") == 0 || strcmp(argv[i], "--headless") == 0;
+
+  MainWindow mainWindow(argv[0], headless);
 
 #ifdef WINDOWS
   app.setStyle("fusion");
@@ -119,12 +123,8 @@ int main(int argc, char* argv[])
 
   app.setApplicationName("SimRobot");
 
-  bool noWindow = false;
-  for(int i = 1; i < argc; i++)
-    noWindow |= strcmp(argv[i], "-noWindow") == 0;
-
 #ifdef MACOS
-  if(!noWindow)
+  if(!headless)
     mainWindow.show();
 #endif
 
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
     }
 
 #ifndef MACOS
-  if(!noWindow)
+  if(!headless)
     mainWindow.show();
 #endif
 
