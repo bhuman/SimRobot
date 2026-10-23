@@ -80,7 +80,7 @@ SimRobot::Application* MainWindow::application;
 #define PATH_SEPARATOR "/"
 #endif
 
-MainWindow::MainWindow(char* argv0, bool headless) :
+MainWindow::MainWindow(const char* argv0, bool headless) :
   appPath(getAppPath(argv0)),
   appString(QString("SimRobot" PATH_SEPARATOR "%1").arg(getAppLocationSum(appPath))),
   settings("B-Human", appString),
@@ -1030,7 +1030,7 @@ void MainWindow::openFile(const QString& fileName)
   simStepAct->setEnabled(true);
 
   // start simulation
-  if(compiled && layoutSettings.value("Run", true).toBool())
+  if(compiled && (headless || layoutSettings.value("Run", true).toBool()))
     simStart();
 }
 

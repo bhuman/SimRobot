@@ -30,7 +30,7 @@ public:
    * @param argv0 The 0-th command line argument (locates the application).
    * @param headless Run without a window (see \c headless).
    */
-  MainWindow(char* argv0, bool headless);
+  MainWindow(const char* argv0, bool headless);
 
   QMenu* createSimMenu();
 
