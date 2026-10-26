@@ -149,11 +149,11 @@ void RegisteredDockWidget::contextMenuEvent(QContextMenuEvent* event)
     for(QAction* action : editMenu->actions())
     {
       editMenu->removeAction(action);
-      menu.addAction(Theme::updateIcon(this, action));
+      menu.addAction(Theme::updateIcon(action));
     }
     menu.addSeparator();
   }
-  menu.addAction(Theme::updateIcon(this, simMenu->menuAction()));
+  menu.addAction(Theme::updateIcon(simMenu->menuAction()));
   if(userMenu)
   {
     QMetaObject::invokeMethod(userMenu, "aboutToShow", Qt::DirectConnection);
@@ -161,7 +161,7 @@ void RegisteredDockWidget::contextMenuEvent(QContextMenuEvent* event)
     for(QAction* action : userMenu->actions())
     {
       userMenu->removeAction(action);
-      menu.addAction(Theme::updateIcon(this, action));
+      menu.addAction(Theme::updateIcon(action));
     }
   }
   event->accept();

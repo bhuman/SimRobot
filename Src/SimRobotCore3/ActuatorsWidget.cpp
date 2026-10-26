@@ -261,10 +261,10 @@ void ActuatorWidget::changeEvent(QEvent* event)
 
 void ActuatorWidget::styleCloseButton()
 {
-  QColor hover(128, 128, 128, Theme::isDarkMode(this) ? 64 : 32);
-  QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
-  QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
-  QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
+  QColor hover(128, 128, 128, Theme::isDarkMode() ? 64 : 32);
+  QColor pressed(128, 128, 128, Theme::isDarkMode() ? 128 : 64);
+  QColor checkedHover(128, 128, 128, Theme::isDarkMode() ? 192 : 96);
+  QColor checkedPressed(128, 128, 128, Theme::isDarkMode() ? 255 : 128);
   btnExit->setStyleSheet("QPushButton {"
                            "background-color: transparent;"
                            "padding: 0px 3px 3px 3px;"

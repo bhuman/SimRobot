@@ -61,7 +61,7 @@ void SceneGraphDockWidget::registerObject(const SimRobot::Module* module, SimRob
   newItem->setText(0, parent ? newItem->fullName.mid(parentFullNameLength + 1) : newItem->fullName);
   const QIcon* icon = object->getIcon();
   if(icon)
-    newItem->setIcon(0, Theme::updateIcon(this, *icon));
+    newItem->setIcon(0, Theme::updateIcon(*icon));
   if(flags & SimRobot::Flag::hidden)
     newItem->setHidden(true);
   if(flags & SimRobot::Flag::windowless)
@@ -317,7 +317,7 @@ void SceneGraphDockWidget::changeEvent(QEvent* event)
   {
     for(QTreeWidgetItem* item : treeWidget->findItems(QString("*"), Qt::MatchWrap | Qt::MatchWildcard | Qt::MatchRecursive))
       if(!item->icon(0).isNull())
-        item->setIcon(0, Theme::updateIcon(this, item->icon(0)));
+        item->setIcon(0, Theme::updateIcon(item->icon(0)));
   }
   QDockWidget::changeEvent(event);
 }

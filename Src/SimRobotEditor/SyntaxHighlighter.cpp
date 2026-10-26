@@ -51,7 +51,7 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument* parent, QWidget* editor) :
 
 void SyntaxHighlighter::updateColors()
 {
-  if(Theme::isDarkMode(editor))
+  if(Theme::isDarkMode())
   {
     xmlTagFormat.setForeground(QColor(252, 95, 163));
     xmlAttributeFormat.setForeground(QColor(191, 133, 85));

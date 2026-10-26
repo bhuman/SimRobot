@@ -369,8 +369,8 @@ void MainWindow::paintEvent(QPaintEvent* event)
   QPainter painter;
   painter.begin(this);
   QColor title = qApp->applicationState() == Qt::ApplicationActive
-                 ? QColor(255, 255, 255, Theme::isDarkMode(this) ? 24 : 96)
-                 : QColor(0, 0, 0, Theme::isDarkMode(this) ? 0 : 7);
+                 ? QColor(255, 255, 255, Theme::isDarkMode() ? 24 : 96)
+                 : QColor(0, 0, 0, Theme::isDarkMode() ? 0 : 7);
   painter.fillRect(0, 0, size().width(), 28, QBrush(title));
   painter.end();
 #endif
@@ -665,13 +665,13 @@ void MainWindow::updateMenuAndToolBar()
 #endif
   toolBar->clear();
 #ifdef MACOS
-  QColor hover(128, 128, 128, Theme::isDarkMode(this) ? 64 : 32);
-  QColor pressed(128, 128, 128, Theme::isDarkMode(this) ? 128 : 64);
-  QColor checkedHover(128, 128, 128, Theme::isDarkMode(this) ? 192 : 96);
-  QColor checkedPressed(128, 128, 128, Theme::isDarkMode(this) ? 255 : 128);
+  QColor hover(128, 128, 128, Theme::isDarkMode() ? 64 : 32);
+  QColor pressed(128, 128, 128, Theme::isDarkMode() ? 128 : 64);
+  QColor checkedHover(128, 128, 128, Theme::isDarkMode() ? 192 : 96);
+  QColor checkedPressed(128, 128, 128, Theme::isDarkMode() ? 255 : 128);
   QColor title = qApp->applicationState() == Qt::ApplicationActive
-                 ? QColor(255, 255, 255, Theme::isDarkMode(this) ? 24 : 96)
-                 : QColor(0, 0, 0, Theme::isDarkMode(this) ? 0 : 7);
+                 ? QColor(255, 255, 255, Theme::isDarkMode() ? 24 : 96)
+                 : QColor(0, 0, 0, Theme::isDarkMode() ? 0 : 7);
   toolBar->setStyleSheet("QToolBar {padding: 0px 6px 0px 6px;"
                                    "background-color: " + title.name(QColor::HexArgb) + "}"
                          "QToolBar::separator {background-color: transparent; width: 12px}"
@@ -688,7 +688,7 @@ void MainWindow::updateMenuAndToolBar()
   {
     const bool vertical = (dockWidget->features() & QDockWidget::DockWidgetVerticalTitleBar) != 0;
     dockWidget->setStyleSheet("QDockWidget {titlebar-close-icon: url(:/Icons/icons8-close"
-                              + QString(Theme::isDarkMode(this) ? "-dark" : "") + "-50.png)}"
+                              + QString(Theme::isDarkMode() ? "-dark" : "") + "-50.png)}"
                               "QDockWidget::title {text-align: center;"
                                 "padding-" + QString(vertical ? "bottom" : "left") + ": 3px;"
                                 "background: transparent}"
@@ -744,18 +744,18 @@ void MainWindow::updateMenuAndToolBar()
         moduleUserMenu = loadedModule->module->createUserMenu();
   }
 
-  toolBar->addAction(Theme::updateIcon(this, toolbarOpenAct));
+  toolBar->addAction(Theme::updateIcon(toolbarOpenAct));
   if(dockWidgetFileMenu)
     addToolBarButtonsFromMenu(dockWidgetFileMenu, toolBar, false);
 
   toolBar->addSeparator();
-  toolBar->addAction(Theme::updateIcon(this, simStartAct));
-  toolBar->addAction(Theme::updateIcon(this, simResetAct));
-  toolBar->addAction(Theme::updateIcon(this, simStepAct));
+  toolBar->addAction(Theme::updateIcon(simStartAct));
+  toolBar->addAction(Theme::updateIcon(simResetAct));
+  toolBar->addAction(Theme::updateIcon(simStepAct));
   if(opened && sceneGraphDockWidget)
   {
     toolBar->addSeparator();
-    toolBar->addAction(Theme::updateIcon(this, sceneGraphDockWidget->toggleViewAction()));
+    toolBar->addAction(Theme::updateIcon(sceneGraphDockWidget->toggleViewAction()));
   }
 
   if(dockWidgetEditMenu)
@@ -849,7 +849,7 @@ void MainWindow::addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool 
           toolBar->addSeparator();
       }
 
-      toolBar->addAction(Theme::updateIcon(this, action));
+      toolBar->addAction(Theme::updateIcon(action));
       if(action->menu())
         qobject_cast<QToolButton*>(toolBar->widgetForAction(action))->setPopupMode(QToolButton::InstantPopup);
     }
