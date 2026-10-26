@@ -543,14 +543,24 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   {
     QMenu* subMenu = menu->addMenu(tr("Export as Image..."));
-    auto* action = subMenu->addAction(tr("3840x2160"));
-    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(3840, 2160); });
-    action = subMenu->addAction(tr("2880x1620"));
-    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(2880, 1620); });
-    action = subMenu->addAction(tr("1920x1080"));
-    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(1920, 1080); });
-    action = subMenu->addAction(tr("1280x1024"));
-    connect(action, &QAction::triggered, this, [this]{ const_cast<SimObjectWidget*>(this)->exportAsImage(1280, 1024); });
+
+    // Offer to export with the current window size and a few ratios of it (in percent)
+    const auto addExportAction = [this, subMenu](int percent)
+    {
+      auto* action = subMenu->addAction(tr("&%1%").arg(percent));
+      connect(action, &QAction::triggered, this, [this, percent]{
+        unsigned int winWidth, winHeight;
+        objectRenderer.getSize(winWidth, winHeight);
+        const_cast<SimObjectWidget*>(this)->exportAsImage(winWidth * percent / 100, winHeight * percent / 100);
+      });
+    };
+
+    addExportAction(50);
+    addExportAction(75);
+    addExportAction(100);
+    addExportAction(200);
+    addExportAction(300);
+    addExportAction(400);
   }
 
   return menu;
