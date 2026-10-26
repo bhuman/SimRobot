@@ -21,6 +21,7 @@
 
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
 
 SimObjectWidget::SimObjectWidget(SimObject& simObject) : QOpenGLWidget(),
   object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
@@ -579,6 +580,9 @@ void SimObjectWidget::exportAsImage(int width, int height)
     objectRenderer.getSize(winWidth, winHeight);
     makeCurrent();
 
+    // Use a transparent clear color instead of the background color configured in the scene file
+    QOpenGLContext::currentContext()->functions()->glClearColor(0.f, 0.f, 0.f, 0.f);
+
     // render object using a temporary framebuffer
     QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
     framebuffer.bind();
@@ -586,6 +590,10 @@ void SimObjectWidget::exportAsImage(int width, int height)
     objectRenderer.draw();
     image = framebuffer.toImage();
     framebuffer.release();
+
+    // Restore the clear color from the scene file
+    const float* color = Simulation::simulation->scene->color;
+    QOpenGLContext::currentContext()->functions()->glClearColor(color[0], color[1], color[2], color[3]);
 
     objectRenderer.resize(fovY, winWidth, winHeight);
   }
