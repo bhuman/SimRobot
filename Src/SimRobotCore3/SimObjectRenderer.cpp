@@ -1,6 +1,6 @@
 /**
  * @file SimObjectRenderer.cpp
- * Declaration of class SimObjectRenderer
+ * Implementation of class SimObjectRenderer
  * @author Colin Graf
  */
 

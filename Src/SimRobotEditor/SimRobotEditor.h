@@ -1,5 +1,5 @@
 /**
- * @file SimRobot/SimRobotEditor.h
+ * @file SimRobotEditor/SimRobotEditor.h
  * Declaration of interfaces to scene graph objects from SimRobotEditor
  * @author Colin Graf
  */
