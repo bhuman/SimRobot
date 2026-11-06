@@ -277,11 +277,6 @@ void main()
 
 GraphicsContext::GraphicsContext()
 {
-  vertexBuffers.resize(2);
-  vertexBuffers[VertexPN::index].setupVertexAttributes = VertexPN::setupVertexAttributes;
-  vertexBuffers[VertexPN::index].stride = VertexPN::size;
-  vertexBuffers[VertexPNT::index].setupVertexAttributes = VertexPNT::setupVertexAttributes;
-  vertexBuffers[VertexPNT::index].stride = VertexPNT::size;
 }
 
 GraphicsContext::~GraphicsContext()
@@ -304,67 +299,11 @@ GraphicsContext::~GraphicsContext()
   delete offscreenContext;
   delete offscreenSurface;
 
-  for(const auto& texture : textures)
-    delete texture.second;
-  for(const auto& modelMatrixSet : modelMatrixSets)
-  {
-    for(const auto* modelMatrix : modelMatrixSet.variableModelMatrices)
-      delete modelMatrix;
-    for(const auto* modelMatrix : modelMatrixSet.constantModelMatrices)
-      delete modelMatrix;
-  }
-  for(const auto* surface : surfaces)
-    delete surface;
-  for(const auto& pair : vertexBuffers)
-    for(const auto* vertexBuffer : pair.buffers)
-      delete vertexBuffer;
-  for(const auto* indexBuffer : indexBuffers)
-    delete indexBuffer;
-  for(const auto* mesh : meshes)
-    delete mesh;
 }
 
 void GraphicsContext::compile()
 {
-  // Determine buffer memory layout of vertex buffer.
-  GLint base = 0;
-  GLintptr offset = 0;
-  for(const auto& category : vertexBuffers)
-  {
-    // Align on multiples of the current stride to adjust the base index.
-    offset += category.stride - 1;
-    base = static_cast<GLint>(offset / category.stride);
-    offset = base * category.stride;
-    for(auto* buffer : category.buffers)
-    {
-      buffer->base = base;
-      buffer->offset = offset;
-      base += buffer->count;
-      offset += buffer->size();
-    }
-  }
-  vertexBufferTotalSize = offset;
-
-  // Determine buffer memory layout of element buffer.
-  offset = 0;
-  for(auto* buffer : indexBuffers)
-  {
-    buffer->offset = offset;
-    buffer->count = static_cast<std::uint32_t>(buffer->indices.size());
-    buffer->type = GL_UNSIGNED_INT; // TODO: later, it might be nice to use shorts/bytes if the indices fit within that range
-    offset += buffer->size();
-  }
-  indexBufferTotalSize = offset;
-
-  // Determine texture indices.
-  std::size_t index = 0;
-  for(auto& texture : textures)
-    texture.second->index = index++;
-
-  // Determine surface indices.
-  index = 0;
-  for(auto* surface : surfaces)
-    surface->index = index++;
+  layoutResources();
 
   ASSERT(!offscreenSurface && !offscreenContext);
 
@@ -455,15 +394,15 @@ void GraphicsContext::createGraphics()
   {
     f->glBindVertexArray(data.vao[vaoIndex]);
     f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
-    vertexBuffers[vaoIndex].setupVertexAttributes(*f);
+    vertexAttributeSetups[vaoIndex](*f);
   }
 
   // Upload buffer data, now that also the EBO is bound.
   if(!shareData)
   {
     f->glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
-    for(const auto& pair : vertexBuffers)
-      for(const auto* buffer : pair.buffers)
+    for(const auto& category : vertexBuffers)
+      for(const auto* buffer : category)
         f->glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
 
     f->glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
@@ -471,14 +410,14 @@ void GraphicsContext::createGraphics()
       f->glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
 
     f->glBindBuffer(GL_UNIFORM_BUFFER, data.surfaceUBO);
-    f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
+    f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * surfaceMemorySize, nullptr, GL_STATIC_DRAW);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
       static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
-      unsigned char buf[Surface::memorySize];
+      unsigned char buf[surfaceMemorySize];
       std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
       *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
-      f->glBufferSubData(GL_UNIFORM_BUFFER, i * Surface::memorySize, Surface::memorySize, buf);
+      f->glBufferSubData(GL_UNIFORM_BUFFER, i * surfaceMemorySize, surfaceMemorySize, buf);
     }
     f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
@@ -504,7 +443,7 @@ void GraphicsContext::createGraphics()
       f->glBindTexture(GL_TEXTURE_2D, data.textureIDs[texture->index]);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, texture->byteOrder, GL_UNSIGNED_BYTE, texture->data);
+      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, texture->bytesPerPixel == 3 ? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
       f->glGenerateMipmap(GL_TEXTURE_2D);
     }
 
@@ -577,177 +516,6 @@ void GraphicsContext::destroyGraphics()
   }
 
   perContextData.erase(context);
-}
-
-void GraphicsContext::setClearColor(const float* color)
-{
-  std::memcpy(clearColor, color, sizeof(clearColor));
-}
-
-GraphicsContext::IndexBuffer* GraphicsContext::requestIndexBuffer()
-{
-  return indexBuffers.emplace_back(new IndexBuffer);
-}
-
-GraphicsContext::Mesh* GraphicsContext::requestMesh(const VertexBufferBase* vertexBuffer, const IndexBuffer* indexBuffer, PrimitiveTopology primitiveTopology)
-{
-  Mesh* mesh = new Mesh;
-  mesh->vertexBuffer = vertexBuffer;
-  mesh->indexBuffer = indexBuffer;
-  switch(primitiveTopology)
-  {
-    case pointList:
-      mesh->mode = GL_POINTS;
-      break;
-    case lineList:
-      mesh->mode = GL_LINES;
-      break;
-    case triangleList:
-      mesh->mode = GL_TRIANGLES;
-      break;
-  }
-  meshes.push_back(mesh);
-  return mesh;
-}
-
-GraphicsContext::Texture* GraphicsContext::requestTexture(const std::string& file)
-{
-  auto iter = textures.find(file);
-  if(iter != textures.end())
-  {
-    Texture* texture = iter->second;
-    return texture->data ? texture : nullptr;
-  }
-  Texture*& texture = textures[file];
-  texture = new Texture(file);
-  return texture->data ? texture : nullptr;
-}
-
-GraphicsContext::Surface* GraphicsContext::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture)
-{
-  auto* surface = new Surface;
-  std::memcpy(surface->albedo, albedo, sizeof(surface->albedo));
-  surface->alpha = alpha;
-  surface->metallic = metallic;
-  surface->roughness = roughness;
-  surface->ambient = ambient;
-  surface->texture = texture;
-  surfaces.push_back(surface);
-  return surface;
-}
-
-void GraphicsContext::setGlobalAmbientLight(const float* color)
-{
-  globalAmbientLight = "vec3(" + std::to_string(color[0]) + ", " + std::to_string(color[1]) + ", " + std::to_string(color[2]) + ")";
-}
-
-void GraphicsContext::addLight(const Light* light)
-{
-  ASSERT(lightDeclarations.size() == lightCalculations.size());
-
-  // Adds the shadow map of the light (if it has one) and returns the GLSL expression for the fraction of light that arrives at the fragment.
-  const auto requestVisibility = [this, light](const std::string& lightDirection)
-  {
-    if(!light->shadowMap)
-      return std::string("1.0");
-    const std::optional<LightSpace> lightSpace = shadowMaps.size() < maxShadowMaps ? LightSpace::create(*light) : std::nullopt;
-    if(!lightSpace)
-    {
-      TRACE("Light %zu does not cast shadows (too many shadow maps, or the light is inside of its bounding box, or the bounding box is behind it).", lightDeclarations.size());
-      return std::string("1.0");
-    }
-    const std::string index = std::to_string(shadowMaps.size());
-    shadowMaps.push_back({lightSpace->view, lightSpace->projection, light->shadowMap->width, light->shadowMap->height});
-    return "illumination(shadowMap" + index + ", lightPV" + index + ", " + lightDirection + ", normalizedNormal)";
-  };
-  if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
-  {
-    lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec3(" + std::to_string(dirLight->color[0]) + ", " + std::to_string(dirLight->color[1]) + ", " + std::to_string(dirLight->color[2]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
-    lightCalculations.push_back("Lo += calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(-light" + std::to_string(lightCalculations.size()) + ".direction)") + ");");
-  }
-  else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
-  {
-    lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec3(" + std::to_string(spotLight->color[0]) + ", " + std::to_string(spotLight->color[1]) + ", " + std::to_string(spotLight->color[2]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
-    lightCalculations.push_back("Lo += calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(light" + std::to_string(lightCalculations.size()) + ".position - FragPosInWorld)") + ");");
-  }
-  else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
-  {
-    lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec3(" + std::to_string(pointLight->color[0]) + ", " + std::to_string(pointLight->color[1]) + ", " + std::to_string(pointLight->color[2]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
-    lightCalculations.push_back("Lo += calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(light" + std::to_string(lightCalculations.size()) + ".position - FragPosInWorld)") + ");");
-  }
-}
-
-GraphicsContext::ModelMatrix* GraphicsContext::requestModelMatrix(ModelMatrix::Usage usage)
-{
-  ModelMatrix* modelMatrix = new ModelMatrix;
-  const ModelMatrixStack& modelMatrixStack = modelMatrixStackStack.top();
-  const auto& product = modelMatrixStack.getC();
-  std::size_t startIndex = 0;
-  if(modelMatrixStack.bottomIsVariable)
-  {
-    ASSERT(!product.empty());
-    modelMatrix->variablePart = product[0];
-    startIndex = 1;
-  }
-  modelMatrix->constantPart = product.size() > startIndex ? *product[startIndex] : Pose3f();
-  for(std::size_t i = startIndex + 1; i < product.size(); ++i)
-    modelMatrix->constantPart *= *product[i];
-  modelMatrix->memory.row(3) = Eigen::RowVector4f(0.f, 0.f, 0.f, 1.f);
-  if(modelMatrix->variablePart)
-    modelMatrixSets[usage].variableModelMatrices.push_back(modelMatrix);
-  else
-  {
-    modelMatrix->memory.topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
-    modelMatrix->memory.topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
-    modelMatrixSets[usage].constantModelMatrices.push_back(modelMatrix);
-  }
-  return modelMatrix;
-}
-
-void GraphicsContext::pushModelMatrixStack()
-{
-  modelMatrixStackStack.emplace();
-}
-
-void GraphicsContext::popModelMatrixStack()
-{
-  ASSERT(modelMatrixStackStack.top().empty());
-  modelMatrixStackStack.pop();
-}
-
-void GraphicsContext::pushModelMatrix(const Pose3f& pose)
-{
-  modelMatrixStackStack.top().push(&pose);
-}
-
-void GraphicsContext::pushModelMatrixByReference(const Pose3f& pose)
-{
-  // A variable pose must be the first on the stack.
-  ASSERT(modelMatrixStackStack.top().empty());
-  modelMatrixStackStack.top().push(&pose);
-  modelMatrixStackStack.top().bottomIsVariable = true;
-}
-
-void GraphicsContext::popModelMatrix()
-{
-  modelMatrixStackStack.top().pop();
-  if(modelMatrixStackStack.top().empty())
-    modelMatrixStackStack.top().bottomIsVariable = false;
-}
-
-bool GraphicsContext::emptyModelMatrixStack() const
-{
-  return modelMatrixStackStack.top().empty();
-}
-
-void GraphicsContext::updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate)
-{
-  if(modelMatrixSets[usage].lastUpdate == Simulation::simulation->simulationStep && !forceUpdate)
-    return;
-  modelMatrixSets[usage].lastUpdate = Simulation::simulation->simulationStep;
-
-  for(ModelMatrix* modelMatrix : modelMatrixSets[usage].variableModelMatrices)
-    modelMatrix->updateMemory();
 }
 
 void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force)
@@ -858,16 +626,16 @@ void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, con
   ASSERT(data);
   ASSERT(f);
   ASSERT(shader);
-  const GLuint newVAO = data->vao[mesh->vertexBuffer->vaoIndex];
+  const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
   if(newVAO != data->boundVAO)
     f->glBindVertexArray((data->boundVAO = newVAO));
   f->glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory.data());
   if(!forcedSurface)
     setSurface(surface);
   if(mesh->indexBuffer)
-    f->glDrawElementsBaseVertex(mesh->mode, mesh->indexBuffer->count, mesh->indexBuffer->type, reinterpret_cast<void*>(mesh->indexBuffer->offset), mesh->vertexBuffer->base);
+    f->glDrawElementsBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLint>(mesh->vertexBuffer->base));
   else
-    f->glDrawArrays(mesh->mode, mesh->vertexBuffer->base, mesh->vertexBuffer->count);
+    f->glDrawArrays(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count));
 }
 
 void GraphicsContext::finishRendering()
@@ -1066,16 +834,56 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   else
     defines += "#define NORMAL_QUALIFIER flat\n";
 
-  const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT " + globalAmbientLight + "\n";
+  const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT vec3(" + std::to_string(globalAmbientLight[0]) + ", " + std::to_string(globalAmbientLight[1]) + ", " + std::to_string(globalAmbientLight[2]) + ")\n";
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
     lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";
-  for(const auto& light : lightDeclarations)
-    lightDeclarationsCode += " " + light;
-  lightDeclarationsCode += "\n";
   std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
-  for(const auto& light : lightCalculations)
-    lightCalculationsCode += " " + light;
+  const auto toVec3 = [](const float* v)
+  {
+    return "vec3(" + std::to_string(v[0]) + ", " + std::to_string(v[1]) + ", " + std::to_string(v[2]) + ")";
+  };
+  for(std::size_t i = 0; i < lights.size(); ++i)
+  {
+    const LightData& light = lights[i];
+    const std::string name = "light" + std::to_string(i);
+    // The direction from the fragment to the light (to determine the shadow bias).
+    std::string lightDirection;
+    switch(light.type)
+    {
+      case LightData::directional:
+        lightDeclarationsCode += " const DirLight " + name + " = DirLight(" + toVec3(light.color) + ", " + toVec3(light.direction) + ");";
+        lightDirection = "normalize(-" + name + ".direction)";
+        break;
+      case LightData::spot:
+        lightDeclarationsCode += " const SpotLight " + name + " = SpotLight(" + toVec3(light.color) + ", " + toVec3(light.position) + ", " + std::to_string(light.constantAttenuation) + ", " + std::to_string(light.linearAttenuation) + ", " + std::to_string(light.quadraticAttenuation) + ", " + toVec3(light.direction) + ", " + std::to_string(light.cutoff) + ");";
+        lightDirection = "normalize(" + name + ".position - FragPosInWorld)";
+        break;
+      case LightData::point:
+        lightDeclarationsCode += " const PointLight " + name + " = PointLight(" + toVec3(light.color) + ", " + toVec3(light.position) + ", " + std::to_string(light.constantAttenuation) + ", " + std::to_string(light.linearAttenuation) + ", " + std::to_string(light.quadraticAttenuation) + ");";
+        lightDirection = "normalize(" + name + ".position - FragPosInWorld)";
+        break;
+    }
+    std::string visibility = "1.0";
+    if(light.shadowMap)
+    {
+      const std::string index = std::to_string(*light.shadowMap);
+      visibility = "illumination(shadowMap" + index + ", lightPV" + index + ", " + lightDirection + ", normalizedNormal)";
+    }
+    switch(light.type)
+    {
+      case LightData::directional:
+        lightCalculationsCode += " Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        break;
+      case LightData::spot:
+        lightCalculationsCode += " Lo += calcSpotLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        break;
+      case LightData::point:
+        lightCalculationsCode += " Lo += calcPointLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        break;
+    }
+  }
+  lightDeclarationsCode += "\n";
   lightCalculationsCode += "\n";
 
   Shader shader;
@@ -1118,7 +926,22 @@ QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions() const
     return nullptr;
 }
 
-void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
+GLenum GraphicsContext::getPrimitiveType(PrimitiveTopology topology)
+{
+  switch(topology)
+  {
+    case pointList:
+      return GL_POINTS;
+    case lineList:
+      return GL_LINES;
+    case triangleList:
+      return GL_TRIANGLES;
+  }
+  ASSERT(false);
+  return GL_TRIANGLES;
+}
+
+void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_3_3_Core& functions)
 {
   functions.glEnableVertexAttribArray(0);
   functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
@@ -1128,7 +951,7 @@ void GraphicsContext::VertexPN::setupVertexAttributes(QOpenGLFunctions_3_3_Core&
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 }
 
-void GraphicsContext::VertexPNT::setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions)
+void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functions)
 {
   functions.glEnableVertexAttribArray(0);
   functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(0));
@@ -1136,43 +959,4 @@ void GraphicsContext::VertexPNT::setupVertexAttributes(QOpenGLFunctions_3_3_Core
   functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
   functions.glEnableVertexAttribArray(2);
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
-}
-
-GraphicsContext::Texture::Texture(const std::string& file)
-{
-  QImage image;
-  if(!image.load(file.c_str()))
-    return;
-  if(image.format() != QImage::Format_ARGB32 &&
-     image.format() != QImage::Format_RGB32 &&
-     image.format() != QImage::Format_RGB888)
-    return;
-  width = image.width();
-  height = image.height();
-  byteOrder = image.format() == QImage::Format_RGB888 ? GL_BGR : GL_BGRA;
-  hasAlpha = image.hasAlphaChannel();
-  data = new GLubyte[image.sizeInBytes()];
-  if(!data)
-    return;
-
-  GLubyte* p = data;
-  for(int y = height; y-- > 0;)
-  {
-    std::memcpy(p, image.scanLine(y), image.bytesPerLine());
-    p += image.bytesPerLine();
-  }
-}
-
-GraphicsContext::Texture::~Texture()
-{
-  delete[] data;
-}
-
-void GraphicsContext::ModelMatrix::updateMemory()
-{
-  if(!variablePart)
-    return;
-  const Pose3f result = *variablePart * constantPart;
-  memory.topLeftCorner<3, 3>() = result.rotation;
-  memory.topRightCorner<3, 1>() = result.translation;
 }

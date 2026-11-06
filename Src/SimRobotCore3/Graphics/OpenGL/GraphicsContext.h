@@ -11,8 +11,9 @@
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
+#include "Graphics/GraphicsContextBase.h"
+#include <array>
 #include <functional>
-#include <stack>
 #include <unordered_map>
 #include <vector>
 
@@ -26,249 +27,9 @@ class QOpenGLContext;
 class QOpenGLFramebufferObject;
 class QOpenGLFunctions_3_3_Core;
 
-class GraphicsContext
+class GraphicsContext : public GraphicsContextBase
 {
 public:
-  /**
-   * Possible types of primitive topologies.
-   */
-  enum PrimitiveTopology
-  {
-    pointList, /**< Vertices are drawn as a list of points. */
-    lineList, /**< Vertices are drawn as a list of lines (must be multiple of 2). */
-    triangleList /**< Vertices are drawn as a list of triangles (must be multiple of 3). */
-  };
-
-  /**
-   * A vertex with a 3D position and 3D normal.
-   */
-  struct VertexPN final
-  {
-    VertexPN(const Vector3f& position, const Vector3f& normal) :
-      position(position), normal(normal)
-    {}
-
-    Vector3f position; /**< Vertex position in world space. */
-    Vector3f normal; /**< Surface normal in world space. */
-
-  private:
-    /**
-     * Declares the vertex attributes in an OpenGL context (VAO and VBO are already bound).
-     * @param functions The OpenGL functions to use.
-     */
-    static void setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions);
-    static constexpr std::uint32_t size = 6 * sizeof(float); /**< Binary size of this vertex type. */
-    static constexpr std::size_t index = 0; /**< Index of this vertex type in the vertex category array. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * A vertex with a 3D position, 3D normal and 2D texture coordinates.
-   */
-  struct VertexPNT final
-  {
-    VertexPNT(const Vector3f& position, const Vector3f& normal, const Vector2f& textureCoordinates) :
-      position(position), normal(normal), textureCoordinates(textureCoordinates)
-    {}
-
-    Vector3f position; /**< Vertex position in world space. */
-    Vector3f normal; /**< Surface normal in world space. */
-    Vector2f textureCoordinates; /**< Texture coordinates at this vertex. */
-
-  private:
-    /**
-     * Declares the vertex attributes in an OpenGL context (VAO and VBO are already bound).
-     * @param functions The OpenGL functions to use.
-     */
-    static void setupVertexAttributes(QOpenGLFunctions_3_3_Core& functions);
-    static constexpr std::uint32_t size = 8 * sizeof(float); /**< Binary size of this vertex type. */
-    static constexpr std::size_t index = 1; /**< Index of this vertex type in the vertex category array. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * Base class for vertex buffers.
-   */
-  struct VertexBufferBase
-  {
-    /** Virtual destructor for polymorphism. */
-    virtual ~VertexBufferBase() = default;
-
-    /** Sets members of this class. */
-    virtual void finish() = 0;
-
-  protected:
-    /**
-     * Returns the size of this buffer in bytes.
-     * @return The size of this buffer in bytes.
-     */
-    virtual std::size_t size() const = 0;
-
-    void* data = nullptr; /**< Pointer to the vertex data. */
-    std::uint32_t count = 0; /**< The number of vertices in this buffer. */
-
-  private:
-    int base = 0; /**< The index of the first vertex within the global VBO. */
-    std::uint64_t offset = 0; /**< The offset of this buffer's memory within the VBO. */
-    std::size_t vaoIndex = 0; /**< The index of the VAO this buffer belongs to. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * A vertex buffer for a specific vertex type.
-   * @tparam VertexType The type of vertices in this buffer.
-   */
-  template<typename VertexType>
-  struct VertexBuffer : VertexBufferBase
-  {
-    std::vector<VertexType> vertices; /**< Vertices which can be filled by the user. */
-
-    /** Sets base class members. Must be called after \c vertices has been filled. */
-    void finish() override
-    {
-      data = vertices.data();
-      count = static_cast<std::uint32_t>(vertices.size());
-      ASSERT(count);
-    }
-
-  private:
-    /**
-     * Returns the size of this buffer in bytes.
-     * @return The size of this buffer in bytes.
-     */
-    std::size_t size() const override
-    {
-      return count * VertexType::size;
-    }
-  };
-
-  /**
-   * An index buffer.
-   */
-  struct IndexBuffer final
-  {
-    std::vector<std::uint32_t> indices; /**< Indices which can be filled by the user. */
-
-  private:
-    /**
-     * Returns the size of this buffer in bytes.
-     * @return The size of this buffer in bytes.
-     */
-    std::uint32_t size() const
-    {
-      switch(type)
-      {
-        case GL_UNSIGNED_BYTE:
-          return count;
-        case GL_UNSIGNED_SHORT:
-          return count * 2;
-        case GL_UNSIGNED_INT:
-          return count * 4;
-      }
-      return 0;
-    }
-
-    std::uint64_t offset = 0; /**< The offset of this buffer's memory within the EBO. */
-    std::uint32_t count = 0; /**< The number of indices in this buffer. */
-    GLenum type = GL_UNSIGNED_INT; /**< The type of the indices in this buffer. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * A structure that represents a drawable mesh.
-   */
-  struct Mesh final
-  {
-  private:
-    GLenum mode = GL_TRIANGLES; /**< The primitive type of this mesh. */
-    const VertexBufferBase* vertexBuffer = nullptr; /**< The vertex buffer of this mesh. */
-    const IndexBuffer* indexBuffer = nullptr; /**< The (optional) index buffer of this mesh. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * A texture.
-   */
-  struct Texture final
-  {
-  private:
-    /**
-     * Loads a texture.
-     * @param file Path to the texture file.
-     */
-    Texture(const std::string& file);
-
-    /* Destructor. Frees texture memory. */
-    ~Texture();
-
-    GLubyte* data = nullptr; /**< The raw texture data. */
-    GLsizei width = 0; /**< The width of the texture in pixels. */
-    GLsizei height = 0; /**< The height of the texture in pixels. */
-    bool hasAlpha = false; /**< Whether the texture has an alpha channel. */
-    GLenum byteOrder = 0; /**< The format of \c data. */
-    std::size_t index = 0; /**< The index of this texture in the texture ID array. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * The visual properties of a material.
-   */
-  struct Surface final
-  {
-  private:
-    float albedo[3]; /**< The albedo (RGB). */
-    float alpha = 1.f; /**< The alpha value, from 0 (transparent) to 1 (opaque). */
-    float metallic = 0.f; /**< Whether the surface is metallic, from 0 (dielectric, scattering) to 1 (metallic, no scattering). */
-    float roughness = 0.5f; /**< The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering). */
-    float ambient = 1.f; /**< The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting). */
-    const Texture* texture = nullptr; /**< The texture of the surface. */
-
-    std::size_t index = 0; /**< The index of this surface in the UBO. */
-
-    static constexpr std::size_t memorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
-
-    friend class GraphicsContext;
-  };
-
-  /**
-   * The pose of a model in the world.
-   */
-  struct ModelMatrix final
-  {
-    enum Usage
-    {
-      appearance, /**< This class may be used for appearances and controller drawings. */
-      physicalDrawing, /**< This class may be used for physical drawings and controller drawings. */
-      sensorDrawing, /**< This class may be used for sensor drawings and controller drawings. */
-      controllerDrawing, /**< This class may be used for controller drawings only. */
-      origin, /**< This is the origin model matrix. */
-      dragPlane, /**< This is the drag plane model matrix. */
-      numOfUsages
-    };
-
-    /**
-     * Returns a pointer to the calculated column-major 4x4 model matrix.
-     * @return A pointer to the calculated column-major 4x4 mmodel matrix.
-     */
-    const float* getPointer() const {return memory.data();}
-
-    /** Updates the memory for the final product. */
-    void updateMemory();
-
-  private:
-    Pose3f constantPart; /**< The constant part of the model matrix. */
-    const Pose3f* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
-    Matrix4f memory; /**< The memory for the final product. */
-
-    friend class GraphicsContext;
-  };
-
   /** Constructor. */
   GraphicsContext();
 
@@ -286,113 +47,6 @@ public:
 
   /** Destroy per context data for the current context. */
   void destroyGraphics();
-
-  /**
-   * Set the color that the color buffer is cleared to.
-   * @param color Pointer to a four-element (RGBA) color.
-   */
-  void setClearColor(const float* color);
-
-  /**
-   * Requests a vertex buffer that is filled by the client.
-   * @tparam VertexType The vertex type to be stored in the buffer.
-   * @return The new vertex buffer. The graphics context retains ownership of the object.
-   */
-  template<typename VertexType>
-  VertexBuffer<VertexType>* requestVertexBuffer()
-  {
-    VertexBuffer<VertexType>* vertexBuffer = new VertexBuffer<VertexType>();
-    vertexBuffer->vaoIndex = VertexType::index;
-    vertexBuffers[VertexType::index].buffers.push_back(vertexBuffer);
-    return vertexBuffer;
-  }
-
-  /**
-   * Requests an index buffer that is filled by the client.
-   * @return The new index buffer. The graphics context retains ownership of the object.
-   */
-  IndexBuffer* requestIndexBuffer();
-
-  /**
-   * Requests a mesh made of the given objects.
-   * @param vertexBuffer The vertex buffer of the mesh.
-   * @param indexBuffer The index buffer of the mesh. May be \c nullptr.
-   * @param primitiveTopology The primitive topology to draw the mesh.
-   * @return The new mesh. The graphics context retains ownership of the object.
-   */
-  Mesh* requestMesh(const VertexBufferBase* vertexBuffer, const IndexBuffer* indexBuffer, PrimitiveTopology primitiveTopology);
-
-  /**
-   * Requests a texture from a given file.
-   * @param file The path to the texture file.
-   * @return The new texture. The graphics context retains ownership of the object.
-   */
-  Texture* requestTexture(const std::string& file);
-
-  /**
-   * Requests a surface with the given properties.
-   * @param albedo The albedo (RGB).
-   * @param alpha The alpha value, from 0 (transparent) to 1 (opaque).
-   * @param metallic Whether the surface is metallic, from 0 (dielectric, scattering) to 1 (metallic, no scattering).
-   * @param roughness The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering).
-   * @param ambient The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting).
-   * @param texture The texture of the surface. May be \c nullptr.
-   * @return The new surface. The graphics context retains ownership of the object.
-   */
-  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr);
-
-  /**
-   * Sets the color of the global ambient light.
-   * @param color Pointer to a three-element (RGB) color.
-   */
-  void setGlobalAmbientLight(const float* color);
-
-  /**
-   * Adds a light to the scene.
-   * @param light The light element.
-   */
-  void addLight(const Light* light);
-
-  /**
-   * Requests a model matrix that represents the state of the top of the current model matrix stack.
-   * @param usage A hint for which kind of draw calls the model matrix is going to be used.
-   * @return The new model matrix. The graphics context retains ownership of the object.
-   */
-  ModelMatrix* requestModelMatrix(ModelMatrix::Usage usage);
-
-  /** Starts a new empty model matrix stack. */
-  void pushModelMatrixStack();
-
-  /** Switches back to the model matrix stack before the current one was created. */
-  void popModelMatrixStack();
-
-  /**
-   * Pushes a pose on the model matrix stack that is constant.
-   * @param pose The pose relative to the parent. This reference must be valid at least until it has been popped of the stack.
-   */
-  void pushModelMatrix(const Pose3f& pose);
-
-  /**
-   * Pushes a pose on the model matrix stack which is reevaluated every frame.
-   * @param pose The relative to the parent. This reference must be valid for the entire lifetime of the graphics context.
-   */
-  void pushModelMatrixByReference(const Pose3f& pose);
-
-  /** Pops a model matrix off the current stack. */
-  void popModelMatrix();
-
-  /**
-   * Returns whether the current model matrix stack is empty.
-   * @return Whether the current model matrix stack is empty.
-   */
-  bool emptyModelMatrixStack() const;
-
-  /**
-   * Recalculates the model matrices that have a reference component.
-   * @param usage The usage class that should be updated.
-   * @param forceUpdate Whether the model matrices should be updated although the simulation step did not change.
-   */
-  void updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate);
 
   /**
    * Renders the shadow maps of all lights that have one. This must be called while no rendering is in progress
@@ -491,19 +145,6 @@ private:
   };
 
   /**
-   * The shadow map of a light.
-   */
-  struct ShadowMap
-  {
-    Matrix4f view; /**< The view matrix of the light. */
-    Matrix4f projection; /**< The projection matrix of the light. */
-    unsigned int width; /**< The width of the shadow map. */
-    unsigned int height; /**< The height of the shadow map. */
-  };
-
-  static constexpr std::size_t maxShadowMaps = 8; /**< The maximum number of lights with shadow maps (limited by the number of texture units). */
-
-  /**
    * A structure that captures OpenGL object IDs per context (some of them are shared).
    */
   struct PerContextData
@@ -528,49 +169,6 @@ private:
 
     std::size_t referenceCounter = 1; /**< Reference counter for this context. */
     std::size_t referenceCounterIndex; /**< Index in the vector of reference counters for the share group this context belongs to. */
-  };
-
-  /**
-   * A structure that represents a category of vertices (corresponding to a VAO and a vertex type).
-   */
-  struct VertexCategory
-  {
-    void (*setupVertexAttributes)(QOpenGLFunctions_3_3_Core&) = nullptr; /**< A function that declares the vertex attributes of this type. */
-    std::size_t stride = 0; /**< The stride between adjacent vertices in this category. */
-    std::vector<VertexBufferBase*> buffers; /**< The vertex buffers of this category. */
-  };
-
-  /**
-   * A stack of constant \c Pose3f pointers backed by a standard vector.
-   */
-  using PosePointerStack = std::stack<const Pose3f*, std::vector<const Pose3f*>>;
-
-  /**
-   * A stack of transformations representing model matrices.
-   */
-  struct ModelMatrixStack : PosePointerStack
-  {
-    using PosePointerStack::push;
-    using PosePointerStack::pop;
-    using PosePointerStack::empty;
-
-    /**
-     * Returns the stack contents as standard vector.
-     * @return The stack contents.
-     */
-    const auto& getC() const {return c;}
-
-    bool bottomIsVariable = false; /**< Whether the bottom of the stack (= first pushed element) is captured by reference. */
-  };
-
-  /**
-   * Model matrices of a specific usage class.
-   */
-  struct ModelMatrixSet
-  {
-    std::vector<ModelMatrix*> constantModelMatrices; /**< Model matrices of a specific class that do not change. */
-    std::vector<ModelMatrix*> variableModelMatrices; /**< Model matrices of a specific class that change. */
-    unsigned lastUpdate = -1; /**< The simulation step of the last model matrix update. */
   };
 
   /**
@@ -606,24 +204,31 @@ private:
   std::vector<unsigned> referenceCounters; /**< Reference counters of shared data per share group. */
   std::unordered_map<const QOpenGLContext*, PerContextData> perContextData; /**< Map of OpenGL context pointers to per context data. */
 
-  // Objects that are created during initialization (i.e. before the first call to \c createGraphics) but used throughout the runtime.
-  std::unordered_map<std::string, Texture*> textures; /**< Map of filenames to textures. */
-  std::array<ModelMatrixSet, ModelMatrix::numOfUsages> modelMatrixSets; /**< List of all registered model matrices. */
-  std::vector<Surface*> surfaces; /**< List of all registered surfaces. */
-  std::vector<VertexCategory> vertexBuffers; /**< List of the known vertex categories, pointing to all registered vertex buffers. */
-  std::size_t vertexBufferTotalSize; /**< The total size of the vertex buffer object. */
-  std::vector<IndexBuffer*> indexBuffers; /**< List of all registered index buffers. */
-  std::size_t indexBufferTotalSize; /**< The total size of the element buffer object. */
-  std::vector<Mesh*> meshes; /**< List of all registered meshes. */
-  std::vector<std::string> lightDeclarations; /**< GLSL declarations for light sources. */
-  std::vector<std::string> lightCalculations; /**< GLSL code that adds a light source in the fragment shader. */
-  std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
-  unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
-  float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
-  std::string globalAmbientLight = "vec4(0.0)"; /**< GLSL expression that represents the color of the global ambient light. */
+  static constexpr std::size_t surfaceMemorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
 
-  // To construct the model matrices:
-  std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */
+  /**
+   * Declares the vertex attributes of vertices with a position and normal in an OpenGL context (VAO and VBO are already bound).
+   * @param functions The OpenGL functions to use.
+   */
+  static void setupVertexAttributesPN(QOpenGLFunctions_3_3_Core& functions);
+
+  /**
+   * Declares the vertex attributes of vertices with a position, normal and texture coordinates in an OpenGL context (VAO and VBO are already bound).
+   * @param functions The OpenGL functions to use.
+   */
+  static void setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functions);
+
+  static constexpr std::array<void (*)(QOpenGLFunctions_3_3_Core&), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
+
+  /**
+   * Returns the OpenGL primitive type that corresponds to a primitive topology.
+   * @param topology The primitive topology.
+   * @return The OpenGL primitive type.
+   */
+  static GLenum getPrimitiveType(PrimitiveTopology topology);
+
+  // Objects that are created during initialization but used throughout the runtime.
+  unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
 
   // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
   PerContextData* data = nullptr; /**< The per context data for the current OpenGL context. */
