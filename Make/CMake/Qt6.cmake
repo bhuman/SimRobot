@@ -71,6 +71,12 @@ elseif(WINDOWS)
       INTERFACE_COMPILE_DEFINITIONS "QT_GUI_LIB"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include/QtGui")
 
+  # The private headers of QtGui (QRhi) are in a version specific directory.
+  add_library(Qt6::GuiPrivate INTERFACE IMPORTED)
+  set_target_properties(Qt6::GuiPrivate PROPERTIES
+      INTERFACE_LINK_LIBRARIES "Qt6::Gui"
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/include/QtGui/${Qt6_VERSION}/QtGui")
+
   add_library(Qt6::OpenGL SHARED IMPORTED)
   set_target_properties(Qt6::OpenGL PROPERTIES
       IMPORTED_CONFIGURATIONS "Debug"
@@ -169,6 +175,12 @@ elseif(MACOS)
       INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::DBus"
       INTERFACE_COMPILE_DEFINITIONS "QT_GUI_LIB"
       INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework;${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/Headers")
+
+  # The private headers of QtGui (QRhi) are in a version specific directory.
+  add_library(Qt6::GuiPrivate INTERFACE IMPORTED)
+  set_target_properties(Qt6::GuiPrivate PROPERTIES
+      INTERFACE_LINK_LIBRARIES "Qt6::Gui"
+      INTERFACE_INCLUDE_DIRECTORIES "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/lib/QtGui.framework/Headers/${Qt6_VERSION}/QtGui")
 
   add_library(Qt6::OpenGL SHARED IMPORTED)
   set_target_properties(Qt6::OpenGL PROPERTIES

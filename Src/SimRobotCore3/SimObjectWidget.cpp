@@ -19,17 +19,37 @@
 #include "Simulation/Simulation.h"
 #include "Simulation/Scene.h"
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
+#else
+#include <rhi/qrhi.h>
+#endif
 
-SimObjectWidget::SimObjectWidget(SimObject& simObject) : QOpenGLWidget(),
-  object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject),
-  wKey(false), aKey(false), sKey(false), dKey(false)
+SimObjectWidget::SimObjectWidget(SimObject& simObject) :
+#ifdef SIMROBOTCORE3_USE_OPENGL
+  QOpenGLWidget(),
+#else
+  QRhiWidget(),
+#endif
+  object(dynamic_cast<SimRobot::Object&>(simObject)), objectRenderer(simObject)
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QSurfaceFormat format = Simulation::simulation->graphicsContext.getOffscreenContext()->format();
   format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
   setFormat(format);
+#elif defined SIMROBOTCORE3_USE_METAL
+  setApi(QRhiWidget::Api::Metal);
+  // The render target is created in \c initialize, because the graphics context expects a D32F depth attachment.
+  setAutoRenderTarget(false);
+  backgroundColor = QColor(static_cast<int>(Simulation::simulation->scene->color[0] * 255.f + 0.5f),
+                           static_cast<int>(Simulation::simulation->scene->color[1] * 255.f + 0.5f),
+                           static_cast<int>(Simulation::simulation->scene->color[2] * 255.f + 0.5f),
+                           static_cast<int>(Simulation::simulation->scene->color[3] * 255.f + 0.5f));
+#else
+#error "No graphics API selected."
+#endif
 
   setFocusPolicy(Qt::StrongFocus);
   grabGesture(Qt::PinchGesture);
@@ -89,10 +109,15 @@ SimObjectWidget::~SimObjectWidget()
 
   settings->endGroup();
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
   makeCurrent();
   objectRenderer.destroy();
+#else
+  releaseResources();
+#endif
 }
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
 void SimObjectWidget::initializeGL()
 {
   objectRenderer.init();
@@ -107,10 +132,63 @@ void SimObjectWidget::resizeGL(int width, int height)
 {
   objectRenderer.resize(fovY, width, height);
 }
+#else
+void SimObjectWidget::initialize(QRhiCommandBuffer*)
+{
+  if(initializedRhi != rhi())
+  {
+    releaseResources();
+    initializedRhi = rhi();
+    objectRenderer.init(rhi()->nativeHandles());
+  }
+
+  // The color texture is recreated by the widget when its size changes.
+  if(!textureRenderTarget || textureRenderTarget->description().cbeginColorAttachments()->texture() != colorTexture() ||
+     depthTexture->pixelSize() != colorTexture()->pixelSize())
+  {
+    textureRenderTarget.reset();
+    renderPassDescriptor.reset();
+    depthTexture.reset(rhi()->newTexture(QRhiTexture::D32F, colorTexture()->pixelSize(), 1, QRhiTexture::RenderTarget));
+    depthTexture->create();
+    textureRenderTarget.reset(rhi()->newTextureRenderTarget({QRhiColorAttachment(colorTexture()), depthTexture.get()}));
+    renderPassDescriptor.reset(textureRenderTarget->newCompatibleRenderPassDescriptor());
+    textureRenderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
+    textureRenderTarget->create();
+  }
+
+  objectRenderer.resize(fovY, width(), height());
+}
+
+void SimObjectWidget::render(QRhiCommandBuffer* commandBuffer)
+{
+  ASSERT(rhi() == initializedRhi);
+  commandBuffer->beginPass(textureRenderTarget.get(), backgroundColor, {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent);
+  commandBuffer->beginExternal();
+  objectRenderer.draw(commandBuffer->nativeHandles());
+  commandBuffer->endExternal();
+  commandBuffer->endPass();
+}
+
+void SimObjectWidget::releaseResources()
+{
+  textureRenderTarget.reset();
+  renderPassDescriptor.reset();
+  depthTexture.reset();
+  if(initializedRhi)
+  {
+    objectRenderer.destroy(initializedRhi->nativeHandles());
+    initializedRhi = nullptr;
+  }
+}
+#endif
 
 void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::mouseMoveEvent(event);
+#else
+  QRhiWidget::mouseMoveEvent(event);
+#endif
 
   const Qt::KeyboardModifiers m = QApplication::keyboardModifiers();
   const QPointF position = event->position();
@@ -131,7 +209,11 @@ void SimObjectWidget::mouseMoveEvent(QMouseEvent* event)
 
 void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::mousePressEvent(event);
+#else
+  QRhiWidget::mousePressEvent(event);
+#endif
 
   if(event->button() == Qt::LeftButton || event->button() == Qt::MiddleButton)
   {
@@ -147,7 +229,11 @@ void SimObjectWidget::mousePressEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::mouseReleaseEvent(event);
+#else
+  QRhiWidget::mouseReleaseEvent(event);
+#endif
 
   const QPointF position = event->position();
   if(objectRenderer.releaseDrag(static_cast<int>(position.x()), static_cast<int>(position.y())))
@@ -159,7 +245,11 @@ void SimObjectWidget::mouseReleaseEvent(QMouseEvent* event)
 
 void SimObjectWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::mouseDoubleClickEvent(event);
+#else
+  QRhiWidget::mouseDoubleClickEvent(event);
+#endif
 
   if(event->button() == Qt::LeftButton)
   {
@@ -173,7 +263,11 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
+#ifdef SIMROBOTCORE3_USE_OPENGL
     QOpenGLWidget::keyPressEvent(event);
+#else
+    QRhiWidget::keyPressEvent(event);
+#endif
     return;
   }
 
@@ -218,7 +312,11 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
       break;
 
     default:
+#ifdef SIMROBOTCORE3_USE_OPENGL
       QOpenGLWidget::keyPressEvent(event);
+#else
+      QRhiWidget::keyPressEvent(event);
+#endif
       break;
   }
 }
@@ -227,7 +325,11 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
 {
   if(event->modifiers() != 0)
   {
+#ifdef SIMROBOTCORE3_USE_OPENGL
     QOpenGLWidget::keyReleaseEvent(event);
+#else
+    QRhiWidget::keyReleaseEvent(event);
+#endif
     return;
   }
 
@@ -261,7 +363,11 @@ void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
       break;
 
     default:
+#ifdef SIMROBOTCORE3_USE_OPENGL
       QOpenGLWidget::keyReleaseEvent(event);
+#else
+      QRhiWidget::keyReleaseEvent(event);
+#endif
       break;
   }
 }
@@ -284,7 +390,11 @@ bool SimObjectWidget::event(QEvent* event)
       return true;
     }
   }
+#ifdef SIMROBOTCORE3_USE_OPENGL
   return QOpenGLWidget::event(event);
+#else
+  return QRhiWidget::event(event);
+#endif
 }
 
 void SimObjectWidget::wheelEvent(QWheelEvent* event)
@@ -298,12 +408,20 @@ void SimObjectWidget::wheelEvent(QWheelEvent* event)
     event->accept();
     return;
   }
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::wheelEvent(event);
+#else
+  QRhiWidget::wheelEvent(event);
+#endif
 }
 
 void SimObjectWidget::update()
 {
+#ifdef SIMROBOTCORE3_USE_OPENGL
   QOpenGLWidget::update();
+#else
+  QRhiWidget::update();
+#endif
 }
 
 QMenu* SimObjectWidget::createEditMenu() const
@@ -532,7 +650,9 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   addRenderFlagAction("Enable &Lights", "Enable lighting", SimRobotCore3::Renderer::enableLights);
   addRenderFlagAction("Enable &Textures", "Enable textures", SimRobotCore3::Renderer::enableTextures);
+#ifdef SIMROBOTCORE3_USE_OPENGL
   addRenderFlagAction("Enable &Multisample", "Enable multisampling", SimRobotCore3::Renderer::enableMultisample);
+#endif
 
   menu->addSeparator();
 
@@ -588,22 +708,55 @@ void SimObjectWidget::exportAsImage(int width, int height)
   {
     unsigned int winWidth, winHeight;
     objectRenderer.getSize(winWidth, winHeight);
+    objectRenderer.resize(fovY, width, height);
+#ifdef SIMROBOTCORE3_USE_OPENGL
     makeCurrent();
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
 
     // Use a transparent clear color instead of the background color configured in the scene file
-    QOpenGLContext::currentContext()->functions()->glClearColor(0.f, 0.f, 0.f, 0.f);
+    f->glClearColor(0.f, 0.f, 0.f, 0.f);
 
     // render object using a temporary framebuffer
+    GLint previousViewport[4];
+    f->glGetIntegerv(GL_VIEWPORT, previousViewport);
     QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
     framebuffer.bind();
-    objectRenderer.resize(fovY, width, height);
+    f->glViewport(0, 0, width, height);
     objectRenderer.draw();
     image = framebuffer.toImage();
     framebuffer.release();
+    f->glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
 
     // Restore the clear color from the scene file
     const float* color = Simulation::simulation->scene->color;
-    QOpenGLContext::currentContext()->functions()->glClearColor(color[0], color[1], color[2], color[3]);
+    f->glClearColor(color[0], color[1], color[2], color[3]);
+#else
+    // render object into a temporary render target
+    QRhi* rhi = this->rhi();
+    const QSize size(width, height);
+    std::unique_ptr<QRhiTexture> colorTexture(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
+    std::unique_ptr<QRhiTexture> depthTexture(rhi->newTexture(QRhiTexture::D32F, size, 1, QRhiTexture::RenderTarget));
+    std::unique_ptr<QRhiTextureRenderTarget> renderTarget(rhi->newTextureRenderTarget({QRhiColorAttachment(colorTexture.get()), depthTexture.get()}));
+    std::unique_ptr<QRhiRenderPassDescriptor> renderPassDescriptor(renderTarget->newCompatibleRenderPassDescriptor());
+    renderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
+    QRhiCommandBuffer* commandBuffer;
+    if(colorTexture->create() && depthTexture->create() && renderTarget->create() &&
+       rhi->beginOffscreenFrame(&commandBuffer) == QRhi::FrameOpSuccess)
+    {
+      QRhiReadbackResult readbackResult;
+      QRhiResourceUpdateBatch* resourceUpdates = rhi->nextResourceUpdateBatch();
+      resourceUpdates->readBackTexture(colorTexture.get(), &readbackResult);
+      commandBuffer->beginPass(renderTarget.get(), QColor(0, 0, 0, 0), {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent); // transparent like with OpenGL
+      commandBuffer->beginExternal();
+      objectRenderer.draw(commandBuffer->nativeHandles());
+      commandBuffer->endExternal();
+      commandBuffer->endPass(resourceUpdates);
+      rhi->endOffscreenFrame();
+      image = QImage(reinterpret_cast<const uchar*>(readbackResult.data.constData()), readbackResult.pixelSize.width(), readbackResult.pixelSize.height(), QImage::Format_RGBA8888).copy();
+      if(rhi->isYUpInFramebuffer())
+        image.flip(Qt::Vertical);
+    }
+#endif
 
     objectRenderer.resize(fovY, winWidth, winHeight);
   }
@@ -649,7 +802,6 @@ void SimObjectWidget::setFovY(int fovY)
   unsigned int width, height;
   this->fovY = fovY;
   objectRenderer.getSize(width, height);
-  makeCurrent();
   objectRenderer.resize(fovY, width, height);
   update();
 }

@@ -15,7 +15,11 @@
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
 #include <mujoco/mujoco.h>
+#ifdef SIMROBOTCORE3_USE_OPENGL
 #include <QOpenGLFunctions_3_3_Core>
+#else
+#include <rhi/qrhi.h>
+#endif
 
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
   simObject(simObject),
@@ -41,23 +45,37 @@ void SimObjectRenderer::updateCameraTransformation()
   OpenGLTools::computeCameraTransformation(cameraPos, cameraTarget, cameraUpVector, cameraTransformation);
 }
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
 void SimObjectRenderer::init()
+#else
+void SimObjectRenderer::init(const QRhiNativeHandles* nativeHandles)
+#endif
 {
   ASSERT(!initialized);
+#ifdef SIMROBOTCORE3_USE_OPENGL
   Simulation::simulation->graphicsContext.createGraphics();
   if(Simulation::simulation->scene->drawingManager)
   {
     Simulation::simulation->scene->drawingManager->registerContext();
     registeredAtManager = true;
   }
+#else
+  // Controller drawings are only supported with OpenGL.
+  Simulation::simulation->graphicsContext.createGraphics(nativeHandles);
+#endif
   initialized = true;
   calcDragPlaneNormal();
 }
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
 void SimObjectRenderer::destroy()
+#else
+void SimObjectRenderer::destroy(const QRhiNativeHandles* nativeHandles)
+#endif
 {
   if(initialized)
   {
+#ifdef SIMROBOTCORE3_USE_OPENGL
     if(registeredAtManager)
     {
       ASSERT(Simulation::simulation->scene->drawingManager);
@@ -65,11 +83,18 @@ void SimObjectRenderer::destroy()
       registeredAtManager = false;
     }
     Simulation::simulation->graphicsContext.destroyGraphics();
+#else
+    Simulation::simulation->graphicsContext.destroyGraphics(nativeHandles);
+#endif
     initialized = false;
   }
 }
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
 void SimObjectRenderer::draw()
+#else
+void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
+#endif
 {
   // make sure transformations of movable bodies are up-to-date
   Simulation::simulation->scene->updateTransformations();
@@ -159,6 +184,7 @@ void SimObjectRenderer::draw()
   if(drawAppearances && (renderFlags & enableLights))
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, false, dragging && dragSelection);
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
   graphicsContext.startExternalRendering();
 
   QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
@@ -167,6 +193,9 @@ void SimObjectRenderer::draw()
     f->glEnable(GL_MULTISAMPLE);
   else
     f->glDisable(GL_MULTISAMPLE);
+#else
+  graphicsContext.startExternalRendering(nativeHandles);
+#endif
 
   // draw origin
   if(drawCoordinateSystem)
@@ -202,6 +231,7 @@ void SimObjectRenderer::draw()
     graphicsContext.finishRendering();
   }
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
   // draw controller drawings
   if(drawControllerDrawings)
   {
@@ -260,6 +290,7 @@ void SimObjectRenderer::draw()
 
     f->glDisable(GL_BLEND);
   }
+#endif
 
   graphicsContext.finishExternalRendering();
 }
@@ -271,9 +302,6 @@ void SimObjectRenderer::resize(float fovY, unsigned int width, unsigned int heig
   this->height = height;
 
   OpenGLTools::computePerspective(fovY * (pi / 180.f), float(width) / float(height), 0.1f, 500.f, projection);
-
-  // This is needed for the exportAsImage function of the SimObjectWidget.
-  Simulation::simulation->graphicsContext.getOpenGLFunctions()->glViewport(0, 0, width, height);
 }
 
 Vector3f SimObjectRenderer::projectClick(int x, int y) const

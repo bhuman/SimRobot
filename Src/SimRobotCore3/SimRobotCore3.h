@@ -10,6 +10,10 @@
 #include <QList>
 #include <QStringList>
 
+#ifndef SIMROBOTCORE3_USE_OPENGL
+class QRhiNativeHandles;
+#endif
+
 namespace SimRobotCore3
 {
   class Renderer;
@@ -111,26 +115,42 @@ namespace SimRobotCore3
     /** Virtual destructor */
     virtual ~Renderer() = default;
 
-    /** Initializes the currently selected OpenGL context. */
-    virtual void init() = 0;
+    /** Initializes the currently selected OpenGL context or the given RHI (\c QRhi::nativeHandles). */
+    virtual void init(
+#ifndef SIMROBOTCORE3_USE_OPENGL
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
 
-    /** Removes the renderer from the currently selected OpenGL context. */
-    virtual void destroy() = 0;
-
-    /** Draws the scene object on the currently selected OpenGL context. */
-    virtual void draw() = 0;
+    /** Removes the renderer from the currently selected OpenGL context or the given RHI (\c QRhi::nativeHandles). */
+    virtual void destroy(
+#ifndef SIMROBOTCORE3_USE_OPENGL
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
 
     /**
-     * Sets the size of the currently selected OpenGL renderer device. Call this once at the beginning to initialize the size.
-     * @param width The width of the renderer device
-     * @param height The height of the renderer device
+     * Draws the scene object on the currently selected OpenGL context or into the current render pass of the given RHI
+     * command buffer (\c QRhiCommandBuffer::nativeHandles between \c beginExternal and \c endExternal).
+     * With an RHI, the render target must have an RGBA8 color attachment and a D32F depth attachment.
+     */
+    virtual void draw(
+#ifndef SIMROBOTCORE3_USE_OPENGL
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
+
+    /**
+     * Sets the size of the renderer. Call this at least once at the beginning to initialize the size.
+     * @param width The width of the renderer
+     * @param height The height of the renderer
      */
     virtual void resize(float fovy, unsigned int width, unsigned int height) = 0;
 
     /**
-     * Accesses the size of the OpenGL rendering device that has been set using \c resize before
-     * @param width The width of the rendering device
-     * @param width The height of the rendering device
+     * Accesses the size of the renderer that has been set using \c resize before
+     * @param width The width of the renderer
+     * @param height The height of the renderer
      */
     virtual void getSize(unsigned int& width, unsigned int& height) const = 0;
 
@@ -224,6 +244,7 @@ namespace SimRobotCore3
   /**
    * This is a base class for managing debug drawings from the controller.
    * It must be implemented (and registered in the scene) in order to use controller drawings.
+   * Controller drawings are currently only supported with OpenGL.
    */
   class Controller3DDrawingManager
   {

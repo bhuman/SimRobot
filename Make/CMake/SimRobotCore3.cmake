@@ -39,7 +39,11 @@ if(SIMROBOT_GRAPHICS_API STREQUAL "Metal")
   find_library(QUARTZ_CORE_FRAMEWORK QuartzCore)
 
   target_include_directories(SimRobotCore3 SYSTEM PRIVATE "${SIMROBOT_PREFIX}/Util/metal-cpp")
+  target_link_libraries(SimRobotCore3 PRIVATE Qt6::GuiPrivate)
   target_link_libraries(SimRobotCore3 PRIVATE ${METAL_FRAMEWORK} ${FOUNDATION_FRAMEWORK} ${QUARTZ_CORE_FRAMEWORK})
+
+  # The implementation of metal-cpp is only generated if its headers are included (with some macros) before anything else.
+  set_source_files_properties("${SIMROBOTCORE3_ROOT_DIR}/Graphics/Metal/MetalCpp.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 else()
   target_link_libraries(SimRobotCore3 PRIVATE Qt6::OpenGL Qt6::OpenGLWidgets)
 endif()

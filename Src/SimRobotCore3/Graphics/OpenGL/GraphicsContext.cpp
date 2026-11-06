@@ -6,6 +6,8 @@
  * @author Arne Hasselbring
  */
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
+
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
 #include "Graphics/LightSpace.h"
@@ -959,3 +961,5 @@ void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functi
   functions.glEnableVertexAttribArray(2);
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
 }
+
+#endif

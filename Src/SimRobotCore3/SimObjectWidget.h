@@ -6,19 +6,33 @@
 
 #pragma once
 
-#include <QOpenGLWidget>
-
-#include "SimRobotCore3.h"
 #include "SimObjectRenderer.h"
+#include "SimRobot.h"
+#ifdef SIMROBOTCORE3_USE_OPENGL
+#include <QOpenGLWidget>
+#else
+#include <QRhiWidget>
+#include <memory>
+#endif
 
 class SimObject;
 class Simulation;
+#ifndef SIMROBOTCORE3_USE_OPENGL
+class QRhiRenderPassDescriptor;
+class QRhiTextureRenderTarget;
+#endif
 
 /**
  * @class SimObjectWidget
  * A class that implements the 3D-view for simulated objects
  */
-class SimObjectWidget : public QOpenGLWidget, public SimRobot::Widget
+class SimObjectWidget :
+#ifdef SIMROBOTCORE3_USE_OPENGL
+  public QOpenGLWidget,
+#else
+  public QRhiWidget,
+#endif
+  public SimRobot::Widget
 {
   Q_OBJECT
 
@@ -37,16 +51,29 @@ private:
   SimObjectRenderer objectRenderer; /**< For rendering the object */
   int fovY;
 
-  bool wKey, aKey, sKey, dKey;
+  bool wKey = false, aKey = false, sKey = false, dKey = false;
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  QColor backgroundColor; /**< The color that the render target is cleared with. */
+  QRhi* initializedRhi = nullptr; /**< The QRhi for which the renderer has been initialized. */
+  std::unique_ptr<QRhiTexture> depthTexture; /**< The depth attachment of the render target. */
+  std::unique_ptr<QRhiRenderPassDescriptor> renderPassDescriptor; /**< The render pass descriptor of the render target. */
+  std::unique_ptr<QRhiTextureRenderTarget> textureRenderTarget; /**< The render target (color texture of the widget and \c depthTexture). */
+#endif
 
   QWidget* getWidget() override {return this;}
   void update() override;
   QMenu* createEditMenu() const override;
   QMenu* createUserMenu() const override;
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
   void initializeGL() override;
   void paintGL() override;
   void resizeGL(int width, int height) override;
+#else
+  void initialize(QRhiCommandBuffer* commandBuffer) override;
+  void render(QRhiCommandBuffer* commandBuffer) override;
+  void releaseResources() override;
+#endif
   void mouseMoveEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;

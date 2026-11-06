@@ -8,6 +8,8 @@
 
 #pragma once
 
+#ifdef SIMROBOTCORE3_USE_OPENGL
+
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
@@ -244,3 +246,5 @@ private:
   QOffscreenSurface* offscreenSurface = nullptr; /**< The surface used for offscreen rendering. */
   std::unordered_map<unsigned int, QOpenGLFramebufferObject*> offscreenBuffers; /**< Map from encoded sizes to framebuffer objects. */
 };
+
+#endif

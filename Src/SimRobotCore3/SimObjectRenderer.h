@@ -8,6 +8,7 @@
 
 #include "SimRobotCore3.h"
 #include "Tools/Math/Eigen.h"
+#include "Tools/Math/Pose3f.h"
 
 class SimObject;
 class Body;
@@ -47,7 +48,9 @@ private:
   unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
 
   bool initialized = false;
+#ifdef SIMROBOTCORE3_USE_OPENGL
   bool registeredAtManager = false;
+#endif
   bool dragging = false;
   DragType dragType;
   Body* dragSelection;
@@ -73,9 +76,15 @@ private:
 
 public:
   // API
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  void init(const QRhiNativeHandles* nativeHandles) override;
+  void destroy(const QRhiNativeHandles* nativeHandles) override;
+  void draw(const QRhiNativeHandles* nativeHandles) override;
+#else
   void init() override;
   void destroy() override;
   void draw() override;
+#endif
   void resize(float fovY, unsigned int width, unsigned int height) override;
   void getSize(unsigned int& width, unsigned int& height) const override;
   void setSurfaceShadeMode(ShadeMode shadeMode) override {surfaceShadeMode = shadeMode;}
