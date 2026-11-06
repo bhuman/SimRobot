@@ -406,7 +406,9 @@ void Body::enablePhysics(bool enable)
   Simulation::simulation->model->body_gravcomp[bodyIndex] = enable ? 0.f : 1.f;
 
   // enable/disable collisions with associated geoms
-  Simulation::simulation->model->body_contype[bodyIndex] = Simulation::simulation->model->body_conaffinity[bodyIndex] = enable ? 1 : 0;
+  // (must match the collision filter of the geoms, see Geometry::createGeometry)
+  Simulation::simulation->model->body_contype[bodyIndex] = enable ? (1 << collisionGroup) : 0;
+  Simulation::simulation->model->body_conaffinity[bodyIndex] = enable ? ~(1 << collisionGroup) : 0;
 
   for(Body* child : bodyChildren)
     child->enablePhysics(enable);
