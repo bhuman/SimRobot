@@ -155,27 +155,35 @@ vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo,
   return kD * albedo / PI + specular;
 }
 
-// Returns the fraction of the fragment that is lit (percentage closer filtering over 3x3 texels of the shadow map).
-float illumination(in sampler2D shadowMap, in mat4 lightPV, in vec3 lightDir, in vec3 normal)
+// Returns the fraction of the fragment that is lit. The shadow map is sampled with hardware percentage closer filtering
+// (a bilinear comparison) at four positions that together cover 3x3 texels.
+float illumination(in sampler2DShadow shadowMap, in mat4 lightPV, in vec3 lightDir, in vec3 normal)
 {
+  float cosTheta = dot(normal, lightDir);
+  if (cosTheta <= 0.0)
+    return 1.0; // The surface faces away from the light, so there is no light to be blocked anyway.
   vec4 fragPosInLight = lightPV * vec4(FragPosInWorld, 1.0);
   if (fragPosInLight.w <= 0.0)
     return 1.0;
+  // The size of a texel at the fragment in world coordinates (w is the distance for a perspective projection and 1 for an orthographic one).
+  vec2 size = vec2(textureSize(shadowMap, 0));
+  vec2 texelInWorld = 2.0 * fragPosInLight.w / (size * vec2(length(vec3(lightPV[0][0], lightPV[1][0], lightPV[2][0])), length(vec3(lightPV[0][1], lightPV[1][1], lightPV[2][1]))));
+  // Moving the lookup position along the normal avoids self-shadowing, the more the surface is inclined towards the light.
+  vec3 offsetPos = FragPosInWorld + normal * (1.5 * max(texelInWorld.x, texelInWorld.y) * sqrt(max(1.0 - cosTheta * cosTheta, 0.0)));
+  fragPosInLight = lightPV * vec4(offsetPos, 1.0);
   vec3 coordinates = 0.5 * fragPosInLight.xyz / fragPosInLight.w + 0.5;
   if (coordinates.z > 1.0)
     return 1.0;
-  vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-  float bias = max(0.002 * (1.0 - dot(normal, lightDir)), 0.0005);
+  vec2 texel = 1.0 / size;
+  float reference = coordinates.z - 0.0005;
   float visibility = 0.0;
-  for (int x = -1; x <= 1; ++x)
+  // The explicit level of detail is required because this code is not executed uniformly.
+  for (int x = -1; x <= 1; x += 2)
   {
-    for (int y = -1; y <= 1; ++y)
-    {
-      float lightDepth = texture(shadowMap, coordinates.xy + vec2(x, y) * texelSize).r;
-      visibility += coordinates.z - bias > lightDepth ? 0.0 : 1.0;
-    }
+    for (int y = -1; y <= 1; y += 2)
+      visibility += textureLod(shadowMap, vec3(coordinates.xy + 0.5 * vec2(x, y) * texel, reference), 0.0);
   }
-  return visibility / 9.0;
+  return 0.25 * visibility;
 }
 
 vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
@@ -507,8 +515,10 @@ void GraphicsContext::createGraphics()
     {
       f->glBindTexture(GL_TEXTURE_2D, data.shadowMapTextures[i]);
       f->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadowMaps[i].width, shadowMaps[i].height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
       static const float borderColor[] = {1.f, 1.f, 1.f, 1.f};
@@ -1059,7 +1069,7 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT " + globalAmbientLight + "\n";
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
-    lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; uniform sampler2D shadowMap" + std::to_string(i) + ";";
+    lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";
   for(const auto& light : lightDeclarations)
     lightDeclarationsCode += " " + light;
   lightDeclarationsCode += "\n";
