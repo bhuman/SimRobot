@@ -50,10 +50,13 @@ public:
   void destroyGraphics(const QRhiNativeHandles* nativeHandles);
 
   /**
-   * Shadow maps are not supported (yet). Lights that have a shadow map are not shadowed.
-   * @param draw A function that draws everything that casts shadows (ignored).
-   * @param offscreen Whether to render in the offscreen context (ignored).
-   * @param force Whether the shadow maps are also rendered if they were already updated in the current simulation step (ignored).
+   * Renders the shadow maps of all lights that have one. This must be called while no rendering is in progress
+   * (neither external nor offscreen) and after the model matrices of everything that casts shadows were updated.
+   * The shadow maps are rendered with a command buffer of this graphics context, which is completed before the function returns,
+   * so this also works while a render pass of a QRhi is being recorded.
+   * @param draw A function that draws everything that casts shadows (the appearances of the scene) in the current rendering pass.
+   * @param offscreen Whether to render for an off-screen rendering (it makes no difference with this graphics API).
+   * @param force Whether the shadow maps are also rendered if they were already updated in the current simulation step.
    */
   void updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force);
 
@@ -171,6 +174,8 @@ private:
   static constexpr std::size_t numOfShaders = numOfColorShaders + 1; /**< The number of shader variants. */
   static constexpr std::size_t numOfVertexCategories = 2; /**< The number of vertex types. */
 
+  static constexpr std::size_t shadowMapMemorySize = 80; /**< Size of the data of a shadow map in graphics memory (see the ShadowMapData struct in the shader). */
+  static constexpr std::size_t shadowMapTextureOffset = 64; /**< Offset of the texture handle within the data of a shadow map in graphics memory. */
   static constexpr std::size_t surfaceMemorySize = 48; /**< Size of a surface in graphics memory (see the Surface struct in the shader). */
   static constexpr std::size_t surfaceTextureOffset = 32; /**< Offset of the texture handle within a surface in graphics memory. */
 
@@ -191,6 +196,10 @@ private:
   MTL::Buffer* surfaceBuffer = nullptr; /**< The buffer with the properties of all surfaces. */
   MTL::Heap* textureHeap = nullptr; /**< The heap in which all textures are allocated (\c nullptr if there are no textures). */
   std::vector<MTL::Texture*> mtlTextures; /**< All textures. */
+  std::vector<MTL::Texture*> shadowMapTextures; /**< The depth textures of the shadow maps. */
+  std::vector<MTL::RenderPassDescriptor*> shadowMapRenderPasses; /**< The render passes that render into the shadow maps. */
+  MTL::Buffer* shadowMapBuffer = nullptr; /**< The buffer with the data of all shadow maps (\c nullptr if there are none). */
+  unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
   std::array<MTL::RenderPipelineState*, numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per shader variant and vertex type. */
   MTL::ComputePipelineState* colorReadbackPipelineState = nullptr; /**< The compute pipeline that converts a color attachment to RGB bytes. */
   MTL::ComputePipelineState* depthReadbackPipelineState = nullptr; /**< The compute pipeline that converts a depth attachment to floats. */
@@ -205,8 +214,10 @@ private:
 
   // Only valid between \c startOffscreenRendering and \c finishOffscreenRendering:
   OffscreenTarget* offscreenTarget = nullptr; /**< The current off-screen render target. */
-  int offscreenTargetHeight = 0; /**< The height of the current off-screen render target. */
   NS::AutoreleasePool* autoreleasePool = nullptr; /**< The pool for autoreleased objects created during off-screen rendering. */
+
+  bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
+  int renderTargetHeight = 0; /**< The height of the current off-screen render target or shadow map. */
 
   // Only valid between \c startRendering and \c finishRendering:
   MTL::RenderPipelineState* const* selectedPipelineStates = nullptr; /**< The pipeline states (per vertex type) of the current shader. */

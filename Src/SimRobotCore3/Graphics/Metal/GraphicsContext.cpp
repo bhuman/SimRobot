@@ -60,6 +60,13 @@ struct SpotLight
   float cutoff;
 };
 
+// Must match GraphicsContext::shadowMapMemorySize and shadowMapTextureOffset.
+struct ShadowMapData
+{
+  metal::float4x4 lightPV;
+  metal::depth2d<float> map;
+};
+
 // Must match GraphicsContext::surfaceMemorySize and surfaceTextureOffset.
 struct Surface
 {
@@ -129,31 +136,71 @@ float3 calcBrdf(float3 lightDir, float3 normal, float3 viewDir, float3 albedo, f
   return kD * albedo / PI + specular;
 }
 
-float3 calcLight(float3 irradiance, float3 lightDir, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic)
+#ifdef WITH_SHADOWS
+// Returns the fraction of the fragment that is lit. The shadow map is sampled with hardware percentage closer filtering
+// (a bilinear comparison) at four positions that together cover 3x3 texels. This is a port of the GLSL function, but
+// the depth range of Metal's clip space (and thereby of the matrix) is already from 0 to 1.
+float illumination(metal::depth2d<float> shadowMap, metal::float4x4 lightPV, float3 positionInWorld, float3 lightDir, float3 normal)
+{
+  constexpr metal::sampler shadowSampler(metal::coord::normalized, metal::filter::linear, metal::address::clamp_to_border, metal::border_color::opaque_white, metal::compare_func::less_equal);
+  float cosTheta = metal::dot(normal, lightDir);
+  if(cosTheta <= 0.0)
+    return 1.0; // The surface faces away from the light, so there is no light to be blocked anyway.
+  float4 fragPosInLight = lightPV * float4(positionInWorld, 1.0);
+  if(fragPosInLight.w <= 0.0)
+    return 1.0;
+  // The size of a texel at the fragment in world coordinates (w is the distance for a perspective projection and 1 for an orthographic one).
+  float2 size = float2(shadowMap.get_width(), shadowMap.get_height());
+  float3 row0 = float3(lightPV[0][0], lightPV[1][0], lightPV[2][0]);
+  float3 row1 = float3(lightPV[0][1], lightPV[1][1], lightPV[2][1]);
+  float3 depthAxis = -float3(lightPV[0][3], lightPV[1][3], lightPV[2][3]); // zero for an orthographic projection
+  float2 scale = float2(metal::sqrt(metal::max(metal::dot(row0, row0) - metal::pow(metal::dot(row0, depthAxis), 2.0), 1e-12)),
+                        metal::sqrt(metal::max(metal::dot(row1, row1) - metal::pow(metal::dot(row1, depthAxis), 2.0), 1e-12)));
+  float2 texelInWorld = 2.0 * fragPosInLight.w / (size * scale);
+  // Moving the lookup position along the normal avoids self-shadowing, the more the surface is inclined towards the light.
+  float3 offsetPos = positionInWorld + normal * (1.5 * metal::max(texelInWorld.x, texelInWorld.y) * metal::sqrt(metal::max(1.0 - cosTheta * cosTheta, 0.0)));
+  fragPosInLight = lightPV * float4(offsetPos, 1.0);
+  float3 coordinates = fragPosInLight.xyz / fragPosInLight.w;
+  if(coordinates.z > 1.0)
+    return 1.0;
+  float2 position = float2(0.5 * coordinates.x + 0.5, 0.5 - 0.5 * coordinates.y);
+  float2 texel = 1.0 / size;
+  float reference = coordinates.z - 0.0005;
+  float visibility = 0.0;
+  for(int x = -1; x <= 1; x += 2)
+  {
+    for(int y = -1; y <= 1; y += 2)
+      visibility += shadowMap.sample_compare(shadowSampler, position + 0.5 * float2(x, y) * texel, reference, metal::level(0));
+  }
+  return 0.25 * visibility;
+}
+#endif
+
+float3 calcLight(float3 irradiance, float3 lightDir, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
 {
   float cosTheta = metal::max(metal::dot(normal, lightDir), 0.0);
-  return calcBrdf(lightDir, normal, viewDir, albedo, F0, roughness, metallic) * irradiance * cosTheta;
+  return calcBrdf(lightDir, normal, viewDir, albedo, F0, roughness, metallic) * irradiance * cosTheta * visibility;
 }
 
-float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic)
+float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
 {
   float3 lightDir = metal::normalize(-light.direction);
   float3 irradiance = light.color;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
 }
 
-float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic)
+float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   float3 irradiance = light.color * attenuation;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
 }
 
-float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic)
+float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
@@ -162,13 +209,17 @@ float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float
   float intensity = metal::clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
   float3 irradiance = light.color * attenuation * intensity;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
 }
 
 DECLARE_LIGHTS
 #endif
 
-fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]], constant float4& cameraPos [[buffer(1)]], constant uint& surfaceIndex [[buffer(2)]])
+fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]], constant float4& cameraPos [[buffer(1)]], constant uint& surfaceIndex [[buffer(2)]]
+#ifdef WITH_SHADOWS
+                             , device const ShadowMapData* shadowMaps [[buffer(3)]]
+#endif
+                            )
 {
 #ifdef WITH_TEXTURES
   constexpr metal::sampler textureSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::repeat);
@@ -316,9 +367,6 @@ void GraphicsContext::compile()
 {
   layoutResources();
 
-  if(!shadowMaps.empty())
-    TRACE("Shadow maps are not supported with Metal yet, so the lights are not shadowed.");
-
   ASSERT(!device);
   device = MTL::CreateSystemDefaultDevice();
   ASSERT(device);
@@ -425,6 +473,48 @@ void GraphicsContext::createDeviceResources()
     }
   }
 
+  // Create the shadow maps. Everything is lit until they have been rendered, so they are cleared with the farthest depth.
+  if(!shadowMaps.empty())
+  {
+    shadowMapBuffer = device->newBuffer(shadowMaps.size() * shadowMapMemorySize, MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
+    std::memset(shadowMapBuffer->contents(), 0, shadowMapBuffer->length());
+    MTL::CommandBuffer* clearCommandBuffer = commandQueue->commandBuffer();
+    for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+    {
+      MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+      textureDescriptor->setTextureType(MTL::TextureType2D);
+      textureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
+      textureDescriptor->setWidth(shadowMaps[i].width);
+      textureDescriptor->setHeight(shadowMaps[i].height);
+      textureDescriptor->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
+      textureDescriptor->setStorageMode(MTL::StorageModePrivate);
+      MTL::Texture* texture = device->newTexture(textureDescriptor);
+      textureDescriptor->release();
+      ASSERT(texture);
+      shadowMapTextures.push_back(texture);
+
+      // The render pass descriptor retains the texture.
+      MTL::RenderPassDescriptor* renderPass = MTL::RenderPassDescriptor::alloc()->init();
+      auto* depthAttachment = renderPass->depthAttachment();
+      depthAttachment->setTexture(texture);
+      depthAttachment->setLoadAction(MTL::LoadActionClear);
+      depthAttachment->setStoreAction(MTL::StoreActionStore);
+      depthAttachment->setClearDepth(1.0);
+      shadowMapRenderPasses.push_back(renderPass);
+
+      // The shader looks up the position in the same clip space as the one in which the shadow map is rendered.
+      const Matrix4f lightPV = clipSpaceCorrection * shadowMaps[i].projection * shadowMaps[i].view;
+      std::uint8_t* memory = static_cast<std::uint8_t*>(shadowMapBuffer->contents()) + i * shadowMapMemorySize;
+      std::memcpy(memory, lightPV.data(), sizeof(float) * 16);
+      const MTL::ResourceID resourceID = texture->gpuResourceID();
+      std::memcpy(memory + shadowMapTextureOffset, &resourceID, sizeof(resourceID));
+
+      clearCommandBuffer->renderCommandEncoder(renderPass)->endEncoding();
+    }
+    clearCommandBuffer->commit();
+    clearCommandBuffer->waitUntilCompleted();
+  }
+
   // Compile shaders.
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
   std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
@@ -432,19 +522,40 @@ void GraphicsContext::createDeviceResources()
   {
     const LightData& light = lights[i];
     const std::string name = "light" + std::to_string(i);
+    // The direction from the fragment to the light (to determine the shadow bias).
+    std::string lightDirection;
     switch(light.type)
     {
       case LightData::directional:
         lightDeclarationsCode += " constant DirLight " + name + " = {" + toMSL(light.color) + ", " + toMSL(light.direction) + "};";
-        lightCalculationsCode += " Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, surface.roughness, surface.metallic);";
+        lightDirection = "metal::normalize(-" + name + ".direction)";
         break;
       case LightData::spot:
         lightDeclarationsCode += " constant SpotLight " + name + " = {" + toMSL(light.color) + ", " + toMSL(light.position) + ", " + std::to_string(light.constantAttenuation) + ", " + std::to_string(light.linearAttenuation) + ", " + std::to_string(light.quadraticAttenuation) + ", " + toMSL(light.direction) + ", " + std::to_string(light.cutoff) + "};";
-        lightCalculationsCode += " Lo += calcSpotLight(" + name + ", in.positionInWorld, normalizedNormal, viewDir, albedo, F0, surface.roughness, surface.metallic);";
+        lightDirection = "metal::normalize(" + name + ".position - in.positionInWorld)";
         break;
       case LightData::point:
         lightDeclarationsCode += " constant PointLight " + name + " = {" + toMSL(light.color) + ", " + toMSL(light.position) + ", " + std::to_string(light.constantAttenuation) + ", " + std::to_string(light.linearAttenuation) + ", " + std::to_string(light.quadraticAttenuation) + "};";
-        lightCalculationsCode += " Lo += calcPointLight(" + name + ", in.positionInWorld, normalizedNormal, viewDir, albedo, F0, surface.roughness, surface.metallic);";
+        lightDirection = "metal::normalize(" + name + ".position - in.positionInWorld)";
+        break;
+    }
+    std::string visibility = "1.0";
+    if(light.shadowMap)
+    {
+      const std::string index = std::to_string(*light.shadowMap);
+      visibility = "illumination(shadowMaps[" + index + "].map, shadowMaps[" + index + "].lightPV, in.positionInWorld, " + lightDirection + ", normalizedNormal)";
+    }
+    const std::string arguments = ", viewDir, albedo, F0, surface.roughness, surface.metallic, " + visibility + ");";
+    switch(light.type)
+    {
+      case LightData::directional:
+        lightCalculationsCode += " Lo += calcDirLight(" + name + ", normalizedNormal" + arguments;
+        break;
+      case LightData::spot:
+        lightCalculationsCode += " Lo += calcSpotLight(" + name + ", in.positionInWorld, normalizedNormal" + arguments;
+        break;
+      case LightData::point:
+        lightCalculationsCode += " Lo += calcPointLight(" + name + ", in.positionInWorld, normalizedNormal" + arguments;
         break;
     }
   }
@@ -455,7 +566,11 @@ void GraphicsContext::createDeviceResources()
   {
     std::string sourceCode = "#define GLOBAL_AMBIENT_LIGHT " + toMSL(globalAmbientLight) + "\n";
     if(i & 4)
+    {
       sourceCode += "#define WITH_LIGHTING\n";
+      if(!shadowMaps.empty())
+        sourceCode += "#define WITH_SHADOWS\n";
+    }
     if(i & 2)
       sourceCode += "#define WITH_TEXTURES\n";
     sourceCode += (i & 1) ? "#define NORMAL_QUALIFIER\n" : "#define NORMAL_QUALIFIER [[flat]]\n";
@@ -506,6 +621,14 @@ void GraphicsContext::destroyDeviceResources()
     if(pipelineState)
       pipelineState->release();
   pipelineStates.fill(nullptr);
+  for(MTL::RenderPassDescriptor* renderPass : shadowMapRenderPasses)
+    renderPass->release();
+  shadowMapRenderPasses.clear();
+  for(MTL::Texture* texture : shadowMapTextures)
+    texture->release();
+  shadowMapTextures.clear();
+  if(shadowMapBuffer)
+    shadowMapBuffer->release();
   surfaceBuffer->release();
   for(MTL::Texture* texture : mtlTextures)
     if(texture)
@@ -522,7 +645,7 @@ void GraphicsContext::destroyDeviceResources()
 
   depthStencilState = nullptr;
   colorReadbackPipelineState = depthReadbackPipelineState = nullptr;
-  surfaceBuffer = indexBuffer = vertexBuffer = nullptr;
+  surfaceBuffer = indexBuffer = vertexBuffer = shadowMapBuffer = nullptr;
   textureHeap = nullptr;
   commandQueue = nullptr;
   device = nullptr;
@@ -543,9 +666,39 @@ void GraphicsContext::destroyGraphics(const QRhiNativeHandles*)
   --externalReferenceCounter;
 }
 
-void GraphicsContext::updateShadowMaps(const std::function<void()>&, bool, bool)
+void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool, bool force)
 {
-  // TODO: Shadow maps are not supported by this graphics API yet.
+  ASSERT(!commandBuffer);
+  ASSERT(!encoder);
+
+  if(shadowMaps.empty() || (!force && lastShadowMapUpdate == Simulation::simulation->simulationStep))
+    return;
+  lastShadowMapUpdate = Simulation::simulation->simulationStep;
+
+  // The shadow maps are rendered with a separate command buffer, which is completed before the function returns. This way,
+  // no render pass of an external renderer is interrupted and the shadow maps are ready when they are used.
+  NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+  commandBuffer = commandQueue->commandBuffer();
+  renderDepthOnly = true;
+  renderingShadowMap = true;
+  for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+  {
+    encoder = commandBuffer->renderCommandEncoder(shadowMapRenderPasses[i]);
+    renderTargetHeight = static_cast<int>(shadowMaps[i].height);
+    startRendering(shadowMaps[i].projection, shadowMaps[i].view, 0, 0, static_cast<int>(shadowMaps[i].width), renderTargetHeight);
+    // Rendering the back faces avoids most self-shadowing artifacts.
+    encoder->setCullMode(MTL::CullModeFront);
+    draw();
+    finishRendering();
+    encoder->endEncoding();
+    encoder = nullptr;
+  }
+  commandBuffer->commit();
+  commandBuffer->waitUntilCompleted();
+  commandBuffer = nullptr;
+  renderingShadowMap = false;
+  renderDepthOnly = false;
+  pool->release();
 }
 
 MTL::PrimitiveType GraphicsContext::getPrimitiveType(PrimitiveTopology topology)
@@ -573,10 +726,10 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   if(viewportX >= 0)
   {
     // The origin of viewports is at the top left in Metal but at the bottom left in OpenGL.
-    ASSERT(offscreenTarget);
+    ASSERT(offscreenTarget || renderingShadowMap);
     MTL::Viewport viewport;
     viewport.originX = viewportX;
-    viewport.originY = offscreenTargetHeight - viewportY - viewportHeight;
+    viewport.originY = renderTargetHeight - viewportY - viewportHeight;
     viewport.width = viewportWidth;
     viewport.height = viewportHeight;
     viewport.znear = 0.0;
@@ -598,6 +751,12 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     encoder->setFragmentBuffer(surfaceBuffer, 0, 0);
     if(textureHeap)
       encoder->useHeap(textureHeap, MTL::RenderStageFragment);
+    if(lighting && shadowMapBuffer)
+    {
+      encoder->setFragmentBuffer(shadowMapBuffer, 0, 3);
+      for(MTL::Texture* texture : shadowMapTextures)
+        encoder->useResource(texture, MTL::ResourceUsageRead, MTL::RenderStageFragment);
+    }
   }
 }
 
@@ -646,7 +805,7 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
   autoreleasePool = NS::AutoreleasePool::alloc()->init();
 
   offscreenTarget = &getOffscreenTarget(width, height, depthOnly);
-  offscreenTargetHeight = height;
+  renderTargetHeight = height;
   commandBuffer = commandQueue->commandBuffer();
   encoder = commandBuffer->renderCommandEncoder(offscreenTarget->renderPass);
   renderDepthOnly = depthOnly;
@@ -660,7 +819,7 @@ void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
   ASSERT(encoder);
   ASSERT(offscreenTarget);
   ASSERT(!selectedPipelineStates);
-  ASSERT(h <= offscreenTargetHeight);
+  ASSERT(h <= renderTargetHeight);
 
   encoder->endEncoding();
   encoder = nullptr;
