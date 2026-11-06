@@ -94,6 +94,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     rotationClass              = Rotation;
     sceneClass                 = Scene;
     setClass                   = Set;
+    shadowMapClass             = ShadowMap;
     surfaceClass               = Surface;
     texCoordsClass             = TexCoords;
     translationClass           = Translation;
@@ -237,13 +238,19 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                     {setClass} )?
                                  "</Slider>";
     
-    DirLight                   = "<DirLight>" "</DirLight>"
+    DirLight                   = "<DirLight>"
+                                 ?( [shadowMapClass] )?
+                                 "</DirLight>"
                                | "<DirLight/>";
     
-    PointLight                 = "<PointLight>" "</PointLight>"
+    PointLight                 = "<PointLight>"
+                                 ?( [shadowMapClass] )?
+                                 "</PointLight>"
                                | "<PointLight/>";
     
-    SpotLight                  = "<SpotLight>" "</SpotLight>"
+    SpotLight                  = "<SpotLight>"
+                                 ?( [shadowMapClass] )?
+                                 "</SpotLight>"
                                | "<SpotLight/>";
     
     BoxMass                    = "<BoxMass>"
@@ -304,6 +311,9 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     
     Set                        = "<Set>" "</Set>"
                                | "<Set/>";
+    
+    ShadowMap                  = "<ShadowMap>" "</ShadowMap>"
+                               | "<ShadowMap/>";
     
     Surface                    = "<Surface>" "</Surface>"
                                | "<Surface/>";
@@ -982,6 +992,48 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The value the placeholder is set to.
           - **Use**: required
           - **Range**: String
+
+
+### shadowMapClass
+
+  - `ShadowMap`: Makes the light it is a child of cast shadows. Without this element, a light does not cast shadows and costs nothing. A shadow map is rendered from the light and only covers an axis-aligned bounding box in world coordinates; only objects inside it cast and receive shadows. Shadow maps are only used with lighting enabled. At most 8 lights can have a shadow map.
+      - Directional lights use an orthographic projection that fits the bounding box.
+      - Point and spot lights use a single perspective projection that looks from the light at the center of the bounding box. The light must be outside of the bounding box (otherwise it casts no shadows), and the shadows are only cast within the frustum that is spanned by the bounding box (they are not cast in all directions of a point light).
+      - `width`: The width of the shadow map in pixels.
+          - **Default**: 2048
+          - **Use**: optional
+          - **Range**: (0, MAXINTEGER]
+      - `height`: The height of the shadow map in pixels.
+          - **Default**: 2048
+          - **Use**: optional
+          - **Range**: (0, MAXINTEGER]
+      - `aabbCenterX`: The x coordinate of the center of the bounding box.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
+      - `aabbCenterY`: The y coordinate of the center of the bounding box.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
+      - `aabbCenterZ`: The z coordinate of the center of the bounding box.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
+      - `aabbExtentX`: The size of the bounding box in x direction.
+          - **Units**: mm, cm, dm, m, km
+          - **Use**: required
+          - **Range**: (0, MAXFLOAT]
+      - `aabbExtentY`: The size of the bounding box in y direction.
+          - **Units**: mm, cm, dm, m, km
+          - **Use**: required
+          - **Range**: (0, MAXFLOAT]
+      - `aabbExtentZ`: The size of the bounding box in z direction.
+          - **Units**: mm, cm, dm, m, km
+          - **Use**: required
+          - **Range**: (0, MAXFLOAT]
 
 
 ### surfaceClass

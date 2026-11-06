@@ -8,6 +8,7 @@
 
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
+#include "Graphics/LightSpace.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <QImage>
@@ -154,31 +155,54 @@ vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo,
   return kD * albedo / PI + specular;
 }
 
-vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+// Returns the fraction of the fragment that is lit (percentage closer filtering over 3x3 texels of the shadow map).
+float illumination(in sampler2D shadowMap, in mat4 lightPV, in vec3 lightDir, in vec3 normal)
 {
-  float cosTheta = max(dot(normal, lightDir), 0.0);
-  return calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta;
+  vec4 fragPosInLight = lightPV * vec4(FragPosInWorld, 1.0);
+  if (fragPosInLight.w <= 0.0)
+    return 1.0;
+  vec3 coordinates = 0.5 * fragPosInLight.xyz / fragPosInLight.w + 0.5;
+  if (coordinates.z > 1.0)
+    return 1.0;
+  vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+  float bias = max(0.002 * (1.0 - dot(normal, lightDir)), 0.0005);
+  float visibility = 0.0;
+  for (int x = -1; x <= 1; ++x)
+  {
+    for (int y = -1; y <= 1; ++y)
+    {
+      float lightDepth = texture(shadowMap, coordinates.xy + vec2(x, y) * texelSize).r;
+      visibility += coordinates.z - bias > lightDepth ? 0.0 : 1.0;
+    }
+  }
+  return visibility / 9.0;
 }
 
-vec3 calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
+{
+  float cosTheta = max(dot(normal, lightDir), 0.0);
+  return calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta * visibility;
+}
+
+vec3 calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
 {
   vec3 lightDir = normalize(-light.direction);
   vec3 irradiance = light.color;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
 }
 
-vec3 calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+vec3 calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   vec3 irradiance = light.color * attenuation;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
 }
 
-vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
@@ -187,7 +211,7 @@ vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec
   float intensity = clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
   vec3 irradiance = light.color * attenuation * intensity;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
 }
 
 #ifdef WITH_LIGHTING
@@ -458,6 +482,7 @@ void GraphicsContext::createGraphics()
   if(shareData)
   {
     data.textureIDs = shareData->textureIDs;
+    data.shadowMapTextures = shareData->shadowMapTextures;
     data.shaders = shareData->shaders;
   }
   else
@@ -475,11 +500,43 @@ void GraphicsContext::createGraphics()
       f->glGenerateMipmap(GL_TEXTURE_2D);
     }
 
+    // Create the shadow maps. Everything in the lights' frustums is lit as long as they have not been rendered.
+    data.shadowMapTextures.resize(shadowMaps.size());
+    f->glGenTextures(static_cast<GLsizei>(shadowMaps.size()), data.shadowMapTextures.data());
+    for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+    {
+      f->glBindTexture(GL_TEXTURE_2D, data.shadowMapTextures[i]);
+      f->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadowMaps[i].width, shadowMaps[i].height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+      static const float borderColor[] = {1.f, 1.f, 1.f, 1.f};
+      f->glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    }
+
     // Compile shaders.
     for(unsigned int i = 0; i < 8; ++i)
       data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
     data.shaders[8] = compileDepthOnlyShader();
   }
+
+  // Framebuffer objects are not shared.
+  GLint previousFramebuffer;
+  f->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
+  data.shadowMapFBOs.resize(shadowMaps.size());
+  f->glGenFramebuffers(static_cast<GLsizei>(shadowMaps.size()), data.shadowMapFBOs.data());
+  for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+  {
+    f->glBindFramebuffer(GL_FRAMEBUFFER, data.shadowMapFBOs[i]);
+    f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, data.shadowMapTextures[i], 0);
+    f->glDrawBuffer(GL_NONE);
+    f->glReadBuffer(GL_NONE);
+    ASSERT(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    if(!shareData)
+      f->glClear(GL_DEPTH_BUFFER_BIT);
+  }
+  f->glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFramebuffer));
 
   f = nullptr;
 }
@@ -496,12 +553,14 @@ void GraphicsContext::destroyGraphics()
     return;
 
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  data.f->glDeleteFramebuffers(static_cast<GLsizei>(data.shadowMapFBOs.size()), data.shadowMapFBOs.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
     data.f->glDeleteBuffers(1, &data.vbo);
     data.f->glDeleteBuffers(1, &data.ebo);
     data.f->glDeleteBuffers(1, &data.surfaceUBO);
     data.f->glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
+    data.f->glDeleteTextures(static_cast<GLsizei>(data.shadowMapTextures.size()), data.shadowMapTextures.data());
     for(const auto& shader : data.shaders)
       data.f->glDeleteProgram(shader.program);
     delete data.f;
@@ -575,20 +634,36 @@ void GraphicsContext::setGlobalAmbientLight(const float* color)
 void GraphicsContext::addLight(const Light* light)
 {
   ASSERT(lightDeclarations.size() == lightCalculations.size());
+
+  // Adds the shadow map of the light (if it has one) and returns the GLSL expression for the fraction of light that arrives at the fragment.
+  const auto requestVisibility = [this, light](const std::string& lightDirection)
+  {
+    if(!light->shadowMap)
+      return std::string("1.0");
+    const std::optional<LightSpace> lightSpace = shadowMaps.size() < maxShadowMaps ? LightSpace::create(*light) : std::nullopt;
+    if(!lightSpace)
+    {
+      TRACE("Light %zu does not cast shadows (too many shadow maps or the light is not outside of its bounding box).", lightDeclarations.size());
+      return std::string("1.0");
+    }
+    const std::string index = std::to_string(shadowMaps.size());
+    shadowMaps.push_back({lightSpace->view, lightSpace->projection, light->shadowMap->width, light->shadowMap->height});
+    return "illumination(shadowMap" + index + ", lightPV" + index + ", " + lightDirection + ", normalizedNormal)";
+  };
   if(const DirLight* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
     lightDeclarations.push_back("const DirLight light" + std::to_string(lightDeclarations.size()) + " = DirLight(vec3(" + std::to_string(dirLight->color[0]) + ", " + std::to_string(dirLight->color[1]) + ", " + std::to_string(dirLight->color[2]) + "), vec3(" + std::to_string(dirLight->direction[0]) + ", " + std::to_string(dirLight->direction[1]) + ", " + std::to_string(dirLight->direction[2]) + "));");
-    lightCalculations.push_back("Lo += calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0);");
+    lightCalculations.push_back("Lo += calcDirLight(light" + std::to_string(lightCalculations.size()) + ", normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(-light" + std::to_string(lightCalculations.size()) + ".direction)") + ");");
   }
   else if(const SpotLight* spotLight = dynamic_cast<const SpotLight*>(light); spotLight)
   {
     lightDeclarations.push_back("const SpotLight light" + std::to_string(lightDeclarations.size()) + " = SpotLight(vec3(" + std::to_string(spotLight->color[0]) + ", " + std::to_string(spotLight->color[1]) + ", " + std::to_string(spotLight->color[2]) + "), vec3(" + std::to_string(spotLight->position[0]) + ", " + std::to_string(spotLight->position[1]) + ", " + std::to_string(spotLight->position[2]) + "), " + std::to_string(spotLight->constantAttenuation) + ", " + std::to_string(spotLight->linearAttenuation) + ", " + std::to_string(spotLight->quadraticAttenuation) + ", vec3(" + std::to_string(spotLight->direction[0]) + ", " + std::to_string(spotLight->direction[1]) + ", " + std::to_string(spotLight->direction[2]) + "), " + std::to_string(spotLight->cutoff) + ");");
-    lightCalculations.push_back("Lo += calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0);");
+    lightCalculations.push_back("Lo += calcSpotLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(light" + std::to_string(lightCalculations.size()) + ".position - FragPosInWorld)") + ");");
   }
   else if(const PointLight* pointLight = dynamic_cast<const PointLight*>(light); pointLight)
   {
     lightDeclarations.push_back("const PointLight light" + std::to_string(lightDeclarations.size()) + " = PointLight(vec3(" + std::to_string(pointLight->color[0]) + ", " + std::to_string(pointLight->color[1]) + ", " + std::to_string(pointLight->color[2]) + "), vec3(" + std::to_string(pointLight->position[0]) + ", " + std::to_string(pointLight->position[1]) + ", " + std::to_string(pointLight->position[2]) + "), " + std::to_string(pointLight->constantAttenuation) + ", " + std::to_string(pointLight->linearAttenuation) + ", " + std::to_string(pointLight->quadraticAttenuation) + ");");
-    lightCalculations.push_back("Lo += calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0);");
+    lightCalculations.push_back("Lo += calcPointLight(light" + std::to_string(lightCalculations.size()) + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + requestVisibility("normalize(light" + std::to_string(lightCalculations.size()) + ".position - FragPosInWorld)") + ");");
   }
 }
 
@@ -665,6 +740,53 @@ void GraphicsContext::updateModelMatrices(ModelMatrix::Usage usage, bool forceUp
     modelMatrix->updateMemory();
 }
 
+void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force)
+{
+  ASSERT(!data);
+  ASSERT(!f);
+  ASSERT(!shader);
+
+  if(shadowMaps.empty() || (!force && lastShadowMapUpdate == Simulation::simulation->simulationStep))
+    return;
+  lastShadowMapUpdate = Simulation::simulation->simulationStep;
+
+  if(offscreen)
+  {
+    ASSERT(offscreenContext && offscreenSurface);
+    offscreenContext->makeCurrent(offscreenSurface);
+  }
+
+  const auto it = perContextData.find(QOpenGLContext::currentContext());
+  ASSERT(it != perContextData.end());
+  data = &it->second;
+  f = data->f;
+
+  GLint previousFramebuffer;
+  GLint previousViewport[4];
+  f->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
+  f->glGetIntegerv(GL_VIEWPORT, previousViewport);
+
+  renderDepthOnly = true;
+  // Rendering the back faces avoids most self-shadowing artifacts.
+  f->glCullFace(GL_FRONT);
+  for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+  {
+    f->glBindFramebuffer(GL_FRAMEBUFFER, data->shadowMapFBOs[i]);
+    f->glClear(GL_DEPTH_BUFFER_BIT);
+    startRendering(shadowMaps[i].projection, shadowMaps[i].view, 0, 0, static_cast<int>(shadowMaps[i].width), static_cast<int>(shadowMaps[i].height));
+    draw();
+    finishRendering();
+  }
+  f->glCullFace(GL_BACK);
+  renderDepthOnly = false;
+
+  f->glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFramebuffer));
+  f->glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
+
+  data = nullptr;
+  f = nullptr;
+}
+
 void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool lighting, bool textures, bool smoothShading, bool fillPolygons)
 {
   ASSERT(data);
@@ -686,6 +808,22 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
     f->glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
+  for(std::size_t i = 0; i < shader->shadowMapLocation.size(); ++i)
+  {
+    if(shader->lightPVLocation[i] >= 0)
+    {
+      const Matrix4f lightPV = shadowMaps[i].projection * shadowMaps[i].view;
+      f->glUniformMatrix4fv(shader->lightPVLocation[i], 1, GL_FALSE, lightPV.data());
+    }
+    if(shader->shadowMapLocation[i] >= 0)
+    {
+      // Texture unit 0 is used for the albedo textures.
+      f->glUniform1i(shader->shadowMapLocation[i], static_cast<GLint>(i) + 1);
+      f->glActiveTexture(GL_TEXTURE1 + static_cast<GLenum>(i));
+      f->glBindTexture(GL_TEXTURE_2D, data->shadowMapTextures[i]);
+    }
+  }
+  f->glActiveTexture(GL_TEXTURE0);
   f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->surfaceUBO);
 
   // Controller drawings might have changed these states in the meantime:
@@ -920,6 +1058,8 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
 
   const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT " + globalAmbientLight + "\n";
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
+  for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+    lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; uniform sampler2D shadowMap" + std::to_string(i) + ";";
   for(const auto& light : lightDeclarations)
     lightDeclarationsCode += " " + light;
   lightDeclarationsCode += "\n";
@@ -937,6 +1077,13 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   shader.cameraPosLocation = f->glGetUniformLocation(shader.program, "cameraPos");
   shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
   shader.surfaceIndexLocation = f->glGetUniformLocation(shader.program, "surfaceIndex");
+  shader.lightPVLocation.resize(shadowMaps.size());
+  shader.shadowMapLocation.resize(shadowMaps.size());
+  for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+  {
+    shader.lightPVLocation[i] = f->glGetUniformLocation(shader.program, ("lightPV" + std::to_string(i)).c_str());
+    shader.shadowMapLocation[i] = f->glGetUniformLocation(shader.program, ("shadowMap" + std::to_string(i)).c_str());
+  }
   return shader;
 }
 

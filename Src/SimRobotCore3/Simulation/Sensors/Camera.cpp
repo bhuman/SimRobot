@@ -84,8 +84,9 @@ void Camera::CameraSensor::updateValue()
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.startOffscreenRendering(imageWidth, imageHeight);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
+  graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, true, false);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight);
 
   // setup camera position
   Pose3f pose = physicalObject->poseInWorld;
@@ -138,8 +139,9 @@ bool Camera::CameraSensor::renderCameraImages(SimRobotCore3::SensorPort** camera
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.startOffscreenRendering(imageWidth, imageHeight * count);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
+  graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, true, false);
+  graphicsContext.startOffscreenRendering(imageWidth, imageHeight * count);
 
   // render images
   int currentHorizontalPos = 0;

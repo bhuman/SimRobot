@@ -11,6 +11,7 @@
 #include "Platform/Assert.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
+#include <functional>
 #include <stack>
 #include <unordered_map>
 #include <vector>
@@ -394,6 +395,16 @@ public:
   void updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate);
 
   /**
+   * Renders the shadow maps of all lights that have one. This must be called while no rendering is in progress
+   * (neither external nor offscreen) and after the model matrices of everything that casts shadows were updated.
+   * The framebuffer and the viewport that were bound before are restored.
+   * @param draw A function that draws everything that casts shadows (the appearances of the scene) in the current rendering pass.
+   * @param offscreen Whether to render in the offscreen context (otherwise, the current context is used).
+   * @param force Whether the shadow maps are also rendered if they were already updated in the current simulation step.
+   */
+  void updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force);
+
+  /**
    * Starts a color render pass.
    * @param projection The projection matrix of the camera.
    * @param view The view matrix (= inverse pose) of the camera.
@@ -475,7 +486,22 @@ private:
     GLint cameraPosLocation = -1; /**< The location of the cameraPos uniform in the program. */
     GLint modelMatrixLocation = -1; /**< The location of the modelMatrix uniform in the program. */
     GLint surfaceIndexLocation = -1; /**< The location of the surfaceIndex uniform in the program. */
+    std::vector<GLint> lightPVLocation; /**< The locations of the lightPV uniforms (per shadow map) in the program. */
+    std::vector<GLint> shadowMapLocation; /**< The locations of the shadowMap uniforms (per shadow map) in the program. */
   };
+
+  /**
+   * The shadow map of a light.
+   */
+  struct ShadowMap
+  {
+    Matrix4f view; /**< The view matrix of the light. */
+    Matrix4f projection; /**< The projection matrix of the light. */
+    unsigned int width; /**< The width of the shadow map. */
+    unsigned int height; /**< The height of the shadow map. */
+  };
+
+  static constexpr std::size_t maxShadowMaps = 8; /**< The maximum number of lights with shadow maps (limited by the number of texture units). */
 
   /**
    * A structure that captures OpenGL object IDs per context (some of them are shared).
@@ -488,6 +514,9 @@ private:
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
     GLuint surfaceUBO; /**< The UBO of surfaces (shared between contexts within a share group). */
+
+    std::vector<GLuint> shadowMapFBOs; /**< The FBOs of the shadow maps. These exist per context. */
+    std::vector<GLuint> shadowMapTextures; /**< The depth textures of the shadow maps (shared between contexts within a share group). */
 
     std::vector<GLuint> textureIDs; /**< IDs for all textures (shared between contexts within a share group). */
 
@@ -588,6 +617,8 @@ private:
   std::vector<Mesh*> meshes; /**< List of all registered meshes. */
   std::vector<std::string> lightDeclarations; /**< GLSL declarations for light sources. */
   std::vector<std::string> lightCalculations; /**< GLSL code that adds a light source in the fragment shader. */
+  std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
+  unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
   std::string globalAmbientLight = "vec4(0.0)"; /**< GLSL expression that represents the color of the global ambient light. */
 

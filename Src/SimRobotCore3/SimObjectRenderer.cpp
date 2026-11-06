@@ -155,6 +155,10 @@ void SimObjectRenderer::draw()
 
   const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
+  // The shadow maps contain the whole scene (not only the displayed object).
+  if(drawAppearances && (renderFlags & enableLights))
+    graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, false, dragging && dragSelection);
+
   graphicsContext.startExternalRendering();
 
   QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();

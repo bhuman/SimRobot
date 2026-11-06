@@ -10,7 +10,9 @@
   <Material name="Stone" friction="1.0"/>
 
   <Scene name="Factory" controller="Factory" stepLength="0.01" color="rgb(80%, 80%, 100%)">
-    <PointLight z="8m" intensity="20"/>
+    <PointLight z="8m" intensity="20">
+      <ShadowMap aabbCenterZ="0.5m" aabbExtentX="4m" aabbExtentY="3m" aabbExtentZ="2m"/>
+    </PointLight>
 
     <Compound name="Ground">
       <BoxAppearance width="3" depth="2" height="0.2">
