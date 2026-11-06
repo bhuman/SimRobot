@@ -20,7 +20,7 @@ class Compound : public PhysicalObject, public GraphicalObject, public SimRobotC
 {
 private:
   /**
-   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * Creates the physical objects used by MuJoCo.
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
    * @param graphicsContext The graphics context to create resources in
@@ -28,7 +28,7 @@ private:
   void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
-   * Creates a stationary ODE geometry
+   * Creates a stationary MuJoCo geom
    * @param parentPose The pose of the group or geometry
    * @param geometry A geometry description
    */

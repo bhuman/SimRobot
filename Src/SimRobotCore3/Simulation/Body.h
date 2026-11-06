@@ -71,7 +71,7 @@ private:
   std::list<Body*> bodyChildren; /**< List of first-degree child bodies that are connected to this body over a joint */
 
   /**
-   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * Creates the physical objects used by MuJoCo.
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
    * @param graphicsContext The graphics context to create resources in
@@ -79,7 +79,7 @@ private:
   void createPhysics(GraphicsContext& graphicsContext) override;
 
   /**
-   * Creates a ODE geometry and attaches it to the body
+   * Creates a MuJoCo geom and attaches it to the body
    * @param parentOffset the base geometry offset from the center of mass of the body
    * @param geometry A geometry description
    * @param immaterial Whether the geometry collides or just tests for collision

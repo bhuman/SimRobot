@@ -8,6 +8,7 @@
 #include "ActuatorsWidget.h"
 #include "CoreModule.h"
 #include "Graphics/GraphicsContext.h"
+#include "Platform/Assert.h"
 #include "Tools/OpenGLTools.h"
 
 void Actuator::createPhysics(GraphicsContext &graphicsContext)

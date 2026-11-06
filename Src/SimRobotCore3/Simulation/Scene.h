@@ -27,11 +27,10 @@ class Scene : public PhysicalObject, public GraphicalObject, public SimRobotCore
 public:
 
   std::string controller; /**< The name of the controller library. */
-  float color[4]; /**< The background (clear color) */
-  float stepLength; /**< The length of a simulation step */
-  float gravity; /**< The gravity in the simulated world */
-  int contactMode = 0; /**< The default contact mode for contacts between bodies. TODO unused */
-  bool detectBodyCollisions; /**< Whether to detect collision between different bodies. TODO unused */
+  float color[4]; /**< The background (clear color). */
+  float stepLength; /**< The length of a simulation step. */
+  float gravity; /**< The gravity in the simulated world. */
+  bool detectBodyCollisions = true; /**< Whether to detect collision between different bodies. */
 
   SimRobotCore3::Controller3DDrawingManager* drawingManager = nullptr; /**< The manager for 3D controller drawings */
   std::list<Body*> bodies; /**< List of bodies without a parent body */

@@ -16,7 +16,7 @@ class Hinge : public Joint
 {
 private:
   /**
-   * Creates the physical objects used by the OpenDynamicsEngine (ODE).
+   * Creates the physical objects used by MuJoCo.
    * These are a geometry object for collision detection and/or a body,
    * if the simulation object is movable.
    * @param graphicsContext The graphics context to create resources in
