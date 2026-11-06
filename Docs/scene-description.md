@@ -60,8 +60,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     bodyClass                  = Body;
     compoundClass              = Compound;
     deflectionClass            = Deflection;
-    extSensorClass             = ApproxDistanceSensor
-                               | Camera
+    extSensorClass             = Camera
                                | DepthImageSensor
                                | ObjectSegmentedImageSensor
                                | SingleDistanceSensor;
@@ -158,10 +157,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     Deflection                 = "<Deflection>" "</Deflection>"
                                | "<Deflection/>";
     
-    ApproxDistanceSensor       = "<ApproxDistanceSensor>"
-                                 ?( [translationClass] [rotationClass] )?
-                                 "</ApproxDistanceSensor>"
-                               | "<ApproxDistanceSensor/>";
     Camera                     = "<Camera>"
                                  ?( [translationClass] [rotationClass] )?
                                  "</Camera>"
@@ -425,12 +420,15 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
   - `Deflection`: Specifies the maximum and minimum deflection of a joint.
       - `min`: The minimal deflection.
+          - **Units**: Units matching the type of the joint.
           - **Use**: required
           - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `max`: The maximal deflection.
+          - **Units**: Units matching the type of the joint.
           - **Use**: required
           - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `init`: The initial deflection.
+          - **Units**: Units matching the type of the joint.
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
@@ -488,7 +486,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `projection`: The kind of projection.
           - **Default**: perspective
           - **Use**: optional
-          - **Range**: perspective, spheric
+          - **Range**: perspective, spherical
   - `ObjectSegmentedImageSensor`: Instantiates a camera which renders an objected segmented image.
       - `name`: The name of the sensor.
           - **Use**: optional
@@ -750,7 +748,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The mass of the box.
           - **Units**: g, kg
           - **Use**: required
-          - **Range**: [0, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `width`: The width of the box.
           - **Units**: mm, cm, dm, m, km
           - **Use**: required
@@ -770,7 +768,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The mass of the box.
           - **Units**: g, kg
           - **Use**: required
-          - **Range**: [0, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `radius`: The radius of the capsule.
           - **Units**: mm, cm, dm, m, km
           - **Use**: required
@@ -786,7 +784,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The mass of the box.
           - **Units**: g, kg
           - **Use**: required
-          - **Range**: [0, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `radius`: The radius of the cylinder.
           - **Units**: mm, cm, dm, m, km
           - **Use**: required
@@ -802,7 +800,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The total mass.
           - **Units**: g, kg
           - **Use**: required
-          - **Range**: [0, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `x`: The x coordinate of the center of mass.
           - **Units**: mm, cm, dm, m, km
           - **Default**: 0
@@ -821,7 +819,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `ixx`: Moment of inertia around the x-axis when the object is rotated around the x-axis.
           - **Units**: g⋅mm², kg⋅m²
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `ixy`: Moment of inertia around the y-axis when the object is rotated around the x-axis.
           - **Units**: g⋅mm², kg⋅m²
           - **Default**: 0
@@ -835,7 +833,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `iyy`: Moment of inertia around the y-axis when the object is rotated around the y-axis.
           - **Units**: g⋅mm², kg⋅m²
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `iyz`: Moment of inertia around the z-axis when the object is rotated around the y-axis
           - **Units**: g⋅mm², kg⋅m²
           - **Default**: 0
@@ -844,7 +842,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `izz`: Moment of inertia around the z-axis when the object is rotated around the z-axis.
           - **Units**: g⋅mm², kg⋅m²
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
   - `Mass`: Specifies a mass.
       - `name`: The name of the mass.
           - **Use**: optional
@@ -856,7 +854,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The mass of the sphere.
           - **Units**: g, kg
           - **Use**: required
-          - **Range**: [0, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
       - `radius`: The radius of the sphere.
           - **Units**: mm, cm, dm, m, km
           - **Use**: required
@@ -880,13 +878,17 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
   - `ServoMotor`: Instantiates a position-controlled servo motor.
       - `maxVelocity`: The maximum velocity of this motor.
-          - **Units**: radian/s, degree/s
+          - **Units**: radian/s, degree/s (hinge); mm/s, cm/s, dm/s, m/s, km/s, km/h (slider)
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `maxForce`: The maximum force of this motor.
-          - **Units**: N
+          - **Range**: (0, MAXFLOAT]
+      - `maxForce`: The maximum torque (hinge) or force (slider) of this motor.
+          - **Units**: N⋅m, N⋅mm (hinge); N (slider)
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
+      - `armature`: The inertia (hinge) or mass (slider) that is added to the joint to account for the rotor.
+          - **Default**: 0.01
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
       - `p`: The p value of the motor's pid interface.
           - **Use**: required
           - **Range**: [-MAXFLOAT, MAXFLOAT]
@@ -898,19 +900,24 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `delay`: The delay of the commands being executed (in seconds)
+      - `delay`: The delay of the commands being executed.
+          - **Units**: s
           - **Default**: 0
           - **Use**: optional
           - **Range**: [0, MAXFLOAT]
+      - `velocityLowPassFactor`: The factor of the low pass filter that is applied to the measured velocity (1 means no filtering).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, 1]
   - `VelocityMotor`: Instantiates a velocity-controlled motor.
       - `maxVelocity`: The maximum velocity of this motor.
-          - **Units**: radian/s, degree/s
+          - **Units**: radian/s, degree/s (hinge); mm/s, cm/s, dm/s, m/s, km/s, km/h (slider)
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `maxForce`: The maximum force of this motor.
-          - **Units**: N
+          - **Range**: (0, MAXFLOAT]
+      - `maxForce`: The maximum torque (hinge) or force (slider) of this motor.
+          - **Units**: N⋅m, N⋅mm (hinge); N (slider)
           - **Use**: required
-          - **Range**: [-MAXFLOAT, MAXFLOAT]
+          - **Range**: (0, MAXFLOAT]
 
 
 ### rotationClass
