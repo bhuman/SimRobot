@@ -653,7 +653,7 @@ void GraphicsContext::addLight(const Light* light)
     const std::optional<LightSpace> lightSpace = shadowMaps.size() < maxShadowMaps ? LightSpace::create(*light) : std::nullopt;
     if(!lightSpace)
     {
-      TRACE("Light %zu does not cast shadows (too many shadow maps or the light is not outside of its bounding box).", lightDeclarations.size());
+      TRACE("Light %zu does not cast shadows (too many shadow maps, or the light is inside of its bounding box, or the bounding box is behind it).", lightDeclarations.size());
       return std::string("1.0");
     }
     const std::string index = std::to_string(shadowMaps.size());

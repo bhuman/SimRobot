@@ -997,8 +997,11 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 ### shadowMapClass
 
   - `ShadowMap`: Makes the light it is a child of cast shadows. Without this element, a light does not cast shadows and costs nothing. A shadow map is rendered from the light and only covers an axis-aligned bounding box in world coordinates; only objects inside it cast and receive shadows. Shadow maps are only used with lighting enabled. At most 8 lights can have a shadow map.
+      - The shadow map is rotated around the direction of the light such that the part of it that is needed is as small as possible.
       - Directional lights use an orthographic projection that fits the bounding box.
-      - Point and spot lights use a single perspective projection that looks from the light at the center of the bounding box. The light must be outside of the bounding box (otherwise it casts no shadows), and the shadows are only cast within the frustum that is spanned by the bounding box (they are not cast in all directions of a point light).
+      - Point and spot lights use a single perspective projection, so shadows are only cast within its frustum (they are not cast in all directions around the light).
+        - A spot light looks along its direction, and its frustum is limited by its cone (nothing outside of it is lit anyway) and the bounding box. The spot light may be inside of the bounding box. A spot light with a `cutoff` of (almost) 0 is treated like a point light.
+        - A point light looks in the direction of (approximately) the smallest cone around the bounding box. It must be outside of the bounding box (otherwise it casts no shadows). Parts of the bounding box that are more than 80 degrees away from that direction are not covered.
       - `width`: The width of the shadow map in pixels.
           - **Default**: 2048
           - **Use**: optional
