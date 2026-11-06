@@ -168,7 +168,13 @@ float illumination(in sampler2DShadow shadowMap, in mat4 lightPV, in vec3 lightD
     return 1.0;
   // The size of a texel at the fragment in world coordinates (w is the distance for a perspective projection and 1 for an orthographic one).
   vec2 size = vec2(textureSize(shadowMap, 0));
-  vec2 texelInWorld = 2.0 * fragPosInLight.w / (size * vec2(length(vec3(lightPV[0][0], lightPV[1][0], lightPV[2][0])), length(vec3(lightPV[0][1], lightPV[1][1], lightPV[2][1]))));
+  // The first two rows of the matrix are the scaled axes of the light plus the third axis for a projection that is not centered.
+  vec3 row0 = vec3(lightPV[0][0], lightPV[1][0], lightPV[2][0]);
+  vec3 row1 = vec3(lightPV[0][1], lightPV[1][1], lightPV[2][1]);
+  vec3 depthAxis = -vec3(lightPV[0][3], lightPV[1][3], lightPV[2][3]); // zero for an orthographic projection
+  vec2 scale = vec2(sqrt(max(dot(row0, row0) - pow(dot(row0, depthAxis), 2.0), 1e-12)),
+                    sqrt(max(dot(row1, row1) - pow(dot(row1, depthAxis), 2.0), 1e-12)));
+  vec2 texelInWorld = 2.0 * fragPosInLight.w / (size * scale);
   // Moving the lookup position along the normal avoids self-shadowing, the more the surface is inclined towards the light.
   vec3 offsetPos = FragPosInWorld + normal * (1.5 * max(texelInWorld.x, texelInWorld.y) * sqrt(max(1.0 - cosTheta * cosTheta, 0.0)));
   fragPosInLight = lightPV * vec4(offsetPos, 1.0);
