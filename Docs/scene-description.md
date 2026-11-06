@@ -104,7 +104,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                  ?( [translationClass] [rotationClass]
                                     {setClass | appearanceClass} )?
                                  "</Appearance>"
-                               | "<Appearance/>;
+                               | "<Appearance/>";
     BoxAppearance              = "<BoxAppearance>"
                                  ?( surfaceClass
                                     [translationClass] [rotationClass]
@@ -250,17 +250,17 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                  ?( [translationClass] [rotationClass]
                                     {setClass | massClass} )?
                                  "</BoxMass>"
-                               | "<BoxMass/>;
+                               | "<BoxMass/>";
     CapsuleMass                = "<CapsuleMass>"
                                  ?( [translationClass] [rotationClass]
                                     {setClass | massClass} )?
                                  "</CapsuleMass>"
-                               | "<CapsuleMass/>;
+                               | "<CapsuleMass/>";
     CylinderMass               = "<CylinderMass>"
                                  ?( [translationClass] [rotationClass]
                                     {setClass | massClass} )?
                                  "</CylinderMass>"
-                               | "<CylinderMass/>;
+                               | "<CylinderMass/>";
     InertiaMatrixMass          = "<InertiaMatrixMass>"
                                  ?( [translationClass] [rotationClass]
                                     {setClass | massClass} )?
@@ -286,15 +286,15 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | "<VelocityMotor/>";
     
     Normals                    = "<Normals>" Normals Definition "</Normals>"
-                               | "<Normals/>;
+                               | "<Normals/>";
     
     Quads                      = "<Quads>" Quads Definition "</Quads>"
-                               | "<Quads/>;
+                               | "<Quads/>";
     Triangles                  = "<Triangles>" Triangles Definition "</Triangles>"
-                               | "<Triangles/>;
+                               | "<Triangles/>";
     
     Rotation                   = "<Rotation>" "</Rotation>"
-                               | "<Rotation>";
+                               | "<Rotation/>";
     
     Scene                      = "<Scene>"
                                  ?( {setClass | bodyClass | compoundClass
@@ -483,7 +483,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 999999
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `projection`: The kind of projection.
+      - `projection`: The kind of projection. A spherical projection is only supported for 1-D sensors (`imageHeight` must be 1).
           - **Default**: perspective
           - **Use**: optional
           - **Range**: perspective, spherical
@@ -593,7 +593,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
   - `Include`: Includes another scene description file.
       - `href`: The path to the included file.
-          - **Use**: optional
+          - **Use**: required
           - **Range**: String
   - `Simulation`: Has to be the outermost element of every file.
 
@@ -719,17 +719,14 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Use**: optional
           - **Range**: [0, MAXFLOAT]
       - `dirX`: The x direction of the light spot.
-          - **Units**: mm, cm, dm, m, km
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-1, 1]
       - `dirY`: The y direction of the light spot.
-          - **Units**: mm, cm, dm, m, km
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-1, 1]
       - `dirZ`: The z direction of the light spot.
-          - **Units**: mm, cm, dm, m, km
           - **Default**: 1
           - **Use**: optional
           - **Range**: [-1, 1]
@@ -765,7 +762,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `name`: The name of the mass.
           - **Use**: optional
           - **Range**: String
-      - `value`: The mass of the box.
+      - `value`: The mass of the capsule.
           - **Units**: g, kg
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
@@ -781,7 +778,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `name`: The name of the mass.
           - **Use**: optional
           - **Range**: String
-      - `value`: The mass of the box.
+      - `value`: The mass of the cylinder.
           - **Units**: g, kg
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
@@ -847,7 +844,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `name`: The name of the mass.
           - **Use**: optional
           - **Range**: String
-  - `SphereMass`: Specifies a sphere-shaped geometry.
+  - `SphereMass`: Specifies a sphere-shaped mass.
       - `name`: The name of the mass.
           - **Use**: optional
           - **Range**: String
@@ -920,19 +917,30 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Range**: (0, MAXFLOAT]
 
 
+### normalsClass
+
+  - `Normals`: Specifies the normals of a `ComplexAppearance`. The content is a space separated list of floats, three per normal (x, y, z). Lines starting with `#` are comments. If no normals are given, they are calculated from the faces.
+
+
+### primitiveGroupClass
+
+  - `Triangles`: Specifies triangles of a `ComplexAppearance`. The content is a space separated list of non-negative integers (lines starting with `#` are comments). Each triangle consists of three vertex indices into the `Vertices` element, or, if `Normals` are present, of three pairs (vertex index, normal index).
+  - `Quads`: Specifies quadrilaterals of a `ComplexAppearance`. It is specified like `Triangles`, but with four vertex indices (or pairs) per quad.
+
+
 ### rotationClass
 
-  - `Rotation`: Specifies the rotation of an object relative to its parent.
+  - `Rotation`: Specifies the rotation of an object relative to its parent. The resulting rotation matrix is R<sub>z</sub> · R<sub>y</sub> · R<sub>x</sub>.
       - `x`: Rotation around the x-axis.
-          - **Units**: radian, degree
+          - **Units**: degree, radian
           - **Default**: 0degree
           - **Use**: optional
       - `y`: Rotation around the y-axis.
-          - **Units**: radian, degree
+          - **Units**: degree, radian
           - **Default**: 0degree
           - **Use**: optional
       - `z`: Rotation around the z-axis.
-          - **Units**: radian, degree
+          - **Units**: degree, radian
           - **Default**: 0degree
           - **Use**: optional
 
@@ -958,6 +966,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Units**: $\frac{\textrm{mm}}{\textrm{s}^2}$, $\frac{\textrm{m}}{\textrm{s}^2}$
           - **Default**: -9.80665 $\frac{\textrm{m}}{\textrm{s}^2}$
           - **Use**: optional
+          - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `bodyCollisions`: Whether collisions between different bodies should be detected.
           - **Default**: true
           - **Use**: optional
@@ -1001,6 +1010,11 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Range**: String
 
 
+### texCoordsClass
+
+  - `TexCoords`: Specifies the texture coordinates of a `ComplexAppearance`. The content is a space separated list of floats, two per vertex (u, v). Lines starting with `#` are comments. If the surface has a texture, there must be exactly one pair per vertex.
+
+
 ### translationClass
 
   - `Translation`: Specifies a translation of an object relative to its parent.
@@ -1027,30 +1041,39 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `name`: The name of the user input.
           - **Use**: optional
           - **Range**: String
-      - `type`: The kind of data for which user input is provided.
+      - `type`: The kind of data for which user input is provided. The units of `min`, `max` and `default` depend on it: degree, radian (angle); degree/s, radian/s (angularVelocity); mm, cm, dm, m, km (length); mm/s, cm/s, dm/s, m/s, km/s, km/h (velocity); mm/s^2, m/s^2 (acceleration).
           - **Default**: length
           - **Use**: optional
           - **Range**: angle, angularVelocity, length, velocity, acceleration
       - `min`: The minimum value that can be set.
-          - **Units**: Units matching the type
+          - **Units**: Units matching the type (see `type`)
           - **Use**: required
           - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `max`: The maximum value that can be set.
-          - **Units**: Units matching the type
+          - **Units**: Units matching the type (see `type`)
           - **Use**: required
           - **Range**: [-MAXFLOAT, MAXFLOAT]
       - `default`: The value returned by the sensor if no value is set in the actuator view.
-          - **Units**: Units matching the type
+          - **Units**: Units matching the type (see `type`)
           - **Default**: 0
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
+
+
+### verticesClass
+
+  - `Vertices`: Specifies the vertices of a `ComplexAppearance`. The content is a space separated list of floats, three per vertex (x, y, z). Lines starting with `#` are comments.
+      - `unit`: The unit of the vertex coordinates.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: m
+          - **Use**: optional
 
 
 ## Color Specification
 
 There are two ways of specifying a color for a color-attribute.
 
-  - **HTML-Style**: To specify a color in html-style the first character of the color value has to be a `#` followed by hexadecimal values for red, blue, green (and an optional fourth value for the alpha-channel). These values can be one-digit or two-digits, but not mixed.
+  - **HTML-Style**: To specify a color in html-style the first character of the color value has to be a `#` followed by hexadecimal values for red, green, blue (and an optional fourth value for the alpha-channel). These values can be one-digit or two-digits, but not mixed.
       - `#rgb` e.g. `#f00`
       - `#rgba` e.g. `#0f08`
       - `#rrggbb` e.g. `#f80011`
@@ -1058,3 +1081,5 @@ There are two ways of specifying a color for a color-attribute.
   - **CSS-Style**: A css color starts with`rgb` (or `rgba`) followed by the values for red, green, and blue put into parentheses and separated by commas. The values for *r*, *g*, and *b* have to be between 0 and 255 or between 0% and 100%, the *a* value has to be between 0 and 1.
       - `rgb(r, g, b)` e.g. `rgb(255, 128, 0)`
       - `rgba(r, g, b, a)` e.g. `rgba(0%, 50%, 75%, 0.75)`
+
+Some attributes (e.g. the color of lights or the `albedo` of a surface) only accept colors without an alpha channel. Specifying an alpha value there is an error.
