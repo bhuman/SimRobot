@@ -48,6 +48,7 @@ private:
     materialClass       = (1 << 20),
     lightClass          = (1 << 21),
     userInputClass      = (1 << 22),
+    shadowMapClass      = (1 << 23),
   };
 
   bool getColor(const char* key, bool required, float* colors, bool withAlpha);
@@ -94,6 +95,7 @@ private:
   Element* dirLightElement();
   Element* pointLightElement();
   Element* spotLightElement();
+  Element* shadowMapElement();
   Element* surfaceElement();
   Element* gyroscopeElement();
   Element* accelerometerElement();

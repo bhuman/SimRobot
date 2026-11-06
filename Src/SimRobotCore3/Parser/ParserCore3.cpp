@@ -58,10 +58,12 @@ ParserCore3::ParserCore3()
     {"Scene", sceneClass, std::bind(&ParserCore3::sceneElement, this), nullptr, 0,
       0, 0, setClass | bodyClass | compoundClass | lightClass | userInputClass, {}},
     {"DirLight", lightClass, std::bind(&ParserCore3::dirLightElement, this), nullptr, 0,
-      0, 0, 0, {}},
+      0, shadowMapClass, 0, {}},
     {"PointLight", lightClass, std::bind(&ParserCore3::pointLightElement, this), nullptr, 0,
-      0, 0, 0, {}},
+      0, shadowMapClass, 0, {}},
     {"SpotLight", lightClass, std::bind(&ParserCore3::spotLightElement, this), nullptr, 0,
+      0, shadowMapClass, 0, {}},
+    {"ShadowMap", shadowMapClass, std::bind(&ParserCore3::shadowMapElement, this), nullptr, 0,
       0, 0, 0, {}},
 
     {"Compound", compoundClass, std::bind(&ParserCore3::compoundElement, this), nullptr, 0,
@@ -256,6 +258,22 @@ Element* ParserCore3::spotLightElement()
   light->direction[2] = getFloatMinMax("dirZ", false, light->direction[2], -1.f, 1.f);
   light->cutoff = getFloatMinMax("cutoff", false, light->cutoff, 0.f, 1.f);
   return light;
+}
+
+Element* ParserCore3::shadowMapElement()
+{
+  Light* light = dynamic_cast<Light*>(element);
+  ASSERT(light);
+  Light::ShadowMap& shadowMap = light->shadowMap.emplace();
+  shadowMap.width = static_cast<unsigned int>(getInteger("width", false, static_cast<int>(shadowMap.width), true));
+  shadowMap.height = static_cast<unsigned int>(getInteger("height", false, static_cast<int>(shadowMap.height), true));
+  shadowMap.aabbCenter.x() = getLength("aabbCenterX", false, shadowMap.aabbCenter.x(), false);
+  shadowMap.aabbCenter.y() = getLength("aabbCenterY", false, shadowMap.aabbCenter.y(), false);
+  shadowMap.aabbCenter.z() = getLength("aabbCenterZ", false, shadowMap.aabbCenter.z(), false);
+  shadowMap.aabbExtent.x() = getLength("aabbExtentX", true, 0.f, true);
+  shadowMap.aabbExtent.y() = getLength("aabbExtentY", true, 0.f, true);
+  shadowMap.aabbExtent.z() = getLength("aabbExtentZ", true, 0.f, true);
+  return nullptr;
 }
 
 Element* ParserCore3::bodyElement()

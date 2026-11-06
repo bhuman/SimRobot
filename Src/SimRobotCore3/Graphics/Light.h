@@ -10,6 +10,8 @@
 #pragma once
 
 #include "Parser/ElementCore3.h"
+#include "Tools/Math/Eigen.h"
+#include <optional>
 
 /**
  * @class Light
@@ -18,7 +20,20 @@
 class Light : public ElementCore3
 {
 public:
+  /**
+   * The parameters of the shadow map of a light (enabled by a \c ShadowMap child element).
+   * Only objects within the axis-aligned bounding box cast and receive shadows.
+   */
+  struct ShadowMap
+  {
+    unsigned int width = 2048; /**< The width of the shadow map in pixels. */
+    unsigned int height = 2048; /**< The height of the shadow map in pixels. */
+    Vector3f aabbCenter = Vector3f::Zero(); /**< The center of the bounding box (in world coordinates). */
+    Vector3f aabbExtent = Vector3f::Zero(); /**< The size of the bounding box in x, y and z direction. */
+  };
+
   float color[3];
+  std::optional<ShadowMap> shadowMap; /**< The shadow map if the light casts shadows. */
 
   /** Default constructor */
   Light();
