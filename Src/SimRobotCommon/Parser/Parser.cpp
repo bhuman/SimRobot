@@ -789,13 +789,18 @@ float Parser::getLength(const char* key, bool required, float defaultValue, bool
   return result;
 }
 
-float Parser::getVelocity(const char* key, bool required, float defaultValue)
+float Parser::getVelocity(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "mm/s") == 0)
@@ -817,13 +822,18 @@ float Parser::getVelocity(const char* key, bool required, float defaultValue)
   return result;
 }
 
-float Parser::getAcceleration(const char* key, bool required, float defaultValue)
+float Parser::getAcceleration(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "mm/s^2") == 0)
@@ -862,13 +872,18 @@ float Parser::getAngle(const char* key, bool required, float defaultValue, bool 
   return result;
 }
 
-float Parser::getAngularVelocity(const char* key, bool required, float defaultValue)
+float Parser::getAngularVelocity(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "degree/s") == 0)
@@ -882,18 +897,48 @@ float Parser::getAngularVelocity(const char* key, bool required, float defaultVa
   return result;
 }
 
-float Parser::getForce(const char* key, bool required, float defaultValue)
+float Parser::getForce(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "N") != 0)
     {
       handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected \"N\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getTorque(const char* key, bool required, float defaultValue, bool nonZeroPositive)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  if(*endPtr)
+  {
+    if(std::strcmp(endPtr, "N*mm") == 0)
+      result *= 0.001f;
+    else if(std::strcmp(endPtr, "N*m") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"N*mm, N*m\")", unitLocation);
       return defaultValue;
     }
   }
@@ -922,13 +967,18 @@ float Parser::getMass(const char* key, bool required, float defaultValue)
   return result;
 }
 
-float Parser::getMassLengthLength(const char* key, bool required, float defaultValue)
+float Parser::getMassLengthLength(const char* key, bool required, float defaultValue, bool nonZeroPositive)
 {
   float result;
   char* endPtr;
   Location unitLocation;
   if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
     return defaultValue;
+  if(nonZeroPositive && result <= 0.f)
+  {
+    handleError("Expected a positive non-zero value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
   if(*endPtr)
   {
     if(std::strcmp(endPtr, "g*mm^2") == 0)
@@ -936,6 +986,29 @@ float Parser::getMassLengthLength(const char* key, bool required, float defaultV
     else if(std::strcmp(endPtr, "kg*m^2") != 0)
     {
       handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected one of \"g*mm^2, kg*m^2\")", unitLocation);
+      return defaultValue;
+    }
+  }
+  return result;
+}
+
+float Parser::getTimePositive(const char* key, bool required, float defaultValue)
+{
+  float result;
+  char* endPtr;
+  Location unitLocation;
+  if(!getFloatAndUnit(key, required, result, &endPtr, unitLocation))
+    return defaultValue;
+  if(result < 0.f)
+  {
+    handleError("Expected a positive value", attributes->find(key)->second.valueLocation);
+    return defaultValue;
+  }
+  if(*endPtr)
+  {
+    if(std::strcmp(endPtr, "s") != 0)
+    {
+      handleError("Unexpected unit \"" + std::string(endPtr) + "\" (expected \"s\")", unitLocation);
       return defaultValue;
     }
   }

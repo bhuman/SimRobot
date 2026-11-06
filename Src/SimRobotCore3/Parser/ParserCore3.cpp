@@ -126,7 +126,7 @@ ParserCore3::ParserCore3()
       0, 0, 0, {}},
 
     {"Surface", surfaceClass, std::bind(&ParserCore3::surfaceElement, this), nullptr, constantFlag,
-      0, 0, 0, {"diffuseTexture"}},
+      0, 0, 0, {"texture"}},
 
     {"Hinge", jointClass, std::bind(&ParserCore3::hingeElement, this), nullptr, 0,
       bodyClass | axisClass, translationClass | rotationClass, setClass, {}},
@@ -198,7 +198,7 @@ Element* ParserCore3::sceneElement()
   scene->controller = getString("controller", false);
   getColor("color", false, scene->color, true);
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
-  scene->gravity = getAcceleration("gravity", false, -9.80665f);
+  scene->gravity = getAcceleration("gravity", false, -9.80665f, false);
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
 
   ASSERT(!Simulation::simulation->scene);
@@ -321,12 +321,12 @@ Element* ParserCore3::inertiaMatrixMassElement()
   inertiaMatrixMass->x = getLength("x", false, 0.f, false);
   inertiaMatrixMass->y = getLength("y", false, 0.f, false);
   inertiaMatrixMass->z = getLength("z", false, 0.f, false);
-  inertiaMatrixMass->ixx = getMassLengthLength("ixx", true, 0.f);
-  inertiaMatrixMass->ixy = getMassLengthLength("ixy", false, 0.f);
-  inertiaMatrixMass->ixz = getMassLengthLength("ixz", false, 0.f);
-  inertiaMatrixMass->iyy = getMassLengthLength("iyy", true, 0.f);
-  inertiaMatrixMass->iyz = getMassLengthLength("iyz", false, 0.f);
-  inertiaMatrixMass->izz = getMassLengthLength("izz", true, 0.f);
+  inertiaMatrixMass->ixx = getMassLengthLength("ixx", true, 0.f, true);
+  inertiaMatrixMass->ixy = getMassLengthLength("ixy", false, 0.f, false);
+  inertiaMatrixMass->ixz = getMassLengthLength("ixz", false, 0.f, false);
+  inertiaMatrixMass->iyy = getMassLengthLength("iyy", true, 0.f, true);
+  inertiaMatrixMass->iyz = getMassLengthLength("iyz", false, 0.f, false);
+  inertiaMatrixMass->izz = getMassLengthLength("izz", true, 0.f, true);
   return inertiaMatrixMass;
 }
 
@@ -671,8 +671,6 @@ Element* ParserCore3::deflectionElement()
   else
     ASSERT(false);
 
-  getBool("isActive", false, true);
-
   ASSERT(!axis->deflection);
   axis->deflection = deflection;
   return nullptr;
@@ -686,18 +684,23 @@ Element* ParserCore3::servoMotorElement()
   ASSERT(!axis->motor);
 
   if(dynamic_cast<Hinge*>(axis->joint))
-    servoMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
+  {
+    servoMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f, true);
+    servoMotor->maxForce = getTorque("maxForce", true, 0.f, true);
+  }
   else if(dynamic_cast<Slider*>(axis->joint))
-    servoMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f);
+  {
+    servoMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f, true);
+    servoMotor->maxForce = getForce("maxForce", true, 0.f, true);
+  }
   else
     ASSERT(false);
 
-  servoMotor->maxForce = getForce("maxForce", true, 0.f);
-  servoMotor->armature = getForce("armature", false, 0.01f);
+  servoMotor->armature = getForce("armature", false, 0.01f, false);
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
-  servoMotor->delay = getFloatPositive("delay", false, 0.f);
+  servoMotor->delay = getTimePositive("delay", false, 0.f);
   servoMotor->velocityLowPassFactor = getFloatMinMax("velocityLowPassFactor", false, 1.f, 0.f, 1.f);
 
   axis->motor = servoMotor;
@@ -712,13 +715,17 @@ Element* ParserCore3::velocityMotorElement()
   ASSERT(!axis->motor);
 
   if(dynamic_cast<Hinge*>(axis->joint))
-    velocityMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f);
+  {
+    velocityMotor->maxVelocity = getAngularVelocity("maxVelocity", true, 0.f, true);
+    velocityMotor->maxForce = getTorque("maxForce", true, 0.f, true);
+  }
   else if(dynamic_cast<Slider*>(axis->joint))
-    velocityMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f);
+  {
+    velocityMotor->maxVelocity = getVelocity("maxVelocity", true, 0.f, true);
+    velocityMotor->maxForce = getForce("maxForce", true, 0.f, true);
+  }
   else
     ASSERT(false);
-
-  velocityMotor->maxForce = getForce("maxForce", true, 0.f);
 
   axis->motor = velocityMotor;
   return nullptr;
@@ -833,9 +840,9 @@ Element* ParserCore3::userInputElement()
   else if(type == "angularVelocity")
   {
     userInput->inputPort.unit = QString::fromUtf8("°/s");
-    userInput->inputPort.min = getAngularVelocity("min", true, 0.f);
-    userInput->inputPort.max = getAngularVelocity("max", true, 0.f);
-    userInput->inputPort.defaultValue = getAngularVelocity("default", false, 0.f);
+    userInput->inputPort.min = getAngularVelocity("min", true, 0.f, false);
+    userInput->inputPort.max = getAngularVelocity("max", true, 0.f, false);
+    userInput->inputPort.defaultValue = getAngularVelocity("default", false, 0.f, false);
   }
   else if(type == "length" || type == "")
   {
@@ -847,16 +854,16 @@ Element* ParserCore3::userInputElement()
   else if(type == "velocity")
   {
     userInput->inputPort.unit = QString::fromUtf8("m/s");
-    userInput->inputPort.min = getVelocity("min", true, 0.f);
-    userInput->inputPort.max = getVelocity("max", true, 0.f);
-    userInput->inputPort.defaultValue = getVelocity("default", false, 0.f);
+    userInput->inputPort.min = getVelocity("min", true, 0.f, false);
+    userInput->inputPort.max = getVelocity("max", true, 0.f, false);
+    userInput->inputPort.defaultValue = getVelocity("default", false, 0.f, false);
   }
   else if(type == "acceleration")
   {
     userInput->inputPort.unit = QString::fromUtf8("m/s^2");
-    userInput->inputPort.min = getAcceleration("min", true, 0.f);
-    userInput->inputPort.max = getAcceleration("max", true, 0.f);
-    userInput->inputPort.defaultValue = getAcceleration("default", false, 0.f);
+    userInput->inputPort.min = getAcceleration("min", true, 0.f, false);
+    userInput->inputPort.max = getAcceleration("max", true, 0.f, false);
+    userInput->inputPort.defaultValue = getAcceleration("default", false, 0.f, false);
   }
   else
     handleError("Unexpected user input type \"" + type + "\" (expected one of \"length, velocity, acceleration, angle, angularVelocity\")",
