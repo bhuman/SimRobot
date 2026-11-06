@@ -51,7 +51,7 @@ void SimObjectRenderer::init()
     registeredAtManager = true;
   }
   initialized = true;
-  calcDragPlaneVector();
+  calcDragPlaneNormal();
 }
 
 void SimObjectRenderer::destroy()
@@ -300,7 +300,7 @@ void SimObjectRenderer::zoom(float change, float x, float y)
     {
       translationVector = translationVector - cameraPos;
       cameraPos += translationVector * change * 0.0005f;
-      intersectRayAndPlane(cameraPos, v, cameraTarget, dragPlaneVector, cameraTarget);
+      intersectRayAndPlane(cameraPos, v, cameraTarget, dragPlaneNormal, cameraTarget);
     }
   }
   updateCameraTransformation();
@@ -309,7 +309,7 @@ void SimObjectRenderer::zoom(float change, float x, float y)
 void SimObjectRenderer::setDragPlane(DragAndDropPlane plane)
 {
   dragPlane = plane;
-  calcDragPlaneVector();
+  calcDragPlaneNormal();
 }
 
 bool SimObjectRenderer::intersectRayAndPlane(const Vector3f& point, const Vector3f& v,
@@ -329,21 +329,21 @@ bool SimObjectRenderer::intersectRayAndPlane(const Vector3f& point, const Vector
 
 bool SimObjectRenderer::intersectClickAndCoordinatePlane(int x, int y, DragAndDropPlane, Vector3f& point) const
 {
-  return intersectRayAndPlane(cameraPos, projectClick(x, y) - cameraPos, cameraTarget, dragPlaneVector, point);
+  return intersectRayAndPlane(cameraPos, projectClick(x, y) - cameraPos, cameraTarget, dragPlaneNormal, point);
 }
 
-void SimObjectRenderer::calcDragPlaneVector()
+void SimObjectRenderer::calcDragPlaneNormal()
 {
   switch(dragPlane)
   {
     case xyPlane:
-      dragPlaneVector = Vector3f(0.f, 0.f, 1.f);
+      dragPlaneNormal = Vector3f(0.f, 0.f, 1.f);
       break;
     case xzPlane:
-      dragPlaneVector = Vector3f(0.f, 1.f, 0.f);
+      dragPlaneNormal = Vector3f(0.f, 1.f, 0.f);
       break;
     case yzPlane:
-      dragPlaneVector = Vector3f(1.f, 0.f, 0.f);
+      dragPlaneNormal = Vector3f(1.f, 0.f, 0.f);
       break;
   }
 }
@@ -384,11 +384,11 @@ bool SimObjectRenderer::startDrag(int x, int y, DragType type)
 
     if(dragSelection)
     {
-      dragStartPos = dragSelection->poseInWorld.translation;
-      calcDragPlaneVector();
+      dragPlaneOffset = dragSelection->poseInWorld.translation;
+      calcDragPlaneNormal();
       if(type == dragRotateObject || type == dragTranslateObject)
-        dragPlaneVector = dragSelection->poseInWorld.rotation * dragPlaneVector;
-      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, dragLastPos))
+        dragPlaneNormal = dragSelection->poseInWorld.rotation * dragPlaneNormal;
+      if(!intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragPlaneOffset, dragPlaneNormal, dragLastPos))
         dragSelection = nullptr;
       else
       {
@@ -489,7 +489,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
       return true;
     Vector3f projectedClick = projectClick(x, y);
     Vector3f currentPos;
-    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, currentPos))
+    if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragPlaneOffset, dragPlaneNormal, currentPos))
     {
       if(dragType == dragRotateObject || dragType == dragRotateWorld)
       {
@@ -511,7 +511,7 @@ bool SimObjectRenderer::moveDrag(int x, int y, DragType type)
         else
           angle = normalize(std::atan2(newV.y(), newV.x()) - std::atan2(oldV.y(), oldV.x()));
 
-        const Vector3f offset = dragPlaneVector * angle;
+        const Vector3f offset = dragPlaneNormal * angle;
         const RotationMatrix rotation = Rotation::AngleAxis::unpack(offset);
         Vector3f center = dragSelection->poseInWorld.translation;
         dragSelection->rotate(rotation, center);
@@ -574,7 +574,7 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
     {
       Vector3f projectedClick = projectClick(x, y);
       Vector3f currentPos;
-      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragStartPos, dragPlaneVector, currentPos))
+      if(intersectRayAndPlane(cameraPos, projectedClick - cameraPos, dragPlaneOffset, dragPlaneNormal, currentPos))
       {
         if(dragType == dragRotateObject || dragType == dragRotateWorld)
         {
@@ -596,7 +596,7 @@ bool SimObjectRenderer::releaseDrag(int x, int y)
           else
             angle = normalize(std::atan2(newV.y(), newV.x()) - std::atan2(oldV.y(), oldV.x()));
 
-          const Vector3f offset = dragPlaneVector * angle;
+          const Vector3f offset = dragPlaneNormal * angle;
           const Vector3f torque = offset * static_cast<float>(Simulation::simulation->model->body_mass[dragSelection->bodyIndex]) * 50.f;
           mju_f2n(Simulation::simulation->data->xfrc_applied + dragSelection->bodyIndex * 6 + 3, torque.data(), 3);
         }

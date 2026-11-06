@@ -51,11 +51,11 @@ private:
   bool dragging = false;
   DragType dragType;
   Body* dragSelection;
-  Vector3f dragStartPos;
+  Vector3f dragPlaneOffset;
   Vector3f dragLastPos;
   Vector3f interCameraPos;
   DragAndDropPlane dragPlane = xyPlane;
-  Vector3f dragPlaneVector;
+  Vector3f dragPlaneNormal;
   DragAndDropMode dragMode = keepDynamics;
   unsigned int dragStartTime;
   static constexpr int degreeSteps = 15;
@@ -69,7 +69,7 @@ private:
   Body* selectObject(const Vector3f& projectedClick);
   bool intersectClickAndCoordinatePlane(int x, int y, DragAndDropPlane plane, Vector3f& point) const;
 
-  void calcDragPlaneVector();
+  void calcDragPlaneNormal();
 
 public:
   // API
