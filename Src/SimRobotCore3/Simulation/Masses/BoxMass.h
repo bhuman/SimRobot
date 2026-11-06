@@ -21,6 +21,5 @@ public:
   float depth; /**< The depth of the box (cx) */
 
 private:
-  /** Creates the mass (not including children, \c translation or \c rotation) */
-  void assembleMass() override;
+  Properties assembleMass() const override;
 };

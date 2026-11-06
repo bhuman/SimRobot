@@ -6,14 +6,13 @@
 
 #include "InertiaMatrixMass.h"
 
-void InertiaMatrixMass::assembleMass()
+Mass::Properties InertiaMatrixMass::assembleMass() const
 {
-  mass = value;
-  com = Vector3f(x, y, z);
-  inertia[0] = ixx;
-  inertia[1] = iyy;
-  inertia[2] = izz;
-  inertia[3] = ixy;
-  inertia[4] = ixz;
-  inertia[5] = iyz;
+  Properties properties;
+  properties.mass = value;
+  properties.com = Vector3f(x, y, z);
+  properties.inertia << ixx, ixy, ixz,
+                        ixy, iyy, iyz,
+                        ixz, iyz, izz;
+  return properties;
 }

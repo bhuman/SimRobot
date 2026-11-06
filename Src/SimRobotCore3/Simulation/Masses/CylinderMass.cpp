@@ -6,10 +6,9 @@
 
 #include "CylinderMass.h"
 
-void CylinderMass::assembleMass()
+Mass::Properties CylinderMass::assembleMass() const
 {
-  mass = value;
-  inertia[0] = inertia[1] = value * (0.25f * radius * radius + height * height / 12.f);
-  inertia[2] = 0.5f * value * radius * radius;
-  inertia[3] = inertia[4] = inertia[5] = 0.f;
+  const float transverse = value * (0.25f * radius * radius + height * height / 12.f);
+  const Vector3f diagonal(transverse, transverse, 0.5f * value * radius * radius);
+  return {.mass = value, .inertia = Matrix3f(diagonal.asDiagonal())};
 }

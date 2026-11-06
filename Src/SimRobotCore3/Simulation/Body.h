@@ -63,7 +63,12 @@ public:
   void rotate(const RotationMatrix& rotation, const Vector3f& point);
 
 private:
-  Vector3f centerOfMass = Vector3f::Zero(); /**< The position of the center of mass relative to the pose of the body */
+  /**
+   * The position of the center of mass relative to the pose of the body.
+   * Unlike ODE, MuJoCo does not require the frame of a body to be at its center of mass (it is the inertial frame \c ipos),
+   * so the frame of the body, its geoms and joints stay where they are and this is only used for drawing.
+   */
+  Vector3f centerOfMass = Vector3f::Zero();
   Vector3f velocityInWorld; /**< A buffer used by \c getVelocity */
 
   int collisionGroup = 0; /**< The collision group of this body (one per root body). Compounds belong to collision group 0. */
@@ -85,12 +90,6 @@ private:
    * @param immaterial Whether the geometry collides or just tests for collision
    */
   void addGeometry(const Pose3f& parentOffset, Geometry& geometry, bool immaterial = false);
-
-  /**
-   * Adds a mass to the mass of the body
-   * @param mass A mass description of the mass to add
-   */
-  void addMass(Mass& mass);
 
   /**
    * Registers an element as parent

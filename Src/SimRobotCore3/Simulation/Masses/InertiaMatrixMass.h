@@ -27,6 +27,5 @@ public:
   float izz;
 
 private:
-  /** Creates the mass (not including children, \c translation or \c rotation) */
-  void assembleMass() override;
+  Properties assembleMass() const override;
 };

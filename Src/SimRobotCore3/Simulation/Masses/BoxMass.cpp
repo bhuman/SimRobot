@@ -6,11 +6,10 @@
 
 #include "BoxMass.h"
 
-void BoxMass::assembleMass()
+Mass::Properties BoxMass::assembleMass() const
 {
-  mass = value;
-  inertia[0] = value * (width * width + height * height) / 12.f;
-  inertia[1] = value * (depth * depth + height * height) / 12.f;
-  inertia[2] = value * (depth * depth + width * width) / 12.f;
-  inertia[3] = inertia[4] = inertia[5] = 0.f;
+  const Vector3f diagonal(value * (width * width + height * height) / 12.f,
+                          value * (depth * depth + height * height) / 12.f,
+                          value * (depth * depth + width * width) / 12.f);
+  return {.mass = value, .inertia = Matrix3f(diagonal.asDiagonal())};
 }

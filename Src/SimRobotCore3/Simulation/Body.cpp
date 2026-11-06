@@ -54,11 +54,20 @@ void Body::createPhysics(GraphicsContext& graphicsContext)
   mjs_setName(body->element, Simulation::simulation->getName(mjOBJ_BODY, "Body", &bodyIndex, this));
 
   // add masses
-  for(SimObject* iter : children)
   {
-    auto* mass = dynamic_cast<Mass*>(iter);
-    if(mass)
-      addMass(*mass);
+    Mass::Properties massProperties;
+    for(SimObject* iter : children)
+    {
+      auto* mass = dynamic_cast<Mass*>(iter);
+      if(mass)
+        massProperties.add(mass->createMassInParent());
+    }
+    body->mass = massProperties.mass;
+    mju_f2n(body->ipos, massProperties.com.data(), 3);
+    float fullInertia[6];
+    massProperties.getFullInertia(fullInertia);
+    mju_f2n(body->fullinertia, fullInertia, 6);
+    centerOfMass = massProperties.com;
   }
 
   // set position
@@ -122,64 +131,6 @@ void Body::addGeometry(const Pose3f& parentOffset, Geometry& geometry, bool imma
     ASSERT(geometry);
     addGeometry(offset, *geometry, immaterial);
   }
-}
-
-void Body::addMass(Mass& mass)
-{
-  if(body->mass == 0.f)
-  {
-    Vector3f com;
-    float inertia[6];
-    body->mass = mass.createMass(com, inertia);
-    mju_f2n(body->fullinertia, inertia, 6);
-    mju_f2n(body->ipos, com.data(), 3);
-    /*
-    if(mass.rotation)
-      rotate mass; -> rotate tensor of inertia and center of mass
-    if(mass.translation)
-      mju_f2n(body->ipos, mass.translation->data(), 3); // by moving the inertia frame, no adjustment to the tensor of inertia is needed
-    */
-    mju_addTo3(body->ipos, body->pos);
-  }
-  /*
-  if(this->mass.mass == 0.f)
-  {
-    this->mass = mass.createMass();
-    if(mass.rotation)
-    {
-      dMatrix3 matrix;
-      ODETools::convertMatrix(*mass.rotation, matrix);
-      dMassRotate(&this->mass, matrix);
-    }
-    if(mass.translation)
-      centerOfMass = *mass.translation;
-  }
-  else
-  {
-    if(centerOfMass != Vector3f::Zero())
-    {
-      dMassTranslate(&this->mass, centerOfMass.x(), centerOfMass.y(), centerOfMass.z());
-      centerOfMass = Vector3f::Zero();
-    }
-
-    const dMass& constAdditionalMass = mass.createMass();
-    if(mass.rotation || mass.translation)
-    {
-      dMass additionalMass = constAdditionalMass;
-      if(mass.rotation)
-      {
-        dMatrix3 matrix;
-        ODETools::convertMatrix(*mass.rotation, matrix);
-        dMassRotate(&additionalMass, matrix);
-      }
-      if(mass.translation)
-        dMassTranslate(&additionalMass, mass.translation->x(), mass.translation->y(), mass.translation->z());
-      dMassAdd(&this->mass, &additionalMass);
-    }
-    else
-      dMassAdd(&this->mass, &constAdditionalMass);
-  }
-   */
 }
 
 void Body::createGraphics(GraphicsContext& graphicsContext)

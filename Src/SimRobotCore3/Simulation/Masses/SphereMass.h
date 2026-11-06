@@ -19,6 +19,5 @@ public:
   float radius; /**< The radius of the sphere */
 
 private:
-  /** Creates the mass (not including children, \c translation or \c rotation) */
-  void assembleMass() override;
+  Properties assembleMass() const override;
 };

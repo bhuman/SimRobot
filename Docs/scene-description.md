@@ -840,7 +840,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Units**: g⋅mm², kg⋅m²
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
-  - `Mass`: Specifies a mass.
+  - `Mass`: Specifies a mass without a mass of its own. It is a container for other masses, which can be moved and rotated as a whole with `Translation` and `Rotation`. The mass of a `Body` is the sum of all masses (including nested ones), the center of mass and inertia are combined accordingly.
       - `name`: The name of the mass.
           - **Use**: optional
           - **Range**: String
