@@ -403,13 +403,13 @@ void GraphicsContext::createGraphics()
   {
     data.vbo = shareData->vbo;
     data.ebo = shareData->ebo;
-    data.ubo = shareData->ubo;
+    data.surfaceUBO = shareData->surfaceUBO;
   }
   else
   {
     f->glGenBuffers(1, &data.vbo);
     f->glGenBuffers(1, &data.ebo);
-    f->glGenBuffers(1, &data.ubo);
+    f->glGenBuffers(1, &data.surfaceUBO);
     // Data can't be uploaded here because to bind the EBO, a VAO must be bound.
   }
 
@@ -438,7 +438,7 @@ void GraphicsContext::createGraphics()
     for(const auto* buffer : indexBuffers)
       f->glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
 
-    f->glBindBuffer(GL_UNIFORM_BUFFER, data.ubo);
+    f->glBindBuffer(GL_UNIFORM_BUFFER, data.surfaceUBO);
     f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * Surface::memorySize, nullptr, GL_STATIC_DRAW);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
@@ -500,7 +500,7 @@ void GraphicsContext::destroyGraphics()
   {
     data.f->glDeleteBuffers(1, &data.vbo);
     data.f->glDeleteBuffers(1, &data.ebo);
-    data.f->glDeleteBuffers(1, &data.ubo);
+    data.f->glDeleteBuffers(1, &data.surfaceUBO);
     data.f->glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
     for(const auto& shader : data.shaders)
       data.f->glDeleteProgram(shader.program);
@@ -686,7 +686,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
     f->glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
-  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->ubo);
+  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->surfaceUBO);
 
   // Controller drawings might have changed these states in the meantime:
   data->boundVAO = 0;

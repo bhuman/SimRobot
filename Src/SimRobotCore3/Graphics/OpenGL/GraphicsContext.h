@@ -487,7 +487,7 @@ private:
     std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
-    GLuint ubo; /**< The UBO (shared between contexts within a share group). */
+    GLuint surfaceUBO; /**< The UBO of surfaces (shared between contexts within a share group). */
 
     std::vector<GLuint> textureIDs; /**< IDs for all textures (shared between contexts within a share group). */
 
