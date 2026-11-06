@@ -696,7 +696,7 @@ Element* ParserCore3::servoMotorElement()
   else
     ASSERT(false);
 
-  servoMotor->armature = getForce("armature", false, 0.01f, false);
+  servoMotor->armature = getFloatPositive("armature", false, 0.01f);
   servoMotor->controller.p = getFloat("p", true, 0.f);
   servoMotor->controller.i = getFloat("i", false, 0.f);
   servoMotor->controller.d = getFloat("d", false, 0.f);
