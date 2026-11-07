@@ -12,6 +12,7 @@
 #pragma once
 
 #include "Platform/Assert.h"
+#include "SimRobotCore3.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include <array>
@@ -243,6 +244,77 @@ public:
   };
 
   /**
+   * The controller drawings of a frame (see \c SimRobotCore3::Drawing), prepared for being drawn by the graphics context.
+   * Lines, dots, quads and cylinders are tessellated into vertex lists, spheres and ellipsoids are instances of
+   * a unit sphere, and images carry their pixels. Everything is given in the coordinate system of the drawing.
+   */
+  struct DrawingList
+  {
+    /** A vertex of a point, line or triangle. */
+    struct Vertex
+    {
+      float position[3]; /**< The position (in the coordinate system of the drawing). */
+      std::uint8_t color[4]; /**< The color (RGBA). */
+      float size; /**< The size of a point in pixels. */
+    };
+
+    /** A sphere or ellipsoid. */
+    struct Instance
+    {
+      Matrix4f transformation; /**< The transformation of the unit sphere (in the coordinate system of the drawing). */
+      std::uint8_t color[4]; /**< The color (RGBA). */
+    };
+
+    /** An image. */
+    struct Image
+    {
+      Matrix4f transformation; /**< The transformation of the unit quad (in the coordinate system of the drawing). */
+      unsigned int width, height; /**< The size of the image in pixels. */
+      std::vector<std::uint8_t> rgb; /**< The pixels (RGB, top row first). */
+    };
+
+    /** One drawing, which refers to ranges of the lists. */
+    struct Item
+    {
+      Matrix4f transformation; /**< The transformation from the coordinate system of the drawing to the world. */
+      unsigned char renderOptions; /**< A combination of \c SimRobotCore3::Drawing::RenderOption. */
+      std::size_t firstPoint, numOfPoints; /**< The range in \c points. */
+      std::size_t firstLine, numOfLines; /**< The range of vertices in \c lines. */
+      std::size_t firstTriangle, numOfTriangles; /**< The range of vertices in \c triangles. */
+      std::size_t firstInstance, numOfInstances; /**< The range in \c instances. */
+      std::size_t firstImage, numOfImages; /**< The range in \c images. */
+    };
+
+    std::vector<Vertex> points; /**< The vertices of all dots. */
+    std::vector<Vertex> lines; /**< The vertices of all lines (two per line). */
+    std::vector<Vertex> triangles; /**< The vertices of all triangles (three per triangle). */
+    std::vector<Instance> instances; /**< All spheres and ellipsoids. */
+    std::vector<Image> images; /**< All images. */
+    std::vector<Item> items; /**< All drawings. */
+
+    /** Removes everything. */
+    void clear();
+
+    /**
+     * Adds a drawing.
+     * @param drawing The drawing
+     * @param objectTransformation The column-major 4x4 matrix that transforms the coordinate system of the object that the drawing is attached to into the world
+     */
+    void add(const SimRobotCore3::Drawing& drawing, const float* objectTransformation);
+  };
+
+  /**
+   * Sets the meshes that are used to draw controller drawings.
+   * @param sphereMesh A sphere with radius 1 (centered at 0, 0, 0)
+   * @param quadMesh A quad in the yz-plane (see \c Primitives::createQuad)
+   */
+  void setDrawingMeshes(const Mesh* sphereMesh, const Mesh* quadMesh)
+  {
+    drawingSphereMesh = sphereMesh;
+    drawingQuadMesh = quadMesh;
+  }
+
+  /**
    * Set the color that the color buffer is cleared to.
    * @param color Pointer to a four-element (RGBA) color.
    */
@@ -464,6 +536,8 @@ protected:
   std::vector<IndexBuffer*> indexBuffers; /**< List of all registered index buffers. */
   std::uint64_t indexBufferTotalSize = 0; /**< The total size of the global index buffer. */
   std::vector<Mesh*> meshes; /**< List of all registered meshes. */
+  const Mesh* drawingSphereMesh = nullptr; /**< The mesh of the spheres of controller drawings. */
+  const Mesh* drawingQuadMesh = nullptr; /**< The mesh of the images of controller drawings. */
   std::vector<LightData> lights; /**< The lights of the scene. */
   std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */

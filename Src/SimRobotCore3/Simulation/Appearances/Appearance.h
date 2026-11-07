@@ -91,4 +91,6 @@ private:
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
   bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::GraphicalObject::registerDrawing(drawing);}
   bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::GraphicalObject::unregisterDrawing(drawing);}
+  void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing) override {::GraphicalObject::setDrawing(key, std::move(drawing));}
+  bool removeDrawing(const void* key) override {return ::GraphicalObject::removeDrawing(key);}
 };

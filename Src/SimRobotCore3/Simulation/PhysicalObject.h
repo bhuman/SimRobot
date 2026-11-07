@@ -8,6 +8,7 @@
 
 #include "SimRobotCore3.h"
 #include "Graphics/GraphicsContext.h"
+#include "Simulation/DrawingStore.h"
 #include "Simulation/SimObject.h"
 #include "Tools/Math/Pose3f.h"
 #include <list>
@@ -57,6 +58,12 @@ public:
   /** Finish a frame of controller drawings for this physical object (and children) */
   void afterControllerDrawings() const;
 
+  /**
+   * Adds the drawings that controllers attached to this physical object (and its children) to a list
+   * @param list The list of drawings of a frame
+   */
+  void collectDrawings(GraphicsContext::DrawingList& list) const;
+
   GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this physical object */
 
 protected:
@@ -74,10 +81,13 @@ protected:
 
 private:
   std::list<SimRobotCore3::Controller3DDrawing*> controllerDrawings; /**< Drawings registered by another SimRobot module */
+  DrawingStore drawings; /**< Drawings that another SimRobot module attached to this object */
 
 protected:
   // API
   virtual bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing);
   virtual bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing);
+  virtual void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing);
+  virtual bool removeDrawing(const void* key);
   virtual SimRobotCore3::Body* getParentBody();
 };

@@ -50,6 +50,23 @@ void GraphicalObject::addParent(Element& element)
   dynamic_cast<GraphicalObject*>(&element)->graphicalDrawings.push_back(this);
 }
 
+void GraphicalObject::collectDrawings(GraphicsContext::DrawingList& list) const
+{
+  ASSERT(modelMatrix);
+  drawings.visit([this, &list](const SimRobotCore3::Drawing& drawing){list.add(drawing, modelMatrix->getPointer());});
+  const_cast<GraphicalObject*>(this)->visitGraphicalControllerDrawings([&list](GraphicalObject& child){child.collectDrawings(list);});
+}
+
+void GraphicalObject::setDrawing(const void* key, SimRobotCore3::Drawing&& drawing)
+{
+  drawings.set(key, std::move(drawing));
+}
+
+bool GraphicalObject::removeDrawing(const void* key)
+{
+  return drawings.remove(key);
+}
+
 bool GraphicalObject::registerDrawing(SimRobotCore3::Controller3DDrawing& drawing)
 {
   controllerDrawings.push_back(&drawing);

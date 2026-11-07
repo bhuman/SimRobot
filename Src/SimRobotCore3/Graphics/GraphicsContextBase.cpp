@@ -10,6 +10,7 @@
 #include "GraphicsContextBase.h"
 #include "Graphics/Light.h"
 #include "Graphics/LightSpace.h"
+#include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <QImage>
@@ -191,6 +192,105 @@ void GraphicsContextBase::addLight(const Light* light)
       TRACE("Light %zu does not cast shadows (too many shadow maps, or the light is inside of its bounding box, or the bounding box is behind it).", lights.size());
   }
   lights.push_back(data);
+}
+
+void GraphicsContextBase::DrawingList::clear()
+{
+  points.clear();
+  lines.clear();
+  triangles.clear();
+  instances.clear();
+  images.clear();
+  items.clear();
+}
+
+void GraphicsContextBase::DrawingList::add(const SimRobotCore3::Drawing& drawing, const float* objectTransformation)
+{
+  Item item;
+  item.transformation = Eigen::Map<const Matrix4f>(objectTransformation) * Eigen::Map<const Matrix4f>(drawing.transformation);
+  item.renderOptions = drawing.renderOptions;
+  item.firstPoint = points.size();
+  item.firstLine = lines.size();
+  item.firstTriangle = triangles.size();
+  item.firstInstance = instances.size();
+  item.firstImage = images.size();
+
+  const auto makeVertex = [](const float* position, const SimRobotCore3::Drawing::Color& color, float size)
+  {
+    Vertex vertex;
+    std::memcpy(vertex.position, position, sizeof(vertex.position));
+    vertex.color[0] = color.r;
+    vertex.color[1] = color.g;
+    vertex.color[2] = color.b;
+    vertex.color[3] = color.a;
+    vertex.size = size;
+    return vertex;
+  };
+
+  for(const SimRobotCore3::Drawing::Line& line : drawing.lines)
+  {
+    lines.push_back(makeVertex(line.start, line.color, 1.f));
+    lines.push_back(makeVertex(line.end, line.color, 1.f));
+  }
+
+  for(const SimRobotCore3::Drawing::Dot& dot : drawing.dots)
+    points.push_back(makeVertex(dot.point, dot.color, dot.size));
+
+  for(const SimRobotCore3::Drawing::Quad& quad : drawing.quads)
+  {
+    // The corners are the boundary of the quad: 0-1-2-3 is split along the diagonal from 1 to 3.
+    static constexpr int order[] = {0, 1, 3, 3, 1, 2};
+    for(int corner : order)
+      triangles.push_back(makeVertex(quad.points[corner], quad.color, 1.f));
+  }
+
+  for(const SimRobotCore3::Drawing::Cylinder& cylinder : drawing.cylinders)
+  {
+    if(cylinder.baseRadius <= 0.f && cylinder.topRadius <= 0.f)
+      continue;
+    const Primitives::MeshData data = Primitives::cylinderData(cylinder.baseRadius, cylinder.topRadius, cylinder.height, 16);
+    const Eigen::Map<const Matrix3f> rotation(cylinder.rotation);
+    const Eigen::Map<const Vector3f> point(cylinder.point);
+    for(std::uint32_t index : data.indices)
+    {
+      const Vector3f position = rotation * data.vertices[index].position + point;
+      triangles.push_back(makeVertex(position.data(), cylinder.color, 1.f));
+    }
+  }
+
+  const auto addInstance = [this](const Matrix3f& rotation, const Vector3f& point, const Vector3f& scale, const SimRobotCore3::Drawing::Color& color)
+  {
+    Instance& instance = instances.emplace_back();
+    instance.transformation = (Matrix4f() << rotation * scale.asDiagonal(), point, Eigen::RowVector3f::Zero(), 1.f).finished();
+    instance.color[0] = color.r;
+    instance.color[1] = color.g;
+    instance.color[2] = color.b;
+    instance.color[3] = color.a;
+  };
+  for(const SimRobotCore3::Drawing::Sphere& sphere : drawing.spheres)
+    addInstance(Matrix3f::Identity(), Eigen::Map<const Vector3f>(sphere.point), Vector3f::Constant(sphere.radius), sphere.color);
+  for(const SimRobotCore3::Drawing::Ellipsoid& ellipsoid : drawing.ellipsoids)
+    addInstance(Eigen::Map<const Matrix3f>(ellipsoid.rotation), Eigen::Map<const Vector3f>(ellipsoid.point), Eigen::Map<const Vector3f>(ellipsoid.radii), ellipsoid.color);
+
+  for(const SimRobotCore3::Drawing::Image& image : drawing.images)
+  {
+    if(image.pixelWidth == 0 || image.pixelHeight == 0 || image.rgb.size() < static_cast<std::size_t>(image.pixelWidth) * image.pixelHeight * 3)
+      continue;
+    Image& drawnImage = images.emplace_back();
+    drawnImage.transformation = (Matrix4f() << Eigen::Map<const Matrix3f>(image.rotation) * Vector3f(1.f, image.width * 0.5f, image.height * 0.5f).asDiagonal(),
+                                 Eigen::Map<const Vector3f>(image.point), Eigen::RowVector3f::Zero(), 1.f).finished();
+    drawnImage.width = image.pixelWidth;
+    drawnImage.height = image.pixelHeight;
+    drawnImage.rgb = image.rgb;
+  }
+
+  item.numOfPoints = points.size() - item.firstPoint;
+  item.numOfLines = lines.size() - item.firstLine;
+  item.numOfTriangles = triangles.size() - item.firstTriangle;
+  item.numOfInstances = instances.size() - item.firstInstance;
+  item.numOfImages = images.size() - item.firstImage;
+  if(item.numOfPoints || item.numOfLines || item.numOfTriangles || item.numOfInstances || item.numOfImages)
+    items.push_back(item);
 }
 
 GraphicsContextBase::ModelMatrix* GraphicsContextBase::requestModelMatrix(ModelMatrix::Usage usage)
