@@ -113,13 +113,10 @@ GraphicsContextBase::Texture* GraphicsContextBase::requestTexture(const std::str
   QImage image;
   if(!image.load(file.c_str()))
     return nullptr;
-  if(image.format() != QImage::Format_ARGB32 &&
-     image.format() != QImage::Format_RGB32 &&
-     image.format() != QImage::Format_RGB888)
-    return nullptr;
+  if(image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_RGB32)
+    image.convertTo(image.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32); // Qt also loads grayscale, indexed, 16 bit, ... images
   texture->width = static_cast<unsigned int>(image.width());
   texture->height = static_cast<unsigned int>(image.height());
-  texture->bytesPerPixel = image.format() == QImage::Format_RGB888 ? 3 : 4;
   texture->hasAlpha = image.hasAlphaChannel();
   texture->data.resize(static_cast<std::size_t>(image.sizeInBytes()));
   std::uint8_t* p = texture->data.data();

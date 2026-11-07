@@ -443,7 +443,7 @@ void GraphicsContext::createGraphics()
       f->glBindTexture(GL_TEXTURE_2D, data.textureIDs[texture->index]);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
       f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, texture->bytesPerPixel == 3 ? GL_BGR : GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
+      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
       f->glGenerateMipmap(GL_TEXTURE_2D);
     }
 

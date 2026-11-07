@@ -174,15 +174,13 @@ public:
   {
   private:
     /**
-     * The pixels (bottom row first) in the memory layout of the \c QImage that they were loaded from:
-     * four bytes per pixel are ordered blue, green, red, alpha (the alpha is not used if \c hasAlpha is false),
-     * three bytes per pixel are ordered red, green, blue.
+     * The pixels (bottom row first) in the memory layout of \c QImage::Format_ARGB32 on little endian machines:
+     * four bytes per pixel, ordered blue, green, red, alpha (the alpha is not used if \c hasAlpha is false).
      * It is empty if loading the texture failed.
      */
     std::vector<std::uint8_t> data;
     unsigned int width = 0; /**< The width of the texture in pixels. */
     unsigned int height = 0; /**< The height of the texture in pixels. */
-    unsigned int bytesPerPixel = 0; /**< The size of a pixel in \c data (3 or 4). */
     bool hasAlpha = false; /**< Whether the texture has an alpha channel. */
     std::size_t index = 0; /**< The index of this texture in the texture array of the graphics API. */
 
