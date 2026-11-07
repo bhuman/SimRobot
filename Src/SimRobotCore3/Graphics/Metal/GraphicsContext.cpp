@@ -930,6 +930,26 @@ void GraphicsContext::createRenderPipelineStates(MTL::Library* library, bool dep
   descriptor->release();
 }
 
+void GraphicsContext::prepareDrawings(const DrawingList&)
+{
+  // TODO
+}
+
+void GraphicsContext::drawDrawings(const DrawingList&, const Matrix4f&, const Matrix4f&, float, bool, bool)
+{
+  // TODO
+}
+
+void GraphicsContext::finishDrawings()
+{
+  // TODO
+}
+
+void GraphicsContext::clearDepth()
+{
+  // TODO
+}
+
 MTL::ComputePipelineState* GraphicsContext::createComputePipelineState(MTL::Library* library, const char* name)
 {
   MTL::Function* function = library->newFunction(toNSString(name));

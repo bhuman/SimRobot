@@ -129,6 +129,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   zAxisMesh = Primitives::createLine(graphicsContext, Vector3f::Zero(), Vector3f(0.f, 0.f, 1.f));
   dragPlaneMesh = Primitives::createDisk(graphicsContext, 0.003f, 0.5f, 30);
   bodyComSphereMesh = Primitives::createSphere(graphicsContext, 0.003f, 10, 10, false);
+  graphicsContext.setDrawingMeshes(Primitives::createSphere(graphicsContext, 1.f, 16, 16, false), Primitives::createQuad(graphicsContext));
   static const float redColor[] = {1.f, 0.f, 0.f};
   static const float greenColor[] = {0.f, 1.f, 0.f};
   static const float blueColor[] = {0.f, 0.f, 1.f};

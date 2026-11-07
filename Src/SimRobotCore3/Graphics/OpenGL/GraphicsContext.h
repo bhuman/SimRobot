@@ -120,6 +120,30 @@ public:
   void finishExternalRendering();
 
   /**
+   * Uploads the data of controller drawings. Must be called between \c startExternalRendering and \c finishExternalRendering
+   * (but not between \c startRendering and \c finishRendering) and before \c drawDrawings. Resources are released by \c finishDrawings.
+   * @param drawings The drawings of a frame.
+   */
+  void prepareDrawings(const DrawingList& drawings);
+
+  /**
+   * Draws controller drawings (unlit) that have been uploaded with \c prepareDrawings.
+   * @param drawings The drawings of a frame.
+   * @param projection The projection matrix of the camera.
+   * @param view The view matrix (= inverse pose) of the camera.
+   * @param alpha The factor for the opacity of everything that is drawn.
+   * @param opaquePass Whether this is a pass that draws the parts of the scene that are not occluded (otherwise, drawings with the option \c disableOpacity are drawn but not the ones with \c disableTransparency).
+   * @param fillPolygons Whether polygons are filled (instead of wireframe rendering).
+   */
+  void drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons);
+
+  /** Releases the resources of \c prepareDrawings. */
+  void finishDrawings();
+
+  /** Clears the depth buffer (between \c startExternalRendering and \c finishExternalRendering, but not between \c startRendering and \c finishRendering). */
+  void clearDepth();
+
+  /**
    * Accesses the QOpenGLContext used for rendering. It can be used for creating further QOpenGLContexts with shared display lists and textures.
    * @return The QOpenGLContext used for rendering
    */
@@ -147,6 +171,18 @@ private:
   };
 
   /**
+   * A shader (OpenGL: program) for controller drawings with extracted uniform locations.
+   */
+  struct DrawingShader
+  {
+    GLuint program = 0; /**< The program object. */
+    GLint pvmLocation = -1; /**< The location of the pvm uniform in the program. */
+    GLint colorLocation = -1; /**< The location of the color uniform in the program. */
+    GLint alphaLocation = -1; /**< The location of the alphaScale uniform in the program. */
+    GLint textureLocation = -1; /**< The location of the tex uniform in the program. */
+  };
+
+  /**
    * A structure that captures OpenGL object IDs per context (some of them are shared).
    */
   struct PerContextData
@@ -164,6 +200,11 @@ private:
     std::vector<GLuint> textureIDs; /**< IDs for all textures (shared between contexts within a share group). */
 
     std::array<Shader, 9> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
+    std::array<DrawingShader, 3> drawingShaders; /**< Shaders for the lines/points/triangles, spheres and images of controller drawings (shared between contexts within a share group). */
+
+    GLuint drawingVAO = 0; /**< The VAO of the vertices of controller drawings. This exists per context. */
+    GLuint drawingVBO = 0; /**< The VBO of the vertices of controller drawings. This exists per context. */
+    std::vector<GLuint> drawingTextures; /**< The textures of the images of the controller drawings of the current frame. */
 
     bool blendEnabled = false; /**< The current blend state in this context. */
     GLuint boundTexture = 0; /**< The currently bound texture in this context. */

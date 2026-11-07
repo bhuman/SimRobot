@@ -304,7 +304,7 @@ namespace SimRobotCore3
       Color color;
     };
 
-    /** An image on a rectangle in the yz-plane of its coordinate system (centered at the origin, the viewer looks along the negative x-axis, the top of the image is at +z and the left of the image at -y). */
+    /** An image on a rectangle in the yz-plane of its coordinate system, centered at the origin. The top of the image is at +z and its right side is at -y, so it looks the right way when one looks along the positive x-axis (like a camera on the origin). */
     struct Image
     {
       float rotation[9];

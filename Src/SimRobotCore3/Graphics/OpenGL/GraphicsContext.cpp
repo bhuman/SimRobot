@@ -275,6 +275,78 @@ void main()
 }
 )glsl";
 
+// The shaders of controller drawings (which are not lit): vertices with colors and sizes, a mesh with a uniform color, and a textured mesh.
+static const char* drawingStreamVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inSize;
+
+uniform mat4 pvm;
+uniform float alphaScale;
+
+out vec4 Color;
+
+void main()
+{
+  Color = vec4(inColor.rgb, inColor.a * alphaScale);
+  gl_Position = pvm * vec4(inPos, 1.0);
+  gl_PointSize = inSize;
+}
+)glsl";
+
+static const char* drawingFlatVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+
+uniform mat4 pvm;
+uniform vec4 color;
+uniform float alphaScale;
+
+out vec4 Color;
+
+void main()
+{
+  Color = vec4(color.rgb, color.a * alphaScale);
+  gl_Position = pvm * vec4(inPos, 1.0);
+}
+)glsl";
+
+static const char* drawingImageVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+layout(location = 2) in vec2 inTexCoords;
+
+uniform mat4 pvm;
+
+out vec2 TexCoords;
+
+void main()
+{
+  TexCoords = inTexCoords;
+  gl_Position = pvm * vec4(inPos, 1.0);
+}
+)glsl";
+
+static const char* drawingColorFragmentShaderSourceCode = R"glsl(
+in vec4 Color;
+out vec4 FragColor;
+
+void main()
+{
+  FragColor = Color;
+}
+)glsl";
+
+static const char* drawingImageFragmentShaderSourceCode = R"glsl(
+in vec2 TexCoords;
+uniform sampler2D tex;
+uniform float alphaScale;
+out vec4 FragColor;
+
+void main()
+{
+  FragColor = vec4(texture(tex, TexCoords).rgb, alphaScale);
+}
+)glsl";
+
 static const char* depthOnlyFragmentShaderSourceCode = R"glsl(
 void main()
 {
@@ -432,12 +504,27 @@ void GraphicsContext::createGraphics()
   f->glBindBuffer(GL_ARRAY_BUFFER, 0);
   f->glBindVertexArray(0);
 
+  // The VAO and VBO of controller drawings. Their contents are uploaded for every frame.
+  f->glGenBuffers(1, &data.drawingVBO);
+  f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingVBO);
+  f->glGenVertexArrays(1, &data.drawingVAO);
+  f->glBindVertexArray(data.drawingVAO);
+  f->glEnableVertexAttribArray(0);
+  f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(DrawingList::Vertex), reinterpret_cast<void*>(offsetof(DrawingList::Vertex, position)));
+  f->glEnableVertexAttribArray(1);
+  f->glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DrawingList::Vertex), reinterpret_cast<void*>(offsetof(DrawingList::Vertex, color)));
+  f->glEnableVertexAttribArray(2);
+  f->glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(DrawingList::Vertex), reinterpret_cast<void*>(offsetof(DrawingList::Vertex, size)));
+  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+  f->glBindVertexArray(0);
+
   // Shaders and textures are shared as well.
   if(shareData)
   {
     data.textureIDs = shareData->textureIDs;
     data.shadowMapTextures = shareData->shadowMapTextures;
     data.shaders = shareData->shaders;
+    data.drawingShaders = shareData->drawingShaders;
   }
   else
   {
@@ -475,6 +562,21 @@ void GraphicsContext::createGraphics()
     for(unsigned int i = 0; i < 8; ++i)
       data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
     data.shaders[8] = compileDepthOnlyShader();
+
+    const char* versionSourceCode = "#version 330 core\n";
+    const auto compileDrawingShader = [&](const char* vertexShaderSourceCode, const char* fragmentShaderSourceCode)
+    {
+      DrawingShader drawingShader;
+      drawingShader.program = compileShader({versionSourceCode, vertexShaderSourceCode}, {versionSourceCode, fragmentShaderSourceCode});
+      drawingShader.pvmLocation = f->glGetUniformLocation(drawingShader.program, "pvm");
+      drawingShader.colorLocation = f->glGetUniformLocation(drawingShader.program, "color");
+      drawingShader.alphaLocation = f->glGetUniformLocation(drawingShader.program, "alphaScale");
+      drawingShader.textureLocation = f->glGetUniformLocation(drawingShader.program, "tex");
+      return drawingShader;
+    };
+    data.drawingShaders[0] = compileDrawingShader(drawingStreamVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
+    data.drawingShaders[1] = compileDrawingShader(drawingFlatVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
+    data.drawingShaders[2] = compileDrawingShader(drawingImageVertexShaderSourceCode, drawingImageFragmentShaderSourceCode);
   }
 
   // Framebuffer objects are not shared.
@@ -509,6 +611,8 @@ void GraphicsContext::destroyGraphics()
     return;
 
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  data.f->glDeleteVertexArrays(1, &data.drawingVAO);
+  data.f->glDeleteBuffers(1, &data.drawingVBO);
   data.f->glDeleteFramebuffers(static_cast<GLsizei>(data.shadowMapFBOs.size()), data.shadowMapFBOs.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
@@ -519,6 +623,8 @@ void GraphicsContext::destroyGraphics()
     data.f->glDeleteTextures(static_cast<GLsizei>(data.shadowMapTextures.size()), data.shadowMapTextures.data());
     for(const auto& shader : data.shaders)
       data.f->glDeleteProgram(shader.program);
+    for(const auto& drawingShader : data.drawingShaders)
+      data.f->glDeleteProgram(drawingShader.program);
     delete data.f;
   }
 
@@ -739,6 +845,177 @@ void GraphicsContext::finishExternalRendering()
   ASSERT(!shader);
   data = nullptr;
   f = nullptr;
+}
+
+void GraphicsContext::prepareDrawings(const DrawingList& drawings)
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  ASSERT(data->drawingTextures.empty());
+
+  // The vertices are stored one after the other: lines, points, triangles.
+  if(!drawings.lines.empty() || !drawings.points.empty() || !drawings.triangles.empty())
+  {
+    f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingVBO);
+    const std::size_t numOfVertices = drawings.lines.size() + drawings.points.size() + drawings.triangles.size();
+    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(numOfVertices * sizeof(DrawingList::Vertex)), nullptr, GL_STREAM_DRAW);
+    GLintptr offset = 0;
+    for(const auto* vertices : {&drawings.lines, &drawings.points, &drawings.triangles})
+    {
+      const GLsizeiptr size = static_cast<GLsizeiptr>(vertices->size() * sizeof(DrawingList::Vertex));
+      if(size)
+        f->glBufferSubData(GL_ARRAY_BUFFER, offset, size, vertices->data());
+      offset += size;
+    }
+    f->glBindBuffer(GL_ARRAY_BUFFER, data->vbo);
+  }
+
+  if(!drawings.images.empty())
+  {
+    data->drawingTextures.resize(drawings.images.size());
+    f->glGenTextures(static_cast<GLsizei>(data->drawingTextures.size()), data->drawingTextures.data());
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    for(std::size_t i = 0; i < drawings.images.size(); ++i)
+    {
+      const DrawingList::Image& image = drawings.images[i];
+      f->glBindTexture(GL_TEXTURE_2D, data->drawingTextures[i]);
+      f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, static_cast<GLsizei>(image.width), static_cast<GLsizei>(image.height), 0, GL_RGB, GL_UNSIGNED_BYTE, image.rgb.data());
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    f->glBindTexture(GL_TEXTURE_2D, 0);
+  }
+}
+
+void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons)
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  ASSERT(drawingSphereMesh && drawingQuadMesh);
+
+  const Matrix4f pv = projection * view;
+  const DrawingShader& streamShader = data->drawingShaders[0];
+  const DrawingShader& flatShader = data->drawingShaders[1];
+  const DrawingShader& imageShader = data->drawingShaders[2];
+
+  const GLint firstPoint = static_cast<GLint>(drawings.lines.size());
+  const GLint firstTriangle = static_cast<GLint>(drawings.lines.size() + drawings.points.size());
+
+  f->glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
+  f->glEnable(GL_BLEND);
+  f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+  f->glEnable(GL_PROGRAM_POINT_SIZE);
+
+  // Binds a mesh of the context (only its position and texture coordinates are used).
+  const auto bindMesh = [this](const Mesh* mesh)
+  {
+    f->glBindVertexArray(data->vao[mesh->vertexBuffer->category]);
+  };
+  const auto drawMesh = [this](const Mesh* mesh)
+  {
+    f->glDrawElementsBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLint>(mesh->vertexBuffer->base));
+  };
+
+  for(const DrawingList::Item& item : drawings.items)
+  {
+    if(item.renderOptions & (SimRobotCore3::Drawing::disableTransparency | SimRobotCore3::Drawing::disableOpacity))
+    {
+      if(opaquePass != ((item.renderOptions & SimRobotCore3::Drawing::disableTransparency) != 0))
+        continue;
+    }
+    const bool disableDepth = item.renderOptions & SimRobotCore3::Drawing::disableDepth;
+    if(disableDepth)
+      f->glDepthMask(GL_FALSE);
+
+    const Matrix4f pvm = pv * item.transformation;
+
+    if(item.numOfPoints || item.numOfLines || item.numOfTriangles)
+    {
+      f->glBindVertexArray(data->drawingVAO);
+      f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingVBO);
+      f->glUseProgram(streamShader.program);
+      f->glUniformMatrix4fv(streamShader.pvmLocation, 1, GL_FALSE, pvm.data());
+      f->glUniform1f(streamShader.alphaLocation, alpha);
+      if(item.numOfLines)
+        f->glDrawArrays(GL_LINES, static_cast<GLint>(item.firstLine), static_cast<GLsizei>(item.numOfLines));
+      if(item.numOfPoints)
+        f->glDrawArrays(GL_POINTS, firstPoint + static_cast<GLint>(item.firstPoint), static_cast<GLsizei>(item.numOfPoints));
+      if(item.numOfTriangles)
+        f->glDrawArrays(GL_TRIANGLES, firstTriangle + static_cast<GLint>(item.firstTriangle), static_cast<GLsizei>(item.numOfTriangles));
+      f->glBindBuffer(GL_ARRAY_BUFFER, data->vbo);
+    }
+
+    if(item.numOfInstances)
+    {
+      bindMesh(drawingSphereMesh);
+      f->glUseProgram(flatShader.program);
+      f->glUniform1f(flatShader.alphaLocation, alpha);
+      for(std::size_t i = item.firstInstance; i < item.firstInstance + item.numOfInstances; ++i)
+      {
+        const DrawingList::Instance& instance = drawings.instances[i];
+        const Matrix4f instancePVM = pvm * instance.transformation;
+        f->glUniformMatrix4fv(flatShader.pvmLocation, 1, GL_FALSE, instancePVM.data());
+        f->glUniform4f(flatShader.colorLocation, instance.color[0] / 255.f, instance.color[1] / 255.f, instance.color[2] / 255.f, instance.color[3] / 255.f);
+        drawMesh(drawingSphereMesh);
+      }
+    }
+
+    if(item.numOfImages)
+    {
+      bindMesh(drawingQuadMesh);
+      f->glUseProgram(imageShader.program);
+      f->glUniform1f(imageShader.alphaLocation, alpha);
+      f->glUniform1i(imageShader.textureLocation, 0);
+      f->glActiveTexture(GL_TEXTURE0);
+      f->glDisable(GL_CULL_FACE);
+      for(std::size_t i = item.firstImage; i < item.firstImage + item.numOfImages; ++i)
+      {
+        const Matrix4f imagePVM = pvm * drawings.images[i].transformation;
+        f->glUniformMatrix4fv(imageShader.pvmLocation, 1, GL_FALSE, imagePVM.data());
+        f->glBindTexture(GL_TEXTURE_2D, data->drawingTextures[i]);
+        drawMesh(drawingQuadMesh);
+      }
+      f->glBindTexture(GL_TEXTURE_2D, 0);
+      f->glEnable(GL_CULL_FACE);
+    }
+
+    if(disableDepth)
+      f->glDepthMask(GL_TRUE);
+  }
+
+  // Restore the state that the other rendering expects.
+  f->glDisable(GL_PROGRAM_POINT_SIZE);
+  f->glDisable(GL_BLEND);
+  f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  f->glBindVertexArray(0);
+  f->glUseProgram(0);
+  data->boundVAO = 0;
+  data->boundTexture = 0;
+  data->blendEnabled = false;
+}
+
+void GraphicsContext::finishDrawings()
+{
+  ASSERT(data);
+  ASSERT(f);
+  if(!data->drawingTextures.empty())
+  {
+    f->glDeleteTextures(static_cast<GLsizei>(data->drawingTextures.size()), data->drawingTextures.data());
+    data->drawingTextures.clear();
+  }
+}
+
+void GraphicsContext::clearDepth()
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  f->glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void GraphicsContext::setSurface(const Surface* surface)
