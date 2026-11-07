@@ -128,36 +128,36 @@ GraphicsContext::Mesh* Primitives::createSphere(GraphicsContext& graphicsContext
   return graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContext& graphicsContext, float radius, float height, unsigned int slices)
+Primitives::MeshData Primitives::cylinderData(float baseRadius, float topRadius, float height, unsigned int slices)
 {
-  if(slices < 3 || radius < 0.f || height < 0.f)
-    return nullptr;
+  MeshData data;
+  if(slices < 3 || baseRadius < 0.f || topRadius < 0.f || height < 0.f)
+    return data;
 
-  GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
-  auto& vertices = vertexBuffer->vertices;
+  auto& vertices = data.vertices;
   vertices.reserve(4 * slices + 2);
   vertices.emplace_back(Vector3f(0.f, 0.f, -height * 0.5f), Vector3f(0.f, 0.f, -1.f));
   for(unsigned int i = 0; i < slices; ++i)
-    vertices.emplace_back(Vector3f(radius * std::cos(i * 2.f * pi / slices), radius * std::sin(i * 2.f * pi / slices), -height * 0.5f), Vector3f(0.f, 0.f, -1.f));
+    vertices.emplace_back(Vector3f(baseRadius * std::cos(i * 2.f * pi / slices), baseRadius * std::sin(i * 2.f * pi / slices), -height * 0.5f), Vector3f(0.f, 0.f, -1.f));
+  // The normal of the side is perpendicular to the slope of the side.
+  const float normalZ = height > 0.f ? (baseRadius - topRadius) / height : 0.f;
   for(unsigned int i = 0; i < slices; ++i)
   {
     const float c = std::cos(static_cast<float>(i) * 2.f * pi / static_cast<float>(slices));
     const float s = std::sin(static_cast<float>(i) * 2.f * pi / static_cast<float>(slices));
-    vertices.emplace_back(Vector3f(radius * c, radius * s, -height * 0.5f), Vector3f(c, s, 0.f));
+    vertices.emplace_back(Vector3f(baseRadius * c, baseRadius * s, -height * 0.5f), Vector3f(c, s, normalZ).normalized());
   }
   for(unsigned int i = 0; i < slices; ++i)
   {
     const float c = std::cos(static_cast<float>(i) * 2.f * pi / static_cast<float>(slices));
     const float s = std::sin(static_cast<float>(i) * 2.f * pi / static_cast<float>(slices));
-    vertices.emplace_back(Vector3f(radius * c, radius * s, height * 0.5f), Vector3f(c, s, 0.f));
+    vertices.emplace_back(Vector3f(topRadius * c, topRadius * s, height * 0.5f), Vector3f(c, s, normalZ).normalized());
   }
   for(unsigned int i = 0; i < slices; ++i)
-    vertices.emplace_back(Vector3f(radius * std::cos(i * 2.f * pi / slices), radius * std::sin(i * 2.f * pi / slices), height * 0.5f), Vector3f(0.f, 0.f, 1.f));
+    vertices.emplace_back(Vector3f(topRadius * std::cos(i * 2.f * pi / slices), topRadius * std::sin(i * 2.f * pi / slices), height * 0.5f), Vector3f(0.f, 0.f, 1.f));
   vertices.emplace_back(Vector3f(0.f, 0.f, height * 0.5f), Vector3f(0.f, 0.f, 1.f));
-  vertexBuffer->finish();
 
-  GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
-  auto& indices = indexBuffer->indices;
+  auto& indices = data.indices;
   indices.reserve(12 * slices);
   for(unsigned int i = 0; i < slices; ++i)
   {
@@ -180,6 +180,36 @@ GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContext& graphicsConte
     indices.push_back(4 * slices + 1);
     indices.push_back(i + 3 * slices + 1);
   }
+  return data;
+}
+
+GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContext& graphicsContext, float radius, float height, unsigned int slices)
+{
+  const MeshData data = cylinderData(radius, radius, height, slices);
+  if(data.vertices.empty())
+    return nullptr;
+
+  GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
+  vertexBuffer->vertices = data.vertices;
+  vertexBuffer->finish();
+
+  GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
+  indexBuffer->indices = data.indices;
+
+  return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
+}
+
+GraphicsContext::Mesh* Primitives::createQuad(GraphicsContext& graphicsContext)
+{
+  GraphicsContext::VertexBuffer<GraphicsContext::VertexPNT>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPNT>();
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, -1.f, 1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(1.f, 0.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, 1.f, 1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(0.f, 0.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, -1.f, -1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(1.f, 1.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, 1.f, -1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(0.f, 1.f));
+  vertexBuffer->finish();
+
+  GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
+  indexBuffer->indices = {0, 2, 1, 1, 2, 3};
 
   return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }

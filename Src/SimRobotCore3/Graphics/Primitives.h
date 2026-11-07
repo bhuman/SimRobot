@@ -10,10 +10,29 @@
 
 #include "Graphics/GraphicsContext.h"
 #include "Tools/Math/Eigen.h"
+#include <cstdint>
+#include <vector>
 
 class Primitives final
 {
 public:
+  /** The vertices and indices of a triangle mesh. */
+  struct MeshData
+  {
+    std::vector<GraphicsContext::VertexPN> vertices; /**< The vertices. */
+    std::vector<std::uint32_t> indices; /**< The indices of the vertices of the triangles. */
+  };
+
+  /**
+   * Generates the triangles of a cylinder or cone (centered at 0, 0, 0, along the z axis).
+   * @param baseRadius The radius of the cylinder at the bottom (xy plane).
+   * @param topRadius The radius of the cylinder at the top (xy plane).
+   * @param height The height of the cylinder (z axis).
+   * @param slices The number of subdivisions in the radial plane.
+   * @return The vertices and indices of the cylinder (without any if the parameters are invalid)
+   */
+  static MeshData cylinderData(float baseRadius, float topRadius, float height, unsigned int slices);
+
   /**
    * Creates a line mesh.
    * @param graphicsContext The context in which to create the mesh.
@@ -74,6 +93,14 @@ public:
    * @return A pointer to the new mesh (owned by the context).
    */
   static GraphicsContext::Mesh* createCapsule(GraphicsContext& graphicsContext, float radius, float height, unsigned int slices, unsigned int stacks);
+
+  /**
+   * Creates a quad mesh (in the yz plane, from -1 to 1 in both directions, facing the positive x axis). The texture coordinates are
+   * (0, 0) at the top left (z = 1, y = 1), if one looks at the quad from the positive x axis.
+   * @param graphicsContext The context in which to create the mesh.
+   * @return A pointer to the new mesh (owned by the context).
+   */
+  static GraphicsContext::Mesh* createQuad(GraphicsContext& graphicsContext);
 
   /**
    * Creates a pyramid mesh (the top is at 0, 0, 0, the base in the yz plane).
