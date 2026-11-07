@@ -124,6 +124,32 @@ public:
   /** Must be called as counterpart to \c startExternalRendering. */
   void finishExternalRendering();
 
+  /**
+   * Uploads the vertices of controller drawings and the images that have not been uploaded before, and releases the textures
+   * of drawings that do not exist anymore. Must be called between \c startExternalRendering and \c finishExternalRendering
+   * (but not between \c startRendering and \c finishRendering) and before \c drawDrawings, also if there are no drawings.
+   * \c finishDrawings must be called afterwards.
+   * @param drawings The drawings of a frame.
+   */
+  void prepareDrawings(const DrawingList& drawings);
+
+  /**
+   * Draws controller drawings (unlit) that have been uploaded with \c prepareDrawings.
+   * @param drawings The drawings of a frame.
+   * @param projection The projection matrix of the camera.
+   * @param view The view matrix (= inverse pose) of the camera.
+   * @param alpha The factor for the opacity of everything that is drawn.
+   * @param opaquePass Whether this is a pass that draws the parts of the scene that are not occluded (otherwise, drawings with the option \c disableOpacity are drawn but not the ones with \c disableTransparency).
+   * @param fillPolygons Whether polygons are filled (instead of wireframe rendering).
+   */
+  void drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons);
+
+  /** Must be called as counterpart to \c prepareDrawings. */
+  void finishDrawings();
+
+  /** Clears the depth buffer (between \c startExternalRendering and \c finishExternalRendering, but not between \c startRendering and \c finishRendering). */
+  void clearDepth();
+
 private:
   /**
    * The resources of an off-screen render target of a specific size.

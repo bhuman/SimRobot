@@ -275,6 +275,83 @@ void main()
 }
 )glsl";
 
+// The shaders of controller drawings (which are not lit): vertices with colors and sizes, instances of a mesh with colors, and a textured mesh.
+static const char* drawingStreamVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inSize;
+
+uniform mat4 pvm;
+uniform float alphaScale;
+
+out vec4 Color;
+
+void main()
+{
+  Color = vec4(inColor.rgb, inColor.a * alphaScale);
+  gl_Position = pvm * vec4(inPos, 1.0);
+  gl_PointSize = inSize;
+}
+)glsl";
+
+static const char* drawingInstanceVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+layout(location = 3) in mat4 inTransformation;
+layout(location = 7) in vec2 inRadii;
+layout(location = 8) in vec4 inColor;
+
+uniform mat4 pvm;
+uniform float alphaScale;
+
+out vec4 Color;
+
+void main()
+{
+  Color = vec4(inColor.rgb, inColor.a * alphaScale);
+  // The vertices below and above the xy-plane are scaled by different radii (which makes cones from a cylinder).
+  float radius = inPos.z < 0.0 ? inRadii.x : inRadii.y;
+  gl_Position = pvm * inTransformation * vec4(inPos.xy * radius, inPos.z, 1.0);
+}
+)glsl";
+
+static const char* drawingImageVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPos;
+layout(location = 2) in vec2 inTexCoords;
+
+uniform mat4 pvm;
+
+out vec2 TexCoords;
+
+void main()
+{
+  TexCoords = inTexCoords;
+  gl_Position = pvm * vec4(inPos, 1.0);
+}
+)glsl";
+
+static const char* drawingColorFragmentShaderSourceCode = R"glsl(
+in vec4 Color;
+out vec4 FragColor;
+
+void main()
+{
+  FragColor = Color;
+}
+)glsl";
+
+static const char* drawingImageFragmentShaderSourceCode = R"glsl(
+in vec2 TexCoords;
+uniform sampler2D tex;
+uniform float alphaScale;
+out vec4 FragColor;
+
+void main()
+{
+  vec4 color = texture(tex, TexCoords);
+  FragColor = vec4(color.rgb, color.a * alphaScale);
+}
+)glsl";
+
 static const char* depthOnlyFragmentShaderSourceCode = R"glsl(
 void main()
 {
@@ -432,12 +509,30 @@ void GraphicsContext::createGraphics()
   f->glBindBuffer(GL_ARRAY_BUFFER, 0);
   f->glBindVertexArray(0);
 
+  // The VAOs and VBOs of controller drawings. The contents of the VBOs are uploaded for every frame.
+  f->glGenBuffers(1, &data.drawingVBO);
+  f->glGenVertexArrays(1, &data.drawingVAO);
+  f->glBindVertexArray(data.drawingVAO);
+  f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingVBO);
+  setupVertexAttributesDrawing(*f);
+  // The instances use the meshes in the VBO and EBO of the context (the attributes of the instances are declared when they are drawn).
+  f->glGenBuffers(1, &data.drawingInstanceVBO);
+  f->glGenVertexArrays(1, &data.drawingInstanceVAO);
+  f->glBindVertexArray(data.drawingInstanceVAO);
+  f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
+  f->glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
+  setupVertexAttributesPN(*f);
+  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+  f->glBindVertexArray(0);
+
   // Shaders and textures are shared as well.
   if(shareData)
   {
     data.textureIDs = shareData->textureIDs;
     data.shadowMapTextures = shareData->shadowMapTextures;
     data.shaders = shareData->shaders;
+    data.drawingShaders = shareData->drawingShaders;
+    data.drawingTextureCache = shareData->drawingTextureCache;
   }
   else
   {
@@ -475,6 +570,10 @@ void GraphicsContext::createGraphics()
     for(unsigned int i = 0; i < 8; ++i)
       data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
     data.shaders[8] = compileDepthOnlyShader();
+    data.drawingShaders[streamDrawingShader] = compileDrawingShader(drawingStreamVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
+    data.drawingShaders[instanceDrawingShader] = compileDrawingShader(drawingInstanceVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
+    data.drawingShaders[imageDrawingShader] = compileDrawingShader(drawingImageVertexShaderSourceCode, drawingImageFragmentShaderSourceCode);
+    data.drawingTextureCache = std::make_shared<std::unordered_map<std::uint64_t, DrawingTexture>>();
   }
 
   // Framebuffer objects are not shared.
@@ -509,6 +608,10 @@ void GraphicsContext::destroyGraphics()
     return;
 
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  data.f->glDeleteVertexArrays(1, &data.drawingVAO);
+  data.f->glDeleteBuffers(1, &data.drawingVBO);
+  data.f->glDeleteVertexArrays(1, &data.drawingInstanceVAO);
+  data.f->glDeleteBuffers(1, &data.drawingInstanceVBO);
   data.f->glDeleteFramebuffers(static_cast<GLsizei>(data.shadowMapFBOs.size()), data.shadowMapFBOs.data());
   if(--referenceCounters[data.referenceCounterIndex] == 0)
   {
@@ -519,6 +622,10 @@ void GraphicsContext::destroyGraphics()
     data.f->glDeleteTextures(static_cast<GLsizei>(data.shadowMapTextures.size()), data.shadowMapTextures.data());
     for(const auto& shader : data.shaders)
       data.f->glDeleteProgram(shader.program);
+    for(const auto& drawingShader : data.drawingShaders)
+      data.f->glDeleteProgram(drawingShader.program);
+    for(const auto& pair : *data.drawingTextureCache)
+      data.f->glDeleteTextures(1, &pair.second.id);
     delete data.f;
   }
 
@@ -745,6 +852,192 @@ void GraphicsContext::finishExternalRendering()
   f = nullptr;
 }
 
+void GraphicsContext::prepareDrawings(const DrawingList& drawings)
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  ASSERT(data->drawingTextures.empty());
+
+  // Release the textures of drawings that do not exist anymore.
+  auto& textureCache = *data->drawingTextureCache;
+  for(auto i = textureCache.begin(); i != textureCache.end();)
+    if(i->second.drawing.expired())
+    {
+      f->glDeleteTextures(1, &i->second.id);
+      i = textureCache.erase(i);
+    }
+    else
+      ++i;
+
+  if(drawings.numOfVertices)
+  {
+    f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingVBO);
+    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(drawings.numOfVertices * sizeof(PreparedDrawing::Vertex)), nullptr, GL_STREAM_DRAW);
+    for(const DrawingList::Item& item : drawings.items)
+      if(!item.drawing->vertices.empty())
+        f->glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(item.firstVertex * sizeof(PreparedDrawing::Vertex)),
+                           static_cast<GLsizeiptr>(item.drawing->vertices.size() * sizeof(PreparedDrawing::Vertex)), item.drawing->vertices.data());
+  }
+  if(drawings.numOfInstances)
+  {
+    f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingInstanceVBO);
+    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(drawings.numOfInstances * sizeof(PreparedDrawing::Instance)), nullptr, GL_STREAM_DRAW);
+    for(const DrawingList::Item& item : drawings.items)
+      if(!item.drawing->instances.empty())
+        f->glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(item.firstInstance * sizeof(PreparedDrawing::Instance)),
+                           static_cast<GLsizeiptr>(item.drawing->instances.size() * sizeof(PreparedDrawing::Instance)), item.drawing->instances.data());
+  }
+  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Images are uploaded when they are drawn for the first time.
+  data->drawingTextures.reserve(drawings.numOfImages);
+  bool uploaded = false;
+  for(const DrawingList::Item& item : drawings.items)
+    for(const PreparedDrawing::Image& image : item.drawing->images)
+    {
+      const auto [i, inserted] = textureCache.try_emplace(image.id);
+      if(inserted)
+      {
+        i->second.drawing = item.drawing;
+        f->glGenTextures(1, &i->second.id);
+        f->glBindTexture(GL_TEXTURE_2D, i->second.id);
+        f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(image.width), static_cast<GLsizei>(image.height), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.rgba.data());
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        uploaded = true;
+      }
+      data->drawingTextures.push_back(i->second.id);
+    }
+  if(uploaded)
+  {
+    f->glBindTexture(GL_TEXTURE_2D, 0);
+    data->boundTexture = 0;
+  }
+}
+
+void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons)
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  ASSERT(drawingSphereMesh && drawingCylinderMesh && drawingQuadMesh);
+
+  const Matrix4f pv = projection * view;
+  const DrawingShader& streamShader = data->drawingShaders[streamDrawingShader];
+  const DrawingShader& instanceShader = data->drawingShaders[instanceDrawingShader];
+  const DrawingShader& imageShader = data->drawingShaders[imageDrawingShader];
+
+  f->glPolygonMode(GL_FRONT_AND_BACK, fillPolygons ? GL_FILL : GL_LINE);
+  f->glEnable(GL_BLEND);
+  f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+  f->glEnable(GL_PROGRAM_POINT_SIZE);
+  // The attributes of the instances are declared for each draw call.
+  f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingInstanceVBO);
+
+  // Draws instances of a mesh of the context (only the positions of its vertices are used).
+  const auto drawInstances = [this](const Mesh* mesh, std::size_t firstInstance, std::size_t numOfInstances)
+  {
+    // With OpenGL >= 4.2, the attributes could be declared once and the first instance could be passed as base instance.
+    setupVertexAttributesDrawingInstances(*f, firstInstance);
+    f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+  };
+
+  for(const DrawingList::Item& item : drawings.items)
+  {
+    const PreparedDrawing& drawing = *item.drawing;
+    if(drawing.renderOptions & (SimRobotCore3::Drawing::disableTransparency | SimRobotCore3::Drawing::disableOpacity))
+    {
+      if(opaquePass != ((drawing.renderOptions & SimRobotCore3::Drawing::disableTransparency) != 0))
+        continue;
+    }
+    const bool disableDepth = drawing.renderOptions & SimRobotCore3::Drawing::disableDepth;
+    if(disableDepth)
+      f->glDepthMask(GL_FALSE);
+
+    const Matrix4f pvm = pv * item.transformation;
+
+    if(!drawing.vertices.empty())
+    {
+      const GLint firstLineVertex = static_cast<GLint>(item.firstVertex);
+      const GLint firstPoint = firstLineVertex + static_cast<GLint>(drawing.numOfLineVertices);
+      const GLint firstTriangleVertex = firstPoint + static_cast<GLint>(drawing.numOfPoints);
+      f->glBindVertexArray(data->drawingVAO);
+      f->glUseProgram(streamShader.program);
+      f->glUniformMatrix4fv(streamShader.pvmLocation, 1, GL_FALSE, pvm.data());
+      f->glUniform1f(streamShader.alphaLocation, alpha);
+      if(drawing.numOfLineVertices)
+        f->glDrawArrays(GL_LINES, firstLineVertex, static_cast<GLsizei>(drawing.numOfLineVertices));
+      if(drawing.numOfPoints)
+        f->glDrawArrays(GL_POINTS, firstPoint, static_cast<GLsizei>(drawing.numOfPoints));
+      if(drawing.numOfTriangleVertices)
+        f->glDrawArrays(GL_TRIANGLES, firstTriangleVertex, static_cast<GLsizei>(drawing.numOfTriangleVertices));
+    }
+
+    if(!drawing.instances.empty())
+    {
+      f->glBindVertexArray(data->drawingInstanceVAO);
+      f->glUseProgram(instanceShader.program);
+      f->glUniformMatrix4fv(instanceShader.pvmLocation, 1, GL_FALSE, pvm.data());
+      f->glUniform1f(instanceShader.alphaLocation, alpha);
+      if(drawing.numOfSpheres)
+        drawInstances(drawingSphereMesh, item.firstInstance, drawing.numOfSpheres);
+      if(drawing.numOfCylinders)
+        drawInstances(drawingCylinderMesh, item.firstInstance + drawing.numOfSpheres, drawing.numOfCylinders);
+    }
+
+    if(!drawing.images.empty())
+    {
+      f->glBindVertexArray(data->vao[drawingQuadMesh->vertexBuffer->category]);
+      f->glUseProgram(imageShader.program);
+      f->glUniform1f(imageShader.alphaLocation, alpha);
+      f->glUniform1i(imageShader.textureLocation, 0);
+      f->glActiveTexture(GL_TEXTURE0);
+      f->glDisable(GL_CULL_FACE);
+      for(std::size_t i = 0; i < drawing.images.size(); ++i)
+      {
+        const Matrix4f imagePVM = pvm * drawing.images[i].transformation;
+        f->glUniformMatrix4fv(imageShader.pvmLocation, 1, GL_FALSE, imagePVM.data());
+        f->glBindTexture(GL_TEXTURE_2D, data->drawingTextures[item.firstImage + i]);
+        f->glDrawElementsBaseVertex(getPrimitiveType(drawingQuadMesh->topology), static_cast<GLsizei>(drawingQuadMesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(drawingQuadMesh->indexBuffer->offset), static_cast<GLint>(drawingQuadMesh->vertexBuffer->base));
+      }
+      f->glBindTexture(GL_TEXTURE_2D, 0);
+      f->glEnable(GL_CULL_FACE);
+    }
+
+    if(disableDepth)
+      f->glDepthMask(GL_TRUE);
+  }
+
+  // Restore the state that the other rendering expects.
+  f->glDisable(GL_PROGRAM_POINT_SIZE);
+  f->glDisable(GL_BLEND);
+  f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
+  f->glBindVertexArray(0);
+  f->glUseProgram(0);
+  data->boundVAO = 0;
+  data->boundTexture = 0;
+  data->blendEnabled = false;
+}
+
+void GraphicsContext::finishDrawings()
+{
+  ASSERT(data);
+  ASSERT(f);
+  data->drawingTextures.clear();
+}
+
+void GraphicsContext::clearDepth()
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(!shader);
+  f->glClear(GL_DEPTH_BUFFER_BIT);
+}
+
 void GraphicsContext::setSurface(const Surface* surface)
 {
   ASSERT(data);
@@ -931,6 +1224,20 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   return shader;
 }
 
+GraphicsContext::DrawingShader GraphicsContext::compileDrawingShader(const char* vertexShaderSourceCode, const char* fragmentShaderSourceCode)
+{
+  const char* versionSourceCode = "#version 330 core\n";
+
+  DrawingShader shader;
+  shader.program = compileShader({versionSourceCode, vertexShaderSourceCode}, {versionSourceCode, fragmentShaderSourceCode});
+
+  ASSERT(f);
+  shader.pvmLocation = f->glGetUniformLocation(shader.program, "pvm");
+  shader.alphaLocation = f->glGetUniformLocation(shader.program, "alphaScale");
+  shader.textureLocation = f->glGetUniformLocation(shader.program, "tex");
+  return shader;
+}
+
 QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions() const
 {
   if(auto it = perContextData.find(QOpenGLContext::currentContext()); it != perContextData.end())
@@ -972,6 +1279,34 @@ void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functi
   functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
   functions.glEnableVertexAttribArray(2);
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
+}
+
+void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_3_3_Core& functions)
+{
+  functions.glEnableVertexAttribArray(0);
+  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, position)));
+  functions.glEnableVertexAttribArray(1);
+  functions.glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, color)));
+  functions.glEnableVertexAttribArray(2);
+  functions.glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, size)));
+}
+
+void GraphicsContext::setupVertexAttributesDrawingInstances(QOpenGLFunctions_3_3_Core& functions, std::size_t firstInstance)
+{
+  const std::size_t offset = firstInstance * sizeof(PreparedDrawing::Instance);
+  // A matrix occupies one location per column.
+  for(GLuint i = 0; i < 4; ++i)
+  {
+    functions.glEnableVertexAttribArray(3 + i);
+    functions.glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, transformation) + i * 4 * sizeof(GLfloat)));
+    functions.glVertexAttribDivisor(3 + i, 1);
+  }
+  functions.glEnableVertexAttribArray(7);
+  functions.glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, radii)));
+  functions.glVertexAttribDivisor(7, 1);
+  functions.glEnableVertexAttribArray(8);
+  functions.glVertexAttribPointer(8, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, color)));
+  functions.glVertexAttribDivisor(8, 1);
 }
 
 #endif

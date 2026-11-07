@@ -15,7 +15,9 @@
 #include "Tools/Math/Pose3f.h"
 #include "Graphics/GraphicsContextBase.h"
 #include <array>
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -121,6 +123,32 @@ public:
   void finishExternalRendering();
 
   /**
+   * Uploads the vertices of controller drawings and the images that have not been uploaded before, and releases the textures
+   * of drawings that do not exist anymore. Must be called between \c startExternalRendering and \c finishExternalRendering
+   * (but not between \c startRendering and \c finishRendering) and before \c drawDrawings, also if there are no drawings.
+   * \c finishDrawings must be called afterwards.
+   * @param drawings The drawings of a frame.
+   */
+  void prepareDrawings(const DrawingList& drawings);
+
+  /**
+   * Draws controller drawings (unlit) that have been uploaded with \c prepareDrawings.
+   * @param drawings The drawings of a frame.
+   * @param projection The projection matrix of the camera.
+   * @param view The view matrix (= inverse pose) of the camera.
+   * @param alpha The factor for the opacity of everything that is drawn.
+   * @param opaquePass Whether this is a pass that draws the parts of the scene that are not occluded (otherwise, drawings with the option \c disableOpacity are drawn but not the ones with \c disableTransparency).
+   * @param fillPolygons Whether polygons are filled (instead of wireframe rendering).
+   */
+  void drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons);
+
+  /** Must be called as counterpart to \c prepareDrawings. */
+  void finishDrawings();
+
+  /** Clears the depth buffer (between \c startExternalRendering and \c finishExternalRendering, but not between \c startRendering and \c finishRendering). */
+  void clearDepth();
+
+  /**
    * Accesses the QOpenGLContext used for rendering. It can be used for creating further QOpenGLContexts with shared display lists and textures.
    * @return The QOpenGLContext used for rendering
    */
@@ -148,6 +176,35 @@ private:
   };
 
   /**
+   * A shader (OpenGL: program) for controller drawings with extracted uniform locations.
+   */
+  struct DrawingShader
+  {
+    GLuint program = 0; /**< The program object. */
+    GLint pvmLocation = -1; /**< The location of the pvm uniform in the program. */
+    GLint alphaLocation = -1; /**< The location of the alphaScale uniform in the program. */
+    GLint textureLocation = -1; /**< The location of the tex uniform in the program. */
+  };
+
+  /** The shaders for controller drawings. */
+  enum DrawingShaderType
+  {
+    streamDrawingShader, /**< Points, lines and triangles with a color per vertex. */
+    instanceDrawingShader, /**< Instances of a mesh with a color per instance. */
+    imageDrawingShader, /**< A textured mesh. */
+    numOfDrawingShaders
+  };
+
+  /**
+   * The texture of an image of a controller drawing, which exists as long as the drawing.
+   */
+  struct DrawingTexture
+  {
+    GLuint id = 0; /**< The texture object. */
+    std::weak_ptr<const PreparedDrawing> drawing; /**< The drawing that the image belongs to. */
+  };
+
+  /**
    * A structure that captures OpenGL object IDs per context (some of them are shared).
    */
   struct PerContextData
@@ -165,6 +222,14 @@ private:
     std::vector<GLuint> textureIDs; /**< IDs for all textures (shared between contexts within a share group). */
 
     std::array<Shader, 9> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
+    std::array<DrawingShader, numOfDrawingShaders> drawingShaders; /**< Shaders for controller drawings (shared between contexts within a share group). */
+
+    GLuint drawingVAO = 0; /**< The VAO of the vertices of controller drawings. This exists per context. */
+    GLuint drawingVBO = 0; /**< The VBO of the vertices of controller drawings. This exists per context. */
+    GLuint drawingInstanceVAO = 0; /**< The VAO of the instances of meshes (with vertices of type \c VertexPN) in controller drawings. This exists per context. */
+    GLuint drawingInstanceVBO = 0; /**< The VBO of the instances of meshes in controller drawings. This exists per context. */
+    std::shared_ptr<std::unordered_map<std::uint64_t, DrawingTexture>> drawingTextureCache; /**< The textures of the images of controller drawings by their ids (shared between contexts within a share group). */
+    std::vector<GLuint> drawingTextures; /**< The textures of the images of the controller drawings of the current frame (in the order of \c DrawingList). */
 
     bool blendEnabled = false; /**< The current blend state in this context. */
     GLuint boundTexture = 0; /**< The currently bound texture in this context. */
@@ -203,6 +268,14 @@ private:
    */
   Shader compileDepthOnlyShader();
 
+  /**
+   * Compile a shader for controller drawings.
+   * @param vertexShaderSourceCode The source code of the vertex shader.
+   * @param fragmentShaderSourceCode The source code of the fragment shader.
+   * @return A shader object.
+   */
+  DrawingShader compileDrawingShader(const char* vertexShaderSourceCode, const char* fragmentShaderSourceCode);
+
   // Context handling:
   std::vector<unsigned> referenceCounters; /**< Reference counters of shared data per share group. */
   std::unordered_map<const QOpenGLContext*, PerContextData> perContextData; /**< Map of OpenGL context pointers to per context data. */
@@ -220,6 +293,19 @@ private:
    * @param functions The OpenGL functions to use.
    */
   static void setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functions);
+
+  /**
+   * Declares the vertex attributes of the vertices of controller drawings in an OpenGL context (VAO and VBO are already bound).
+   * @param functions The OpenGL functions to use.
+   */
+  static void setupVertexAttributesDrawing(QOpenGLFunctions_3_3_Core& functions);
+
+  /**
+   * Declares the vertex attributes of the instances of meshes in controller drawings in an OpenGL context (VAO and VBO are already bound).
+   * @param functions The OpenGL functions to use.
+   * @param firstInstance The index of the first instance in the VBO that is drawn (since OpenGL 3.3 does not support a base instance).
+   */
+  static void setupVertexAttributesDrawingInstances(QOpenGLFunctions_3_3_Core& functions, std::size_t firstInstance);
 
   static constexpr std::array<void (*)(QOpenGLFunctions_3_3_Core&), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
 

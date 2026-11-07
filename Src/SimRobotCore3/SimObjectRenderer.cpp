@@ -138,7 +138,10 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   const bool drawSensors = physicalObject && (renderFlags & showSensors);
   const bool drawDragPlane = dragging && dragSelection;
   const bool drawCoordinateSystem = renderFlags & showCoordinateSystem;
-  const bool drawControllerDrawings = (physicalObject || graphicalObject) && drawingsShadeMode != noShading && Simulation::simulation->scene->drawingManager;
+  const bool drawControllerDrawings = (physicalObject || graphicalObject) && drawingsShadeMode != noShading;
+#ifdef SIMROBOTCORE3_USE_OPENGL
+  const bool drawControllerDrawingsOfManager = drawControllerDrawings && Simulation::simulation->scene->drawingManager;
+#endif
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   if(drawAppearances || drawControllerDrawings)
@@ -224,9 +227,32 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
     graphicsContext.finishRendering();
   }
 
-#ifdef SIMROBOTCORE3_USE_OPENGL
   // draw controller drawings
   if(drawControllerDrawings)
+  {
+    GraphicsContext::DrawingList drawings;
+    if(physicalObject)
+      physicalObject->collectPhysicalDrawings(drawings);
+    // This is also done without drawings, so that the textures of drawings that have been removed are released.
+    graphicsContext.prepareDrawings(drawings);
+    if(!drawings.items.empty())
+    {
+      const bool fillPolygons = drawingsShadeMode != wireframeShading;
+      const bool transparentOcclusion = renderFlags & enableDrawingsTransparentOcclusion;
+      // Parts that are not occluded are drawn first. Then, the occluded parts are drawn transparently (or everything is drawn
+      // on top of the scene, if occlusion is disabled).
+      if(transparentOcclusion)
+        graphicsContext.drawDrawings(drawings, projection, viewMatrix, 1.f, true, fillPolygons);
+      if(transparentOcclusion || !(renderFlags & enableDrawingsOcclusion))
+        graphicsContext.clearDepth();
+      graphicsContext.drawDrawings(drawings, projection, viewMatrix, transparentOcclusion ? 0.5f : 1.f, !transparentOcclusion, fillPolygons);
+    }
+    graphicsContext.finishDrawings();
+  }
+
+#ifdef SIMROBOTCORE3_USE_OPENGL
+  // draw controller drawings that are registered at a manager
+  if(drawControllerDrawingsOfManager)
   {
     // If the manager registered later, it must be done now.
     if(!registeredAtManager)
