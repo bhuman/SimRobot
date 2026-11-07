@@ -16,7 +16,9 @@
 #include "Graphics/GraphicsContextBase.h"
 #include <Metal/Metal.hpp>
 #include <array>
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -183,6 +185,18 @@ private:
   void createRenderPipelineStates(MTL::Library* library, bool depthOnly, bool multisample, MTL::RenderPipelineState** pipelineStates);
 
   /**
+   * Creates a render pipeline state for controller drawings.
+   * @param library The library which contains the functions.
+   * @param vertexName The name of the vertex function.
+   * @param fragmentName The name of the fragment function.
+   * @param vertexDescriptor The layout of the vertices (or \c nullptr if the vertex function does not have any).
+   * @param writeColor Whether the pipeline blends its colors into the color attachment (otherwise it renders only depth).
+   * @param multisample Whether the pipeline is used with render targets that have \c multisampleCount samples (otherwise 1).
+   * @return The render pipeline state or \c nullptr if its creation failed.
+   */
+  MTL::RenderPipelineState* createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample);
+
+  /**
    * Creates a compute pipeline state.
    * @param library The library which contains the function.
    * @param name The name of the kernel function.
@@ -198,6 +212,25 @@ private:
    * @return The off-screen render target.
    */
   OffscreenTarget& getOffscreenTarget(int width, int height, bool depthOnly);
+
+  /**
+   * The texture of an image of a controller drawing, which exists as long as the drawing.
+   */
+  struct DrawingTexture
+  {
+    MTL::Texture* texture = nullptr; /**< The texture. */
+    std::weak_ptr<const PreparedDrawing> drawing; /**< The drawing that the image belongs to. */
+  };
+
+  /** The render pipeline states for controller drawings. */
+  enum DrawingPipeline
+  {
+    streamPipeline, /**< Points, lines and triangles with a color per vertex. */
+    instancePipeline, /**< Instances of a mesh with a color per instance. */
+    imagePipeline, /**< A textured mesh. */
+    clearDepthPipeline, /**< A triangle that covers everything and clears the depth buffer. */
+    numOfDrawingPipelineStates
+  };
 
   static constexpr std::size_t numOfColorShaders = 8; /**< The number of color shader variants (lighting x textures x smooth shading). */
   static constexpr std::size_t depthOnlyShaderIndex = numOfColorShaders; /**< The index of the depth only shader. */
@@ -218,6 +251,7 @@ private:
   static MTL::PrimitiveType getPrimitiveType(PrimitiveTopology topology);
 
   std::array<MTL::VertexDescriptor*, numOfVertexCategories> vertexDescriptors = {}; /**< The layouts of the vertex categories. */
+  MTL::VertexDescriptor* drawingVertexDescriptor = nullptr; /**< The layout of the vertices of controller drawings. */
 
   // Device resources (created in \c compile):
   MTL::Device* device = nullptr; /**< The device used for rendering (the same as the one of the QRhi). */
@@ -232,6 +266,10 @@ private:
   MTL::Buffer* shadowMapBuffer = nullptr; /**< The buffer with the data of all shadow maps (\c nullptr if there are none). */
   unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
   std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per sample count, shader variant and vertex type. */
+  std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfDrawingPipelineStates> drawingPipelineStates = {}; /**< Render pipeline states for controller drawings per sample count (see \c DrawingPipeline). */
+  MTL::DepthStencilState* noDepthWriteState = nullptr; /**< The depth test configuration for drawings that must not write to the depth buffer. */
+  MTL::DepthStencilState* clearDepthState = nullptr; /**< The depth configuration for clearing the depth buffer by drawing a triangle. */
+  std::unordered_map<std::uint64_t, DrawingTexture> drawingTextureCache; /**< The textures of the images of controller drawings by their ids. */
   MTL::ComputePipelineState* colorReadbackPipelineState = nullptr; /**< The compute pipeline that converts a color attachment to RGB bytes. */
   MTL::ComputePipelineState* depthReadbackPipelineState = nullptr; /**< The compute pipeline that converts a depth attachment to floats. */
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
@@ -248,12 +286,17 @@ private:
   OffscreenTarget* offscreenTarget = nullptr; /**< The current off-screen render target. */
   NS::AutoreleasePool* autoreleasePool = nullptr; /**< The pool for autoreleased objects created during off-screen rendering. */
 
+  // Only valid between \c prepareDrawings and \c finishDrawings:
+  MTL::Buffer* drawingBuffer = nullptr; /**< The buffer with the vertices of the drawings (lines, points and triangles). */
+  MTL::Buffer* drawingInstanceBuffer = nullptr; /**< The buffer with the instances of meshes in the drawings (spheres and cylinders). */
+  std::vector<MTL::Texture*> drawingTextures; /**< The textures of the images of the drawings (in the order of \c DrawingList), which are retained until the command buffer has been completed. */
+
   bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
   int renderTargetHeight = 0; /**< The height of the current off-screen render target or shadow map. */
 
   // Only valid between \c startRendering and \c finishRendering:
   MTL::RenderPipelineState* const* selectedPipelineStates = nullptr; /**< The pipeline states (per vertex type) of the current shader. */
-  const MTL::RenderPipelineState* boundPipelineState = nullptr; /**< The pipeline state that is currently bound to the encoder. */
+  const MTL::RenderPipelineState* boundPipelineState = nullptr; /**< The pipeline state that is currently bound to the encoder (also used by \c drawDrawings). */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides \c draw's argument. */
 };
 

@@ -263,6 +263,108 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
 }
 )metal";
 
+// The shaders of controller drawings (which are not lit).
+static const char* drawingShaderSourceCode = R"metal(
+struct StreamIn
+{
+  float3 position [[attribute(0)]];
+  float4 color [[attribute(1)]];
+  float size [[attribute(2)]];
+};
+
+struct StreamOut
+{
+  float4 position [[position]];
+  float4 color;
+  float pointSize [[point_size]];
+};
+
+struct InstanceIn
+{
+  float3 position [[attribute(0)]];
+};
+
+struct Instance
+{
+  metal::float4x4 transformation;
+  float2 radii;
+  uchar4 color;
+};
+
+struct ColorIn
+{
+  float4 position [[position]];
+  float4 color;
+};
+
+struct ImageIn
+{
+  float3 position [[attribute(0)]];
+  float2 textureCoordinates [[attribute(2)]];
+};
+
+struct ImageOut
+{
+  float4 position [[position]];
+  float2 textureCoordinates;
+};
+
+vertex StreamOut drawingStreamVertex(StreamIn in [[stage_in]], constant metal::float4x4& pvm [[buffer(1)]], constant float& alphaScale [[buffer(2)]])
+{
+  StreamOut out;
+  out.position = pvm * float4(in.position, 1.0);
+  out.color = float4(in.color.rgb, in.color.a * alphaScale);
+  out.pointSize = in.size;
+  return out;
+}
+
+vertex ColorIn drawingInstanceVertex(InstanceIn in [[stage_in]], uint instanceID [[instance_id]], device const Instance* instances [[buffer(1)]], constant metal::float4x4& pvm [[buffer(2)]], constant float& alphaScale [[buffer(3)]])
+{
+  const device Instance& instance = instances[instanceID];
+  // The vertices below and above the xy-plane are scaled by different radii (which makes cones from a cylinder).
+  float radius = in.position.z < 0.0 ? instance.radii.x : instance.radii.y;
+  ColorIn out;
+  out.position = pvm * instance.transformation * float4(in.position.xy * radius, in.position.z, 1.0);
+  float4 color = float4(instance.color) / 255.0;
+  out.color = float4(color.rgb, color.a * alphaScale);
+  return out;
+}
+
+fragment float4 drawingColorFragment(ColorIn in [[stage_in]])
+{
+  return in.color;
+}
+
+vertex ImageOut drawingImageVertex(ImageIn in [[stage_in]], constant metal::float4x4& pvm [[buffer(1)]])
+{
+  ImageOut out;
+  out.position = pvm * float4(in.position, 1.0);
+  out.textureCoordinates = in.textureCoordinates;
+  return out;
+}
+
+fragment float4 drawingImageFragment(ImageOut in [[stage_in]], metal::texture2d<float> image [[texture(0)]], constant float& alphaScale [[buffer(0)]])
+{
+  constexpr metal::sampler imageSampler(metal::filter::linear, metal::address::clamp_to_edge);
+  float4 color = image.sample(imageSampler, in.textureCoordinates);
+  return float4(color.rgb, color.a * alphaScale);
+}
+
+// Covers everything with the farthest depth (the depth test is configured to always pass).
+vertex float4 drawingClearDepthVertex(uint vertexID [[vertex_id]])
+{
+  float2 position = float2((vertexID << 1) & 2, vertexID & 2);
+  return float4(position * 2.0 - 1.0, 1.0, 1.0);
+}
+
+fragment float4 drawingClearDepthFragment()
+{
+  return float4(0.0);
+}
+)metal";
+
+static_assert(sizeof(GraphicsContextBase::PreparedDrawing::Instance) == 80, "The instances must have the layout of the struct Instance in the drawing shaders.");
+
 static const char* depthOnlyShaderSourceCode = R"metal(
 struct VertexIn
 {
@@ -323,12 +425,9 @@ GraphicsContext::GraphicsContext()
   // The getters of the descriptors might return autoreleased objects, and there might not be a pool on the current thread.
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
 
-  // Both vertex types provide all attributes. VertexPN reuses the position as texture coordinates (they are never used).
-  const auto createDescriptor = [](std::size_t stride, std::size_t textureCoordinatesOffset)
+  const auto createDescriptor = [](std::size_t stride, const std::array<std::size_t, 3>& offsets, const std::array<MTL::VertexFormat, 3>& formats)
   {
     MTL::VertexDescriptor* descriptor = MTL::VertexDescriptor::alloc()->init();
-    const std::size_t offsets[] = {0, 3 * sizeof(float), textureCoordinatesOffset};
-    const MTL::VertexFormat formats[] = {MTL::VertexFormatFloat3, MTL::VertexFormatFloat3, MTL::VertexFormatFloat2};
     for(NS::UInteger i = 0; i < 3; ++i)
     {
       auto* attribute = descriptor->attributes()->object(i);
@@ -343,8 +442,11 @@ GraphicsContext::GraphicsContext()
     return descriptor;
   };
 
-  vertexDescriptors[VertexPN::category] = createDescriptor(VertexPN::size, 0);
-  vertexDescriptors[VertexPNT::category] = createDescriptor(VertexPNT::size, 6 * sizeof(float));
+  // Both vertex types provide all attributes. VertexPN reuses the position as texture coordinates (they are never used).
+  vertexDescriptors[VertexPN::category] = createDescriptor(VertexPN::size, {0, 3 * sizeof(float), 0}, {MTL::VertexFormatFloat3, MTL::VertexFormatFloat3, MTL::VertexFormatFloat2});
+  vertexDescriptors[VertexPNT::category] = createDescriptor(VertexPNT::size, {0, 3 * sizeof(float), 6 * sizeof(float)}, {MTL::VertexFormatFloat3, MTL::VertexFormatFloat3, MTL::VertexFormatFloat2});
+  drawingVertexDescriptor = createDescriptor(sizeof(PreparedDrawing::Vertex), {offsetof(PreparedDrawing::Vertex, position), offsetof(PreparedDrawing::Vertex, color), offsetof(PreparedDrawing::Vertex, size)},
+                                             {MTL::VertexFormatFloat3, MTL::VertexFormatUChar4Normalized, MTL::VertexFormatFloat});
 
   pool->release();
 }
@@ -361,6 +463,7 @@ GraphicsContext::~GraphicsContext()
 
   for(MTL::VertexDescriptor* descriptor : vertexDescriptors)
     descriptor->release();
+  drawingVertexDescriptor->release();
 }
 
 void GraphicsContext::compile()
@@ -594,11 +697,28 @@ void GraphicsContext::createDeviceResources()
     depthReadbackPipelineState = createComputePipelineState(library, "readbackDepth");
     library->release();
   }
+  if(MTL::Library* library = compileLibrary(drawingShaderSourceCode); library)
+  {
+    for(std::size_t i = 0; i < numOfSampleCounts; ++i)
+    {
+      MTL::RenderPipelineState** states = &drawingPipelineStates[i * numOfDrawingPipelineStates];
+      states[streamPipeline] = createDrawingPipelineState(library, "drawingStreamVertex", "drawingColorFragment", drawingVertexDescriptor, true, i == 1);
+      states[instancePipeline] = createDrawingPipelineState(library, "drawingInstanceVertex", "drawingColorFragment", vertexDescriptors[VertexPN::category], true, i == 1);
+      states[imagePipeline] = createDrawingPipelineState(library, "drawingImageVertex", "drawingImageFragment", vertexDescriptors[VertexPNT::category], true, i == 1);
+      states[clearDepthPipeline] = createDrawingPipelineState(library, "drawingClearDepthVertex", "drawingClearDepthFragment", nullptr, false, i == 1);
+    }
+    library->release();
+  }
 
   MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
   depthStencilDescriptor->setDepthWriteEnabled(true);
   depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionLessEqual);
   depthStencilState = device->newDepthStencilState(depthStencilDescriptor);
+  depthStencilDescriptor->setDepthWriteEnabled(false);
+  noDepthWriteState = device->newDepthStencilState(depthStencilDescriptor);
+  depthStencilDescriptor->setDepthWriteEnabled(true);
+  depthStencilDescriptor->setDepthCompareFunction(MTL::CompareFunctionAlways);
+  clearDepthState = device->newDepthStencilState(depthStencilDescriptor);
   depthStencilDescriptor->release();
 
   pool->release();
@@ -612,6 +732,17 @@ void GraphicsContext::destroyDeviceResources()
     pair.second.readbackBuffer->release();
   }
   offscreenTargets.clear();
+  for(const auto& pair : drawingTextureCache)
+    pair.second.texture->release();
+  drawingTextureCache.clear();
+  for(MTL::RenderPipelineState* pipelineState : drawingPipelineStates)
+    if(pipelineState)
+      pipelineState->release();
+  drawingPipelineStates.fill(nullptr);
+  if(clearDepthState)
+    clearDepthState->release();
+  if(noDepthWriteState)
+    noDepthWriteState->release();
   if(depthStencilState)
     depthStencilState->release();
   if(colorReadbackPipelineState)
@@ -644,7 +775,7 @@ void GraphicsContext::destroyDeviceResources()
   commandQueue->release();
   device->release();
 
-  depthStencilState = nullptr;
+  depthStencilState = noDepthWriteState = clearDepthState = nullptr;
   colorReadbackPipelineState = depthReadbackPipelineState = nullptr;
   surfaceBuffer = indexBuffer = vertexBuffer = shadowMapBuffer = nullptr;
   textureHeap = nullptr;
@@ -929,24 +1060,219 @@ void GraphicsContext::createRenderPipelineStates(MTL::Library* library, bool dep
   descriptor->release();
 }
 
-void GraphicsContext::prepareDrawings(const DrawingList&)
+void GraphicsContext::prepareDrawings(const DrawingList& drawings)
 {
-  // TODO
+  ASSERT(commandBuffer);
+  ASSERT(encoder);
+  ASSERT(!selectedPipelineStates);
+  ASSERT(!drawingBuffer && !drawingInstanceBuffer && drawingTextures.empty());
+
+  // Release the textures of drawings that do not exist anymore. Command buffers that still use them have retained them.
+  for(auto i = drawingTextureCache.begin(); i != drawingTextureCache.end();)
+    if(i->second.drawing.expired())
+    {
+      i->second.texture->release();
+      i = drawingTextureCache.erase(i);
+    }
+    else
+      ++i;
+
+  if(drawings.numOfVertices)
+  {
+    drawingBuffer = device->newBuffer(drawings.numOfVertices * sizeof(PreparedDrawing::Vertex), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
+    std::uint8_t* memory = static_cast<std::uint8_t*>(drawingBuffer->contents());
+    for(const DrawingList::Item& item : drawings.items)
+      std::memcpy(memory + item.firstVertex * sizeof(PreparedDrawing::Vertex), item.drawing->vertices.data(), item.drawing->vertices.size() * sizeof(PreparedDrawing::Vertex));
+  }
+  if(drawings.numOfInstances)
+  {
+    drawingInstanceBuffer = device->newBuffer(drawings.numOfInstances * sizeof(PreparedDrawing::Instance), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
+    std::uint8_t* memory = static_cast<std::uint8_t*>(drawingInstanceBuffer->contents());
+    for(const DrawingList::Item& item : drawings.items)
+      std::memcpy(memory + item.firstInstance * sizeof(PreparedDrawing::Instance), item.drawing->instances.data(), item.drawing->instances.size() * sizeof(PreparedDrawing::Instance));
+  }
+
+  // Images are uploaded when they are drawn for the first time.
+  drawingTextures.reserve(drawings.numOfImages);
+  for(const DrawingList::Item& item : drawings.items)
+    for(const PreparedDrawing::Image& image : item.drawing->images)
+    {
+      const auto [i, inserted] = drawingTextureCache.try_emplace(image.id);
+      if(inserted)
+      {
+        MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::texture2DDescriptor(MTL::PixelFormatRGBA8Unorm, image.width, image.height, false);
+        textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
+        i->second.texture = device->newTexture(textureDescriptor);
+        ASSERT(i->second.texture);
+        i->second.texture->replaceRegion(MTL::Region(0, 0, image.width, image.height), 0, image.rgba.data(), image.width * 4);
+        i->second.drawing = item.drawing;
+      }
+      drawingTextures.push_back(i->second.texture->retain());
+    }
 }
 
-void GraphicsContext::drawDrawings(const DrawingList&, const Matrix4f&, const Matrix4f&, float, bool, bool)
+void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons)
 {
-  // TODO
+  ASSERT(commandBuffer);
+  ASSERT(encoder);
+  ASSERT(!selectedPipelineStates);
+  ASSERT(drawingSphereMesh && drawingCylinderMesh && drawingQuadMesh);
+
+  const Matrix4f pv = clipSpaceCorrection * projection * view;
+
+  encoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+  encoder->setCullMode(MTL::CullModeBack);
+  encoder->setTriangleFillMode(fillPolygons ? MTL::TriangleFillModeFill : MTL::TriangleFillModeLines);
+  boundPipelineState = nullptr;
+  const auto bindPipeline = [this](DrawingPipeline pipeline)
+  {
+    MTL::RenderPipelineState* pipelineState = drawingPipelineStates[sampleCountIndex * numOfDrawingPipelineStates + pipeline];
+    if(pipelineState != boundPipelineState)
+      encoder->setRenderPipelineState((boundPipelineState = pipelineState));
+  };
+  // Draws instances of a mesh of the context (only the positions of its vertices are used).
+  const auto drawInstances = [this](const Mesh* mesh, std::size_t firstInstance, std::size_t numOfInstances)
+  {
+    encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), mesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, mesh->indexBuffer->offset, numOfInstances, mesh->vertexBuffer->base, firstInstance);
+  };
+
+  for(const DrawingList::Item& item : drawings.items)
+  {
+    const PreparedDrawing& drawing = *item.drawing;
+    if(drawing.renderOptions & (SimRobotCore3::Drawing::disableTransparency | SimRobotCore3::Drawing::disableOpacity))
+    {
+      if(opaquePass != ((drawing.renderOptions & SimRobotCore3::Drawing::disableTransparency) != 0))
+        continue;
+    }
+    encoder->setDepthStencilState((drawing.renderOptions & SimRobotCore3::Drawing::disableDepth) ? noDepthWriteState : depthStencilState);
+
+    const Matrix4f pvm = pv * item.transformation;
+
+    if(!drawing.vertices.empty())
+    {
+      const std::size_t firstPoint = item.firstVertex + drawing.numOfLineVertices;
+      const std::size_t firstTriangleVertex = firstPoint + drawing.numOfPoints;
+      bindPipeline(streamPipeline);
+      encoder->setVertexBuffer(drawingBuffer, 0, 0);
+      encoder->setVertexBytes(pvm.data(), sizeof(Matrix4f), 1);
+      encoder->setVertexBytes(&alpha, sizeof(alpha), 2);
+      if(drawing.numOfLineVertices)
+        encoder->drawPrimitives(MTL::PrimitiveTypeLine, item.firstVertex, drawing.numOfLineVertices);
+      if(drawing.numOfPoints)
+        encoder->drawPrimitives(MTL::PrimitiveTypePoint, firstPoint, drawing.numOfPoints);
+      if(drawing.numOfTriangleVertices)
+        encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, firstTriangleVertex, drawing.numOfTriangleVertices);
+    }
+
+    if(!drawing.instances.empty())
+    {
+      bindPipeline(instancePipeline);
+      encoder->setVertexBuffer(vertexBuffer, 0, 0);
+      encoder->setVertexBuffer(drawingInstanceBuffer, 0, 1);
+      encoder->setVertexBytes(pvm.data(), sizeof(Matrix4f), 2);
+      encoder->setVertexBytes(&alpha, sizeof(alpha), 3);
+      if(drawing.numOfSpheres)
+        drawInstances(drawingSphereMesh, item.firstInstance, drawing.numOfSpheres);
+      if(drawing.numOfCylinders)
+        drawInstances(drawingCylinderMesh, item.firstInstance + drawing.numOfSpheres, drawing.numOfCylinders);
+    }
+
+    if(!drawing.images.empty())
+    {
+      bindPipeline(imagePipeline);
+      encoder->setVertexBuffer(vertexBuffer, 0, 0);
+      encoder->setFragmentBytes(&alpha, sizeof(alpha), 0);
+      encoder->setCullMode(MTL::CullModeNone);
+      for(std::size_t i = 0; i < drawing.images.size(); ++i)
+      {
+        const Matrix4f imagePVM = pvm * drawing.images[i].transformation;
+        encoder->setVertexBytes(imagePVM.data(), sizeof(Matrix4f), 1);
+        encoder->setFragmentTexture(drawingTextures[item.firstImage + i], 0);
+        encoder->drawIndexedPrimitives(getPrimitiveType(drawingQuadMesh->topology), drawingQuadMesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, drawingQuadMesh->indexBuffer->offset, 1, drawingQuadMesh->vertexBuffer->base, 0);
+      }
+      encoder->setCullMode(MTL::CullModeBack);
+    }
+  }
+
+  // Restore the state that the other rendering expects.
+  encoder->setTriangleFillMode(MTL::TriangleFillModeFill);
+  encoder->setDepthStencilState(depthStencilState);
+  boundPipelineState = nullptr;
 }
 
 void GraphicsContext::finishDrawings()
 {
-  // TODO
+  ASSERT(commandBuffer);
+  // The GPU uses the resources after the commands have been encoded, so they are released when the command buffer has been completed.
+  MTL::Buffer* buffer = drawingBuffer;
+  MTL::Buffer* instanceBuffer = drawingInstanceBuffer;
+  std::vector<MTL::Texture*> textures = std::move(drawingTextures);
+  drawingBuffer = drawingInstanceBuffer = nullptr;
+  drawingTextures.clear();
+  if(buffer || instanceBuffer || !textures.empty())
+    commandBuffer->addCompletedHandler([buffer, instanceBuffer, textures](MTL::CommandBuffer*)
+    {
+      if(buffer)
+        buffer->release();
+      if(instanceBuffer)
+        instanceBuffer->release();
+      for(MTL::Texture* texture : textures)
+        texture->release();
+    });
 }
 
 void GraphicsContext::clearDepth()
 {
-  // TODO
+  ASSERT(commandBuffer);
+  ASSERT(encoder);
+  ASSERT(!selectedPipelineStates);
+  encoder->setCullMode(MTL::CullModeNone);
+  encoder->setDepthStencilState(clearDepthState);
+  encoder->setRenderPipelineState(drawingPipelineStates[sampleCountIndex * numOfDrawingPipelineStates + clearDepthPipeline]);
+  encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, static_cast<NS::UInteger>(0), static_cast<NS::UInteger>(3));
+  encoder->setCullMode(MTL::CullModeBack);
+  encoder->setDepthStencilState(depthStencilState);
+}
+
+MTL::RenderPipelineState* GraphicsContext::createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample)
+{
+  MTL::RenderPipelineDescriptor* descriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+  descriptor->setRasterSampleCount(multisample ? multisampleCount : 1);
+  MTL::Function* vertexFunction = library->newFunction(toNSString(vertexName));
+  MTL::Function* fragmentFunction = library->newFunction(toNSString(fragmentName));
+  descriptor->setVertexFunction(vertexFunction);
+  descriptor->setFragmentFunction(fragmentFunction);
+  if(vertexDescriptor)
+    descriptor->setVertexDescriptor(vertexDescriptor);
+  descriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float);
+  auto* attachment = descriptor->colorAttachments()->object(0);
+  attachment->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+  if(writeColor)
+  {
+    attachment->setBlendingEnabled(true);
+    attachment->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
+    attachment->setDestinationRGBBlendFactor(MTL::BlendFactorOneMinusSourceAlpha);
+    attachment->setRgbBlendOperation(MTL::BlendOperationAdd);
+    // Keep the alpha of the destination.
+    attachment->setSourceAlphaBlendFactor(MTL::BlendFactorZero);
+    attachment->setDestinationAlphaBlendFactor(MTL::BlendFactorOne);
+    attachment->setAlphaBlendOperation(MTL::BlendOperationAdd);
+  }
+  else
+    attachment->setWriteMask(MTL::ColorWriteMaskNone);
+
+  NS::Error* error = nullptr;
+  MTL::RenderPipelineState* pipelineState = device->newRenderPipelineState(descriptor, &error);
+  if(!pipelineState)
+  {
+    TRACE("%s", error ? error->localizedDescription()->utf8String() : "Unknown error while creating a Metal render pipeline state.");
+    ASSERT(false);
+  }
+
+  fragmentFunction->release();
+  vertexFunction->release();
+  descriptor->release();
+  return pipelineState;
 }
 
 MTL::ComputePipelineState* GraphicsContext::createComputePipelineState(MTL::Library* library, const char* name)
