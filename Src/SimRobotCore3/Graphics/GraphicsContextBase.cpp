@@ -10,10 +10,18 @@
 #include "GraphicsContextBase.h"
 #include "Graphics/Light.h"
 #include "Graphics/LightSpace.h"
+#include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <QImage>
 #include <cstring>
+
+GraphicsContextBase::GraphicsContextBase()
+{
+  drawingSphereMesh = Primitives::createSphere(*this, 1.f, 16, 16, false);
+  drawingCylinderMesh = Primitives::createCylinder(*this, 1.f, 1.f, 16);
+  drawingQuadMesh = Primitives::createQuad(*this);
+}
 
 GraphicsContextBase::~GraphicsContextBase()
 {
@@ -191,6 +199,100 @@ void GraphicsContextBase::addLight(const Light* light)
       TRACE("Light %zu does not cast shadows (too many shadow maps, or the light is inside of its bounding box, or the bounding box is behind it).", lights.size());
   }
   lights.push_back(data);
+}
+
+GraphicsContextBase::PreparedDrawing::PreparedDrawing(SimRobotCore3::Drawing&& drawing) :
+  transformation(Eigen::Map<const Matrix4f>(drawing.transformation)), renderOptions(drawing.renderOptions)
+{
+  static std::uint64_t nextImageId = 0;
+
+  const auto makeVertex = [](const float* position, const SimRobotCore3::Drawing::Color& color, float size)
+  {
+    Vertex vertex;
+    std::memcpy(vertex.position, position, sizeof(vertex.position));
+    vertex.color[0] = color.r;
+    vertex.color[1] = color.g;
+    vertex.color[2] = color.b;
+    vertex.color[3] = color.a;
+    vertex.size = size;
+    return vertex;
+  };
+
+  for(const SimRobotCore3::Drawing::Line& line : drawing.lines)
+  {
+    vertices.push_back(makeVertex(line.start, line.color, 1.f));
+    vertices.push_back(makeVertex(line.end, line.color, 1.f));
+  }
+  numOfLineVertices = vertices.size();
+
+  for(const SimRobotCore3::Drawing::Dot& dot : drawing.dots)
+    vertices.push_back(makeVertex(dot.point, dot.color, dot.size));
+  numOfPoints = vertices.size() - numOfLineVertices;
+
+  for(const SimRobotCore3::Drawing::Quad& quad : drawing.quads)
+  {
+    // The corners are the boundary of the quad: 0-1-2-3 is split along the diagonal from 1 to 3.
+    static constexpr int order[] = {0, 1, 3, 3, 1, 2};
+    for(int corner : order)
+      vertices.push_back(makeVertex(quad.points[corner], quad.color, 1.f));
+  }
+  numOfTriangleVertices = vertices.size() - numOfLineVertices - numOfPoints;
+
+  const auto addInstance = [this](const Matrix3f& rotation, const Vector3f& point, const Vector3f& scale, float baseRadius, float topRadius, const SimRobotCore3::Drawing::Color& color)
+  {
+    Instance& instance = instances.emplace_back();
+    instance.transformation = (Matrix4f() << rotation * scale.asDiagonal(), point, Eigen::RowVector3f::Zero(), 1.f).finished();
+    instance.radii[0] = baseRadius;
+    instance.radii[1] = topRadius;
+    instance.color[0] = color.r;
+    instance.color[1] = color.g;
+    instance.color[2] = color.b;
+    instance.color[3] = color.a;
+  };
+  for(const SimRobotCore3::Drawing::Sphere& sphere : drawing.spheres)
+    addInstance(Matrix3f::Identity(), Eigen::Map<const Vector3f>(sphere.point), Vector3f::Constant(sphere.radius), 1.f, 1.f, sphere.color);
+  for(const SimRobotCore3::Drawing::Ellipsoid& ellipsoid : drawing.ellipsoids)
+    addInstance(Eigen::Map<const Matrix3f>(ellipsoid.rotation), Eigen::Map<const Vector3f>(ellipsoid.point), Eigen::Map<const Vector3f>(ellipsoid.radii), 1.f, 1.f, ellipsoid.color);
+  numOfSpheres = instances.size();
+
+  // The radii of a cylinder are applied by the vertex shader, because they differ at its ends.
+  for(const SimRobotCore3::Drawing::Cylinder& cylinder : drawing.cylinders)
+    addInstance(Eigen::Map<const Matrix3f>(cylinder.rotation), Eigen::Map<const Vector3f>(cylinder.point), Vector3f(1.f, 1.f, cylinder.height), cylinder.baseRadius, cylinder.topRadius, cylinder.color);
+  numOfCylinders = instances.size() - numOfSpheres;
+
+  for(SimRobotCore3::Drawing::Image& image : drawing.images)
+  {
+    if(image.pixelWidth == 0 || image.pixelHeight == 0 || (!image.fill && image.rgba.size() < static_cast<std::size_t>(image.pixelWidth) * image.pixelHeight * 4))
+      continue;
+    Image& preparedImage = images.emplace_back();
+    preparedImage.transformation = (Matrix4f() << Eigen::Map<const Matrix3f>(image.rotation) * Vector3f(1.f, image.width * 0.5f, image.height * 0.5f).asDiagonal(),
+                                    Eigen::Map<const Vector3f>(image.point), Eigen::RowVector3f::Zero(), 1.f).finished();
+    preparedImage.width = image.pixelWidth;
+    preparedImage.height = image.pixelHeight;
+    if(image.fill)
+    {
+      preparedImage.rgba.resize(static_cast<std::size_t>(image.pixelWidth) * image.pixelHeight * 4);
+      image.fill(preparedImage.rgba.data());
+    }
+    else
+      preparedImage.rgba = std::move(image.rgba);
+    preparedImage.id = nextImageId++;
+  }
+}
+
+void GraphicsContextBase::DrawingList::add(const std::shared_ptr<const PreparedDrawing>& drawing, const float* objectTransformation)
+{
+  if(drawing->empty())
+    return;
+  Item& item = items.emplace_back();
+  item.drawing = drawing;
+  item.transformation = Eigen::Map<const Matrix4f>(objectTransformation) * drawing->transformation;
+  item.firstVertex = numOfVertices;
+  item.firstInstance = numOfInstances;
+  item.firstImage = numOfImages;
+  numOfVertices += drawing->vertices.size();
+  numOfInstances += drawing->instances.size();
+  numOfImages += drawing->images.size();
 }
 
 GraphicsContextBase::ModelMatrix* GraphicsContextBase::requestModelMatrix(ModelMatrix::Usage usage)

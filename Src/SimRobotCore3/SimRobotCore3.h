@@ -9,6 +9,8 @@
 #include <SimRobot.h>
 #include <QList>
 #include <QStringList>
+#include <functional>
+#include <vector>
 
 #ifndef SIMROBOTCORE3_USE_OPENGL
 class QRhiNativeHandles;
@@ -243,6 +245,105 @@ namespace SimRobotCore3
   };
 
   /**
+   * A set of flat-colored 3D primitives that a controller attaches to a physical object (see \c PhysicalObject::setDrawing).
+   * SimRobotCore3 draws them (unlit) in the coordinate system of the object, so the controller does not have to know
+   * about the graphics API. All lengths are in m. Rotations are column-major 3x3 matrices.
+   */
+  struct Drawing
+  {
+    /** The color of a primitive. */
+    struct Color
+    {
+      unsigned char r = 0, g = 0, b = 0, a = 255;
+    };
+
+    /** A line (one pixel wide; a thicker line is a cylinder). */
+    struct Line
+    {
+      float start[3], end[3];
+      Color color;
+    };
+
+    /** A dot (a point with a size in pixels). */
+    struct Dot
+    {
+      float point[3];
+      float size;
+      Color color;
+    };
+
+    /** A quad (whose corners are ordered as the boundary: the first, second and third edge are 0-1, 1-2 and 2-3). Only the front side is visible, which is the one where the corners are counterclockwise. */
+    struct Quad
+    {
+      float points[4][3];
+      Color color;
+    };
+
+    /** A sphere. */
+    struct Sphere
+    {
+      float point[3];
+      float radius;
+      Color color;
+    };
+
+    /** An ellipsoid. */
+    struct Ellipsoid
+    {
+      float rotation[9];
+      float point[3];
+      float radii[3];
+      Color color;
+    };
+
+    /** A cylinder (a cone if one of the radii is 0) along the z-axis of its coordinate system, centered at the origin. */
+    struct Cylinder
+    {
+      float rotation[9];
+      float point[3];
+      float baseRadius, topRadius, height;
+      Color color;
+    };
+
+    /** An image on a rectangle in the yz-plane of its coordinate system, centered at the origin. The top row of the pixels is at +z and the first pixel of each row at +y, so the image appears upright and not mirrored when one looks along the positive x-axis (like a camera on the origin). */
+    struct Image
+    {
+      float rotation[9];
+      float point[3];
+      float width, height;
+      unsigned int pixelWidth = 0, pixelHeight = 0;
+      std::vector<unsigned char> rgba; /**< The pixels (RGBA, 4 bytes per pixel, the top row first). Not used if \c fill is set. */
+
+      /**
+       * If set, this function writes the pixels (in the format of \c rgba) when the image is drawn for the first time,
+       * so the pixels of images that are replaced before they are drawn are never computed. It is called at most once
+       * and in the thread that draws the scene (while the thread that set the drawing continues), so it must only use
+       * data that it owns. It is destroyed after it has been called (or with the drawing).
+       */
+      std::function<void(unsigned char* rgba)> fill;
+    };
+
+    /** Options that change how the drawing is drawn. */
+    enum RenderOption
+    {
+      disableDepth = 1 << 0, /**< The drawing does not write to the depth buffer. */
+      disableTransparency = 1 << 1, /**< The drawing is only drawn where it is not occluded (it is not drawn in the pass that shows occluded parts). */
+      disableOpacity = 1 << 2 /**< The drawing is only drawn in the pass that shows occluded parts (transparently). */
+    };
+
+    float transformation[16] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f}; /**< A column-major 4x4 matrix that transforms all primitives into the coordinate system of the object. */
+    unsigned char renderOptions = 0; /**< A combination of \c RenderOption. */
+
+    std::vector<Line> lines;
+    std::vector<Dot> dots;
+    std::vector<Quad> quads;
+    std::vector<Sphere> spheres;
+    std::vector<Ellipsoid> ellipsoids;
+    std::vector<Cylinder> cylinders;
+    std::vector<Image> images;
+  };
+
+  /**
    * This is a base class for managing debug drawings from the controller.
    * It must be implemented (and registered in the scene) in order to use controller drawings.
    * Controller drawings are currently only supported with OpenGL.
@@ -327,6 +428,23 @@ namespace SimRobotCore3
      * @param drawing The drawing
      */
     virtual bool unregisterDrawing(Controller3DDrawing& drawing) = 0;
+
+    /**
+     * Attaches a drawing to the object, or replaces a drawing that was attached before.
+     * This can be done from any thread. The drawing is moved (including the pixels of its images) and only prepared
+     * for being drawn when it is drawn for the first time, so drawings that are replaced before they are drawn
+     * cost little.
+     * @param key An identification of the drawing, which is only used to replace or remove the drawing
+     * @param drawing The drawing
+     */
+    virtual void setDrawing(const void* key, Drawing&& drawing) = 0;
+
+    /**
+     * Removes a drawing from the object that has been attached with \c setDrawing. This can be done from any thread.
+     * @param key The identification of the drawing
+     * @return Whether a drawing with this key existed
+     */
+    virtual bool removeDrawing(const void* key) = 0;
 
     /**
      * Accesses a superior body object

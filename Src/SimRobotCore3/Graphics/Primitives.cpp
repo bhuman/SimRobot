@@ -9,7 +9,7 @@
 #include "Primitives.h"
 #include "Tools/Math/Constants.h"
 
-GraphicsContext::Mesh* Primitives::createLine(GraphicsContext& graphicsContext, const Vector3f& start, const Vector3f& end)
+GraphicsContext::Mesh* Primitives::createLine(GraphicsContextBase& graphicsContext, const Vector3f& start, const Vector3f& end)
 {
   GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
   vertexBuffer->vertices.emplace_back(start, Vector3f(0.f, 0.f, 1.f));
@@ -19,7 +19,7 @@ GraphicsContext::Mesh* Primitives::createLine(GraphicsContext& graphicsContext, 
   return graphicsContext.requestMesh(vertexBuffer, nullptr, GraphicsContext::lineList);
 }
 
-GraphicsContext::Mesh* Primitives::createSphere(GraphicsContext& graphicsContext, float radius, unsigned int slices, unsigned int stacks, bool withTextureCoordinates)
+GraphicsContext::Mesh* Primitives::createSphere(GraphicsContextBase& graphicsContext, float radius, unsigned int slices, unsigned int stacks, bool withTextureCoordinates)
 {
   if(slices < 3 || stacks < 2 || radius < 0.f)
     return nullptr;
@@ -128,7 +128,7 @@ GraphicsContext::Mesh* Primitives::createSphere(GraphicsContext& graphicsContext
   return graphicsContext.requestMesh(withTextureCoordinates ? static_cast<GraphicsContext::VertexBufferBase*>(vertexBufferT) : vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContext& graphicsContext, float radius, float height, unsigned int slices)
+GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContextBase& graphicsContext, float radius, float height, unsigned int slices)
 {
   if(slices < 3 || radius < 0.f || height < 0.f)
     return nullptr;
@@ -184,7 +184,22 @@ GraphicsContext::Mesh* Primitives::createCylinder(GraphicsContext& graphicsConte
   return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createDisk(GraphicsContext& graphicsContext, float inner, float outer, unsigned int slices)
+GraphicsContext::Mesh* Primitives::createQuad(GraphicsContextBase& graphicsContext)
+{
+  GraphicsContext::VertexBuffer<GraphicsContext::VertexPNT>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPNT>();
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, -1.f, 1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(1.f, 0.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, 1.f, 1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(0.f, 0.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, -1.f, -1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(1.f, 1.f));
+  vertexBuffer->vertices.emplace_back(Vector3f(0.f, 1.f, -1.f), Vector3f(1.f, 0.f, 0.f), Vector2f(0.f, 1.f));
+  vertexBuffer->finish();
+
+  GraphicsContext::IndexBuffer* indexBuffer = graphicsContext.requestIndexBuffer();
+  indexBuffer->indices = {0, 2, 1, 1, 2, 3};
+
+  return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
+}
+
+GraphicsContext::Mesh* Primitives::createDisk(GraphicsContextBase& graphicsContext, float inner, float outer, unsigned int slices)
 {
   if(slices < 3 || inner < 0.f || outer < 0.f)
     return nullptr;
@@ -226,7 +241,7 @@ GraphicsContext::Mesh* Primitives::createDisk(GraphicsContext& graphicsContext, 
   return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createBox(GraphicsContext& graphicsContext, float width, float height, float depth)
+GraphicsContext::Mesh* Primitives::createBox(GraphicsContextBase& graphicsContext, float width, float height, float depth)
 {
   const float w_2 = width * 0.5f;
   const float h_2 = height * 0.5f;
@@ -283,7 +298,7 @@ GraphicsContext::Mesh* Primitives::createBox(GraphicsContext& graphicsContext, f
   return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createCapsule(GraphicsContext& graphicsContext, float radius, float height, unsigned int slices, unsigned int stacks)
+GraphicsContext::Mesh* Primitives::createCapsule(GraphicsContextBase& graphicsContext, float radius, float height, unsigned int slices, unsigned int stacks)
 {
   if(slices < 3 || stacks < 3 || !(stacks % 2))
     return nullptr;
@@ -346,7 +361,7 @@ GraphicsContext::Mesh* Primitives::createCapsule(GraphicsContext& graphicsContex
   return graphicsContext.requestMesh(vertexBuffer, indexBuffer, GraphicsContext::triangleList);
 }
 
-GraphicsContext::Mesh* Primitives::createPyramid(GraphicsContext& graphicsContext, float width, float height, float depth)
+GraphicsContext::Mesh* Primitives::createPyramid(GraphicsContextBase& graphicsContext, float width, float height, float depth)
 {
   GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
   auto& vertices = vertexBuffer->vertices;

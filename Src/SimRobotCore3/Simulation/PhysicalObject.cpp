@@ -75,6 +75,24 @@ void PhysicalObject::visitPhysicalControllerDrawings(const std::function<void(Ph
     accept(*drawing);
 }
 
+void PhysicalObject::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
+{
+  ASSERT(modelMatrix);
+  drawings.collect(list, modelMatrix->getPointer());
+  for(const PhysicalObject* child : physicalDrawings)
+    child->collectPhysicalDrawings(list);
+}
+
+void PhysicalObject::setDrawing(const void* key, SimRobotCore3::Drawing&& drawing)
+{
+  drawings.set(key, std::move(drawing));
+}
+
+bool PhysicalObject::removeDrawing(const void* key)
+{
+  return drawings.remove(key);
+}
+
 bool PhysicalObject::registerDrawing(SimRobotCore3::Controller3DDrawing& drawing)
 {
   controllerDrawings.push_back(&drawing);

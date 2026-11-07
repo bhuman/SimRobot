@@ -75,6 +75,13 @@ void Scene::visitPhysicalControllerDrawings(const std::function<void(::PhysicalO
   ::PhysicalObject::visitPhysicalControllerDrawings(accept);
 }
 
+void Scene::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
+{
+  for(const Body* body : bodies)
+    body->collectPhysicalDrawings(list);
+  ::PhysicalObject::collectPhysicalDrawings(list);
+}
+
 const QIcon* Scene::getIcon() const
 {
   return &CoreModule::module->sceneIcon;

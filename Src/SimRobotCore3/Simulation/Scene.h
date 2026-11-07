@@ -83,6 +83,12 @@ private:
    */
   void visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept) override;
 
+  /**
+   * Adds the drawings that controllers attached to the scene (and its bodies and physical children) to a list
+   * @param list The list of drawings of a frame
+   */
+  void collectPhysicalDrawings(GraphicsContext::DrawingList& list) const override;
+
 private:
   // API
   const QString& getFullName() const override {return SimObject::getFullName();}
@@ -91,6 +97,8 @@ private:
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
   bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::registerDrawing(drawing);}
   bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::unregisterDrawing(drawing);}
+  void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing) override {::PhysicalObject::setDrawing(key, std::move(drawing));}
+  bool removeDrawing(const void* key) override {return ::PhysicalObject::removeDrawing(key);}
   SimRobotCore3::Body* getParentBody() override {return ::PhysicalObject::getParentBody();}
   double getStepLength() const override {return stepLength;}
   unsigned int getStep() const override;

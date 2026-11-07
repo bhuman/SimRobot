@@ -195,6 +195,13 @@ void Body::visitPhysicalControllerDrawings(const std::function<void(::PhysicalOb
     accept(*child);
 }
 
+void Body::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
+{
+  ::PhysicalObject::collectPhysicalDrawings(list);
+  for(const Body* child : bodyChildren)
+    child->collectPhysicalDrawings(list);
+}
+
 void Body::move(const Vector3f& offset)
 {
   if(rootBody != this)

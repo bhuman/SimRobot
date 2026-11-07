@@ -62,6 +62,12 @@ public:
    */
   void rotate(const RotationMatrix& rotation, const Vector3f& point);
 
+  /**
+   * Adds the drawings that controllers attached to this body (and its physical children and child bodies) to a list
+   * @param list The list of drawings of a frame
+   */
+  void collectPhysicalDrawings(GraphicsContext::DrawingList& list) const override;
+
 private:
   /**
    * The position of the center of mass relative to the pose of the body.
@@ -121,6 +127,8 @@ private:
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
   bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::registerDrawing(drawing);}
   bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::unregisterDrawing(drawing);}
+  void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing) override {::PhysicalObject::setDrawing(key, std::move(drawing));}
+  bool removeDrawing(const void* key) override {return ::PhysicalObject::removeDrawing(key);}
   SimRobotCore3::Body* getParentBody() override {return parentBody;}
   const float* getPosition() const override;
   const float* getVelocity() const override;

@@ -12,10 +12,12 @@
 #pragma once
 
 #include "Platform/Assert.h"
+#include "SimRobotCore3.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <stack>
 #include <string>
@@ -243,6 +245,93 @@ public:
   };
 
   /**
+   * A controller drawing (see \c SimRobotCore3::Drawing), prepared for being drawn by the graphics context. It is created
+   * once when the drawing is drawn for the first time (in the thread that draws the scenes) and is not changed afterwards,
+   * so it can be drawn by any number of views without a lock. Lines, dots and quads become vertices, spheres and ellipsoids
+   * are instances of a unit sphere, cylinders are instances of a unit cylinder, and images keep their pixels. Everything
+   * is given in the coordinate system of the drawing.
+   */
+  struct PreparedDrawing
+  {
+    /** A vertex of a point, line or triangle. */
+    struct Vertex
+    {
+      float position[3]; /**< The position (in the coordinate system of the drawing). */
+      std::uint8_t color[4]; /**< The color (RGBA). */
+      float size; /**< The size of a point in pixels. */
+    };
+
+    /** A sphere, ellipsoid or cylinder. */
+    struct Instance
+    {
+      Matrix4f transformation; /**< The transformation of the unit sphere or cylinder (in the coordinate system of the drawing). */
+      float radii[2]; /**< The factors for x and y of the vertices below and above the xy-plane (the radii at the base and the top of a cylinder, 1 for spheres and ellipsoids). */
+      std::uint8_t color[4]; /**< The color (RGBA). */
+    };
+
+    /** An image. */
+    struct Image
+    {
+      Matrix4f transformation; /**< The transformation of the unit quad (in the coordinate system of the drawing). */
+      unsigned int width, height; /**< The size of the image in pixels. */
+      std::uint64_t id; /**< A number that identifies the image during the lifetime of the program (the graphics contexts cache their textures by it). */
+      std::vector<std::uint8_t> rgba; /**< The pixels (RGBA, top row first). */
+    };
+
+    /**
+     * Constructor.
+     * @param drawing The drawing that is prepared. The pixels of its images are moved (or computed by their \c fill functions).
+     */
+    explicit PreparedDrawing(SimRobotCore3::Drawing&& drawing);
+
+    /**
+     * Whether nothing would be drawn.
+     * @return Whether nothing would be drawn.
+     */
+    bool empty() const {return vertices.empty() && instances.empty() && images.empty();}
+
+    Matrix4f transformation; /**< The transformation from the coordinate system of the drawing to the one of the object. */
+    unsigned char renderOptions; /**< A combination of \c SimRobotCore3::Drawing::RenderOption. */
+    std::vector<Vertex> vertices; /**< The vertices of the lines (two per line), then of the dots, then of the triangles (three per triangle). */
+    std::size_t numOfLineVertices = 0; /**< The number of vertices of lines in \c vertices. */
+    std::size_t numOfPoints = 0; /**< The number of vertices of dots in \c vertices. */
+    std::size_t numOfTriangleVertices = 0; /**< The number of vertices of triangles in \c vertices. */
+    std::vector<Instance> instances; /**< The spheres and ellipsoids, then the cylinders. */
+    std::size_t numOfSpheres = 0; /**< The number of spheres and ellipsoids in \c instances. */
+    std::size_t numOfCylinders = 0; /**< The number of cylinders in \c instances. */
+    std::vector<Image> images; /**< The images. */
+  };
+
+  /**
+   * The controller drawings of a frame. It only refers to the prepared drawings, the graphics context copies the
+   * vertices and the instances of all of them into one buffer each.
+   */
+  struct DrawingList
+  {
+    /** One drawing. */
+    struct Item
+    {
+      std::shared_ptr<const PreparedDrawing> drawing; /**< The drawing. */
+      Matrix4f transformation; /**< The transformation from the coordinate system of the drawing to the world. */
+      std::size_t firstVertex; /**< The index of the first vertex of the drawing in the vertices of all drawings. */
+      std::size_t firstInstance; /**< The index of the first instance of the drawing in the instances of all drawings. */
+      std::size_t firstImage; /**< The index of the first image of the drawing in the images of all drawings. */
+    };
+
+    std::vector<Item> items; /**< All drawings. */
+    std::size_t numOfVertices = 0; /**< The number of vertices of all drawings. */
+    std::size_t numOfInstances = 0; /**< The number of instances of all drawings. */
+    std::size_t numOfImages = 0; /**< The number of images of all drawings. */
+
+    /**
+     * Adds a drawing.
+     * @param drawing The drawing
+     * @param objectTransformation The column-major 4x4 matrix that transforms the coordinate system of the object that the drawing is attached to into the world
+     */
+    void add(const std::shared_ptr<const PreparedDrawing>& drawing, const float* objectTransformation);
+  };
+
+  /**
    * Set the color that the color buffer is cleared to.
    * @param color Pointer to a four-element (RGBA) color.
    */
@@ -410,6 +499,9 @@ protected:
 
   static constexpr std::size_t maxShadowMaps = 8; /**< The maximum number of lights with shadow maps (limited by the number of texture units). */
 
+  /** Constructor. Requests the meshes that are used to draw controller drawings. */
+  GraphicsContextBase();
+
   /** Destructor. Frees all objects that were requested. */
   ~GraphicsContextBase();
 
@@ -464,6 +556,9 @@ protected:
   std::vector<IndexBuffer*> indexBuffers; /**< List of all registered index buffers. */
   std::uint64_t indexBufferTotalSize = 0; /**< The total size of the global index buffer. */
   std::vector<Mesh*> meshes; /**< List of all registered meshes. */
+  const Mesh* drawingSphereMesh = nullptr; /**< The mesh of the spheres of controller drawings (a sphere with radius 1, centered at the origin). */
+  const Mesh* drawingCylinderMesh = nullptr; /**< The mesh of the cylinders of controller drawings (a cylinder with radius 1 and height 1 along the z-axis, centered at the origin). */
+  const Mesh* drawingQuadMesh = nullptr; /**< The mesh of the images of controller drawings (a quad in the yz-plane, see \c Primitives::createQuad). */
   std::vector<LightData> lights; /**< The lights of the scene. */
   std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
