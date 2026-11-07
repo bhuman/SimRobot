@@ -9,7 +9,7 @@ The graphics API is selected when CMake is configured and fixed for a build:
 | API | Platforms | 3D view | Controller drawings | Multisampling | Shadow maps |
 |-|-|-|-|-|-|
 | OpenGL 3.3 core (default) | all | `QOpenGLWidget` | yes | yes | yes |
-| Metal | macOS (Qt >= 6.7) | `QRhiWidget` | no | yes (4x, only in the 3D view) | yes |
+| Metal | macOS (Qt >= 6.7) | `QRhiWidget` | yes | yes (4x, only in the 3D view) | yes |
 
 Select the API with the environment variable `SIMROBOT_GRAPHICS_API` when the project is generated, e.g. on macOS `SIMROBOT_GRAPHICS_API=Metal Make/macOS/generate` (the selection is cached by CMake and also used when it runs again by itself). CMake defines `SIMROBOTCORE3_USE_OPENGL` or `SIMROBOTCORE3_USE_METAL` for `SimRobotCore3` and for its interface target `SimRobotCore3Interface`, because the signatures of `SimRobotCore3::Renderer` depend on it (with Metal, they take the native handles of a `QRhi` instead of using the current OpenGL context).
 
@@ -22,3 +22,11 @@ OpenGL is deliberately used via `QOpenGLWidget` on all platforms (also where Qt 
 - Projection matrices always follow the OpenGL conventions (clip space depth from -1 to 1); the Metal context corrects them.
 
 `Graphics/GraphicsContext.h` includes the context of the selected API, so the rest of the code just uses `GraphicsContext`. A new API needs its own directory, an entry there and in `Make/CMake/SimRobotCore3.cmake`.
+
+## Controller drawings
+
+A controller (like the one of B-Human) can attach flat-colored 3D primitives to objects of the scene (physical objects and appearances) with `setDrawing(key, SimRobotCore3::Drawing&&)` (see `SimRobotCore3.h`). A `Drawing` consists of lines, dots, quads, spheres, ellipsoids, cylinders/cones and images (RGB pixels) and a transformation into the coordinate system of the object. The controller does not have to know about the graphics API; the drawing is copied under a lock (so it can be replaced from any thread) and removed with `removeDrawing(key)`.
+
+For each frame, `SimObjectRenderer` collects the drawings of the displayed objects in a `GraphicsContextBase::DrawingList` (lines, dots, quads and cylinders are tessellated, using `Primitives::cylinderData` for the cylinders; spheres and ellipsoids are instances of a unit sphere; images are copied) and draws it with `prepareDrawings`, `drawDrawings` and `finishDrawings` of the graphics context. The alpha of the primitives is blended with a factor per pass. The passes implement the occlusion modes of the 3D view: with occlusion, the drawings are depth tested against the scene; without it, `clearDepth` is called before so that they are drawn on top; with transparent occlusion, they are drawn depth tested with their full alpha, then the depth buffer is cleared and they are drawn again with half of the alpha. The options of a drawing (`disableDepth`, `disableTransparency`, `disableOpacity`) are evaluated per pass. Drawings are never lit or shadowed.
+
+The old interface (`Controller3DDrawing` and `Controller3DDrawingManager`, which let the controller issue OpenGL calls itself) still exists, but only works with OpenGL.

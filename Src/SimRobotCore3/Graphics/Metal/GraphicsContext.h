@@ -197,6 +197,16 @@ private:
    */
   OffscreenTarget& getOffscreenTarget(int width, int height, bool depthOnly);
 
+  /** The render pipeline states for controller drawings. */
+  enum DrawingPipeline
+  {
+    streamPipeline, /**< Points, lines and triangles with a color per vertex. */
+    flatPipeline, /**< A mesh with a uniform color. */
+    imagePipeline, /**< A textured mesh. */
+    clearDepthPipeline, /**< A triangle that covers everything and clears the depth buffer. */
+    numOfDrawingPipelineStates
+  };
+
   static constexpr std::size_t numOfColorShaders = 8; /**< The number of color shader variants (lighting x textures x smooth shading). */
   static constexpr std::size_t depthOnlyShaderIndex = numOfColorShaders; /**< The index of the depth only shader. */
   static constexpr std::size_t numOfShaders = numOfColorShaders + 1; /**< The number of shader variants. */
@@ -230,6 +240,9 @@ private:
   MTL::Buffer* shadowMapBuffer = nullptr; /**< The buffer with the data of all shadow maps (\c nullptr if there are none). */
   unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
   std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per sample count, shader variant and vertex type. */
+  std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfDrawingPipelineStates> drawingPipelineStates = {}; /**< Render pipeline states for controller drawings per sample count (see \c DrawingPipeline). */
+  MTL::DepthStencilState* noDepthWriteState = nullptr; /**< The depth test configuration for drawings that must not write to the depth buffer. */
+  MTL::DepthStencilState* clearDepthState = nullptr; /**< The depth configuration for clearing the depth buffer by drawing a triangle. */
   MTL::ComputePipelineState* colorReadbackPipelineState = nullptr; /**< The compute pipeline that converts a color attachment to RGB bytes. */
   MTL::ComputePipelineState* depthReadbackPipelineState = nullptr; /**< The compute pipeline that converts a depth attachment to floats. */
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
@@ -245,6 +258,10 @@ private:
   // Only valid between \c startOffscreenRendering and \c finishOffscreenRendering:
   OffscreenTarget* offscreenTarget = nullptr; /**< The current off-screen render target. */
   NS::AutoreleasePool* autoreleasePool = nullptr; /**< The pool for autoreleased objects created during off-screen rendering. */
+
+  // Only valid between \c prepareDrawings and \c finishDrawings:
+  MTL::Buffer* drawingBuffer = nullptr; /**< The buffer with the vertices of the drawings (lines, points and triangles). */
+  std::vector<MTL::Texture*> drawingTextures; /**< The textures of the images of the drawings. */
 
   bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
   int renderTargetHeight = 0; /**< The height of the current off-screen render target or shadow map. */
