@@ -22,7 +22,7 @@
 #ifdef SIMROBOTCORE3_USE_OPENGL
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_3_Core>
 #else
 #include <rhi/qrhi.h>
 #endif
@@ -722,9 +722,14 @@ void SimObjectWidget::exportAsImage(int width, int height)
     unsigned int winWidth, winHeight;
     objectRenderer.getSize(winWidth, winHeight);
     objectRenderer.resize(fovY, width, height);
+
+    // Exported images are always multisampled (they are often zoomed into, which makes jagged edges noticeable).
+    const unsigned int renderFlags = objectRenderer.getRenderFlags();
+    objectRenderer.setRenderFlags(renderFlags | SimRobotCore3::Renderer::enableMultisample);
+
 #ifdef SIMROBOTCORE3_USE_OPENGL
     makeCurrent();
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    QOpenGLFunctions_3_3_Core* f = Simulation::simulation->graphicsContext.getOpenGLFunctions();
 
     // Use a transparent clear color instead of the background color configured in the scene file
     f->glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -732,28 +737,39 @@ void SimObjectWidget::exportAsImage(int width, int height)
     // render object using a temporary framebuffer
     GLint previousViewport[4];
     f->glGetIntegerv(GL_VIEWPORT, previousViewport);
-    QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
-    framebuffer.bind();
-    f->glViewport(0, 0, width, height);
-    objectRenderer.draw();
-    image = framebuffer.toImage();
-    framebuffer.release();
+    {
+      QOpenGLFramebufferObjectFormat framebufferFormat;
+      framebufferFormat.setAttachment(QOpenGLFramebufferObject::Depth);
+      framebufferFormat.setSamples(4);
+      QOpenGLFramebufferObject framebuffer(width, height, framebufferFormat);
+      framebuffer.bind();
+      f->glViewport(0, 0, width, height);
+      objectRenderer.draw();
+      image = framebuffer.toImage();
+      framebuffer.release();
+    } // the framebuffer must be destroyed while the context is current
     f->glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
 
     // Restore the clear color from the scene file
     const float* color = Simulation::simulation->scene->color;
     f->glClearColor(color[0], color[1], color[2], color[3]);
+
+    doneCurrent();
 #else
-    // render object into a temporary render target
+    // render object into a temporary multisample render target, which is resolved into a texture
     QRhi* rhi = this->rhi();
     const QSize size(width, height);
+    constexpr int samples = GraphicsContext::multisampleCount;
     std::unique_ptr<QRhiTexture> colorTexture(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
-    std::unique_ptr<QRhiTexture> depthTexture(rhi->newTexture(QRhiTexture::D32F, size, 1, QRhiTexture::RenderTarget));
-    std::unique_ptr<QRhiTextureRenderTarget> renderTarget(rhi->newTextureRenderTarget({QRhiColorAttachment(colorTexture.get()), depthTexture.get()}));
+    std::unique_ptr<QRhiTexture> multisampleColorTexture(rhi->newTexture(QRhiTexture::RGBA8, size, samples, QRhiTexture::RenderTarget));
+    std::unique_ptr<QRhiTexture> depthTexture(rhi->newTexture(QRhiTexture::D32F, size, samples, QRhiTexture::RenderTarget));
+    QRhiColorAttachment colorAttachment(multisampleColorTexture.get());
+    colorAttachment.setResolveTexture(colorTexture.get());
+    std::unique_ptr<QRhiTextureRenderTarget> renderTarget(rhi->newTextureRenderTarget({colorAttachment, depthTexture.get()}));
     std::unique_ptr<QRhiRenderPassDescriptor> renderPassDescriptor(renderTarget->newCompatibleRenderPassDescriptor());
     renderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
     QRhiCommandBuffer* commandBuffer;
-    if(colorTexture->create() && depthTexture->create() && renderTarget->create() &&
+    if(colorTexture->create() && multisampleColorTexture->create() && depthTexture->create() && renderTarget->create() &&
        rhi->beginOffscreenFrame(&commandBuffer) == QRhi::FrameOpSuccess)
     {
       QRhiReadbackResult readbackResult;
@@ -761,7 +777,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
       resourceUpdates->readBackTexture(colorTexture.get(), &readbackResult);
       commandBuffer->beginPass(renderTarget.get(), QColor(0, 0, 0, 0), {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent); // transparent like with OpenGL
       commandBuffer->beginExternal();
-      objectRenderer.draw(commandBuffer->nativeHandles(), 1);
+      objectRenderer.draw(commandBuffer->nativeHandles());
       commandBuffer->endExternal();
       commandBuffer->endPass(resourceUpdates);
       rhi->endOffscreenFrame();
@@ -771,6 +787,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
     }
 #endif
 
+    objectRenderer.setRenderFlags(renderFlags);
     objectRenderer.resize(fovY, winWidth, winHeight);
   }
 
