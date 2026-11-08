@@ -1,5 +1,18 @@
 set(SIMROBOTCORE3_ROOT_DIR "${SIMROBOT_PREFIX}/Src/SimRobotCore3")
 
+# The graphics API is selected with the environment variable SIMROBOT_GRAPHICS_API (OpenGL) when the project is generated.
+# It is cached, so that regenerating the project without the environment variable keeps the selection.
+if(DEFINED ENV{SIMROBOT_GRAPHICS_API})
+  set(SIMROBOT_GRAPHICS_API "$ENV{SIMROBOT_GRAPHICS_API}" CACHE STRING "" FORCE)
+endif()
+set(SIMROBOT_GRAPHICS_API "OpenGL" CACHE STRING "The graphics API of SimRobotCore3 (OpenGL)")
+set_property(CACHE SIMROBOT_GRAPHICS_API PROPERTY STRINGS OpenGL)
+if(SIMROBOT_GRAPHICS_API STREQUAL "OpenGL")
+  set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_OPENGL)
+else()
+  message(FATAL_ERROR "Unknown SIMROBOT_GRAPHICS_API '${SIMROBOT_GRAPHICS_API}' (must be OpenGL)")
+endif()
+
 file(GLOB_RECURSE SIMROBOTCORE3_SOURCES CONFIGURE_DEPENDS
     "${SIMROBOTCORE3_ROOT_DIR}/*.cpp" "${SIMROBOTCORE3_ROOT_DIR}/*.h")
 list(APPEND SIMROBOTCORE3_SOURCES "${SIMROBOTCORE3_ROOT_DIR}/SimRobotCore3.qrc")
@@ -12,6 +25,8 @@ set_property(TARGET SimRobotCore3 PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobotCore3 PROPERTY AUTORCC ON)
 target_include_directories(SimRobotCore3 PRIVATE "${SIMROBOTCORE3_ROOT_DIR}")
 target_link_libraries(SimRobotCore3 PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Widgets)
+# The graphics API is part of the interface of SimRobotCore3 (e.g. the signatures of the renderer).
+target_compile_definitions(SimRobotCore3 PUBLIC ${SIMROBOTCORE3_GRAPHICS_DEFINITION})
 target_link_libraries(SimRobotCore3 PRIVATE Eigen::Eigen)
 target_link_libraries(SimRobotCore3 PRIVATE mujoco::mujoco)
 target_link_libraries(SimRobotCore3 PRIVATE SimRobotInterface)
@@ -27,5 +42,6 @@ source_group(TREE "${SIMROBOTCORE3_ROOT_DIR}" FILES ${SIMROBOTCORE3_SOURCES})
 
 add_library(SimRobotCore3Interface INTERFACE)
 target_include_directories(SimRobotCore3Interface SYSTEM INTERFACE "${SIMROBOTCORE3_ROOT_DIR}")
+target_compile_definitions(SimRobotCore3Interface INTERFACE ${SIMROBOTCORE3_GRAPHICS_DEFINITION})
 target_link_libraries(SimRobotCore3Interface INTERFACE Qt6::Core)
 target_link_libraries(SimRobotCore3Interface INTERFACE SimRobotInterface)
