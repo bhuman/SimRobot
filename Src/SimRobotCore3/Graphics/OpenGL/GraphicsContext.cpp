@@ -11,7 +11,6 @@
 #include "Graphics/LightSpace.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
-#include <QImage>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
