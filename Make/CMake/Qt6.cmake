@@ -1,3 +1,34 @@
+# On Linux, the system's Qt is found with find_package. For Windows and macOS, Qt is bundled in Util/qt, and its imported targets
+# are defined by hand below. In addition to the targets, the files of the Qt packages set some variables, which are set here as well:
+# Qt6_FOUND, Qt6_VERSION, Qt6_VERSION_MAJOR/MINOR/PATCH and Qt6<Module>_FOUND, Qt6<Module>_VERSION, Qt6<Module>_VERSION_MAJOR/MINOR/PATCH
+# for each module. (CMake itself uses some of them, e.g. for AUTOMOC and AUTORCC.) The version is read from the bundled Qt, so
+# updating Qt does not require to change anything here, except for the paths and library names that may change with a new version.
+if(NOT LINUX)
+  if(WINDOWS)
+    set(_qt_core_version_header "${SIMROBOT_PREFIX}/Util/qt/Windows/include/QtCore/qtcoreversion.h")
+    set(_qt_modules Concurrent Core Gui OpenGL OpenGLWidgets Svg SvgWidgets Widgets)
+  else()
+    set(_qt_core_version_header "${SIMROBOT_PREFIX}/Util/qt/macOS/lib/QtCore.framework/Headers/qtcoreversion.h")
+    set(_qt_modules Concurrent Core DBus Gui OpenGL OpenGLWidgets Svg SvgWidgets Widgets)
+  endif()
+  file(STRINGS "${_qt_core_version_header}" _qt_version_line REGEX "^#define QTCORE_VERSION_STR \"[0-9]+\\.[0-9]+\\.[0-9]+\"$")
+  if(NOT _qt_version_line MATCHES "\"([0-9]+)\\.([0-9]+)\\.([0-9]+)\"")
+    message(FATAL_ERROR "Could not determine the version of Qt from ${_qt_core_version_header}")
+  endif()
+  set(Qt6_VERSION_MAJOR ${CMAKE_MATCH_1})
+  set(Qt6_VERSION_MINOR ${CMAKE_MATCH_2})
+  set(Qt6_VERSION_PATCH ${CMAKE_MATCH_3})
+  set(Qt6_VERSION "${Qt6_VERSION_MAJOR}.${Qt6_VERSION_MINOR}.${Qt6_VERSION_PATCH}")
+  set(Qt6_FOUND TRUE)
+  foreach(_qt_module ${_qt_modules})
+    set(Qt6${_qt_module}_FOUND TRUE)
+    set(Qt6${_qt_module}_VERSION "${Qt6_VERSION}")
+    set(Qt6${_qt_module}_VERSION_MAJOR ${Qt6_VERSION_MAJOR})
+    set(Qt6${_qt_module}_VERSION_MINOR ${Qt6_VERSION_MINOR})
+    set(Qt6${_qt_module}_VERSION_PATCH ${Qt6_VERSION_PATCH})
+  endforeach()
+endif()
+
 if(LINUX)
   find_package(Qt6 COMPONENTS Concurrent Core Gui OpenGL OpenGLWidgets Svg SvgWidgets Widgets REQUIRED)
 elseif(WINDOWS)
@@ -112,9 +143,6 @@ elseif(WINDOWS)
       IMPORTED_CONFIGURATIONS "Debug"
       IMPORTED_LOCATION_DEBUG "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/qjpegd.dll"
       IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/plugins/imageformats/qjpeg.dll")
-
-  set(Qt6Core_VERSION_MAJOR 6)
-  set(Qt6Core_VERSION_MINOR 3)
 elseif(MACOS)
   add_library(Qt6::Concurrent SHARED IMPORTED)
   set_target_properties(Qt6::Concurrent PROPERTIES
@@ -182,7 +210,10 @@ elseif(MACOS)
 
   add_executable(Qt6::rcc IMPORTED)
   set_target_properties(Qt6::rcc PROPERTIES IMPORTED_LOCATION "${SIMROBOT_PREFIX}/Util/qt/${PLATFORM}/libexec/rcc")
+endif()
 
-  set(Qt6Core_VERSION_MAJOR 6)
-  set(Qt6Core_VERSION_MINOR 3)
+if(NOT LINUX)
+  foreach(_qt_module ${_qt_modules})
+    set_target_properties(Qt6::${_qt_module} PROPERTIES INTERFACE_QT_MAJOR_VERSION ${Qt6_VERSION_MAJOR})
+  endforeach()
 endif()
