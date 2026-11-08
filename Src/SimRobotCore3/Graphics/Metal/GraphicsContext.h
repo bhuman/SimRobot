@@ -27,6 +27,8 @@ class QRhiNativeHandles;
 class GraphicsContext : public GraphicsContextBase
 {
 public:
+  static constexpr int multisampleCount = 4; /**< The sample count of render targets if multisampling is enabled (otherwise it is 1). */
+
   /** Constructor. */
   GraphicsContext();
 
@@ -114,9 +116,10 @@ public:
    * Starts rendering into a render pass of a QRhi (between \c beginExternal and \c endExternal).
    * The render pass must have an RGBA8 color attachment and a D32F depth attachment.
    * @param nativeHandles The native handles of the QRhi command buffer.
+   * @param sampleCount The sample count of the attachments (1 or \c multisampleCount).
    * @return Whether rendering was successfully started.
    */
-  bool startExternalRendering(const QRhiNativeHandles* nativeHandles);
+  bool startExternalRendering(const QRhiNativeHandles* nativeHandles, int sampleCount);
 
   /** Must be called as counterpart to \c startExternalRendering. */
   void finishExternalRendering();
@@ -148,9 +151,10 @@ private:
    * Creates the render pipeline states for both vertex types.
    * @param library The library which contains the functions \c vertexMain and (unless \c depthOnly) \c fragmentMain.
    * @param depthOnly Whether the pipeline renders only depth.
+   * @param sampleCount The sample count of the render targets that the pipeline is used with.
    * @param pipelineStates The pipeline states per vertex type (output).
    */
-  void createRenderPipelineStates(MTL::Library* library, bool depthOnly, MTL::RenderPipelineState** pipelineStates);
+  void createRenderPipelineStates(MTL::Library* library, bool depthOnly, int sampleCount, MTL::RenderPipelineState** pipelineStates);
 
   /**
    * Creates a compute pipeline state.
@@ -173,6 +177,7 @@ private:
   static constexpr std::size_t depthOnlyShaderIndex = numOfColorShaders; /**< The index of the depth only shader. */
   static constexpr std::size_t numOfShaders = numOfColorShaders + 1; /**< The number of shader variants. */
   static constexpr std::size_t numOfVertexCategories = 2; /**< The number of vertex types. */
+  static constexpr std::size_t numOfSampleCounts = 2; /**< The number of sample counts for which pipeline states exist (1 and \c multisampleCount). */
 
   static constexpr std::size_t shadowMapMemorySize = 80; /**< Size of the data of a shadow map in graphics memory (see the ShadowMapData struct in the shader). */
   static constexpr std::size_t shadowMapTextureOffset = 64; /**< Offset of the texture handle within the data of a shadow map in graphics memory. */
@@ -200,7 +205,7 @@ private:
   std::vector<MTL::RenderPassDescriptor*> shadowMapRenderPasses; /**< The render passes that render into the shadow maps. */
   MTL::Buffer* shadowMapBuffer = nullptr; /**< The buffer with the data of all shadow maps (\c nullptr if there are none). */
   unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
-  std::array<MTL::RenderPipelineState*, numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per shader variant and vertex type. */
+  std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per sample count, shader variant and vertex type. */
   MTL::ComputePipelineState* colorReadbackPipelineState = nullptr; /**< The compute pipeline that converts a color attachment to RGB bytes. */
   MTL::ComputePipelineState* depthReadbackPipelineState = nullptr; /**< The compute pipeline that converts a depth attachment to floats. */
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
@@ -211,6 +216,7 @@ private:
   MTL::CommandBuffer* commandBuffer = nullptr; /**< The command buffer to which commands are encoded. */
   MTL::RenderCommandEncoder* encoder = nullptr; /**< The encoder of the current render pass. */
   bool renderDepthOnly = false; /**< Whether the current rendering is into a depth-only render target. */
+  std::size_t sampleCountIndex = 0; /**< The index in \c pipelineStates for the sample count of the current render target. */
 
   // Only valid between \c startOffscreenRendering and \c finishOffscreenRendering:
   OffscreenTarget* offscreenTarget = nullptr; /**< The current off-screen render target. */

@@ -66,6 +66,9 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) :
   objectRenderer.setDragPlane(SimRobotCore3::Renderer::DragAndDropPlane(settings->value("DragPlane", int(objectRenderer.getDragPlane())).toInt()));
   objectRenderer.setDragMode(SimRobotCore3::Renderer::DragAndDropMode(settings->value("DragMode", int(objectRenderer.getDragMode())).toInt()));
   objectRenderer.setRenderFlags(settings->value("RenderFlags", objectRenderer.getRenderFlags()).toInt());
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  updateSampleCount();
+#endif
 
   float pos[3];
   float target[3];
@@ -142,15 +145,27 @@ void SimObjectWidget::initialize(QRhiCommandBuffer*)
     objectRenderer.init(rhi()->nativeHandles());
   }
 
-  // The color texture is recreated by the widget when its size changes.
-  if(!textureRenderTarget || textureRenderTarget->description().cbeginColorAttachments()->texture() != colorTexture() ||
-     depthTexture->pixelSize() != colorTexture()->pixelSize())
+  // The color buffers are recreated by the widget when its size or sample count changes. With multisampling, the widget
+  // renders into a multisample buffer that is resolved into a texture (which is shown), otherwise directly into the texture.
+  const bool multisample = sampleCount() > 1;
+  const QSize size = multisample ? msaaColorBuffer()->pixelSize() : colorTexture()->pixelSize();
+  const QRhiColorAttachment* attachment = textureRenderTarget ? textureRenderTarget->description().cbeginColorAttachments() : nullptr;
+  if(!attachment || depthTexture->pixelSize() != size || depthTexture->sampleCount() != sampleCount() ||
+     (multisample ? (attachment->renderBuffer() != msaaColorBuffer() || attachment->resolveTexture() != resolveTexture()) : attachment->texture() != colorTexture()))
   {
     textureRenderTarget.reset();
     renderPassDescriptor.reset();
-    depthTexture.reset(rhi()->newTexture(QRhiTexture::D32F, colorTexture()->pixelSize(), 1, QRhiTexture::RenderTarget));
+    depthTexture.reset(rhi()->newTexture(QRhiTexture::D32F, size, sampleCount(), QRhiTexture::RenderTarget));
     depthTexture->create();
-    textureRenderTarget.reset(rhi()->newTextureRenderTarget({QRhiColorAttachment(colorTexture()), depthTexture.get()}));
+    QRhiColorAttachment colorAttachment;
+    if(multisample)
+    {
+      colorAttachment.setRenderBuffer(msaaColorBuffer());
+      colorAttachment.setResolveTexture(resolveTexture());
+    }
+    else
+      colorAttachment.setTexture(colorTexture());
+    textureRenderTarget.reset(rhi()->newTextureRenderTarget({colorAttachment, depthTexture.get()}));
     renderPassDescriptor.reset(textureRenderTarget->newCompatibleRenderPassDescriptor());
     textureRenderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
     textureRenderTarget->create();
@@ -650,9 +665,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   addRenderFlagAction("Enable &Lights", "Enable lighting", SimRobotCore3::Renderer::enableLights);
   addRenderFlagAction("Enable &Textures", "Enable textures", SimRobotCore3::Renderer::enableTextures);
-#ifdef SIMROBOTCORE3_USE_OPENGL
   addRenderFlagAction("Enable &Multisample", "Enable multisampling", SimRobotCore3::Renderer::enableMultisample);
-#endif
 
   menu->addSeparator();
 
@@ -748,7 +761,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
       resourceUpdates->readBackTexture(colorTexture.get(), &readbackResult);
       commandBuffer->beginPass(renderTarget.get(), QColor(0, 0, 0, 0), {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent); // transparent like with OpenGL
       commandBuffer->beginExternal();
-      objectRenderer.draw(commandBuffer->nativeHandles());
+      objectRenderer.draw(commandBuffer->nativeHandles(), 1);
       commandBuffer->endExternal();
       commandBuffer->endPass(resourceUpdates);
       rhi->endOffscreenFrame();
@@ -838,6 +851,16 @@ void SimObjectWidget::toggleRenderFlag(int flag)
   else
     flags |= flag;
   objectRenderer.setRenderFlags(flags);
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  updateSampleCount();
+#endif
 
   update();
 }
+
+#ifndef SIMROBOTCORE3_USE_OPENGL
+void SimObjectWidget::updateSampleCount()
+{
+  setSampleCount((objectRenderer.getRenderFlags() & SimRobotCore3::Renderer::enableMultisample) ? GraphicsContext::multisampleCount : 1);
+}
+#endif

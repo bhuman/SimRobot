@@ -194,7 +194,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   else
     f->glDisable(GL_MULTISAMPLE);
 #else
-  graphicsContext.startExternalRendering(nativeHandles);
+  graphicsContext.startExternalRendering(nativeHandles, (renderFlags & enableMultisample) ? GraphicsContext::multisampleCount : 1);
 #endif
 
   // draw origin

@@ -9,7 +9,7 @@ The graphics API is selected when CMake is configured and fixed for a build:
 | API | Platforms | 3D view | Controller drawings | Multisampling | Shadow maps |
 |-|-|-|-|-|-|
 | OpenGL 3.3 core (default) | all | `QOpenGLWidget` | yes | yes | yes |
-| Metal | macOS (Qt >= 6.7) | `QRhiWidget` | no | no | yes |
+| Metal | macOS (Qt >= 6.7) | `QRhiWidget` | no | yes (4x, only in the 3D view) | yes |
 
 Select the API with the environment variable `SIMROBOT_GRAPHICS_API` when the project is generated, e.g. on macOS `SIMROBOT_GRAPHICS_API=Metal Make/macOS/generate` (the selection is cached by CMake and also used when it runs again by itself). CMake defines `SIMROBOTCORE3_USE_OPENGL` or `SIMROBOTCORE3_USE_METAL` for `SimRobotCore3` and for its interface target `SimRobotCore3Interface`, because the signatures of `SimRobotCore3::Renderer` depend on it (with Metal, they take the native handles of a `QRhi` instead of using the current OpenGL context).
 

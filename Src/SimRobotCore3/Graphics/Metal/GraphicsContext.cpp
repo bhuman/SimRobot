@@ -578,13 +578,14 @@ void GraphicsContext::createDeviceResources()
 
     if(MTL::Library* library = compileLibrary(sourceCode); library)
     {
-      createRenderPipelineStates(library, false, &pipelineStates[i * numOfVertexCategories]);
+      for(std::size_t j = 0; j < numOfSampleCounts; ++j)
+        createRenderPipelineStates(library, false, j == 0 ? 1 : multisampleCount, &pipelineStates[(j * numOfShaders + i) * numOfVertexCategories]);
       library->release();
     }
   }
   if(MTL::Library* library = compileLibrary(depthOnlyShaderSourceCode); library)
   {
-    createRenderPipelineStates(library, true, &pipelineStates[depthOnlyShaderIndex * numOfVertexCategories]);
+    createRenderPipelineStates(library, true, 1, &pipelineStates[depthOnlyShaderIndex * numOfVertexCategories]);
     library->release();
   }
   if(MTL::Library* library = compileLibrary(readbackShaderSourceCode); library)
@@ -720,7 +721,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
 {
   ASSERT(encoder);
   ASSERT(!selectedPipelineStates);
-  selectedPipelineStates = &pipelineStates[(renderDepthOnly ? depthOnlyShaderIndex : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0))) * numOfVertexCategories];
+  selectedPipelineStates = &pipelineStates[((renderDepthOnly ? 0 : sampleCountIndex * numOfShaders) + (renderDepthOnly ? depthOnlyShaderIndex : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)))) * numOfVertexCategories];
   boundPipelineState = nullptr;
 
   if(viewportX >= 0)
@@ -848,8 +849,9 @@ void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
   autoreleasePool = nullptr;
 }
 
-bool GraphicsContext::startExternalRendering(const QRhiNativeHandles* nativeHandles)
+bool GraphicsContext::startExternalRendering(const QRhiNativeHandles* nativeHandles, int sampleCount)
 {
+  ASSERT(sampleCount == 1 || sampleCount == multisampleCount);
   ASSERT(!commandBuffer);
   ASSERT(!encoder);
   ASSERT(!offscreenTarget);
@@ -859,6 +861,7 @@ bool GraphicsContext::startExternalRendering(const QRhiNativeHandles* nativeHand
   commandBuffer = reinterpret_cast<MTL::CommandBuffer*>(commandBufferHandles->commandBuffer);
   encoder = reinterpret_cast<MTL::RenderCommandEncoder*>(commandBufferHandles->encoder);
   renderDepthOnly = false;
+  sampleCountIndex = sampleCount == 1 ? 0 : 1;
 
   return true;
 }
@@ -871,6 +874,7 @@ void GraphicsContext::finishExternalRendering()
   ASSERT(!selectedPipelineStates);
   commandBuffer = nullptr;
   encoder = nullptr;
+  sampleCountIndex = 0;
 }
 
 MTL::Library* GraphicsContext::compileLibrary(const std::string& sourceCode)
@@ -885,9 +889,10 @@ MTL::Library* GraphicsContext::compileLibrary(const std::string& sourceCode)
   return library;
 }
 
-void GraphicsContext::createRenderPipelineStates(MTL::Library* library, bool depthOnly, MTL::RenderPipelineState** pipelineStates)
+void GraphicsContext::createRenderPipelineStates(MTL::Library* library, bool depthOnly, int sampleCount, MTL::RenderPipelineState** pipelineStates)
 {
   MTL::RenderPipelineDescriptor* descriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+  descriptor->setRasterSampleCount(sampleCount);
   MTL::Function* vertexFunction = library->newFunction(toNSString("vertexMain"));
   MTL::Function* fragmentFunction = depthOnly ? nullptr : library->newFunction(toNSString("fragmentMain"));
   descriptor->setVertexFunction(vertexFunction);

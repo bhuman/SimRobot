@@ -132,7 +132,8 @@ namespace SimRobotCore3
     /**
      * Draws the scene object on the currently selected OpenGL context or into the current render pass of the given RHI
      * command buffer (\c QRhiCommandBuffer::nativeHandles between \c beginExternal and \c endExternal).
-     * With an RHI, the render target must have an RGBA8 color attachment and a D32F depth attachment.
+     * With an RHI, the render target must have an RGBA8 color attachment and a D32F depth attachment
+     * (with 1 sample, or with the multisample count of the graphics API if the multisample render flag is set).
      */
     virtual void draw(
 #ifndef SIMROBOTCORE3_USE_OPENGL
