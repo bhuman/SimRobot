@@ -1,16 +1,24 @@
 set(SIMROBOTCORE3_ROOT_DIR "${SIMROBOT_PREFIX}/Src/SimRobotCore3")
 
-# The graphics API is selected with the environment variable SIMROBOT_GRAPHICS_API (OpenGL) when the project is generated.
+# The graphics API is selected with the environment variable SIMROBOT_GRAPHICS_API (OpenGL or Metal) when the project is generated.
 # It is cached, so that regenerating the project without the environment variable keeps the selection.
 if(DEFINED ENV{SIMROBOT_GRAPHICS_API})
   set(SIMROBOT_GRAPHICS_API "$ENV{SIMROBOT_GRAPHICS_API}" CACHE STRING "" FORCE)
 endif()
-set(SIMROBOT_GRAPHICS_API "OpenGL" CACHE STRING "The graphics API of SimRobotCore3 (OpenGL)")
-set_property(CACHE SIMROBOT_GRAPHICS_API PROPERTY STRINGS OpenGL)
+set(SIMROBOT_GRAPHICS_API "OpenGL" CACHE STRING "The graphics API of SimRobotCore3 (OpenGL or Metal, which is only available on macOS)")
+set_property(CACHE SIMROBOT_GRAPHICS_API PROPERTY STRINGS OpenGL Metal)
 if(SIMROBOT_GRAPHICS_API STREQUAL "OpenGL")
   set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_OPENGL)
+elseif(SIMROBOT_GRAPHICS_API STREQUAL "Metal")
+  if(NOT MACOS)
+    message(FATAL_ERROR "SIMROBOT_GRAPHICS_API=Metal is only supported on macOS")
+  endif()
+  if(Qt6_VERSION VERSION_LESS "6.7.0")
+    message(FATAL_ERROR "SIMROBOT_GRAPHICS_API=Metal requires Qt 6.7 or newer (QRhiWidget)")
+  endif()
+  set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_METAL)
 else()
-  message(FATAL_ERROR "Unknown SIMROBOT_GRAPHICS_API '${SIMROBOT_GRAPHICS_API}' (must be OpenGL)")
+  message(FATAL_ERROR "Unknown SIMROBOT_GRAPHICS_API '${SIMROBOT_GRAPHICS_API}' (must be OpenGL or Metal)")
 endif()
 
 file(GLOB_RECURSE SIMROBOTCORE3_SOURCES CONFIGURE_DEPENDS
@@ -24,7 +32,17 @@ set_property(TARGET SimRobotCore3 PROPERTY PDB_OUTPUT_DIRECTORY "${SIMROBOT_LIBR
 set_property(TARGET SimRobotCore3 PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobotCore3 PROPERTY AUTORCC ON)
 target_include_directories(SimRobotCore3 PRIVATE "${SIMROBOTCORE3_ROOT_DIR}")
-target_link_libraries(SimRobotCore3 PRIVATE Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Widgets)
+target_link_libraries(SimRobotCore3 PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
+if(SIMROBOT_GRAPHICS_API STREQUAL "Metal")
+  find_library(METAL_FRAMEWORK Metal)
+  find_library(FOUNDATION_FRAMEWORK Foundation)
+  find_library(QUARTZ_CORE_FRAMEWORK QuartzCore)
+
+  target_include_directories(SimRobotCore3 SYSTEM PRIVATE "${SIMROBOT_PREFIX}/Util/metal-cpp")
+  target_link_libraries(SimRobotCore3 PRIVATE ${METAL_FRAMEWORK} ${FOUNDATION_FRAMEWORK} ${QUARTZ_CORE_FRAMEWORK})
+else()
+  target_link_libraries(SimRobotCore3 PRIVATE Qt6::OpenGL Qt6::OpenGLWidgets)
+endif()
 # The graphics API is part of the interface of SimRobotCore3 (e.g. the signatures of the renderer).
 target_compile_definitions(SimRobotCore3 PUBLIC ${SIMROBOTCORE3_GRAPHICS_DEFINITION})
 target_link_libraries(SimRobotCore3 PRIVATE Eigen::Eigen)

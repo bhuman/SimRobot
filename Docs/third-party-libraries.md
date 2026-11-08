@@ -16,6 +16,10 @@ TODO: Describe where Box2D comes from, what the current version is and how it wa
 
 [MuJoCo](https://mujoco.org/) is the dynamics engine used in `SimRobotCore3` (source releases can be downloaded [here](https://github.com/google-deepmind/mujoco/releases)). The binaries and headers in `Util/MuJoCo` have the version 3.3.5.
 
+## metal-cpp
+
+[metal-cpp](https://developer.apple.com/metal/cpp/) is Apple's header-only C++ interface for Metal, which is used by the Metal backend of `SimRobotCore3` on macOS (source releases can be downloaded from the same page). The headers in `Util/metal-cpp` are version 27.0.1 (macOS 27.0.1); the Python script for creating a single header file is not included. The implementation is generated in exactly one translation unit that defines `NS_PRIVATE_IMPLEMENTATION`, `CA_PRIVATE_IMPLEMENTATION` and `MTL_PRIVATE_IMPLEMENTATION` before including the headers.
+
 ## Qt
 
 [Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL provider in `SimRobotCore3`. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).
