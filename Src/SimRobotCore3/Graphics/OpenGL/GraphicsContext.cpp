@@ -714,7 +714,7 @@ void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
   f = nullptr;
 }
 
-bool GraphicsContext::startExternalRendering()
+bool GraphicsContext::startExternalRendering(bool multisample)
 {
   ASSERT(!data);
   ASSERT(!f);
@@ -726,6 +726,10 @@ bool GraphicsContext::startExternalRendering()
 
   f = data->f;
 
+  if(multisample)
+    f->glEnable(GL_MULTISAMPLE);
+  else
+    f->glDisable(GL_MULTISAMPLE);
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   renderDepthOnly = false;
 

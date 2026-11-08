@@ -184,18 +184,11 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawAppearances && (renderFlags & enableLights))
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, false, dragging && dragSelection);
 
-#ifdef SIMROBOTCORE3_USE_OPENGL
-  graphicsContext.startExternalRendering();
-
-  QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
-
-  if(renderFlags & enableMultisample)
-    f->glEnable(GL_MULTISAMPLE);
-  else
-    f->glDisable(GL_MULTISAMPLE);
-#else
-  graphicsContext.startExternalRendering(nativeHandles);
+  graphicsContext.startExternalRendering(
+#ifndef SIMROBOTCORE3_USE_OPENGL
+    nativeHandles,
 #endif
+    (renderFlags & enableMultisample) != 0);
 
   // draw origin
   if(drawCoordinateSystem)
@@ -241,6 +234,8 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
       Simulation::simulation->scene->drawingManager->registerContext();
       registeredAtManager = true;
     }
+
+    QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
 
     f->glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
 

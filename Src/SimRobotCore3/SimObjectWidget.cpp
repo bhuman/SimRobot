@@ -22,7 +22,7 @@
 #ifdef SIMROBOTCORE3_USE_OPENGL
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_3_Core>
 #else
 #include <rhi/qrhi.h>
 #endif
@@ -66,6 +66,9 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) :
   objectRenderer.setDragPlane(SimRobotCore3::Renderer::DragAndDropPlane(settings->value("DragPlane", int(objectRenderer.getDragPlane())).toInt()));
   objectRenderer.setDragMode(SimRobotCore3::Renderer::DragAndDropMode(settings->value("DragMode", int(objectRenderer.getDragMode())).toInt()));
   objectRenderer.setRenderFlags(settings->value("RenderFlags", objectRenderer.getRenderFlags()).toInt());
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  updateSampleCount();
+#endif
 
   float pos[3];
   float target[3];
@@ -142,15 +145,27 @@ void SimObjectWidget::initialize(QRhiCommandBuffer*)
     objectRenderer.init(rhi()->nativeHandles());
   }
 
-  // The color texture is recreated by the widget when its size changes.
-  if(!textureRenderTarget || textureRenderTarget->description().cbeginColorAttachments()->texture() != colorTexture() ||
-     depthTexture->pixelSize() != colorTexture()->pixelSize())
+  // The color buffers are recreated by the widget when its size or sample count changes. With multisampling, the widget
+  // renders into a multisample buffer that is resolved into a texture (which is shown), otherwise directly into the texture.
+  const bool multisample = sampleCount() > 1;
+  const QSize size = multisample ? msaaColorBuffer()->pixelSize() : colorTexture()->pixelSize();
+  const QRhiColorAttachment* attachment = textureRenderTarget ? textureRenderTarget->description().cbeginColorAttachments() : nullptr;
+  if(!attachment || depthTexture->pixelSize() != size || depthTexture->sampleCount() != sampleCount() ||
+     (multisample ? (attachment->renderBuffer() != msaaColorBuffer() || attachment->resolveTexture() != resolveTexture()) : attachment->texture() != colorTexture()))
   {
     textureRenderTarget.reset();
     renderPassDescriptor.reset();
-    depthTexture.reset(rhi()->newTexture(QRhiTexture::D32F, colorTexture()->pixelSize(), 1, QRhiTexture::RenderTarget));
+    depthTexture.reset(rhi()->newTexture(QRhiTexture::D32F, size, sampleCount(), QRhiTexture::RenderTarget));
     depthTexture->create();
-    textureRenderTarget.reset(rhi()->newTextureRenderTarget({QRhiColorAttachment(colorTexture()), depthTexture.get()}));
+    QRhiColorAttachment colorAttachment;
+    if(multisample)
+    {
+      colorAttachment.setRenderBuffer(msaaColorBuffer());
+      colorAttachment.setResolveTexture(resolveTexture());
+    }
+    else
+      colorAttachment.setTexture(colorTexture());
+    textureRenderTarget.reset(rhi()->newTextureRenderTarget({colorAttachment, depthTexture.get()}));
     renderPassDescriptor.reset(textureRenderTarget->newCompatibleRenderPassDescriptor());
     textureRenderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
     textureRenderTarget->create();
@@ -650,9 +665,7 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   addRenderFlagAction("Enable &Lights", "Enable lighting", SimRobotCore3::Renderer::enableLights);
   addRenderFlagAction("Enable &Textures", "Enable textures", SimRobotCore3::Renderer::enableTextures);
-#ifdef SIMROBOTCORE3_USE_OPENGL
   addRenderFlagAction("Enable &Multisample", "Enable multisampling", SimRobotCore3::Renderer::enableMultisample);
-#endif
 
   menu->addSeparator();
 
@@ -709,9 +722,13 @@ void SimObjectWidget::exportAsImage(int width, int height)
     unsigned int winWidth, winHeight;
     objectRenderer.getSize(winWidth, winHeight);
     objectRenderer.resize(fovY, width, height);
+
+    // The render target of the image must have the sample count that the renderer uses (it depends on the render flag).
+    const bool multisample = (objectRenderer.getRenderFlags() & SimRobotCore3::Renderer::enableMultisample) != 0;
+
 #ifdef SIMROBOTCORE3_USE_OPENGL
     makeCurrent();
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    QOpenGLFunctions_3_3_Core* f = Simulation::simulation->graphicsContext.getOpenGLFunctions();
 
     // Use a transparent clear color instead of the background color configured in the scene file
     f->glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -719,28 +736,40 @@ void SimObjectWidget::exportAsImage(int width, int height)
     // render object using a temporary framebuffer
     GLint previousViewport[4];
     f->glGetIntegerv(GL_VIEWPORT, previousViewport);
-    QOpenGLFramebufferObject framebuffer(width, height, QOpenGLFramebufferObject::Depth);
-    framebuffer.bind();
-    f->glViewport(0, 0, width, height);
-    objectRenderer.draw();
-    image = framebuffer.toImage();
-    framebuffer.release();
+    {
+      QOpenGLFramebufferObjectFormat framebufferFormat;
+      framebufferFormat.setAttachment(QOpenGLFramebufferObject::Depth);
+      framebufferFormat.setSamples(multisample ? 4 : 0);
+      QOpenGLFramebufferObject framebuffer(width, height, framebufferFormat);
+      framebuffer.bind();
+      f->glViewport(0, 0, width, height);
+      objectRenderer.draw();
+      image = framebuffer.toImage();
+      framebuffer.release();
+    } // the framebuffer must be destroyed while the context is current
     f->glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
 
     // Restore the clear color from the scene file
     const float* color = Simulation::simulation->scene->color;
     f->glClearColor(color[0], color[1], color[2], color[3]);
+
+    doneCurrent();
 #else
-    // render object into a temporary render target
+    // render object into a temporary render target (with multisampling, it is resolved into the texture that is read back)
     QRhi* rhi = this->rhi();
     const QSize size(width, height);
+    const int samples = multisample ? GraphicsContext::multisampleCount : 1;
     std::unique_ptr<QRhiTexture> colorTexture(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
-    std::unique_ptr<QRhiTexture> depthTexture(rhi->newTexture(QRhiTexture::D32F, size, 1, QRhiTexture::RenderTarget));
-    std::unique_ptr<QRhiTextureRenderTarget> renderTarget(rhi->newTextureRenderTarget({QRhiColorAttachment(colorTexture.get()), depthTexture.get()}));
+    std::unique_ptr<QRhiTexture> multisampleColorTexture(multisample ? rhi->newTexture(QRhiTexture::RGBA8, size, samples, QRhiTexture::RenderTarget) : nullptr);
+    std::unique_ptr<QRhiTexture> depthTexture(rhi->newTexture(QRhiTexture::D32F, size, samples, QRhiTexture::RenderTarget));
+    QRhiColorAttachment colorAttachment(multisample ? multisampleColorTexture.get() : colorTexture.get());
+    if(multisample)
+      colorAttachment.setResolveTexture(colorTexture.get());
+    std::unique_ptr<QRhiTextureRenderTarget> renderTarget(rhi->newTextureRenderTarget({colorAttachment, depthTexture.get()}));
     std::unique_ptr<QRhiRenderPassDescriptor> renderPassDescriptor(renderTarget->newCompatibleRenderPassDescriptor());
     renderTarget->setRenderPassDescriptor(renderPassDescriptor.get());
     QRhiCommandBuffer* commandBuffer;
-    if(colorTexture->create() && depthTexture->create() && renderTarget->create() &&
+    if(colorTexture->create() && (!multisample || multisampleColorTexture->create()) && depthTexture->create() && renderTarget->create() &&
        rhi->beginOffscreenFrame(&commandBuffer) == QRhi::FrameOpSuccess)
     {
       QRhiReadbackResult readbackResult;
@@ -838,6 +867,16 @@ void SimObjectWidget::toggleRenderFlag(int flag)
   else
     flags |= flag;
   objectRenderer.setRenderFlags(flags);
+#ifndef SIMROBOTCORE3_USE_OPENGL
+  updateSampleCount();
+#endif
 
   update();
 }
+
+#ifndef SIMROBOTCORE3_USE_OPENGL
+void SimObjectWidget::updateSampleCount()
+{
+  setSampleCount((objectRenderer.getRenderFlags() & SimRobotCore3::Renderer::enableMultisample) ? GraphicsContext::multisampleCount : 1);
+}
+#endif

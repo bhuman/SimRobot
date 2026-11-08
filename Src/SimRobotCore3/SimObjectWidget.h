@@ -58,6 +58,9 @@ private:
   std::unique_ptr<QRhiTexture> depthTexture; /**< The depth attachment of the render target. */
   std::unique_ptr<QRhiRenderPassDescriptor> renderPassDescriptor; /**< The render pass descriptor of the render target. */
   std::unique_ptr<QRhiTextureRenderTarget> textureRenderTarget; /**< The render target (color texture of the widget and \c depthTexture). */
+
+  /** Sets the sample count of the widget according to whether multisampling is enabled. */
+  void updateSampleCount();
 #endif
 
   QWidget* getWidget() override {return this;}

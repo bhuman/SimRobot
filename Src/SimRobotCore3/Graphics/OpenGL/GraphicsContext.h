@@ -112,9 +112,10 @@ public:
 
   /**
    * Selects the (already current) OpenGL context for rendering, e.g. into an external framebuffer.
+   * @param multisample Whether multisampling is enabled (this only has an effect if the framebuffer has samples).
    * @return Whether the OpenGL context was successfully selected.
    */
-  bool startExternalRendering();
+  bool startExternalRendering(bool multisample);
 
   /** Must be called as counterpart to \c startExternalRendering. */
   void finishExternalRendering();
