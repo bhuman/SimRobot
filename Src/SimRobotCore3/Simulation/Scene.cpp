@@ -30,10 +30,8 @@ void Scene::updateActuators()
 void Scene::createGraphics(GraphicsContext& graphicsContext)
 {
   // The model matrix is needed for controller drawings.
-  // Physical object and graphical object share it because it really is just at the origin.
   ASSERT(!::PhysicalObject::modelMatrix);
-  ASSERT(!GraphicalObject::modelMatrix);
-  GraphicalObject::modelMatrix = ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
+  ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
 
   graphicsContext.setClearColor(Simulation::simulation->scene->color);
 
@@ -61,20 +59,6 @@ void Scene::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) co
   ::PhysicalObject::drawPhysics(graphicsContext, flags);
 }
 
-void Scene::visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept)
-{
-  for(Body* body : bodies)
-    accept(*body);
-  GraphicalObject::visitGraphicalControllerDrawings(accept);
-}
-
-void Scene::visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept)
-{
-  for(Body* body : bodies)
-    accept(*body);
-  ::PhysicalObject::visitPhysicalControllerDrawings(accept);
-}
-
 void Scene::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
 {
   for(const Body* body : bodies)
@@ -100,12 +84,4 @@ double Scene::getTime() const
 unsigned int Scene::getFrameRate() const
 {
   return Simulation::simulation->currentFrameRate;
-}
-
-bool Scene::registerDrawingManager(SimRobotCore3::Controller3DDrawingManager& manager)
-{
-  if(drawingManager)
-    return false;
-  drawingManager = &manager;
-  return true;
 }

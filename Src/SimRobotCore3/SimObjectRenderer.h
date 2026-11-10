@@ -48,9 +48,6 @@ private:
   unsigned int renderFlags = enableLights | enableTextures | enableMultisample;
 
   bool initialized = false;
-#ifdef SIMROBOTCORE3_USE_OPENGL
-  bool registeredAtManager = false;
-#endif
   bool dragging = false;
   DragType dragType;
   Body* dragSelection;

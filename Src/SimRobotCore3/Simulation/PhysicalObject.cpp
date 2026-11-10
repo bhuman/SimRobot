@@ -47,34 +47,6 @@ void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int 
     drawing->drawPhysics(graphicsContext, flags);
 }
 
-void PhysicalObject::drawControllerDrawings() const
-{
-  for(SimRobotCore3::Controller3DDrawing* drawing : controllerDrawings)
-    drawing->draw();
-  const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([](PhysicalObject& child){child.drawControllerDrawings();});
-}
-
-void PhysicalObject::beforeControllerDrawings(const float* projection, const float* view) const
-{
-  ASSERT(modelMatrix);
-  for(SimRobotCore3::Controller3DDrawing* drawing : controllerDrawings)
-    drawing->beforeFrame(projection, view, modelMatrix->getPointer());
-  const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([projection, view](PhysicalObject& child){child.beforeControllerDrawings(projection, view);});
-}
-
-void PhysicalObject::afterControllerDrawings() const
-{
-  for(SimRobotCore3::Controller3DDrawing* drawing : controllerDrawings)
-    drawing->afterFrame();
-  const_cast<PhysicalObject*>(this)->visitPhysicalControllerDrawings([](PhysicalObject& child){child.afterControllerDrawings();});
-}
-
-void PhysicalObject::visitPhysicalControllerDrawings(const std::function<void(PhysicalObject&)>& accept)
-{
-  for(PhysicalObject* drawing : physicalDrawings)
-    accept(*drawing);
-}
-
 void PhysicalObject::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
 {
   ASSERT(modelMatrix);
@@ -91,23 +63,6 @@ void PhysicalObject::setDrawing(const void* key, SimRobotCore3::Drawing&& drawin
 bool PhysicalObject::removeDrawing(const void* key)
 {
   return drawings.remove(key);
-}
-
-bool PhysicalObject::registerDrawing(SimRobotCore3::Controller3DDrawing& drawing)
-{
-  controllerDrawings.push_back(&drawing);
-  return true;
-}
-
-bool PhysicalObject::unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing)
-{
-  for(auto iter = controllerDrawings.begin(), end = controllerDrawings.end(); iter != end; ++iter)
-    if(*iter == &drawing)
-    {
-      controllerDrawings.erase(iter);
-      return true;
-    }
-  return false;
 }
 
 SimRobotCore3::Body* PhysicalObject::getParentBody()

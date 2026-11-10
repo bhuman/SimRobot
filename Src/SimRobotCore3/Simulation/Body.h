@@ -103,18 +103,6 @@ private:
    */
   void addParent(Element& element) override;
 
-  /**
-   * Visits controller drawings of physical children
-   * @param accept The functor to apply to every child
-   */
-  void visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept) override;
-
-  /**
-   * Visits controller drawings of graphical children
-   * @param accept The functor to apply to every child
-   */
-  void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept) override;
-
   friend class CollisionSensor;
 
   GraphicsContext::ModelMatrix* comModelMatrix = nullptr; /**< The model matrix of the CoM sphere drawing */
@@ -125,8 +113,6 @@ private:
   SimRobot::Widget* createWidget() override {return SimObject::createWidget();}
   const QIcon* getIcon() const override {return SimObject::getIcon();}
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
-  bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::registerDrawing(drawing);}
-  bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::unregisterDrawing(drawing);}
   void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing) override {::PhysicalObject::setDrawing(key, std::move(drawing));}
   bool removeDrawing(const void* key) override {return ::PhysicalObject::removeDrawing(key);}
   SimRobotCore3::Body* getParentBody() override {return parentBody;}

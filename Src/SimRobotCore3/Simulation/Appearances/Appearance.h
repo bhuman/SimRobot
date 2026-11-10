@@ -89,6 +89,4 @@ private:
   SimRobot::Widget* createWidget() override {return SimObject::createWidget();}
   const QIcon* getIcon() const override;
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
-  bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::GraphicalObject::registerDrawing(drawing);}
-  bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::GraphicalObject::unregisterDrawing(drawing);}
 };

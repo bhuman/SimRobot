@@ -217,7 +217,7 @@ public:
   {
     enum Usage
     {
-      appearance, /**< This class may be used for appearances and controller drawings. */
+      appearance, /**< This class may be used for appearances. */
       physicalDrawing, /**< This class may be used for physical drawings and controller drawings. */
       sensorDrawing, /**< This class may be used for sensor drawings and controller drawings. */
       controllerDrawing, /**< This class may be used for controller drawings only. */

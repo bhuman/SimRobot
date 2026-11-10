@@ -19,7 +19,6 @@ class QRhiNativeHandles;
 namespace SimRobotCore3
 {
   class Renderer;
-  class Controller3DDrawing;
   class Object;
   class PhysicalObject;
   class Body;
@@ -344,61 +343,6 @@ namespace SimRobotCore3
   };
 
   /**
-   * This is a base class for managing debug drawings from the controller.
-   * It must be implemented (and registered in the scene) in order to use controller drawings.
-   * Controller drawings are currently only supported with OpenGL.
-   */
-  class Controller3DDrawingManager
-  {
-  public:
-    /** Empty virtual destructor */
-    virtual ~Controller3DDrawingManager() = default;
-
-    /** Is called when there is a new context in which drawings should be drawn */
-    virtual void registerContext() {}
-
-    /** Is called when a context that was previously registered is destroyed */
-    virtual void unregisterContext() {}
-
-    /** Is called before the first call to \c beforeFrame of any drawing */
-    virtual void beforeFrame() {}
-
-    /** Is called after the last call to \c beforeFrame of any drawing */
-    virtual void uploadData() {}
-
-    /** Is called after \c uploadData and before the first call to \c draw of any drawing */
-    virtual void beforeDraw() {}
-
-    /** Is called after the last call to \c afterFrame of any drawing */
-    virtual void afterFrame() {}
-  };
-
-  /**
-   * This is an abstract base class for drawings, which can be implemented
-   * inside the controller and executed while drawing the scene.
-   */
-  class Controller3DDrawing
-  {
-  public:
-    /** Empty virtual destructor */
-    virtual ~Controller3DDrawing() = default;
-
-    /**
-     * Allocates resources before drawing
-     * @param projection Pointer to a column-major 4x4 projection matrix
-     * @param view Pointer to a column-major 4x4 view matrix
-     * @param model Pointer to a column-major 4x4 model matrix
-     */
-    virtual void beforeFrame(const float* projection, const float* view, const float* model) = 0;
-
-    /** Issues draw calls */
-    virtual void draw() {}
-
-    /** Deallocates resources after drawing */
-    virtual void afterFrame() {}
-  };
-
-  /**
    * General interface for all renderable scene graph objects
    */
   class Object : public SimRobot::Object
@@ -417,18 +361,6 @@ namespace SimRobotCore3
   class PhysicalObject : public Object
   {
   public:
-    /**
-     * Registers controller drawings at an object in the simulation scene
-     * @param drawing The drawing
-     */
-    virtual bool registerDrawing(Controller3DDrawing& drawing) = 0;
-
-    /**
-     * Unregisters controller drawings at an object in the simulation scene
-     * @param drawing The drawing
-     */
-    virtual bool unregisterDrawing(Controller3DDrawing& drawing) = 0;
-
     /**
      * Attaches a drawing to the object, or replaces a drawing that was attached before.
      * This can be done from any thread. The drawing is moved (including the pixels of its images) and only prepared
@@ -541,18 +473,6 @@ namespace SimRobotCore3
      * @return The identifier
      */
     int getKind() const override {return appearance;}
-
-    /**
-     * Registers controller drawings at an object in the simulation scene
-     * @param drawing The drawing
-     */
-    virtual bool registerDrawing(Controller3DDrawing& drawing) = 0;
-
-    /**
-     * Unregisters controller drawings at an object in the simulation scene
-     * @param drawing The drawing
-     */
-    virtual bool unregisterDrawing(Controller3DDrawing& drawing) = 0;
   };
 
   /*
@@ -685,13 +605,6 @@ namespace SimRobotCore3
      * @return The frame rate in frames per second
      */
     virtual unsigned int getFrameRate() const = 0;
-
-    /**
-     * Registers a manager for controller drawings
-     * @param manager The drawing manager (must live as long as the entire simulation and cannot be unregistered)
-     * @return True if no manager was already registered
-     */
-    virtual bool registerDrawingManager(Controller3DDrawingManager& manager) = 0;
   };
 
   /**

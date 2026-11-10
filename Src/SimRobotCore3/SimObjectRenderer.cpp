@@ -15,9 +15,7 @@
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
 #include <mujoco/mujoco.h>
-#ifdef SIMROBOTCORE3_USE_OPENGL
-#include <QOpenGLFunctions_3_3_Core>
-#else
+#ifndef SIMROBOTCORE3_USE_OPENGL
 #include <rhi/qrhi.h>
 #endif
 
@@ -54,13 +52,7 @@ void SimObjectRenderer::init(const QRhiNativeHandles* nativeHandles)
   ASSERT(!initialized);
 #ifdef SIMROBOTCORE3_USE_OPENGL
   Simulation::simulation->graphicsContext.createGraphics();
-  if(Simulation::simulation->scene->drawingManager)
-  {
-    Simulation::simulation->scene->drawingManager->registerContext();
-    registeredAtManager = true;
-  }
 #else
-  // Controller drawings are only supported with OpenGL.
   Simulation::simulation->graphicsContext.createGraphics(nativeHandles);
 #endif
   initialized = true;
@@ -76,12 +68,6 @@ void SimObjectRenderer::destroy(const QRhiNativeHandles* nativeHandles)
   if(initialized)
   {
 #ifdef SIMROBOTCORE3_USE_OPENGL
-    if(registeredAtManager)
-    {
-      ASSERT(Simulation::simulation->scene->drawingManager);
-      Simulation::simulation->scene->drawingManager->unregisterContext();
-      registeredAtManager = false;
-    }
     Simulation::simulation->graphicsContext.destroyGraphics();
 #else
     Simulation::simulation->graphicsContext.destroyGraphics(nativeHandles);
@@ -138,13 +124,10 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   const bool drawSensors = physicalObject && (renderFlags & showSensors);
   const bool drawDragPlane = dragging && dragSelection;
   const bool drawCoordinateSystem = renderFlags & showCoordinateSystem;
-  const bool drawControllerDrawings = (physicalObject || graphicalObject) && drawingsShadeMode != noShading;
-#ifdef SIMROBOTCORE3_USE_OPENGL
-  const bool drawControllerDrawingsOfManager = drawControllerDrawings && Simulation::simulation->scene->drawingManager;
-#endif
+  const bool drawControllerDrawings = physicalObject && drawingsShadeMode != noShading;
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  if(drawAppearances || drawControllerDrawings)
+  if(drawAppearances)
     graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, dragging && dragSelection);
   if(drawPhysics || drawControllerDrawings)
     graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::physicalDrawing, dragging && dragSelection);
@@ -249,69 +232,6 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
     }
     graphicsContext.finishDrawings();
   }
-
-#ifdef SIMROBOTCORE3_USE_OPENGL
-  // draw controller drawings that are registered at a manager
-  if(drawControllerDrawingsOfManager)
-  {
-    // If the manager registered later, it must be done now.
-    if(!registeredAtManager)
-    {
-      Simulation::simulation->scene->drawingManager->registerContext();
-      registeredAtManager = true;
-    }
-
-    QOpenGLFunctions_3_3_Core* f = graphicsContext.getOpenGLFunctions();
-
-    f->glPolygonMode(GL_FRONT_AND_BACK, drawingsShadeMode == wireframeShading ? GL_LINE : GL_FILL);
-
-    f->glEnable(GL_BLEND);
-    f->glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-    f->glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-    Simulation::simulation->scene->drawingManager->beforeFrame();
-
-    if(physicalObject)
-      physicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
-    if(graphicalObject)
-      graphicalObject->beforeControllerDrawings(projection.data(), viewMatrix.data());
-
-    Simulation::simulation->scene->drawingManager->uploadData();
-
-    if(renderFlags & enableDrawingsTransparentOcclusion)
-    {
-      Simulation::simulation->scene->drawingManager->beforeDraw();
-
-      if(physicalObject)
-        physicalObject->drawControllerDrawings();
-      if(graphicalObject)
-        graphicalObject->drawControllerDrawings();
-    }
-
-    if((renderFlags & enableDrawingsTransparentOcclusion) ||
-       !(renderFlags & enableDrawingsOcclusion))
-      f->glClear(GL_DEPTH_BUFFER_BIT);
-
-    if(renderFlags & enableDrawingsTransparentOcclusion)
-      f->glBlendColor(0.5f, 0.5f, 0.5f, 0.5f);
-
-    Simulation::simulation->scene->drawingManager->beforeDraw();
-
-    if(physicalObject)
-      physicalObject->drawControllerDrawings();
-    if(graphicalObject)
-      graphicalObject->drawControllerDrawings();
-
-    if(physicalObject)
-      physicalObject->afterControllerDrawings();
-    if(graphicalObject)
-      graphicalObject->afterControllerDrawings();
-
-    Simulation::simulation->scene->drawingManager->afterFrame();
-
-    f->glDisable(GL_BLEND);
-  }
-#endif
 
   graphicsContext.finishExternalRendering();
 }

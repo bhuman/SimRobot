@@ -137,8 +137,6 @@ void Body::createGraphics(GraphicsContext& graphicsContext)
 {
   ASSERT(graphicsContext.emptyModelMatrixStack());
   graphicsContext.pushModelMatrixByReference(poseInParent);
-  ASSERT(!GraphicalObject::modelMatrix);
-  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
   for(Body* child : bodyChildren)
@@ -168,13 +166,6 @@ void Body::drawAppearances(GraphicsContext& graphicsContext) const
     child->drawAppearances(graphicsContext);
 }
 
-void Body::visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept)
-{
-  GraphicalObject::visitGraphicalControllerDrawings(accept);
-  for(Body* child : bodyChildren)
-    accept(*child);
-}
-
 void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   // draw center of mass
@@ -186,13 +177,6 @@ void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) con
 
   for(const Body* child : bodyChildren)
     child->drawPhysics(graphicsContext, flags);
-}
-
-void Body::visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept)
-{
-  ::PhysicalObject::visitPhysicalControllerDrawings(accept);
-  for(Body* child : bodyChildren)
-    accept(*child);
 }
 
 void Body::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

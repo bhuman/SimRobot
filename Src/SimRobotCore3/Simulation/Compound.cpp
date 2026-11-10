@@ -59,7 +59,6 @@ void Compound::createGraphics(GraphicsContext& graphicsContext)
 {
   // \c poseInParent is set by \c createPhysics which is guaranteed to be called before \c createGraphics.
   graphicsContext.pushModelMatrix(poseInParent);
-  GraphicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
   GraphicalObject::createGraphics(graphicsContext);
   graphicsContext.popModelMatrix();
 }

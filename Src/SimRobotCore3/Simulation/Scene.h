@@ -32,7 +32,6 @@ public:
   float gravity; /**< The gravity in the simulated world. */
   bool detectBodyCollisions = true; /**< Whether to detect collision between different bodies. */
 
-  SimRobotCore3::Controller3DDrawingManager* drawingManager = nullptr; /**< The manager for 3D controller drawings */
   std::list<Body*> bodies; /**< List of bodies without a parent body */
   std::list<Actuator::Port*> actuators; /**< List of actuators that need to do something in every simulation step */
   std::list<Light*> lights; /**< List of scene lights */
@@ -72,18 +71,6 @@ public:
 
 private:
   /**
-   * Visits controller drawings of graphical children
-   * @param accept The functor to apply to every child
-   */
-  void visitGraphicalControllerDrawings(const std::function<void(GraphicalObject&)>& accept) override;
-
-  /**
-   * Visits controller drawings of physical children
-   * @param accept The functor to apply to every child
-   */
-  void visitPhysicalControllerDrawings(const std::function<void(::PhysicalObject&)>& accept) override;
-
-  /**
    * Adds the drawings that controllers attached to the scene (and its bodies and physical children) to a list
    * @param list The list of drawings of a frame
    */
@@ -95,8 +82,6 @@ private:
   SimRobot::Widget* createWidget() override {return SimObject::createWidget();}
   const QIcon* getIcon() const override;
   SimRobotCore3::Renderer* createRenderer() override {return SimObject::createRenderer();}
-  bool registerDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::registerDrawing(drawing);}
-  bool unregisterDrawing(SimRobotCore3::Controller3DDrawing& drawing) override {return ::PhysicalObject::unregisterDrawing(drawing);}
   void setDrawing(const void* key, SimRobotCore3::Drawing&& drawing) override {::PhysicalObject::setDrawing(key, std::move(drawing));}
   bool removeDrawing(const void* key) override {return ::PhysicalObject::removeDrawing(key);}
   SimRobotCore3::Body* getParentBody() override {return ::PhysicalObject::getParentBody();}
@@ -104,5 +89,4 @@ private:
   unsigned int getStep() const override;
   double getTime() const override;
   unsigned int getFrameRate() const override;
-  bool registerDrawingManager(SimRobotCore3::Controller3DDrawingManager& manager) override;
 };
