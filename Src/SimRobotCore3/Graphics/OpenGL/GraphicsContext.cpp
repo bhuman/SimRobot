@@ -740,6 +740,8 @@ void GraphicsContext::setSurface(const Surface* surface)
   ASSERT(data);
   ASSERT(shader);
   ASSERT(f);
+  if(renderDepthOnly)
+    return;
   const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
   // data->boundTexture is != 0 here iff the shader uses a texture. If the new surface doesn't have
   // a texture, the old one must stay bound.
