@@ -15,13 +15,10 @@
 #include "Tools/Math/Rotation.h"
 #include "Tools/OpenGLTools.h"
 #include <mujoco/mujoco.h>
-#ifndef SIMROBOTCORE3_USE_OPENGL
-#include <rhi/qrhi.h>
-#endif
 
 SimObjectRenderer::SimObjectRenderer(SimObject& simObject) :
   simObject(simObject),
-  cameraMode(targetCam), defaultCameraPos(3.f, 6.f, 4.f), cameraPos(defaultCameraPos), cameraTarget(Vector3f::Zero())
+  defaultCameraPos(3.f, 6.f, 4.f), cameraPos(defaultCameraPos), cameraTarget(Vector3f::Zero())
 {
 }
 
@@ -198,7 +195,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawPhysics || drawSensors)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
-    physicalObject->drawPhysics(graphicsContext, (renderFlags | (physicsShadeMode != noShading ? showPhysics : 0)) & ~showControllerDrawings);
+    physicalObject->drawPhysics(graphicsContext, renderFlags | (physicsShadeMode != noShading ? showPhysics : 0));
     graphicsContext.finishRendering();
   }
 

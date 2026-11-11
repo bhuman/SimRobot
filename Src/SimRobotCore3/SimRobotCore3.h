@@ -64,13 +64,6 @@ namespace SimRobotCore3
       smoothShading,
     };
 
-    /** A camera control mode */
-    enum CameraMode
-    {
-      targetCam = 0,
-      freeCam,
-    };
-
     /** Specifies the current plane for Drag&Drop translations */
     enum DragAndDropPlane
     {
@@ -106,7 +99,6 @@ namespace SimRobotCore3
       showPhysics            = (1 << 4),
       showCoordinateSystem   = (1 << 5),
       showSensors            = (1 << 6),
-      showControllerDrawings = (1 << 7),
       showAsGlobalView       = (1 << 8),
       enableDrawingsTransparentOcclusion = (1 << 9),
       enableDrawingsOcclusion = (1 << 10),
@@ -206,9 +198,6 @@ namespace SimRobotCore3
 
     virtual void zoom(float change, float x, float y) = 0;
 
-    virtual void setCameraMode(CameraMode mode) = 0;
-    virtual CameraMode getCameraMode() const = 0;
-    virtual void toggleCameraMode() = 0;
     virtual void resetCamera() = 0;
 
     virtual int getFovY() const = 0;
@@ -229,18 +218,8 @@ namespace SimRobotCore3
     virtual bool moveDrag(int x, int y, DragType type) = 0;
     virtual bool releaseDrag(int x, int y) = 0;
 
-    /**
-     * Sets the camera moving state (useful for camera navigation with WASD keys)
-     * @param left Whether the camera should move to the left
-     * @param right Whether the camera should move to the right
-     * @param up Whether the camera should move up
-     * @param down Whether the camera should move down
-     */
-    virtual void setCameraMove(bool left, bool right, bool up, bool down) = 0;
-
     virtual void setCamera(const float* pos, const float* target) = 0;
     virtual void getCamera(float* pos, float* target) = 0;
-    virtual void rotateCamera(float x, float y) = 0;
   };
 
   /**

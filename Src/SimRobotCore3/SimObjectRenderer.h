@@ -34,7 +34,6 @@ private:
   unsigned int width = 0;
   unsigned int height = 0;
 
-  CameraMode cameraMode;
   Vector3f defaultCameraPos;
   Vector3f cameraPos;
   Vector3f cameraTarget;
@@ -93,9 +92,6 @@ public:
   void zoom(float change, float x, float y) override;
   void setRenderFlags(unsigned int renderFlags) override {this->renderFlags = renderFlags;}
   unsigned int getRenderFlags() const override {return renderFlags;}
-  void setCameraMode(CameraMode) override {}
-  CameraMode getCameraMode() const override {return cameraMode;}
-  void toggleCameraMode() override {};
   void resetCamera() override;
   int getFovY() const override {return int(fovY);}
   void setDragPlane(DragAndDropPlane plane) override;
@@ -104,10 +100,8 @@ public:
   DragAndDropMode getDragMode() const override {return dragMode;}
   bool startDrag(int x, int y, DragType type) override;
   SimRobotCore3::Object* getDragSelection() override;
-  void setCameraMove(bool, bool, bool, bool) override {}
   bool moveDrag(int x, int y, DragType type) override;
   bool releaseDrag(int x, int y) override;
   void setCamera(const float* pos, const float* target) override;
   void getCamera(float* pos, float* target) override;
-  void rotateCamera(float, float) override {}
 };

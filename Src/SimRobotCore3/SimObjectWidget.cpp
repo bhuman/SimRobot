@@ -61,7 +61,6 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) :
   objectRenderer.setSurfaceShadeMode(SimRobotCore3::Renderer::ShadeMode(settings->value("SurfaceShadeMode", int(objectRenderer.getSurfaceShadeMode())).toInt()));
   objectRenderer.setPhysicsShadeMode(SimRobotCore3::Renderer::ShadeMode(settings->value("PhysicsShadeMode", int(objectRenderer.getPhysicsShadeMode())).toInt()));
   objectRenderer.setDrawingsShadeMode(SimRobotCore3::Renderer::ShadeMode(settings->value("DrawingsShadeMode", int(objectRenderer.getDrawingsShadeMode())).toInt()));
-  objectRenderer.setCameraMode(SimRobotCore3::Renderer::CameraMode(settings->value("CameraMode", int(objectRenderer.getCameraMode())).toInt()));
   fovY = settings->value("FovY", objectRenderer.getFovY()).toInt();
   objectRenderer.setDragPlane(SimRobotCore3::Renderer::DragAndDropPlane(settings->value("DragPlane", int(objectRenderer.getDragPlane())).toInt()));
   objectRenderer.setDragMode(SimRobotCore3::Renderer::DragAndDropMode(settings->value("DragMode", int(objectRenderer.getDragMode())).toInt()));
@@ -93,7 +92,6 @@ SimObjectWidget::~SimObjectWidget()
   settings->setValue("SurfaceShadeMode", int(objectRenderer.getSurfaceShadeMode()));
   settings->setValue("PhysicsShadeMode", int(objectRenderer.getPhysicsShadeMode()));
   settings->setValue("DrawingsShadeMode", int(objectRenderer.getDrawingsShadeMode()));
-  settings->setValue("CameraMode", int(objectRenderer.getCameraMode()));
   settings->setValue("FovY", objectRenderer.getFovY());
   settings->setValue("DragPlane", int(objectRenderer.getDragPlane()));
   settings->setValue("DragMode", int(objectRenderer.getDragMode()));
@@ -302,86 +300,11 @@ void SimObjectWidget::keyPressEvent(QKeyEvent* event)
       update();
       break;
 
-    case Qt::Key_W:
-    case Qt::Key_A:
-    case Qt::Key_S:
-    case Qt::Key_D:
-      event->accept();
-      switch(event->key())
-      {
-        case Qt::Key_W:
-          wKey = true;
-          break;
-        case Qt::Key_A:
-          aKey = true;
-          break;
-        case Qt::Key_S:
-          sKey = true;
-          break;
-        case Qt::Key_D:
-          dKey = true;
-          break;
-      }
-      objectRenderer.setCameraMove(aKey, dKey, wKey, sKey);
-      update();
-      break;
-
     default:
 #ifdef SIMROBOTCORE3_USE_OPENGL
       QOpenGLWidget::keyPressEvent(event);
 #else
       QRhiWidget::keyPressEvent(event);
-#endif
-      break;
-  }
-}
-
-void SimObjectWidget::keyReleaseEvent(QKeyEvent* event)
-{
-  if(event->modifiers() != 0)
-  {
-#ifdef SIMROBOTCORE3_USE_OPENGL
-    QOpenGLWidget::keyReleaseEvent(event);
-#else
-    QRhiWidget::keyReleaseEvent(event);
-#endif
-    return;
-  }
-
-  switch(event->key())
-  {
-    case Qt::Key_W:
-    case Qt::Key_A:
-    case Qt::Key_S:
-    case Qt::Key_D:
-      event->accept();
-      update();
-      if(!event->isAutoRepeat())
-      {
-        switch(event->key())
-        {
-          case Qt::Key_W:
-            wKey = false;
-            break;
-          case Qt::Key_A:
-            aKey = false;
-            break;
-          case Qt::Key_S:
-            sKey = false;
-            break;
-          case Qt::Key_D:
-            dKey = false;
-            break;
-        }
-        objectRenderer.setCameraMove(aKey, dKey, wKey, sKey);
-      }
-      break;
-
-    default:
-#ifdef SIMROBOTCORE3_USE_OPENGL
-      QOpenGLWidget::keyReleaseEvent(event);
-#else
-      QRhiWidget::keyReleaseEvent(event);
 #endif
       break;
   }
@@ -820,12 +743,6 @@ void SimObjectWidget::setDrawingsOcclusion(int flag)
   update();
 }
 
-void SimObjectWidget::setCameraMode(int mode)
-{
-  objectRenderer.setCameraMode(SimRobotCore3::Renderer::CameraMode(mode));
-  update();
-}
-
 void SimObjectWidget::setFovY(int fovY)
 {
   unsigned int width, height;
@@ -850,12 +767,6 @@ void SimObjectWidget::setDragMode(int mode)
 void SimObjectWidget::resetCamera()
 {
   objectRenderer.resetCamera();
-  update();
-}
-
-void SimObjectWidget::toggleCameraMode()
-{
-  objectRenderer.toggleCameraMode();
   update();
 }
 

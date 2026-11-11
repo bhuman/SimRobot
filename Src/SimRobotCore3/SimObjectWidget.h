@@ -51,7 +51,6 @@ private:
   SimObjectRenderer objectRenderer; /**< For rendering the object */
   int fovY;
 
-  bool wKey = false, aKey = false, sKey = false, dKey = false;
 #ifndef SIMROBOTCORE3_USE_OPENGL
   QColor backgroundColor; /**< The color that the render target is cleared with. */
   QRhi* initializedRhi = nullptr; /**< The QRhi for which the renderer has been initialized. */
@@ -82,7 +81,6 @@ private:
   void mousePressEvent(QMouseEvent* event) override;
   void mouseDoubleClickEvent(QMouseEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
-  void keyReleaseEvent(QKeyEvent* event) override;
   bool event(QEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   QSize sizeHint() const override {return QSize(320, 240);}
@@ -93,12 +91,10 @@ private slots:
   void setPhysicsShadeMode(int style);
   void setDrawingsShadeMode(int style);
   void setDrawingsOcclusion(int flag);
-  void setCameraMode(int mode);
   void setFovY(int fovY);
   void setDragPlane(int plane);
   void setDragMode(int mode);
   void resetCamera();
-  void toggleCameraMode();
   void toggleRenderFlag(int flag);
   void exportAsImage(int width, int height);
 };
