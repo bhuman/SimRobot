@@ -1,24 +1,13 @@
 set(SIMROBOTCORE3_ROOT_DIR "${SIMROBOT_PREFIX}/Src/SimRobotCore3")
 
-# The graphics API is selected with the environment variable SIMROBOT_GRAPHICS_API (OpenGL or Metal) when the project is generated.
-# It is cached, so that regenerating the project without the environment variable keeps the selection.
-if(DEFINED ENV{SIMROBOT_GRAPHICS_API})
-  set(SIMROBOT_GRAPHICS_API "$ENV{SIMROBOT_GRAPHICS_API}" CACHE STRING "" FORCE)
-endif()
-set(SIMROBOT_GRAPHICS_API "OpenGL" CACHE STRING "The graphics API of SimRobotCore3 (OpenGL or Metal, which is only available on macOS)")
-set_property(CACHE SIMROBOT_GRAPHICS_API PROPERTY STRINGS OpenGL Metal)
-if(SIMROBOT_GRAPHICS_API STREQUAL "OpenGL")
-  set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_OPENGL)
-elseif(SIMROBOT_GRAPHICS_API STREQUAL "Metal")
-  if(NOT MACOS)
-    message(FATAL_ERROR "SIMROBOT_GRAPHICS_API=Metal is only supported on macOS")
-  endif()
+# The graphics API is Metal on macOS and OpenGL on the other platforms.
+if(MACOS)
   if(Qt6_VERSION VERSION_LESS "6.7.0")
-    message(FATAL_ERROR "SIMROBOT_GRAPHICS_API=Metal requires Qt 6.7 or newer (QRhiWidget)")
+    message(FATAL_ERROR "SimRobotCore3 requires Qt 6.7 or newer on macOS (QRhiWidget)")
   endif()
   set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_METAL)
 else()
-  message(FATAL_ERROR "Unknown SIMROBOT_GRAPHICS_API '${SIMROBOT_GRAPHICS_API}' (must be OpenGL or Metal)")
+  set(SIMROBOTCORE3_GRAPHICS_DEFINITION SIMROBOTCORE3_USE_OPENGL)
 endif()
 
 file(GLOB_RECURSE SIMROBOTCORE3_SOURCES CONFIGURE_DEPENDS
@@ -33,7 +22,7 @@ set_property(TARGET SimRobotCore3 PROPERTY AUTOMOC ON)
 set_property(TARGET SimRobotCore3 PROPERTY AUTORCC ON)
 target_include_directories(SimRobotCore3 PRIVATE "${SIMROBOTCORE3_ROOT_DIR}")
 target_link_libraries(SimRobotCore3 PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
-if(SIMROBOT_GRAPHICS_API STREQUAL "Metal")
+if(MACOS)
   find_library(METAL_FRAMEWORK Metal)
   find_library(FOUNDATION_FRAMEWORK Foundation)
   find_library(QUARTZ_CORE_FRAMEWORK QuartzCore)
