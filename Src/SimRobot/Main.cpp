@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
   QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
   QSurfaceFormat format;
-  format.setVersion(3, 3);
+  format.setVersion(4, 5);
   format.setProfile(QSurfaceFormat::CoreProfile);
   format.setSamples(1);
   format.setStencilBufferSize(0);

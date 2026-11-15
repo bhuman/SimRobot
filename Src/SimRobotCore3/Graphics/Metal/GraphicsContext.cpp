@@ -466,7 +466,7 @@ GraphicsContext::~GraphicsContext()
   drawingVertexDescriptor->release();
 }
 
-void GraphicsContext::compile()
+bool GraphicsContext::compile(std::list<std::string>&)
 {
   layoutResources();
 
@@ -475,6 +475,7 @@ void GraphicsContext::compile()
   ASSERT(device);
 
   createDeviceResources();
+  return true;
 }
 
 void GraphicsContext::createDeviceResources()

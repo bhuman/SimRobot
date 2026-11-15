@@ -22,7 +22,7 @@
 #ifdef SIMROBOTCORE3_USE_OPENGL
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLFunctions_4_5_Core>
 #else
 #include <rhi/qrhi.h>
 #endif
@@ -651,7 +651,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
 
 #ifdef SIMROBOTCORE3_USE_OPENGL
     makeCurrent();
-    QOpenGLFunctions_3_3_Core* f = Simulation::simulation->graphicsContext.getOpenGLFunctions();
+    QOpenGLFunctions_4_5_Core* f = Simulation::simulation->graphicsContext.getOpenGLFunctions();
 
     // Use a transparent clear color instead of the background color configured in the scene file
     f->glClearColor(0.f, 0.f, 0.f, 0.f);

@@ -1,7 +1,7 @@
 /**
  * @file Graphics/OpenGL/GraphicsContext.h
  *
- * This file declares a class that handles graphics using OpenGL 3.3 Core.
+ * This file declares a class that handles graphics using OpenGL 4.5 Core.
  *
  * @author Arne Hasselbring
  */
@@ -17,7 +17,9 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <list>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -29,7 +31,7 @@ class Light;
 class QOffscreenSurface;
 class QOpenGLContext;
 class QOpenGLFramebufferObject;
-class QOpenGLFunctions_3_3_Core;
+class QOpenGLFunctions_4_5_Core;
 
 class GraphicsContext : public GraphicsContextBase
 {
@@ -43,8 +45,10 @@ public:
   /**
    * Determine buffer offsets of all declared buffers etc. and prepares the off-screen renderer to render something.
    * This call changes the rendering context to the rendering context of the off-screen renderer.
+   * @param errors The errors are added to this list (if OpenGL 4.5 is not available).
+   * @return Whether the off-screen renderer could be created.
    */
-  void compile();
+  bool compile(std::list<std::string>& errors);
 
   /** Create per context data for the current context (which may include uploading data to the GPU). */
   void createGraphics();
@@ -158,7 +162,7 @@ public:
    * Returns the OpenGL functions for the current context.
    * @return The functions or \c nullptr if the context is not registered.
    */
-  QOpenGLFunctions_3_3_Core* getOpenGLFunctions() const;
+  QOpenGLFunctions_4_5_Core* getOpenGLFunctions() const;
 
 private:
   /**
@@ -209,7 +213,7 @@ private:
    */
   struct PerContextData
   {
-    QOpenGLFunctions_3_3_Core* f = nullptr; /**< OpenGL functions for this context (shared between contexts within a share group). */
+    QOpenGLFunctions_4_5_Core* f = nullptr; /**< OpenGL functions for this context (shared between contexts within a share group). */
 
     std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
@@ -286,28 +290,27 @@ private:
    * Declares the vertex attributes of vertices with a position and normal in an OpenGL context (VAO and VBO are already bound).
    * @param functions The OpenGL functions to use.
    */
-  static void setupVertexAttributesPN(QOpenGLFunctions_3_3_Core& functions);
+  static void setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions);
 
   /**
    * Declares the vertex attributes of vertices with a position, normal and texture coordinates in an OpenGL context (VAO and VBO are already bound).
    * @param functions The OpenGL functions to use.
    */
-  static void setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functions);
+  static void setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions);
 
   /**
    * Declares the vertex attributes of the vertices of controller drawings in an OpenGL context (VAO and VBO are already bound).
    * @param functions The OpenGL functions to use.
    */
-  static void setupVertexAttributesDrawing(QOpenGLFunctions_3_3_Core& functions);
+  static void setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions);
 
   /**
    * Declares the vertex attributes of the instances of meshes in controller drawings in an OpenGL context (VAO and VBO are already bound).
    * @param functions The OpenGL functions to use.
-   * @param firstInstance The index of the first instance in the VBO that is drawn (since OpenGL 3.3 does not support a base instance).
    */
-  static void setupVertexAttributesDrawingInstances(QOpenGLFunctions_3_3_Core& functions, std::size_t firstInstance);
+  static void setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions);
 
-  static constexpr std::array<void (*)(QOpenGLFunctions_3_3_Core&), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
+  static constexpr std::array<void (*)(QOpenGLFunctions_4_5_Core&), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
 
   /**
    * Returns the OpenGL primitive type that corresponds to a primitive topology.
@@ -321,7 +324,7 @@ private:
 
   // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
   PerContextData* data = nullptr; /**< The per context data for the current OpenGL context. */
-  QOpenGLFunctions_3_3_Core* f = nullptr; /**< The OpenGL functions for the current OpenGL context. */
+  QOpenGLFunctions_4_5_Core* f = nullptr; /**< The OpenGL functions for the current OpenGL context. */
   bool renderDepthOnly = false; /**< Whether the current rendering is into a depth-only framebuffer. */
 
   // Only valid between \c startRendering and \c finishRendering:

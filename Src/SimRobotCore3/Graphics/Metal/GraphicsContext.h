@@ -18,6 +18,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <list>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -37,8 +38,12 @@ public:
   /** Destructor. */
   ~GraphicsContext();
 
-  /** Determines buffer offsets of all declared buffers etc. and creates all resources on the GPU. */
-  void compile();
+  /**
+   * Determines buffer offsets of all declared buffers etc. and creates all resources on the GPU.
+   * @param errors The errors are added to this list (there are none with Metal).
+   * @return Whether the resources could be created.
+   */
+  bool compile(std::list<std::string>& errors);
 
   /**
    * Registers an external renderer (i.e. a QRhi) which is going to use this graphics context.

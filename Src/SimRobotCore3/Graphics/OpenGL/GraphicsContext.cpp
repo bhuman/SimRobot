@@ -1,7 +1,7 @@
 /**
  * @file Graphics/OpenGL/GraphicsContext.cpp
  *
- * This file implements a class that handles graphics using OpenGL 3.3 Core.
+ * This file implements a class that handles graphics using OpenGL 4.5 Core.
  *
  * @author Arne Hasselbring
  */
@@ -16,7 +16,7 @@
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLFunctions_4_5_Core>
 #include <cstddef>
 
 // The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights
@@ -385,7 +385,7 @@ GraphicsContext::~GraphicsContext()
 
 }
 
-void GraphicsContext::compile()
+bool GraphicsContext::compile(std::list<std::string>& errors)
 {
   layoutResources();
 
@@ -396,10 +396,20 @@ void GraphicsContext::compile()
 
   offscreenContext = new QOpenGLContext;
   offscreenContext->setShareContext(QOpenGLContext::globalShareContext());
-  VERIFY(offscreenContext->create());
+  // If the requested version is not supported, an older one may be created instead.
+  if(!offscreenContext->create() || offscreenContext->format().version() < std::make_pair(4, 5))
+  {
+    errors.push_back("SimRobotCore3 requires OpenGL 4.5 (core profile), which the graphics driver does not provide.");
+    delete offscreenContext;
+    delete offscreenSurface;
+    offscreenContext = nullptr;
+    offscreenSurface = nullptr;
+    return false;
+  }
   offscreenContext->makeCurrent(offscreenSurface);
 
   createGraphics();
+  return true;
 }
 
 void GraphicsContext::createGraphics()
@@ -435,8 +445,8 @@ void GraphicsContext::createGraphics()
     data.f = shareData->f;
   else
   {
-    data.f = new QOpenGLFunctions_3_3_Core;
-    data.f->initializeOpenGLFunctions();
+    data.f = new QOpenGLFunctions_4_5_Core;
+    VERIFY(data.f->initializeOpenGLFunctions());
   }
   f = data.f;
 
@@ -515,13 +525,15 @@ void GraphicsContext::createGraphics()
   f->glBindVertexArray(data.drawingVAO);
   f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingVBO);
   setupVertexAttributesDrawing(*f);
-  // The instances use the meshes in the VBO and EBO of the context (the attributes of the instances are declared when they are drawn).
+  // The instances use the meshes in the VBO and EBO of the context.
   f->glGenBuffers(1, &data.drawingInstanceVBO);
   f->glGenVertexArrays(1, &data.drawingInstanceVAO);
   f->glBindVertexArray(data.drawingInstanceVAO);
   f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
   f->glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
   setupVertexAttributesPN(*f);
+  f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingInstanceVBO);
+  setupVertexAttributesDrawingInstances(*f);
   f->glBindBuffer(GL_ARRAY_BUFFER, 0);
   f->glBindVertexArray(0);
 
@@ -934,15 +946,11 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
   f->glEnable(GL_BLEND);
   f->glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
   f->glEnable(GL_PROGRAM_POINT_SIZE);
-  // The attributes of the instances are declared for each draw call.
-  f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingInstanceVBO);
 
   // Draws instances of a mesh of the context (only the positions of its vertices are used).
   const auto drawInstances = [this](const Mesh* mesh, std::size_t firstInstance, std::size_t numOfInstances)
   {
-    // With OpenGL >= 4.2, the attributes could be declared once and the first instance could be passed as base instance.
-    setupVertexAttributesDrawingInstances(*f, firstInstance);
-    f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+    f->glDrawElementsInstancedBaseVertexBaseInstance(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLuint>(firstInstance));
   };
 
   for(const DrawingList::Item& item : drawings.items)
@@ -1127,7 +1135,7 @@ GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShad
 
 GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool textures, bool smooth)
 {
-  const char* versionSourceCode = "#version 330 core\n";
+  const char* versionSourceCode = "#version 450 core\n";
 
   std::string defines;
   defines += "#define NUM_OF_SURFACES " + std::to_string(surfaces.size()) + "\n";
@@ -1213,7 +1221,7 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
 
 GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
 {
-  const char* versionSourceCode = "#version 330 core\n";
+  const char* versionSourceCode = "#version 450 core\n";
 
   Shader shader;
   shader.program = compileShader({versionSourceCode, depthOnlyVertexShaderSourceCode}, {versionSourceCode, depthOnlyFragmentShaderSourceCode});
@@ -1226,7 +1234,7 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
 
 GraphicsContext::DrawingShader GraphicsContext::compileDrawingShader(const char* vertexShaderSourceCode, const char* fragmentShaderSourceCode)
 {
-  const char* versionSourceCode = "#version 330 core\n";
+  const char* versionSourceCode = "#version 450 core\n";
 
   DrawingShader shader;
   shader.program = compileShader({versionSourceCode, vertexShaderSourceCode}, {versionSourceCode, fragmentShaderSourceCode});
@@ -1238,7 +1246,7 @@ GraphicsContext::DrawingShader GraphicsContext::compileDrawingShader(const char*
   return shader;
 }
 
-QOpenGLFunctions_3_3_Core* GraphicsContext::getOpenGLFunctions() const
+QOpenGLFunctions_4_5_Core* GraphicsContext::getOpenGLFunctions() const
 {
   if(auto it = perContextData.find(QOpenGLContext::currentContext()); it != perContextData.end())
     return it->second.f;
@@ -1261,7 +1269,7 @@ GLenum GraphicsContext::getPrimitiveType(PrimitiveTopology topology)
   return GL_TRIANGLES;
 }
 
-void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_3_3_Core& functions)
+void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions)
 {
   functions.glEnableVertexAttribArray(0);
   functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
@@ -1271,7 +1279,7 @@ void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_3_3_Core& functio
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 }
 
-void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functions)
+void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions)
 {
   functions.glEnableVertexAttribArray(0);
   functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(0));
@@ -1281,7 +1289,7 @@ void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_3_3_Core& functi
   functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
 }
 
-void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_3_3_Core& functions)
+void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions)
 {
   functions.glEnableVertexAttribArray(0);
   functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, position)));
@@ -1291,21 +1299,20 @@ void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_3_3_Core& fu
   functions.glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, size)));
 }
 
-void GraphicsContext::setupVertexAttributesDrawingInstances(QOpenGLFunctions_3_3_Core& functions, std::size_t firstInstance)
+void GraphicsContext::setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions)
 {
-  const std::size_t offset = firstInstance * sizeof(PreparedDrawing::Instance);
   // A matrix occupies one location per column.
   for(GLuint i = 0; i < 4; ++i)
   {
     functions.glEnableVertexAttribArray(3 + i);
-    functions.glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, transformation) + i * 4 * sizeof(GLfloat)));
+    functions.glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, transformation) + i * 4 * sizeof(GLfloat)));
     functions.glVertexAttribDivisor(3 + i, 1);
   }
   functions.glEnableVertexAttribArray(7);
-  functions.glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, radii)));
+  functions.glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, radii)));
   functions.glVertexAttribDivisor(7, 1);
   functions.glEnableVertexAttribArray(8);
-  functions.glVertexAttribPointer(8, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offset + offsetof(PreparedDrawing::Instance, color)));
+  functions.glVertexAttribPointer(8, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, color)));
   functions.glVertexAttribDivisor(8, 1);
 }
 

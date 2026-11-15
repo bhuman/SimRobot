@@ -149,9 +149,7 @@ bool Simulation::loadFile(const std::string& filename, std::list<std::string>& e
   graphicsContext.popModelMatrix();
   graphicsContext.popModelMatrixStack();
 
-  graphicsContext.compile();
-
-  return true;
+  return graphicsContext.compile(errors);
 }
 
 void Simulation::doSimulationStep()
