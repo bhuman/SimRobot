@@ -17,6 +17,8 @@
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions_4_5_Core>
+#include <algorithm>
+#include <bit>
 #include <cstddef>
 
 // The following shader source code is based on https://learnopengl.com/Lighting/Multiple-lights
@@ -99,9 +101,9 @@ in vec2 TexCoords;
 uniform vec3 cameraPos;
 uniform uint surfaceIndex;
 #ifdef WITH_TEXTURES
-uniform sampler2D albedoTexture;
+layout(binding = 0) uniform sampler2D albedoTexture;
 #endif
-layout (std140) uniform Surfaces
+layout(std140, binding = 0) uniform Surfaces
 {
   Surface surfaces[NUM_OF_SURFACES];
 };
@@ -341,7 +343,7 @@ void main()
 
 static const char* drawingImageFragmentShaderSourceCode = R"glsl(
 in vec2 TexCoords;
-uniform sampler2D tex;
+layout(binding = 0) uniform sampler2D tex;
 uniform float alphaScale;
 out vec4 FragColor;
 
@@ -358,6 +360,14 @@ void main()
   // TODO: Later, this shader could compute gl_FragDepth including the postprocessing from the DepthImageSensor.
 }
 )glsl";
+
+#ifndef NDEBUG
+/** Reports a message of the OpenGL implementation (see \c glDebugMessageCallback). */
+static void QT_APIENTRY reportDebugMessage(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar* message, const void*)
+{
+  TRACE("OpenGL: %s", message);
+}
+#endif
 
 GraphicsContext::GraphicsContext()
 {
@@ -450,6 +460,15 @@ void GraphicsContext::createGraphics()
   }
   f = data.f;
 
+#ifndef NDEBUG
+  // Report the errors and warnings of the OpenGL implementation (the debug output is a state of each context).
+  f->glEnable(GL_DEBUG_OUTPUT);
+  f->glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+  f->glDebugMessageCallback(&reportDebugMessage, nullptr);
+  f->glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW, 0, nullptr, GL_FALSE);
+  f->glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
+#endif
+
   // Enable depth test.
   f->glClearDepth(1.0f);
   f->glDepthFunc(GL_LEQUAL);
@@ -472,70 +491,48 @@ void GraphicsContext::createGraphics()
   }
   else
   {
-    f->glGenBuffers(1, &data.vbo);
-    f->glGenBuffers(1, &data.ebo);
-    f->glGenBuffers(1, &data.surfaceUBO);
-    // Data can't be uploaded here because to bind the EBO, a VAO must be bound.
-  }
-
-  // All vertex attributes use the same VBO.
-  f->glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
-
-  // VAOs are never shared between contexts, so they must be created here.
-  data.vao.resize(vertexBuffers.size());
-  f->glGenVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
-  for(std::size_t vaoIndex = 0; vaoIndex < data.vao.size(); ++vaoIndex)
-  {
-    f->glBindVertexArray(data.vao[vaoIndex]);
-    f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
-    vertexAttributeSetups[vaoIndex](*f);
-  }
-
-  // Upload buffer data, now that also the EBO is bound.
-  if(!shareData)
-  {
-    f->glBufferData(GL_ARRAY_BUFFER, vertexBufferTotalSize, nullptr, GL_STATIC_DRAW);
+    f->glCreateBuffers(1, &data.vbo);
+    f->glNamedBufferStorage(data.vbo, static_cast<GLsizeiptr>(vertexBufferTotalSize), nullptr, GL_DYNAMIC_STORAGE_BIT);
     for(const auto& category : vertexBuffers)
       for(const auto* buffer : category)
-        f->glBufferSubData(GL_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->data);
+        f->glNamedBufferSubData(data.vbo, buffer->offset, buffer->size(), buffer->data);
 
-    f->glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBufferTotalSize, nullptr, GL_STATIC_DRAW);
+    f->glCreateBuffers(1, &data.ebo);
+    f->glNamedBufferStorage(data.ebo, static_cast<GLsizeiptr>(indexBufferTotalSize), nullptr, GL_DYNAMIC_STORAGE_BIT);
     for(const auto* buffer : indexBuffers)
-      f->glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, buffer->offset, buffer->size(), buffer->indices.data());
+      f->glNamedBufferSubData(data.ebo, buffer->offset, buffer->size(), buffer->indices.data());
 
-    f->glBindBuffer(GL_UNIFORM_BUFFER, data.surfaceUBO);
-    f->glBufferData(GL_UNIFORM_BUFFER, surfaces.size() * surfaceMemorySize, nullptr, GL_STATIC_DRAW);
+    f->glCreateBuffers(1, &data.surfaceUBO);
+    f->glNamedBufferStorage(data.surfaceUBO, static_cast<GLsizeiptr>(surfaces.size() * surfaceMemorySize), nullptr, GL_DYNAMIC_STORAGE_BIT);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
       static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
       unsigned char buf[surfaceMemorySize];
       std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
       *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
-      f->glBufferSubData(GL_UNIFORM_BUFFER, i * surfaceMemorySize, surfaceMemorySize, buf);
+      f->glNamedBufferSubData(data.surfaceUBO, i * surfaceMemorySize, surfaceMemorySize, buf);
     }
-    f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
-  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
-  f->glBindVertexArray(0);
+  // VAOs are never shared between contexts, so they must be created here. All of them use the same VBO and EBO.
+  data.vao.resize(vertexBuffers.size());
+  f->glCreateVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  for(std::size_t vaoIndex = 0; vaoIndex < data.vao.size(); ++vaoIndex)
+  {
+    f->glVertexArrayElementBuffer(data.vao[vaoIndex], data.ebo);
+    vertexAttributeSetups[vaoIndex](*f, data.vao[vaoIndex], data.vbo);
+  }
 
   // The VAOs and VBOs of controller drawings. The contents of the VBOs are uploaded for every frame.
-  f->glGenBuffers(1, &data.drawingVBO);
-  f->glGenVertexArrays(1, &data.drawingVAO);
-  f->glBindVertexArray(data.drawingVAO);
-  f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingVBO);
-  setupVertexAttributesDrawing(*f);
+  f->glCreateBuffers(1, &data.drawingVBO);
+  f->glCreateVertexArrays(1, &data.drawingVAO);
+  setupVertexAttributesDrawing(*f, data.drawingVAO, data.drawingVBO);
   // The instances use the meshes in the VBO and EBO of the context.
-  f->glGenBuffers(1, &data.drawingInstanceVBO);
-  f->glGenVertexArrays(1, &data.drawingInstanceVAO);
-  f->glBindVertexArray(data.drawingInstanceVAO);
-  f->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ebo);
-  f->glBindBuffer(GL_ARRAY_BUFFER, data.vbo);
-  setupVertexAttributesPN(*f);
-  f->glBindBuffer(GL_ARRAY_BUFFER, data.drawingInstanceVBO);
-  setupVertexAttributesDrawingInstances(*f);
-  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
-  f->glBindVertexArray(0);
+  f->glCreateBuffers(1, &data.drawingInstanceVBO);
+  f->glCreateVertexArrays(1, &data.drawingInstanceVAO);
+  f->glVertexArrayElementBuffer(data.drawingInstanceVAO, data.ebo);
+  setupVertexAttributesPN(*f, data.drawingInstanceVAO, data.vbo);
+  setupVertexAttributesDrawingInstances(*f, data.drawingInstanceVAO, data.drawingInstanceVBO);
 
   // Shaders and textures are shared as well.
   if(shareData)
@@ -548,34 +545,39 @@ void GraphicsContext::createGraphics()
   }
   else
   {
-    // Upload textures.
+    // Upload textures (with all mipmap levels). Textures that could not be loaded are left empty (no surface uses them).
     data.textureIDs.resize(textures.size());
-    f->glGenTextures(static_cast<GLsizei>(textures.size()), data.textureIDs.data());
+    f->glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(textures.size()), data.textureIDs.data());
     for(const auto& pair : textures)
     {
       const Texture* texture = pair.second;
-      f->glBindTexture(GL_TEXTURE_2D, data.textureIDs[texture->index]);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      f->glTexImage2D(GL_TEXTURE_2D, 0, texture->hasAlpha ? GL_RGBA : GL_RGB, texture->width, texture->height, 0, GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
-      f->glGenerateMipmap(GL_TEXTURE_2D);
+      if(texture->data.empty())
+        continue;
+      const GLuint id = data.textureIDs[texture->index];
+      const auto width = static_cast<GLsizei>(texture->width);
+      const auto height = static_cast<GLsizei>(texture->height);
+      f->glTextureStorage2D(id, static_cast<GLsizei>(std::bit_width(std::max(texture->width, texture->height))), texture->hasAlpha ? GL_RGBA8 : GL_RGB8, width, height);
+      f->glTextureSubImage2D(id, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
+      f->glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      f->glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glGenerateTextureMipmap(id);
     }
 
     // Create the shadow maps. Everything in the lights' frustums is lit as long as they have not been rendered.
     data.shadowMapTextures.resize(shadowMaps.size());
-    f->glGenTextures(static_cast<GLsizei>(shadowMaps.size()), data.shadowMapTextures.data());
+    f->glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(shadowMaps.size()), data.shadowMapTextures.data());
     for(std::size_t i = 0; i < shadowMaps.size(); ++i)
     {
-      f->glBindTexture(GL_TEXTURE_2D, data.shadowMapTextures[i]);
-      f->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, shadowMaps[i].width, shadowMaps[i].height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-      f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+      const GLuint id = data.shadowMapTextures[i];
+      f->glTextureStorage2D(id, 1, GL_DEPTH_COMPONENT32F, static_cast<GLsizei>(shadowMaps[i].width), static_cast<GLsizei>(shadowMaps[i].height));
+      f->glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      f->glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glTextureParameteri(id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+      f->glTextureParameteri(id, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+      f->glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+      f->glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
       static const float borderColor[] = {1.f, 1.f, 1.f, 1.f};
-      f->glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+      f->glTextureParameterfv(id, GL_TEXTURE_BORDER_COLOR, borderColor);
     }
 
     // Compile shaders.
@@ -589,21 +591,21 @@ void GraphicsContext::createGraphics()
   }
 
   // Framebuffer objects are not shared.
-  GLint previousFramebuffer;
-  f->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
   data.shadowMapFBOs.resize(shadowMaps.size());
-  f->glGenFramebuffers(static_cast<GLsizei>(shadowMaps.size()), data.shadowMapFBOs.data());
+  f->glCreateFramebuffers(static_cast<GLsizei>(shadowMaps.size()), data.shadowMapFBOs.data());
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
   {
-    f->glBindFramebuffer(GL_FRAMEBUFFER, data.shadowMapFBOs[i]);
-    f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, data.shadowMapTextures[i], 0);
-    f->glDrawBuffer(GL_NONE);
-    f->glReadBuffer(GL_NONE);
-    ASSERT(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    const GLuint fbo = data.shadowMapFBOs[i];
+    f->glNamedFramebufferTexture(fbo, GL_DEPTH_ATTACHMENT, data.shadowMapTextures[i], 0);
+    f->glNamedFramebufferDrawBuffer(fbo, GL_NONE);
+    f->glNamedFramebufferReadBuffer(fbo, GL_NONE);
+    ASSERT(f->glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     if(!shareData)
-      f->glClear(GL_DEPTH_BUFFER_BIT);
+    {
+      static const GLfloat farDepth = 1.f;
+      f->glClearNamedFramebufferfv(fbo, GL_DEPTH, 0, &farDepth);
+    }
   }
-  f->glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFramebuffer));
 
   f = nullptr;
 }
@@ -712,22 +714,14 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     const Vector3f pos = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
     f->glUniform3fv(shader->cameraPosLocation, 1, pos.data());
   }
-  for(std::size_t i = 0; i < shader->shadowMapLocation.size(); ++i)
-  {
+  for(std::size_t i = 0; i < shader->lightPVLocation.size(); ++i)
     if(shader->lightPVLocation[i] >= 0)
     {
       const Matrix4f lightPV = shadowMaps[i].projection * shadowMaps[i].view;
       f->glUniformMatrix4fv(shader->lightPVLocation[i], 1, GL_FALSE, lightPV.data());
+      // Texture unit 0 is used for the albedo textures (see the bindings in the shaders).
+      f->glBindTextureUnit(static_cast<GLuint>(i) + 1, data->shadowMapTextures[i]);
     }
-    if(shader->shadowMapLocation[i] >= 0)
-    {
-      // Texture unit 0 is used for the albedo textures.
-      f->glUniform1i(shader->shadowMapLocation[i], static_cast<GLint>(i) + 1);
-      f->glActiveTexture(GL_TEXTURE1 + static_cast<GLenum>(i));
-      f->glBindTexture(GL_TEXTURE_2D, data->shadowMapTextures[i]);
-    }
-  }
-  f->glActiveTexture(GL_TEXTURE0);
   f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->surfaceUBO);
 
   // Controller drawings might have changed these states in the meantime:
@@ -736,7 +730,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   // on Apple devices and signals setSurface that textures have to be bound.
   data->boundTexture = (textures && !renderDepthOnly) ? data->textureIDs.front() : 0;
   data->blendEnabled = false;
-  f->glBindTexture(GL_TEXTURE_2D, data->boundTexture);
+  f->glBindTextureUnit(0, data->boundTexture);
   f->glDisable(GL_BLEND);
 }
 
@@ -884,27 +878,23 @@ void GraphicsContext::prepareDrawings(const DrawingList& drawings)
 
   if(drawings.numOfVertices)
   {
-    f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingVBO);
-    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(drawings.numOfVertices * sizeof(PreparedDrawing::Vertex)), nullptr, GL_STREAM_DRAW);
+    f->glNamedBufferData(data->drawingVBO, static_cast<GLsizeiptr>(drawings.numOfVertices * sizeof(PreparedDrawing::Vertex)), nullptr, GL_STREAM_DRAW);
     for(const DrawingList::Item& item : drawings.items)
       if(!item.drawing->vertices.empty())
-        f->glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(item.firstVertex * sizeof(PreparedDrawing::Vertex)),
-                           static_cast<GLsizeiptr>(item.drawing->vertices.size() * sizeof(PreparedDrawing::Vertex)), item.drawing->vertices.data());
+        f->glNamedBufferSubData(data->drawingVBO, static_cast<GLintptr>(item.firstVertex * sizeof(PreparedDrawing::Vertex)),
+                                static_cast<GLsizeiptr>(item.drawing->vertices.size() * sizeof(PreparedDrawing::Vertex)), item.drawing->vertices.data());
   }
   if(drawings.numOfInstances)
   {
-    f->glBindBuffer(GL_ARRAY_BUFFER, data->drawingInstanceVBO);
-    f->glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(drawings.numOfInstances * sizeof(PreparedDrawing::Instance)), nullptr, GL_STREAM_DRAW);
+    f->glNamedBufferData(data->drawingInstanceVBO, static_cast<GLsizeiptr>(drawings.numOfInstances * sizeof(PreparedDrawing::Instance)), nullptr, GL_STREAM_DRAW);
     for(const DrawingList::Item& item : drawings.items)
       if(!item.drawing->instances.empty())
-        f->glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(item.firstInstance * sizeof(PreparedDrawing::Instance)),
-                           static_cast<GLsizeiptr>(item.drawing->instances.size() * sizeof(PreparedDrawing::Instance)), item.drawing->instances.data());
+        f->glNamedBufferSubData(data->drawingInstanceVBO, static_cast<GLintptr>(item.firstInstance * sizeof(PreparedDrawing::Instance)),
+                                static_cast<GLsizeiptr>(item.drawing->instances.size() * sizeof(PreparedDrawing::Instance)), item.drawing->instances.data());
   }
-  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   // Images are uploaded when they are drawn for the first time.
   data->drawingTextures.reserve(drawings.numOfImages);
-  bool uploaded = false;
   for(const DrawingList::Item& item : drawings.items)
     for(const PreparedDrawing::Image& image : item.drawing->images)
     {
@@ -912,22 +902,17 @@ void GraphicsContext::prepareDrawings(const DrawingList& drawings)
       if(inserted)
       {
         i->second.drawing = item.drawing;
-        f->glGenTextures(1, &i->second.id);
-        f->glBindTexture(GL_TEXTURE_2D, i->second.id);
-        f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(image.width), static_cast<GLsizei>(image.height), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.rgba.data());
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        uploaded = true;
+        GLuint& id = i->second.id;
+        f->glCreateTextures(GL_TEXTURE_2D, 1, &id);
+        f->glTextureStorage2D(id, 1, GL_RGBA8, static_cast<GLsizei>(image.width), static_cast<GLsizei>(image.height));
+        f->glTextureSubImage2D(id, 0, 0, 0, static_cast<GLsizei>(image.width), static_cast<GLsizei>(image.height), GL_RGBA, GL_UNSIGNED_BYTE, image.rgba.data());
+        f->glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f->glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f->glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       }
       data->drawingTextures.push_back(i->second.id);
     }
-  if(uploaded)
-  {
-    f->glBindTexture(GL_TEXTURE_2D, 0);
-    data->boundTexture = 0;
-  }
 }
 
 void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& projection, const Matrix4f& view, float alpha, bool opaquePass, bool fillPolygons)
@@ -1001,17 +986,15 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
       f->glBindVertexArray(data->vao[drawingQuadMesh->vertexBuffer->category]);
       f->glUseProgram(imageShader.program);
       f->glUniform1f(imageShader.alphaLocation, alpha);
-      f->glUniform1i(imageShader.textureLocation, 0);
-      f->glActiveTexture(GL_TEXTURE0);
       f->glDisable(GL_CULL_FACE);
       for(std::size_t i = 0; i < drawing.images.size(); ++i)
       {
         const Matrix4f imagePVM = pvm * drawing.images[i].transformation;
         f->glUniformMatrix4fv(imageShader.pvmLocation, 1, GL_FALSE, imagePVM.data());
-        f->glBindTexture(GL_TEXTURE_2D, data->drawingTextures[item.firstImage + i]);
+        f->glBindTextureUnit(0, data->drawingTextures[item.firstImage + i]);
         f->glDrawElementsBaseVertex(getPrimitiveType(drawingQuadMesh->topology), static_cast<GLsizei>(drawingQuadMesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(drawingQuadMesh->indexBuffer->offset), static_cast<GLint>(drawingQuadMesh->vertexBuffer->base));
       }
-      f->glBindTexture(GL_TEXTURE_2D, 0);
+      f->glBindTextureUnit(0, 0);
       f->glEnable(GL_CULL_FACE);
     }
 
@@ -1023,7 +1006,6 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
   f->glDisable(GL_PROGRAM_POINT_SIZE);
   f->glDisable(GL_BLEND);
   f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  f->glBindBuffer(GL_ARRAY_BUFFER, 0);
   f->glBindVertexArray(0);
   f->glUseProgram(0);
   data->boundVAO = 0;
@@ -1057,7 +1039,7 @@ void GraphicsContext::setSurface(const Surface* surface)
   // data->boundTexture is != 0 here iff the shader uses a texture. If the new surface doesn't have
   // a texture, the old one must stay bound.
   if(newTexture && data->boundTexture && newTexture != data->boundTexture)
-    f->glBindTexture(GL_TEXTURE_2D, (data->boundTexture = newTexture));
+    f->glBindTextureUnit(0, (data->boundTexture = newTexture));
   if(shader->surfaceIndexLocation >= 0)
     f->glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
   const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->alpha < 1.f);
@@ -1151,7 +1133,7 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT vec3(" + std::to_string(globalAmbientLight[0]) + ", " + std::to_string(globalAmbientLight[1]) + ", " + std::to_string(globalAmbientLight[2]) + ")\n";
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
-    lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";
+    lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; layout(binding = " + std::to_string(i + 1) + ") uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";
   std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
   const auto toVec3 = [](const float* v)
   {
@@ -1204,18 +1186,13 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   shader.program = compileShader({versionSourceCode, defines.c_str(), vertexShaderSourceCode}, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode});
 
   ASSERT(f);
-  f->glUniformBlockBinding(shader.program, f->glGetUniformBlockIndex(shader.program, "Surfaces"), 0);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
   shader.cameraPosLocation = f->glGetUniformLocation(shader.program, "cameraPos");
   shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
   shader.surfaceIndexLocation = f->glGetUniformLocation(shader.program, "surfaceIndex");
   shader.lightPVLocation.resize(shadowMaps.size());
-  shader.shadowMapLocation.resize(shadowMaps.size());
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
-  {
     shader.lightPVLocation[i] = f->glGetUniformLocation(shader.program, ("lightPV" + std::to_string(i)).c_str());
-    shader.shadowMapLocation[i] = f->glGetUniformLocation(shader.program, ("shadowMap" + std::to_string(i)).c_str());
-  }
   return shader;
 }
 
@@ -1242,7 +1219,6 @@ GraphicsContext::DrawingShader GraphicsContext::compileDrawingShader(const char*
   ASSERT(f);
   shader.pvmLocation = f->glGetUniformLocation(shader.program, "pvm");
   shader.alphaLocation = f->glGetUniformLocation(shader.program, "alphaScale");
-  shader.textureLocation = f->glGetUniformLocation(shader.program, "tex");
   return shader;
 }
 
@@ -1269,51 +1245,47 @@ GLenum GraphicsContext::getPrimitiveType(PrimitiveTopology topology)
   return GL_TRIANGLES;
 }
 
-void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions)
+void GraphicsContext::setupVertexAttribute(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint index, GLuint binding, GLint size, GLenum type, GLboolean normalized, std::size_t offset)
 {
-  functions.glEnableVertexAttribArray(0);
-  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
-  functions.glEnableVertexAttribArray(1);
-  functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
-  functions.glEnableVertexAttribArray(2);
-  functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void*>(0));
+  functions.glEnableVertexArrayAttrib(vao, index);
+  functions.glVertexArrayAttribFormat(vao, index, size, type, normalized, static_cast<GLuint>(offset));
+  functions.glVertexArrayAttribBinding(vao, index, binding);
 }
 
-void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions)
+void GraphicsContext::setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo)
 {
-  functions.glEnableVertexAttribArray(0);
-  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(0));
-  functions.glEnableVertexAttribArray(1);
-  functions.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
-  functions.glEnableVertexAttribArray(2);
-  functions.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
+  functions.glVertexArrayVertexBuffer(vao, 0, vbo, 0, 6 * sizeof(GLfloat));
+  setupVertexAttribute(functions, vao, 0, 0, 3, GL_FLOAT, GL_FALSE, 0);
+  setupVertexAttribute(functions, vao, 1, 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat));
+  // There are no texture coordinates, but shaders that use them can still be used.
+  setupVertexAttribute(functions, vao, 2, 0, 2, GL_FLOAT, GL_FALSE, 0);
 }
 
-void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions)
+void GraphicsContext::setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo)
 {
-  functions.glEnableVertexAttribArray(0);
-  functions.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, position)));
-  functions.glEnableVertexAttribArray(1);
-  functions.glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, color)));
-  functions.glEnableVertexAttribArray(2);
-  functions.glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Vertex), reinterpret_cast<void*>(offsetof(PreparedDrawing::Vertex, size)));
+  functions.glVertexArrayVertexBuffer(vao, 0, vbo, 0, 8 * sizeof(GLfloat));
+  setupVertexAttribute(functions, vao, 0, 0, 3, GL_FLOAT, GL_FALSE, 0);
+  setupVertexAttribute(functions, vao, 1, 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat));
+  setupVertexAttribute(functions, vao, 2, 0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat));
 }
 
-void GraphicsContext::setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions)
+void GraphicsContext::setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo)
 {
+  functions.glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(PreparedDrawing::Vertex));
+  setupVertexAttribute(functions, vao, 0, 0, 3, GL_FLOAT, GL_FALSE, offsetof(PreparedDrawing::Vertex, position));
+  setupVertexAttribute(functions, vao, 1, 0, 4, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(PreparedDrawing::Vertex, color));
+  setupVertexAttribute(functions, vao, 2, 0, 1, GL_FLOAT, GL_FALSE, offsetof(PreparedDrawing::Vertex, size));
+}
+
+void GraphicsContext::setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo)
+{
+  functions.glVertexArrayVertexBuffer(vao, 1, vbo, 0, sizeof(PreparedDrawing::Instance));
+  functions.glVertexArrayBindingDivisor(vao, 1, 1);
   // A matrix occupies one location per column.
   for(GLuint i = 0; i < 4; ++i)
-  {
-    functions.glEnableVertexAttribArray(3 + i);
-    functions.glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, transformation) + i * 4 * sizeof(GLfloat)));
-    functions.glVertexAttribDivisor(3 + i, 1);
-  }
-  functions.glEnableVertexAttribArray(7);
-  functions.glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, radii)));
-  functions.glVertexAttribDivisor(7, 1);
-  functions.glEnableVertexAttribArray(8);
-  functions.glVertexAttribPointer(8, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(PreparedDrawing::Instance), reinterpret_cast<void*>(offsetof(PreparedDrawing::Instance, color)));
-  functions.glVertexAttribDivisor(8, 1);
+    setupVertexAttribute(functions, vao, 3 + i, 1, 4, GL_FLOAT, GL_FALSE, offsetof(PreparedDrawing::Instance, transformation) + i * 4 * sizeof(GLfloat));
+  setupVertexAttribute(functions, vao, 7, 1, 2, GL_FLOAT, GL_FALSE, offsetof(PreparedDrawing::Instance, radii));
+  setupVertexAttribute(functions, vao, 8, 1, 4, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(PreparedDrawing::Instance, color));
 }
 
 #endif

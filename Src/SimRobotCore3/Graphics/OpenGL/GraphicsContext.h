@@ -15,6 +15,7 @@
 #include "Tools/Math/Pose3f.h"
 #include "Graphics/GraphicsContextBase.h"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <list>
@@ -175,8 +176,7 @@ private:
     GLint cameraPosLocation = -1; /**< The location of the cameraPos uniform in the program. */
     GLint modelMatrixLocation = -1; /**< The location of the modelMatrix uniform in the program. */
     GLint surfaceIndexLocation = -1; /**< The location of the surfaceIndex uniform in the program. */
-    std::vector<GLint> lightPVLocation; /**< The locations of the lightPV uniforms (per shadow map) in the program. */
-    std::vector<GLint> shadowMapLocation; /**< The locations of the shadowMap uniforms (per shadow map) in the program. */
+    std::vector<GLint> lightPVLocation; /**< The locations of the lightPV uniforms (per shadow map) in the program (the shadow map of a light is used iff its lightPV is). */
   };
 
   /**
@@ -187,7 +187,6 @@ private:
     GLuint program = 0; /**< The program object. */
     GLint pvmLocation = -1; /**< The location of the pvm uniform in the program. */
     GLint alphaLocation = -1; /**< The location of the alphaScale uniform in the program. */
-    GLint textureLocation = -1; /**< The location of the tex uniform in the program. */
   };
 
   /** The shaders for controller drawings. */
@@ -236,7 +235,7 @@ private:
     std::vector<GLuint> drawingTextures; /**< The textures of the images of the controller drawings of the current frame (in the order of \c DrawingList). */
 
     bool blendEnabled = false; /**< The current blend state in this context. */
-    GLuint boundTexture = 0; /**< The currently bound texture in this context. */
+    GLuint boundTexture = 0; /**< The texture currently bound to texture unit 0 in this context. */
     GLuint boundVAO = 0; /**< The currently bound VAO in this context. */
 
     std::size_t referenceCounter = 1; /**< Reference counter for this context. */
@@ -287,30 +286,51 @@ private:
   static constexpr std::size_t surfaceMemorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
 
   /**
-   * Declares the vertex attributes of vertices with a position and normal in an OpenGL context (VAO and VBO are already bound).
+   * Declares a vertex attribute of a VAO.
    * @param functions The OpenGL functions to use.
+   * @param vao The VAO.
+   * @param index The index (location) of the attribute.
+   * @param binding The buffer binding point of the VAO from which the attribute is read.
+   * @param size The number of components of the attribute.
+   * @param type The type of the components.
+   * @param normalized Whether integer components are normalized to [0, 1].
+   * @param offset The offset of the attribute in a vertex (or instance).
    */
-  static void setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions);
+  static void setupVertexAttribute(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint index, GLuint binding, GLint size, GLenum type, GLboolean normalized, std::size_t offset);
 
   /**
-   * Declares the vertex attributes of vertices with a position, normal and texture coordinates in an OpenGL context (VAO and VBO are already bound).
+   * Declares the vertex attributes of vertices with a position and normal in a VAO (binding point 0).
    * @param functions The OpenGL functions to use.
+   * @param vao The VAO.
+   * @param vbo The VBO that contains the vertices.
    */
-  static void setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions);
+  static void setupVertexAttributesPN(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo);
 
   /**
-   * Declares the vertex attributes of the vertices of controller drawings in an OpenGL context (VAO and VBO are already bound).
+   * Declares the vertex attributes of vertices with a position, normal and texture coordinates in a VAO (binding point 0).
    * @param functions The OpenGL functions to use.
+   * @param vao The VAO.
+   * @param vbo The VBO that contains the vertices.
    */
-  static void setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions);
+  static void setupVertexAttributesPNT(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo);
 
   /**
-   * Declares the vertex attributes of the instances of meshes in controller drawings in an OpenGL context (VAO and VBO are already bound).
+   * Declares the vertex attributes of the vertices of controller drawings in a VAO (binding point 0).
    * @param functions The OpenGL functions to use.
+   * @param vao The VAO.
+   * @param vbo The VBO that contains the vertices.
    */
-  static void setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions);
+  static void setupVertexAttributesDrawing(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo);
 
-  static constexpr std::array<void (*)(QOpenGLFunctions_4_5_Core&), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
+  /**
+   * Declares the vertex attributes of the instances of meshes in controller drawings in a VAO (binding point 1).
+   * @param functions The OpenGL functions to use.
+   * @param vao The VAO.
+   * @param vbo The VBO that contains the instances.
+   */
+  static void setupVertexAttributesDrawingInstances(QOpenGLFunctions_4_5_Core& functions, GLuint vao, GLuint vbo);
+
+  static constexpr std::array<void (*)(QOpenGLFunctions_4_5_Core&, GLuint, GLuint), numOfVertexCategories> vertexAttributeSetups = {setupVertexAttributesPN, setupVertexAttributesPNT}; /**< The functions that declare the vertex attributes per vertex category. */
 
   /**
    * Returns the OpenGL primitive type that corresponds to a primitive topology.
