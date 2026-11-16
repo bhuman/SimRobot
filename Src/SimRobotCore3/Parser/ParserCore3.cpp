@@ -264,7 +264,7 @@ Element* ParserCore3::shadowMapElement()
 {
   Light* light = dynamic_cast<Light*>(element);
   ASSERT(light);
-  Light::ShadowMap& shadowMap = light->shadowMap.emplace();
+  Light::ShadowMap& shadowMap = light->shadowMap.emplace(Light::ShadowMap());
   shadowMap.width = static_cast<unsigned int>(getInteger("width", false, static_cast<int>(shadowMap.width), true));
   shadowMap.height = static_cast<unsigned int>(getInteger("height", false, static_cast<int>(shadowMap.height), true));
   shadowMap.aabbCenter.x() = getLength("aabbCenterX", false, shadowMap.aabbCenter.x(), false);
