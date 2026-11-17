@@ -491,27 +491,30 @@ void GraphicsContext::createGraphics()
   }
   else
   {
-    f->glCreateBuffers(1, &data.vbo);
-    f->glNamedBufferStorage(data.vbo, static_cast<GLsizeiptr>(vertexBufferTotalSize), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    // The buffers are immutable and filled when they are created, so that the driver can place them in GPU-local memory.
+    std::vector<unsigned char> memory(static_cast<std::size_t>(vertexBufferTotalSize));
     for(const auto& category : vertexBuffers)
       for(const auto* buffer : category)
-        f->glNamedBufferSubData(data.vbo, buffer->offset, buffer->size(), buffer->data);
+        std::memcpy(memory.data() + buffer->offset, buffer->data, buffer->size());
+    f->glCreateBuffers(1, &data.vbo);
+    f->glNamedBufferStorage(data.vbo, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
 
-    f->glCreateBuffers(1, &data.ebo);
-    f->glNamedBufferStorage(data.ebo, static_cast<GLsizeiptr>(indexBufferTotalSize), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    memory.assign(static_cast<std::size_t>(indexBufferTotalSize), 0);
     for(const auto* buffer : indexBuffers)
-      f->glNamedBufferSubData(data.ebo, buffer->offset, buffer->size(), buffer->indices.data());
+      std::memcpy(memory.data() + buffer->offset, buffer->indices.data(), buffer->size());
+    f->glCreateBuffers(1, &data.ebo);
+    f->glNamedBufferStorage(data.ebo, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
 
-    f->glCreateBuffers(1, &data.surfaceUBO);
-    f->glNamedBufferStorage(data.surfaceUBO, static_cast<GLsizeiptr>(surfaces.size() * surfaceMemorySize), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    memory.assign(surfaces.size() * surfaceMemorySize, 0);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
       static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
-      unsigned char buf[surfaceMemorySize];
+      unsigned char* const buf = memory.data() + i * surfaceMemorySize;
       std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
       *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
-      f->glNamedBufferSubData(data.surfaceUBO, i * surfaceMemorySize, surfaceMemorySize, buf);
     }
+    f->glCreateBuffers(1, &data.surfaceUBO);
+    f->glNamedBufferStorage(data.surfaceUBO, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
   }
 
   // VAOs are never shared between contexts, so they must be created here. All of them use the same VBO and EBO.
