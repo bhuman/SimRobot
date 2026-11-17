@@ -783,6 +783,20 @@ Element* ParserCore3::cameraElement()
   camera->imageHeight = getInteger("imageHeight", true, 0, true);
   camera->angleX = getAngle("angleX", true, 0.f, true);
   camera->angleY = getAngle("angleY", true, 0.f, true);
+
+  const std::string& format = getString("format", false);
+  if(format == "" || format == "rgb")
+    camera->format = GraphicsContext::rgbImage;
+  else if(format == "yuyv")
+  {
+    if(camera->imageWidth % 2)
+      handleError("The format yuyv requires an even imageWidth", attributes->find("format")->second.valueLocation);
+    else
+      camera->format = GraphicsContext::yuyvImage;
+  }
+  else
+    handleError("Unexpected format \"" + format + "\" (expected one of \"rgb, yuyv\")",
+                attributes->find("format")->second.valueLocation);
   return camera;
 }
 

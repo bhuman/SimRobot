@@ -40,5 +40,10 @@ SimRobotCore3::SensorPort::Data Sensor::Port::getValue()
     updateValue();
     lastSimulationStep = Simulation::simulation->simulationStep;
   }
+  if(submission)
+  {
+    Simulation::simulation->graphicsContext.waitForOffscreenRendering(submission);
+    submission = 0;
+  }
   return data;
 }

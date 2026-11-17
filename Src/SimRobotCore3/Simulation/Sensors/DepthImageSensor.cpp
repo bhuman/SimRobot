@@ -20,7 +20,6 @@ DepthImageSensor::DepthImageSensor()
   sensor.sensorType = SimRobotCore3::SensorPort::floatArraySensor;
   sensor.unit = "m";
   sensor.imageBuffer = nullptr;
-  sensor.renderBuffer = nullptr;
   sensor.lut = nullptr;
 }
 
@@ -28,8 +27,6 @@ DepthImageSensor::~DepthImageSensor()
 {
   if(sensor.imageBuffer)
     delete[] sensor.imageBuffer;
-  if(projection == sphericalProjection && sensor.renderBuffer)
-    delete[] sensor.renderBuffer;
   if(sensor.lut)
     delete[] sensor.lut;
 }
@@ -38,16 +35,16 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
-  sensor.imageBuffer = new float[imageWidth * imageHeight];
   sensor.renderHeight = imageHeight;
 
   if(projection == sphericalProjection)
   {
     ASSERT(imageHeight == 1);
 
+    sensor.imageBuffer = new float[imageWidth * imageHeight];
     sensor.numOfBuffers = static_cast<unsigned int>(std::ceil(angleX / (pi * 2.0f / 3.0f)));
     sensor.bufferWidth = static_cast<unsigned int>(std::ceil(static_cast<float>(imageWidth) / static_cast<float>(sensor.numOfBuffers)));
-    sensor.lut = new float*[sensor.bufferWidth];
+    sensor.lut = new unsigned int[sensor.bufferWidth];
     sensor.renderAngleX = angleX * sensor.bufferWidth / imageWidth;
 
     //Compute new resolution of rendering buffer
@@ -56,7 +53,6 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
     float totalWidth(std::tan(maxAngle));
     float newXRes(totalWidth / minPixelWidth);
     sensor.renderWidth = static_cast<unsigned int>(ceil(newXRes)) * 2;
-    sensor.renderBuffer = new float[sensor.renderWidth];
 
     //Compute values for LUT (sensor data -> rendering buffer)
     float firstAngle(-maxAngle);
@@ -68,7 +64,7 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
       float g(std::tan(currentAngle));
       g *= gToPixelFactor;
       int gPixel(static_cast<int>(g) + static_cast<int>(sensor.renderWidth) / 2);
-      sensor.lut[i] = &sensor.renderBuffer[gPixel];
+      sensor.lut[i] = static_cast<unsigned int>(gPixel);
       currentAngle += step;
     }
   }
@@ -78,13 +74,10 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
     sensor.bufferWidth = imageWidth;
     sensor.renderWidth = imageWidth;
     sensor.renderAngleX = angleX;
-    sensor.renderBuffer = sensor.imageBuffer;
   }
-
   sensor.dimensions.append(imageWidth);
   if(imageHeight > 1)
     sensor.dimensions.append(imageHeight);
-  sensor.data.floatArray = sensor.imageBuffer;
 
   if(translation)
     sensor.offset.translation = *translation;
@@ -97,6 +90,9 @@ void DepthImageSensor::createPhysics(GraphicsContext& graphicsContext)
   const float zNear = std::max(min, 0.001f); // at least 1mm since zNear must not be zero
   float aspect = std::tan(sensor.renderAngleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, zNear, max, sensor.projection);
+
+  for(unsigned int i = 0; i < sensor.numOfBuffers; ++i)
+    sensor.readbackBuffers.push_back(graphicsContext.requestReadbackBuffer(GraphicsContext::depthImage, sensor.renderWidth, sensor.renderHeight, &sensor.projection));
 
   ASSERT(!pyramidChain);
   GraphicsContext::VertexBuffer<GraphicsContext::VertexPN>* vertexBuffer = graphicsContext.requestVertexBuffer<GraphicsContext::VertexPN>();
@@ -210,7 +206,6 @@ void DepthImageSensor::DistanceSensor::updateValue()
   Simulation::simulation->scene->updateTransformations();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.startOffscreenRendering(renderWidth, renderHeight, true);
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
 
   // setup camera position
@@ -220,51 +215,53 @@ void DepthImageSensor::DistanceSensor::updateValue()
   pose.rotate(cameraRotation);
   pose.rotate(RotationMatrix::aroundY((depthImageSensor->angleX - renderAngleX) / 2.0f));
 
-  float* val = imageBuffer;
-  unsigned int widthLeft = depthImageSensor->imageWidth;
-  for(unsigned int i = 0; i < numOfBuffers; ++i)
+  // The parts are rendered on top of each other. The GPU converts their depths into distances along the viewing direction.
+  if(!graphicsContext.startOffscreenRendering(renderWidth, renderHeight * numOfBuffers, true))
+    return;
+  int y = 0;
+  for(const GraphicsContext::ReadbackBuffer* readbackBuffer : readbackBuffers)
   {
     Matrix4f transformation;
     OpenGLTools::convertTransformation(pose.inverse(), transformation);
 
-    graphicsContext.startRendering(projection, transformation, 0, 0, renderWidth, renderHeight);
+    graphicsContext.startRendering(projection, transformation, 0, y, renderWidth, renderHeight);
 
     // draw all objects
     Simulation::simulation->scene->drawAppearances(graphicsContext);
 
     graphicsContext.finishRendering();
 
-    // read frame buffer
-    graphicsContext.finishOffscreenRendering(renderBuffer, renderWidth, renderHeight);
+    graphicsContext.readOffscreenImage(*readbackBuffer, y);
+    y += static_cast<int>(renderHeight);
 
-    if(depthImageSensor->projection == perspectiveProjection)
+    pose.rotate(RotationMatrix::aroundY(-renderAngleX));
+  }
+  submission = graphicsContext.finishOffscreenRendering();
+
+  if(depthImageSensor->projection == perspectiveProjection)
+    data.floatArray = reinterpret_cast<const float*>(readbackBuffers.front()->getMemory());
+  else
+  {
+    // compute the distances of the points from the distances along the viewing directions of the parts
+    graphicsContext.waitForOffscreenRendering(submission);
+    submission = 0;
+    const float fInvSqr = 1.f / (projection(0, 0) * projection(0, 0));
+    const int mid = static_cast<int>(lut[bufferWidth / 2]);
+    const float factor = 2.0f / float(renderWidth);
+    float* val = imageBuffer;
+    unsigned int widthLeft = depthImageSensor->imageWidth;
+    for(const GraphicsContext::ReadbackBuffer* readbackBuffer : readbackBuffers)
     {
-      // convert pixels to points in world and compute the depth (renderBuffer == imageBuffer)
-      const float halfP34 = projection(2, 3) * 0.5f;
-      const float halfP33m1 = projection(2, 2) * 0.5f - 0.5f;
-      for(float* end = val + renderWidth * renderHeight; val < end; ++val)
-        *val = halfP34 / (*val + halfP33m1);
-    }
-    else
-    {
-      // convert pixels to points in world and compute the distances (renderBuffer != imageBuffer)
-      const float fInvSqr = 1.f / (projection(0, 0) * projection(0, 0));
-      const float halfP34 = projection(2, 3) * 0.5f;
-      const float halfP33m1 = projection(2, 2) * 0.5f - 0.5f;
-      float* const mid = lut[bufferWidth / 2];
-      const float factor = 2.0f / float(renderWidth);
+      const float* distances = reinterpret_cast<const float*>(readbackBuffer->getMemory());
       const unsigned int end = std::min(bufferWidth, widthLeft);
       for(unsigned int i = 0; i < end; ++i)
       {
-        const float vx = (lut[i] - mid) * factor;
-        *val++ = std::min<float>(halfP34 / (*lut[i] + halfP33m1) * std::sqrt(1.f + vx * vx * fInvSqr), max);
+        const float vx = static_cast<float>(static_cast<int>(lut[i]) - mid) * factor;
+        *val++ = std::min<float>(distances[lut[i]] * std::sqrt(1.f + vx * vx * fInvSqr), max);
       }
       widthLeft -= end;
-      pose.rotate(RotationMatrix::aroundY(-renderAngleX));
     }
-
-    if(i + 1 != numOfBuffers)
-      graphicsContext.startOffscreenRendering(renderWidth, renderHeight, true);
+    data.floatArray = imageBuffer;
   }
 }
 

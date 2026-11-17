@@ -464,6 +464,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Units**: degree, radian
           - **Use**: required
           - **Range**: (0, MAXFLOAT]
+      - `format`: The format of the images: three bytes per pixel (red, green, blue) or four bytes per two pixels (Y of the first pixel, U, Y of the second pixel, V). `yuyv` requires an even `imageWidth`.
+          - **Default**: rgb
+          - **Use**: optional
+          - **Range**: rgb, yuyv
   - `DepthImageSensor`: Instantiates a depth image camera.
       - `name`: The name of the sensor.
           - **Use**: optional

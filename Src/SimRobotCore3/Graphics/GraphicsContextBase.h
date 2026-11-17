@@ -211,6 +211,43 @@ public:
   };
 
   /**
+   * The formats into which images of off-screen renderings are converted (see \c GraphicsContext::readOffscreenImage).
+   * All of them have the top row first.
+   */
+  enum ImageFormat
+  {
+    rgbImage, /**< Three bytes per pixel (red, green, blue). */
+    yuyvImage, /**< Four bytes per two pixels: the Y of the first pixel, the U of both, the Y of the second pixel, the V of both (the width must be even). */
+    depthImage /**< A float per pixel: the distance along the viewing direction (computed from the depth buffer and the projection matrix). */
+  };
+
+  /**
+   * A buffer into which the GPU writes images of off-screen renderings and from which they are read without a copy.
+   */
+  struct ReadbackBuffer final
+  {
+    /**
+     * Returns the memory of the buffer, which exists after the graphics context has been compiled. Its contents are only
+     * valid after the submission that writes them has been completed (see \c GraphicsContext::waitForOffscreenRendering).
+     * @return The memory of the buffer.
+     */
+    const unsigned char* getMemory() const {return memory;}
+
+  private:
+    ImageFormat format = rgbImage; /**< The format of the images. */
+    unsigned int width = 0; /**< The width of the images. */
+    unsigned int height = 0; /**< The height of the images. */
+    std::size_t size = 0; /**< The size of the buffer in bytes. */
+    std::size_t index = 0; /**< The index of this buffer in the readback buffers of the graphics API. */
+    float depthNumerator = 0.f; /**< The numerator of the conversion of depths d into distances (\c depthNumerator / (d + \c depthOffset)). */
+    float depthOffset = 0.f; /**< The offset in the denominator of the conversion of depths into distances. */
+    unsigned char* memory = nullptr; /**< The memory of the buffer (after the graphics context has been compiled). */
+
+    friend class GraphicsContextBase;
+    friend class ::GraphicsContext;
+  };
+
+  /**
    * The pose of a model in the world.
    */
   struct ModelMatrix final
@@ -386,6 +423,25 @@ public:
   Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr);
 
   /**
+   * Requests a buffer into which images of off-screen renderings are converted.
+   * @param format The format of the images.
+   * @param width The width of the images.
+   * @param height The height of the images.
+   * @param projection The projection matrix of the renderings (only required for the format \c depthImage).
+   * @return The new readback buffer. The graphics context retains ownership of the object.
+   */
+  ReadbackBuffer* requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection = nullptr);
+
+  /**
+   * Converts a part of the image of the current off-screen rendering into a readback buffer (when the rendering is
+   * finished). Must be called between \c startOffscreenRendering and \c finishOffscreenRendering of the graphics context
+   * (but not between \c startRendering and \c finishRendering).
+   * @param buffer The readback buffer. Its format and size determine what is converted.
+   * @param y The lower edge of the part in the render target (as the viewport in \c startRendering).
+   */
+  void readOffscreenImage(const ReadbackBuffer& buffer, int y);
+
+  /**
    * Sets the color of the global ambient light.
    * @param color Pointer to a three-element (RGB) color.
    */
@@ -497,6 +553,15 @@ protected:
     unsigned int height; /**< The height of the shadow map. */
   };
 
+  /**
+   * A conversion of a part of the image of an off-screen rendering into a readback buffer.
+   */
+  struct OffscreenReadback
+  {
+    const ReadbackBuffer* buffer; /**< The readback buffer. */
+    int y; /**< The lower edge of the part in the render target. */
+  };
+
   static constexpr std::size_t maxShadowMaps = 8; /**< The maximum number of lights with shadow maps (limited by the number of texture units). */
 
   /** Constructor. Requests the meshes that are used to draw controller drawings. */
@@ -556,6 +621,7 @@ protected:
   std::vector<IndexBuffer*> indexBuffers; /**< List of all registered index buffers. */
   std::uint64_t indexBufferTotalSize = 0; /**< The total size of the global index buffer. */
   std::vector<Mesh*> meshes; /**< List of all registered meshes. */
+  std::vector<ReadbackBuffer*> readbackBuffers; /**< List of all registered readback buffers. */
   const Mesh* drawingSphereMesh = nullptr; /**< The mesh of the spheres of controller drawings (a sphere with radius 1, centered at the origin). */
   const Mesh* drawingCylinderMesh = nullptr; /**< The mesh of the cylinders of controller drawings (a cylinder with radius 1 and height 1 along the z-axis, centered at the origin). */
   const Mesh* drawingQuadMesh = nullptr; /**< The mesh of the images of controller drawings (a quad in the yz-plane, see \c Primitives::createQuad). */
@@ -563,6 +629,9 @@ protected:
   std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
   float globalAmbientLight[3] = {0.f}; /**< The color of the global ambient light. */
+
+  // State of the current off-screen rendering (between \c startOffscreenRendering and \c finishOffscreenRendering).
+  std::vector<OffscreenReadback> offscreenReadbacks; /**< The conversions of the images of the rendering into readback buffers. */
 
 private:
   // To construct the model matrices:

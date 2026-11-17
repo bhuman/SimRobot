@@ -13,8 +13,10 @@
 #include <QLocale>
 #include <QMenu>
 #include <QMimeData>
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 static inline float toDeg(float angleInRad)
 { return (angleInRad * 180.f / pi);}
@@ -78,23 +80,32 @@ void SensorWidget::paintEvent(QPaintEvent*)
       paintBoolSensor();
       break;
     }
-    case SimRobotCore3::SensorPort::cameraSensor:
+    case SimRobotCore3::SensorPort::rgbCameraSensor:
+    case SimRobotCore3::SensorPort::yuyvCameraSensor:
     {
-      int xSize = dimensions[0], ySize = dimensions[1];
+      const int xSize = dimensions[0], ySize = dimensions[1];
       const unsigned char* vals = sensor->getValue().byteArray;
-      unsigned char* buffer = new unsigned char[xSize * ySize * 4];
-      unsigned char* pDest = buffer;
-      for(int y = ySize - 1; y >= 0; --y)
-        for(const unsigned char* pSrc = vals + xSize * 3 * y, * end = pSrc + xSize * 3; pSrc < end; pSrc += 3)
-        {
-          *pDest++ = pSrc[2];
-          *pDest++ = pSrc[1];
-          *pDest++ = pSrc[0];
-          *pDest++ = 0xff;
-        }
-      QImage img(buffer, xSize, ySize, QImage::Format_RGB32);
+      std::vector<unsigned char> rgb;
+      if(sensorType == SimRobotCore3::SensorPort::yuyvCameraSensor)
+      {
+        // Convert to RGB with the inverse of the BT.601 conversion.
+        rgb.resize(static_cast<std::size_t>(xSize) * ySize * 3);
+        unsigned char* pDest = rgb.data();
+        const auto toByte = [](float value) {return static_cast<unsigned char>(std::clamp(value + 0.5f, 0.f, 255.f));};
+        for(const unsigned char* pSrc = vals, * end = vals + static_cast<std::size_t>(xSize) * ySize * 2; pSrc < end; pSrc += 4)
+          for(int i = 0; i < 2; ++i)
+          {
+            const float y = pSrc[i * 2];
+            const float r = y + (pSrc[3] - 128.f) / 0.713f;
+            const float b = y + (pSrc[1] - 128.f) / 0.564f;
+            *pDest++ = toByte(r);
+            *pDest++ = toByte((y - 0.299f * r - 0.114f * b) / 0.587f);
+            *pDest++ = toByte(b);
+          }
+        vals = rgb.data();
+      }
+      const QImage img(vals, xSize, ySize, xSize * 3, QImage::Format_RGB888);
       painter.drawImage(0, 0, img.scaled(this->width(), this->height()));
-      delete [] buffer;
       break;
     }
     case SimRobotCore3::SensorPort::noSensor:
@@ -172,8 +183,7 @@ void SensorWidget::paint2DFloatArrayWithLimitsAndWithoutDescriptions()
   const float* vals = sensor->getValue().floatArray;
   unsigned char* buffer = new unsigned char[xSize * ySize * 4];
   unsigned char* pDest = buffer;
-  for(int y = ySize - 1; y >= 0; --y)
-    for(const float* pSrc = vals + xSize * y, * end = pSrc + xSize; pSrc < end; ++pSrc)
+  for(const float* pSrc = vals, * end = vals + xSize * ySize; pSrc < end; ++pSrc)
     {
       unsigned value = unsigned((*pSrc - minValue) * scale);
       unsigned char c = static_cast<unsigned char>(value);
@@ -224,7 +234,7 @@ void SensorWidget::paint2DFloatArrayWithLimitsAndWithoutDescriptions()
 
 QSize SensorWidget::sizeHint() const
 {
-  if(sensorType != SimRobotCore3::SensorPort::cameraSensor)
+  if(sensorType != SimRobotCore3::SensorPort::rgbCameraSensor && sensorType != SimRobotCore3::SensorPort::yuyvCameraSensor)
     return QSize(200, 200); // some dummy default
   return QSize(sensorDimensions[0], sensorDimensions[1]);
 }
@@ -286,7 +296,8 @@ void SensorWidget::setClipboardText(QMimeData& mimeData)
       floatValue = sensor->getValue().floatValue;
       pDouble = &floatValue;
       break;
-    case SimRobotCore3::SensorPort::cameraSensor:
+    case SimRobotCore3::SensorPort::rgbCameraSensor:
+    case SimRobotCore3::SensorPort::yuyvCameraSensor:
     {
       pDouble = new float[dimSize[0] * dimSize[1] * dimSize[2]];
       deletePDouble = true;

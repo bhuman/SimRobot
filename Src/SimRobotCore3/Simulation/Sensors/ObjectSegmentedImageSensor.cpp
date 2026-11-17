@@ -12,7 +12,6 @@
 #include "Platform/Assert.h"
 #include "Simulation/Body.h"
 #include "Simulation/Scene.h"
-#include "Tools/OpenGLTools.h"
 #include <cmath>
 
 static constexpr std::size_t numOfBodySurfaces = 16;
@@ -40,32 +39,19 @@ ObjectSegmentedImageSensor::ObjectSegmentedImageSensor() :
   surfaces(Simulation::simulation->bodySurfaces)
 {
   sensor.camera = this;
-  sensor.sensorType = SimRobotCore3::SensorPort::cameraSensor;
-  sensor.imageBuffer = nullptr;
-  sensor.imageBufferSize = 0;
-}
-
-ObjectSegmentedImageSensor::~ObjectSegmentedImageSensor()
-{
-  if(sensor.imageBuffer)
-    delete[] sensor.imageBuffer;
+  sensor.sensorType = SimRobotCore3::SensorPort::rgbCameraSensor;
 }
 
 void ObjectSegmentedImageSensor::createPhysics(GraphicsContext& graphicsContext)
 {
   Sensor::createPhysics(graphicsContext);
 
-  sensor.dimensions.append(imageWidth);
-  sensor.dimensions.append(imageHeight);
-  sensor.dimensions.append(3);
+  sensor.initialize(graphicsContext, imageWidth, imageHeight, angleX, angleY, GraphicsContext::rgbImage);
 
   if(translation)
     sensor.offset.translation = *translation;
   if(rotation)
     sensor.offset.rotation = *rotation;
-
-  float aspect = std::tan(angleX * 0.5f) / std::tan(angleY * 0.5f);
-  OpenGLTools::computePerspective(angleY, aspect, 0.01f, 500.f, sensor.projection);
 
   if(surfaces.empty())
   {
@@ -97,38 +83,8 @@ void ObjectSegmentedImageSensor::registerObjects()
   Sensor::registerObjects();
 }
 
-void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
+void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::drawScene(GraphicsContext& graphicsContext) const
 {
-  // allocate buffer
-  const unsigned int imageWidth = camera->imageWidth;
-  const unsigned int imageHeight = camera->imageHeight;
-  const unsigned int imageSize = imageWidth * imageHeight * 3;
-  if(imageBufferSize < imageSize)
-  {
-    if(imageBuffer)
-      delete[] imageBuffer;
-    imageBuffer = new unsigned char[imageSize];
-    imageBufferSize = imageSize;
-  }
-
-  // make sure the poses of all movable objects are up to date
-  Simulation::simulation->scene->updateTransformations();
-
-  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.startOffscreenRendering(imageWidth, imageHeight);
-  graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
-
-  // setup camera position
-  Pose3f pose = physicalObject->poseInWorld;
-  pose.conc(offset);
-  static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
-  pose.rotate(cameraRotation);
-  Matrix4f transformation;
-  OpenGLTools::convertTransformation(pose.invert(), transformation);
-
-  graphicsContext.startRendering(projection, transformation, 0, 0, imageWidth, imageHeight, false, false, false);
-
-  // draw all objects
   Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
   int j = 0;
   for(auto iter = Simulation::simulation->scene->bodies.begin(),
@@ -138,91 +94,6 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::updateValue()
     (*iter)->drawAppearances(graphicsContext);
   }
   graphicsContext.setForcedSurface(nullptr);
-
-  graphicsContext.finishRendering();
-
-  // read frame buffer
-  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, imageHeight);
-  data.byteArray = imageBuffer;
-}
-
-bool ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::renderCameraImages(SimRobotCore3::SensorPort** cameras, unsigned int count)
-{
-  if(lastSimulationStep == Simulation::simulation->simulationStep)
-    return true;
-
-  // allocate buffer
-  const unsigned int imageWidth = camera->imageWidth;
-  const unsigned int imageHeight = camera->imageHeight;
-  const unsigned int imageSize = imageWidth * imageHeight * 3;
-  int imagesOfCurrentSize = 0;
-  for(unsigned int i = 0; i < count; ++i)
-  {
-    ObjectSegmentedImageSensorPort* sensor = static_cast<ObjectSegmentedImageSensorPort*>(cameras[i]);
-    if(sensor && sensor->lastSimulationStep != Simulation::simulation->simulationStep &&
-       sensor->camera->imageWidth == imageWidth && sensor->camera->imageHeight == imageHeight)
-      ++imagesOfCurrentSize;
-  }
-  const unsigned int multiImageBufferSize = imageSize * imagesOfCurrentSize;
-
-  if(imageBufferSize < multiImageBufferSize)
-  {
-    if(imageBuffer)
-      delete[] imageBuffer;
-    imageBuffer = new unsigned char[multiImageBufferSize];
-    imageBufferSize = multiImageBufferSize;
-  }
-
-  // make sure the poses of all movable objects are up to date
-  Simulation::simulation->scene->updateTransformations();
-
-  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
-  graphicsContext.startOffscreenRendering(imageWidth, imageHeight * count);
-  graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
-
-  // render images
-  int currentHorizontalPos = 0;
-  unsigned char* currentBufferPos = imageBuffer;
-  for(unsigned int i = 0; i < count; ++i)
-  {
-    ObjectSegmentedImageSensorPort* sensor = static_cast<ObjectSegmentedImageSensorPort*>(cameras[i]);
-    if(sensor && sensor->lastSimulationStep != Simulation::simulation->simulationStep &&
-       sensor->camera->imageWidth == imageWidth && sensor->camera->imageHeight == imageHeight)
-    {
-      // setup camera position
-      Pose3f pose = sensor->physicalObject->poseInWorld;
-      pose.conc(sensor->offset);
-      static const RotationMatrix cameraRotation = (Matrix3f() << Vector3f(0.f, -1.f, 0.f), Vector3f(0.f, 0.f, 1.f), Vector3f(-1.f, 0.f, 0.f)).finished();
-      pose.rotate(cameraRotation);
-      Matrix4f transformation;
-      OpenGLTools::convertTransformation(pose.invert(), transformation);
-
-      graphicsContext.startRendering(sensor->projection, transformation, 0, currentHorizontalPos, imageWidth, imageHeight, false, false, false);
-
-      // draw all objects
-      Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
-      int j = 0;
-      for(auto iter = Simulation::simulation->scene->bodies.begin(),
-          end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
-      {
-        graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
-        (*iter)->drawAppearances(graphicsContext);
-      }
-      graphicsContext.setForcedSurface(nullptr);
-
-      graphicsContext.finishRendering();
-
-      sensor->data.byteArray = currentBufferPos;
-      sensor->lastSimulationStep = Simulation::simulation->simulationStep;
-
-      currentHorizontalPos += imageHeight;
-      currentBufferPos += imageSize;
-    }
-  }
-
-  // read frame buffer
-  graphicsContext.finishOffscreenRendering(imageBuffer, imageWidth, currentHorizontalPos);
-  return true;
 }
 
 void ObjectSegmentedImageSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const

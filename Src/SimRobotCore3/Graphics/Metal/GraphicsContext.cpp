@@ -377,26 +377,60 @@ vertex float4 vertexMain(VertexIn in [[stage_in]], constant metal::float4x4& cam
 }
 )metal";
 
-// These kernels copy render targets into buffers with the bottom row first, as glReadPixels does.
+// These kernels convert a part of a render target into a buffer, with the top row first.
 static const char* readbackShaderSourceCode = R"metal(
-kernel void readbackColor(metal::texture2d<float, metal::access::read> inTexture [[texture(0)]],
-                          device uchar* outBuffer [[buffer(0)]],
-                          constant uint& width [[buffer(1)]],
-                          uint2 gid [[thread_position_in_grid]])
+struct ReadbackParameters
 {
-  float4 pixel = metal::saturate(inTexture.read(uint2(gid.x, inTexture.get_height() - 1 - gid.y)));
-  uint index = (gid.y * width + gid.x) * 3;
-  outBuffer[index] = uchar(metal::rint(pixel.r * 255.0));
-  outBuffer[index + 1] = uchar(metal::rint(pixel.g * 255.0));
-  outBuffer[index + 2] = uchar(metal::rint(pixel.b * 255.0));
+  uint width; // The width of the image.
+  uint firstRow; // The row of the render target with the top row of the image.
+  float depthNumerator; // The conversion of depths d into distances: depthNumerator / (d + depthOffset).
+  float depthOffset;
+};
+
+uint3 readRGB(metal::texture2d<float, metal::access::read> inTexture, uint2 position)
+{
+  return uint3(metal::rint(metal::saturate(inTexture.read(position).rgb) * 255.0));
+}
+
+kernel void readbackRGB(metal::texture2d<float, metal::access::read> inTexture [[texture(0)]],
+                        device uchar* outBuffer [[buffer(0)]],
+                        constant ReadbackParameters& parameters [[buffer(1)]],
+                        uint2 gid [[thread_position_in_grid]])
+{
+  uint3 rgb = readRGB(inTexture, uint2(gid.x, parameters.firstRow + gid.y));
+  uint index = (gid.y * parameters.width + gid.x) * 3;
+  outBuffer[index] = uchar(rgb.r);
+  outBuffer[index + 1] = uchar(rgb.g);
+  outBuffer[index + 2] = uchar(rgb.b);
+}
+
+// Each thread converts two pixels. The coefficients are those of BT.601 with 14 fractional bits, U and V are averaged.
+kernel void readbackYUYV(metal::texture2d<float, metal::access::read> inTexture [[texture(0)]],
+                         device uchar* outBuffer [[buffer(0)]],
+                         constant ReadbackParameters& parameters [[buffer(1)]],
+                         uint2 gid [[thread_position_in_grid]])
+{
+  int3 rgb0 = int3(readRGB(inTexture, uint2(gid.x * 2, parameters.firstRow + gid.y)));
+  int3 rgb1 = int3(readRGB(inTexture, uint2(gid.x * 2 + 1, parameters.firstRow + gid.y)));
+  int y0 = (rgb0.r * 4898 + rgb0.g * 9617 + rgb0.b * 1867) >> 14;
+  int y1 = (rgb1.r * 4898 + rgb1.g * 9617 + rgb1.b * 1867) >> 14;
+  // The offset of 256 keeps the shifted values positive, so that they are rounded down.
+  int u = (((rgb0.b - y0 + rgb1.b - y1) * 9240 + (256 << 15)) >> 15) - 128;
+  int v = (((rgb0.r - y0 + rgb1.r - y1) * 11681 + (256 << 15)) >> 15) - 128;
+  uint index = (gid.y * parameters.width + gid.x * 2) * 2;
+  outBuffer[index] = uchar(metal::clamp(y0, 0, 255));
+  outBuffer[index + 1] = uchar(metal::clamp(u, 0, 255));
+  outBuffer[index + 2] = uchar(metal::clamp(y1, 0, 255));
+  outBuffer[index + 3] = uchar(metal::clamp(v, 0, 255));
 }
 
 kernel void readbackDepth(metal::depth2d<float, metal::access::read> inTexture [[texture(0)]],
                           device float* outBuffer [[buffer(0)]],
-                          constant uint& width [[buffer(1)]],
+                          constant ReadbackParameters& parameters [[buffer(1)]],
                           uint2 gid [[thread_position_in_grid]])
 {
-  outBuffer[gid.y * width + gid.x] = inTexture.read(uint2(gid.x, inTexture.get_height() - 1 - gid.y));
+  float depth = inTexture.read(uint2(gid.x, parameters.firstRow + gid.y));
+  outBuffer[gid.y * parameters.width + gid.x] = parameters.depthNumerator / (depth + parameters.depthOffset);
 }
 )metal";
 
@@ -483,6 +517,15 @@ void GraphicsContext::createDeviceResources()
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
 
   commandQueue = device->newCommandQueue();
+
+  // The readback buffers are shared with the CPU, which reads them directly.
+  mtlReadbackBuffers.reserve(readbackBuffers.size());
+  for(ReadbackBuffer* buffer : readbackBuffers)
+  {
+    MTL::Buffer* mtlBuffer = mtlReadbackBuffers.emplace_back(device->newBuffer(buffer->size, MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared));
+    ASSERT(mtlBuffer);
+    buffer->memory = static_cast<unsigned char*>(mtlBuffer->contents());
+  }
 
   // Upload vertex and index data.
   if(vertexBufferTotalSize)
@@ -694,8 +737,9 @@ void GraphicsContext::createDeviceResources()
   }
   if(MTL::Library* library = compileLibrary(readbackShaderSourceCode); library)
   {
-    colorReadbackPipelineState = createComputePipelineState(library, "readbackColor");
-    depthReadbackPipelineState = createComputePipelineState(library, "readbackDepth");
+    readbackPipelineStates[rgbImage] = createComputePipelineState(library, "readbackRGB");
+    readbackPipelineStates[yuyvImage] = createComputePipelineState(library, "readbackYUYV");
+    readbackPipelineStates[depthImage] = createComputePipelineState(library, "readbackDepth");
     library->release();
   }
   if(MTL::Library* library = compileLibrary(drawingShaderSourceCode); library)
@@ -727,11 +771,12 @@ void GraphicsContext::createDeviceResources()
 
 void GraphicsContext::destroyDeviceResources()
 {
+  waitForOffscreenRendering(numOfSubmissions);
+  for(MTL::Buffer* buffer : mtlReadbackBuffers)
+    buffer->release();
+  mtlReadbackBuffers.clear();
   for(const auto& pair : offscreenTargets)
-  {
     pair.second.renderPass->release();
-    pair.second.readbackBuffer->release();
-  }
   offscreenTargets.clear();
   for(const auto& pair : drawingTextureCache)
     pair.second.texture->release();
@@ -746,10 +791,10 @@ void GraphicsContext::destroyDeviceResources()
     noDepthWriteState->release();
   if(depthStencilState)
     depthStencilState->release();
-  if(colorReadbackPipelineState)
-    colorReadbackPipelineState->release();
-  if(depthReadbackPipelineState)
-    depthReadbackPipelineState->release();
+  for(MTL::ComputePipelineState* pipelineState : readbackPipelineStates)
+    if(pipelineState)
+      pipelineState->release();
+  readbackPipelineStates.fill(nullptr);
   for(MTL::RenderPipelineState* pipelineState : pipelineStates)
     if(pipelineState)
       pipelineState->release();
@@ -777,7 +822,6 @@ void GraphicsContext::destroyDeviceResources()
   device->release();
 
   depthStencilState = noDepthWriteState = clearDepthState = nullptr;
-  colorReadbackPipelineState = depthReadbackPipelineState = nullptr;
   surfaceBuffer = indexBuffer = vertexBuffer = shadowMapBuffer = nullptr;
   textureHeap = nullptr;
   commandQueue = nullptr;
@@ -946,39 +990,69 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
   return true;
 }
 
-void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
+std::uint64_t GraphicsContext::finishOffscreenRendering()
 {
   ASSERT(commandBuffer);
   ASSERT(encoder);
   ASSERT(offscreenTarget);
   ASSERT(!selectedPipelineStates);
-  ASSERT(h <= renderTargetHeight);
 
   encoder->endEncoding();
   encoder = nullptr;
 
-  const MTL::RenderPassDescriptor* renderPass = offscreenTarget->renderPass;
-  MTL::Texture* texture = renderDepthOnly ? renderPass->depthAttachment()->texture() : renderPass->colorAttachments()->object(0)->texture();
-  ASSERT(static_cast<int>(texture->width()) == w);
-  const std::uint32_t lineLength = static_cast<std::uint32_t>(w);
+  if(!offscreenReadbacks.empty())
+  {
+    // The layout of the struct ReadbackParameters in the kernels.
+    struct ReadbackParameters
+    {
+      std::uint32_t width;
+      std::uint32_t firstRow;
+      float depthNumerator;
+      float depthOffset;
+    };
 
-  MTL::ComputeCommandEncoder* computeEncoder = commandBuffer->computeCommandEncoder();
-  computeEncoder->setComputePipelineState(renderDepthOnly ? depthReadbackPipelineState : colorReadbackPipelineState);
-  computeEncoder->setTexture(texture, 0);
-  computeEncoder->setBuffer(offscreenTarget->readbackBuffer, 0, 0);
-  computeEncoder->setBytes(&lineLength, sizeof(lineLength), 1);
-  computeEncoder->dispatchThreads(MTL::Size(w, h, 1), MTL::Size(16, 16, 1));
-  computeEncoder->endEncoding();
+    const MTL::RenderPassDescriptor* renderPass = offscreenTarget->renderPass;
+    MTL::ComputeCommandEncoder* computeEncoder = commandBuffer->computeCommandEncoder();
+    for(const OffscreenReadback& readback : offscreenReadbacks)
+    {
+      const ReadbackBuffer& buffer = *readback.buffer;
+      // Depth images can only be read from depth-only render targets (otherwise the depth is not stored) and vice versa.
+      ASSERT((buffer.format == depthImage) == renderDepthOnly);
+      ASSERT(readback.y >= 0 && readback.y + static_cast<int>(buffer.height) <= renderTargetHeight);
+      MTL::Texture* texture = renderDepthOnly ? renderPass->depthAttachment()->texture() : renderPass->colorAttachments()->object(0)->texture();
+      ASSERT(texture->width() >= buffer.width);
+      // The rows of textures are counted from the top in Metal.
+      const ReadbackParameters parameters = {buffer.width, static_cast<std::uint32_t>(renderTargetHeight - readback.y - static_cast<int>(buffer.height)), buffer.depthNumerator, buffer.depthOffset};
+      computeEncoder->setComputePipelineState(readbackPipelineStates[buffer.format]);
+      computeEncoder->setTexture(texture, 0);
+      computeEncoder->setBuffer(mtlReadbackBuffers[buffer.index], 0, 0);
+      computeEncoder->setBytes(&parameters, sizeof(parameters), 1);
+      computeEncoder->dispatchThreads(MTL::Size(buffer.format == yuyvImage ? buffer.width / 2 : buffer.width, buffer.height, 1), MTL::Size(16, 16, 1));
+    }
+    computeEncoder->endEncoding();
+    offscreenReadbacks.clear();
+  }
 
+  // The command buffer is autoreleased, so it must be retained until it has been waited for.
   commandBuffer->commit();
-  commandBuffer->waitUntilCompleted();
+  submissions.emplace_back(++numOfSubmissions, commandBuffer->retain());
   commandBuffer = nullptr;
-
-  std::memcpy(image, offscreenTarget->readbackBuffer->contents(), static_cast<std::size_t>(w) * h * (renderDepthOnly ? sizeof(float) : 3));
   offscreenTarget = nullptr;
 
   autoreleasePool->release();
   autoreleasePool = nullptr;
+
+  return numOfSubmissions;
+}
+
+void GraphicsContext::waitForOffscreenRendering(std::uint64_t submission)
+{
+  while(!submissions.empty() && submissions.front().first <= submission)
+  {
+    submissions.front().second->waitUntilCompleted();
+    submissions.front().second->release();
+    submissions.pop_front();
+  }
 }
 
 bool GraphicsContext::startExternalRendering(const QRhiNativeHandles* nativeHandles, bool multisample)
@@ -1334,9 +1408,6 @@ GraphicsContext::OffscreenTarget& GraphicsContext::getOffscreenTarget(int width,
   depthAttachment->setStoreAction(depthOnly ? MTL::StoreActionStore : MTL::StoreActionDontCare);
   depthAttachment->setClearDepth(1.0);
   depthTexture->release();
-
-  target.readbackBuffer = device->newBuffer(static_cast<std::size_t>(width) * height * (depthOnly ? sizeof(float) : 3), MTL::ResourceStorageModeShared);
-  ASSERT(target.readbackBuffer);
 
   return target;
 }

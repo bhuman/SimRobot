@@ -7,9 +7,8 @@
 #pragma once
 
 #include "Graphics/GraphicsContext.h"
+#include "Simulation/Sensors/ImageSensorPort.h"
 #include "Simulation/Sensors/Sensor.h"
-#include "Tools/Math/Eigen.h"
-#include "Tools/Math/Pose3f.h"
 
 /**
  * @class Camera
@@ -22,6 +21,7 @@ public:
   unsigned int imageHeight; /**< The height of a camera image */
   float angleX;
   float angleY;
+  GraphicsContext::ImageFormat format = GraphicsContext::rgbImage; /**< The format of the camera images (RGB or YUYV). */
 
   /** Default constructor */
   Camera();
@@ -31,26 +31,14 @@ private:
    * @class CameraSensor
    * The camera sensor interface
    */
-  class CameraSensor : public Sensor::Port
+  class CameraSensor : public ImageSensorPort
   {
-  public:
-    ::PhysicalObject* physicalObject; /**< The physical object were the camera is mounted on */
-    Camera* camera;
-    unsigned char* imageBuffer; /**< A buffer for rendered image data */
-    unsigned int imageBufferSize;
-    Pose3f offset; /**< Offset of the camera relative to the body it mounted on */
-    Matrix4f projection; /**< The perspective projection matrix */
-
-    /** Update the sensor value. Is called when required. */
-    void updateValue() override;
-
-    //API
-    bool getMinAndMax(float& min, float& max) const override {min = 0; max = 0xff; return true;}
-    bool renderCameraImages(SimRobotCore3::SensorPort** cameras, unsigned int count) override;
+    /**
+     * Draws the scene.
+     * @param graphicsContext The graphics context to draw to.
+     */
+    void drawScene(GraphicsContext& graphicsContext) const override;
   } sensor;
-
-  /** Destructor */
-  ~Camera();
 
   /** Initializes the camera after all attributes have been set */
   void createPhysics(GraphicsContext& graphicsContext) override;

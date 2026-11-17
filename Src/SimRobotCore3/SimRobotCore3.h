@@ -596,8 +596,9 @@ namespace SimRobotCore3
     {
       boolSensor,
       floatSensor,
-      cameraSensor,
+      rgbCameraSensor, /**< An image with three bytes per pixel (red, green, blue), the top row first. */
       floatArraySensor,
+      yuyvCameraSensor, /**< An image with four bytes per two pixels (Y of the first pixel, U, Y of the second pixel, V), the top row first. */
       noSensor
     };
 
@@ -616,6 +617,13 @@ namespace SimRobotCore3
     int getKind() const override {return sensorPort;}
 
     virtual SensorType getSensorType() const = 0;
+
+    /**
+     * Returns the sensor reading of the current simulation step, which is computed if this has not happened yet. If it is
+     * rendered (see \c renderCameraImages), this waits until the rendering is complete. The arrays that the reading points
+     * to stay valid (and unchanged) until the reading is computed again.
+     * @return The sensor reading
+     */
     virtual Data getValue() = 0;
     virtual bool getMinAndMax(float& min, float& max) const = 0;
     virtual const QList<int>& getDimensions() const = 0;
@@ -628,9 +636,13 @@ namespace SimRobotCore3
     virtual const QString& getUnit() const = 0;
 
     /**
-     * Pre-renders the images of multiple camera sensors of the same type at once which improves the performance of camera image rendering.
+     * Starts rendering the images of multiple camera sensors of the same type and size at once, which
+     * is faster than rendering them one by one. This does not wait for the rendering, so the controller can do something
+     * else until it reads the images with \c getValue. Sensors whose images were already computed in the current
+     * simulation step are skipped.
      * @param cameras An array of camera sensors
      * @param count The amount of camera sensors in the array
+     * @return Whether the sensor supports this
      */
     virtual bool renderCameraImages(SensorPort** cameras, unsigned int count) = 0;
   };

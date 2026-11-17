@@ -15,7 +15,6 @@
 #include "Simulation/Simulation.h"
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
-#include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions_4_5_Core>
 #include <algorithm>
 #include <bit>
@@ -354,6 +353,70 @@ void main()
 }
 )glsl";
 
+// The compute shaders that convert a part of a render target into a readback buffer, with the top row first.
+// One of RGB, YUYV and DEPTH is defined.
+static const char* readbackShaderSourceCode = R"glsl(
+layout(local_size_x = 64) in;
+
+uniform uint width; // The width of the image.
+uniform uint height; // The height of the image.
+uniform int firstRow; // The row of the render target with the top row of the image (counted from the bottom).
+uniform float depthNumerator; // The conversion of depths d into distances: depthNumerator / (d + depthOffset).
+uniform float depthOffset;
+
+layout(binding = 0) uniform sampler2D inTexture;
+
+#ifdef DEPTH
+layout(std430, binding = 0) writeonly buffer Output { float outData[]; };
+#else
+layout(std430, binding = 0) writeonly buffer Output { uint outData[]; };
+#endif
+
+ivec2 texelOfPixel(uint index)
+{
+  return ivec2(int(index % width), firstRow - int(index / width));
+}
+
+uvec3 readRGB(uint index)
+{
+  return uvec3(roundEven(clamp(texelFetch(inTexture, texelOfPixel(index), 0).rgb, 0.0, 1.0) * 255.0));
+}
+
+void main()
+{
+  // The invocations are numbered over all work groups (which are arranged in two dimensions if there are many).
+  uint index = (gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x) * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+  uint pixels = width * height;
+#if defined(RGB)
+  // Each invocation converts four pixels into three words.
+  if (index * 4 >= pixels)
+    return;
+  uvec3 p[4];
+  for (uint i = 0; i < 4; ++i)
+    p[i] = index * 4 + i < pixels ? readRGB(index * 4 + i) : uvec3(0);
+  outData[index * 3] = p[0].r | p[0].g << 8 | p[0].b << 16 | p[1].r << 24;
+  outData[index * 3 + 1] = p[1].g | p[1].b << 8 | p[2].r << 16 | p[2].g << 24;
+  outData[index * 3 + 2] = p[2].b | p[3].r << 8 | p[3].g << 16 | p[3].b << 24;
+#elif defined(YUYV)
+  // Each invocation converts two pixels into a word. The coefficients are those of BT.601 with 14 fractional bits, U and V are averaged.
+  if (index * 2 >= pixels)
+    return;
+  ivec3 rgb0 = ivec3(readRGB(index * 2));
+  ivec3 rgb1 = ivec3(readRGB(index * 2 + 1));
+  int y0 = (rgb0.r * 4898 + rgb0.g * 9617 + rgb0.b * 1867) >> 14;
+  int y1 = (rgb1.r * 4898 + rgb1.g * 9617 + rgb1.b * 1867) >> 14;
+  // The offset of 256 keeps the shifted values positive, so that they are rounded down.
+  int u = (((rgb0.b - y0 + rgb1.b - y1) * 9240 + (256 << 15)) >> 15) - 128;
+  int v = (((rgb0.r - y0 + rgb1.r - y1) * 11681 + (256 << 15)) >> 15) - 128;
+  outData[index] = uint(clamp(y0, 0, 255)) | uint(clamp(u, 0, 255)) << 8 | uint(clamp(y1, 0, 255)) << 16 | uint(clamp(v, 0, 255)) << 24;
+#else
+  if (index >= pixels)
+    return;
+  outData[index] = depthNumerator / (texelFetch(inTexture, texelOfPixel(index), 0).r + depthOffset);
+#endif
+}
+)glsl";
+
 static const char* depthOnlyFragmentShaderSourceCode = R"glsl(
 void main()
 {
@@ -383,13 +446,22 @@ GraphicsContext::~GraphicsContext()
   {
     ASSERT(perContextData.size() == 1);
     ASSERT(perContextData.begin()->first == offscreenContext);
+    waitForOffscreenRendering(numOfSubmissions);
     offscreenContext->makeCurrent(offscreenSurface);
+    QOpenGLFunctions_4_5_Core& functions = *perContextData.begin()->second.f;
+    for(const auto& pair : offscreenTargets)
+    {
+      functions.glDeleteFramebuffers(1, &pair.second.framebuffer);
+      functions.glDeleteTextures(1, &pair.second.colorTexture);
+      functions.glDeleteTextures(1, &pair.second.depthTexture);
+    }
+    // Deleting the buffers also unmaps them.
+    functions.glDeleteBuffers(static_cast<GLsizei>(readbackBufferIDs.size()), readbackBufferIDs.data());
+    for(const ReadbackShader& readbackShader : readbackShaders)
+      functions.glDeleteProgram(readbackShader.program);
     destroyGraphics();
   }
   ASSERT(perContextData.empty());
-  for(const auto& pair : offscreenBuffers)
-    delete pair.second;
-  offscreenBuffers.clear();
   delete offscreenContext;
   delete offscreenSurface;
 
@@ -419,6 +491,24 @@ bool GraphicsContext::compile(std::list<std::string>& errors)
   offscreenContext->makeCurrent(offscreenSurface);
 
   createGraphics();
+
+  // The readback buffers and their shaders are only used by the off-screen context. The buffers stay mapped, so that
+  // the CPU reads them directly.
+  f = perContextData[offscreenContext].f;
+  readbackBufferIDs.resize(readbackBuffers.size());
+  f->glCreateBuffers(static_cast<GLsizei>(readbackBufferIDs.size()), readbackBufferIDs.data());
+  for(ReadbackBuffer* buffer : readbackBuffers)
+  {
+    const GLuint id = readbackBufferIDs[buffer->index];
+    static constexpr GLbitfield mapFlags = GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+    f->glNamedBufferStorage(id, static_cast<GLsizeiptr>(buffer->size), nullptr, mapFlags | GL_CLIENT_STORAGE_BIT);
+    buffer->memory = static_cast<unsigned char*>(f->glMapNamedBufferRange(id, 0, static_cast<GLsizeiptr>(buffer->size), mapFlags));
+    ASSERT(buffer->memory);
+  }
+  readbackShaders[rgbImage] = compileReadbackShader(rgbImage);
+  readbackShaders[yuyvImage] = compileReadbackShader(yuyvImage);
+  readbackShaders[depthImage] = compileReadbackShader(depthImage);
+  f = nullptr;
   return true;
 }
 
@@ -777,28 +867,35 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
 
   offscreenContext->makeCurrent(offscreenSurface);
 
-  // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
-  // So we create an individual buffer for each size in demand.
-
-  auto it = offscreenBuffers.find(width << 16 | height);
-  if(it == offscreenBuffers.end())
-  {
-    QOpenGLFramebufferObject*& buffer = offscreenBuffers[width << 16 | height];
-
-    buffer = new QOpenGLFramebufferObject(width, height, QOpenGLFramebufferObject::Depth);
-    if(!buffer->isValid())
-    {
-      delete buffer;
-      buffer = nullptr;
-      return false;
-    }
-  }
-  else if(!it->second || !it->second->bind())
-    return false;
-
   ASSERT(!data);
   ASSERT(!f);
   ASSERT(!shader);
+  ASSERT(!offscreenTarget);
+  QOpenGLFunctions_4_5_Core& functions = *perContextData[offscreenContext].f;
+
+  // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
+  // So we create an individual render target for each size in demand. Its attachments are textures, so that the
+  // compute shaders can read them.
+  OffscreenTarget& target = offscreenTargets[width << 16 | height];
+  if(!target.framebuffer)
+  {
+    functions.glCreateTextures(GL_TEXTURE_2D, 1, &target.colorTexture);
+    functions.glTextureStorage2D(target.colorTexture, 1, GL_RGBA8, width, height);
+    functions.glCreateTextures(GL_TEXTURE_2D, 1, &target.depthTexture);
+    functions.glTextureStorage2D(target.depthTexture, 1, GL_DEPTH_COMPONENT32F, width, height);
+    for(const GLuint texture : {target.colorTexture, target.depthTexture})
+    {
+      functions.glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      functions.glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+    functions.glCreateFramebuffers(1, &target.framebuffer);
+    functions.glNamedFramebufferTexture(target.framebuffer, GL_COLOR_ATTACHMENT0, target.colorTexture, 0);
+    functions.glNamedFramebufferTexture(target.framebuffer, GL_DEPTH_ATTACHMENT, target.depthTexture, 0);
+    ASSERT(functions.glCheckNamedFramebufferStatus(target.framebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+  }
+  functions.glBindFramebuffer(GL_FRAMEBUFFER, target.framebuffer);
+
+  offscreenTarget = &target;
   data = &perContextData[offscreenContext];
   f = data->f;
 
@@ -808,26 +905,67 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
   return true;
 }
 
-void GraphicsContext::finishOffscreenRendering(void* image, int w, int h)
+std::uint64_t GraphicsContext::finishOffscreenRendering()
 {
   ASSERT(data);
   ASSERT(f);
   ASSERT(!shader);
+  ASSERT(offscreenTarget);
 
-  if(renderDepthOnly)
+  for(const OffscreenReadback& readback : offscreenReadbacks)
   {
-    f->glPixelStorei(GL_PACK_ALIGNMENT, w * 4 & (8 - 1) ? 4 : 8);
-    f->glReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, image);
+    const ReadbackBuffer& buffer = *readback.buffer;
+    // Depth images are only read from depth-only renderings (whose colors are not cleared) and vice versa.
+    ASSERT((buffer.format == depthImage) == renderDepthOnly);
+    const ReadbackShader& readbackShader = readbackShaders[buffer.format];
+    f->glUseProgram(readbackShader.program);
+    f->glUniform1ui(readbackShader.widthLocation, buffer.width);
+    f->glUniform1ui(readbackShader.heightLocation, buffer.height);
+    f->glUniform1i(readbackShader.firstRowLocation, readback.y + static_cast<GLint>(buffer.height) - 1);
+    f->glUniform1f(readbackShader.depthNumeratorLocation, buffer.depthNumerator);
+    f->glUniform1f(readbackShader.depthOffsetLocation, buffer.depthOffset);
+    f->glBindTextureUnit(0, renderDepthOnly ? offscreenTarget->depthTexture : offscreenTarget->colorTexture);
+    f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, readbackBufferIDs[buffer.index]);
+    // The number of invocations (four pixels per invocation for RGB, two for YUYV, one for depth) is distributed over
+    // work groups of 64, which are arranged in two dimensions if there are more than a dimension supports.
+    const std::size_t pixels = static_cast<std::size_t>(buffer.width) * buffer.height;
+    const std::size_t invocations = buffer.format == rgbImage ? (pixels + 3) / 4 : buffer.format == yuyvImage ? pixels / 2 : pixels;
+    const std::size_t workGroups = (invocations + 63) / 64;
+    const std::size_t workGroupsX = std::min<std::size_t>(workGroups, 65535);
+    f->glDispatchCompute(static_cast<GLuint>(workGroupsX), static_cast<GLuint>((workGroups + workGroupsX - 1) / workGroupsX), 1);
   }
-  else
-  {
-    const int lineSize = w * 3;
-    f->glPixelStorei(GL_PACK_ALIGNMENT, lineSize & (8 - 1) ? (lineSize & (4 - 1) ? 1 : 4) : 8);
-    f->glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, image);
-  }
+  offscreenReadbacks.clear();
+  f->glUseProgram(0);
+  f->glBindTextureUnit(0, 0);
 
+  // The writes of the shaders into the persistently mapped buffers must be visible to the CPU when the fence is signaled.
+  f->glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+  submissions.emplace_back(++numOfSubmissions, f->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0));
+  // The GPU starts right away, while the CPU can do something else.
+  f->glFlush();
+
+  offscreenTarget = nullptr;
   data = nullptr;
   f = nullptr;
+  return numOfSubmissions;
+}
+
+void GraphicsContext::waitForOffscreenRendering(std::uint64_t submission)
+{
+  if(submissions.empty() || submissions.front().first > submission)
+    return;
+  offscreenContext->makeCurrent(offscreenSurface);
+  QOpenGLFunctions_4_5_Core& functions = *perContextData[offscreenContext].f;
+  while(!submissions.empty() && submissions.front().first <= submission)
+  {
+    GLenum result;
+    do
+      result = functions.glClientWaitSync(submissions.front().second, GL_SYNC_FLUSH_COMMANDS_BIT, 1000000000);
+    while(result == GL_TIMEOUT_EXPIRED);
+    ASSERT(result != GL_WAIT_FAILED);
+    functions.glDeleteSync(submissions.front().second);
+    submissions.pop_front();
+  }
 }
 
 bool GraphicsContext::startExternalRendering(bool multisample)
@@ -1059,47 +1197,35 @@ void GraphicsContext::setSurface(const Surface* surface)
   }
 }
 
-GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShaderSources, const std::vector<const char*>& fragmentShaderSources)
+GLuint GraphicsContext::compileShader(const std::vector<std::pair<GLenum, std::vector<const char*>>>& stages)
 {
   ASSERT(f);
 #ifndef NDEBUG
   GLint success = 0;
 #endif
 
-  const GLuint vertexShader = f->glCreateShader(GL_VERTEX_SHADER);
-  ASSERT(vertexShader > 0);
-  f->glShaderSource(vertexShader, static_cast<GLsizei>(vertexShaderSources.size()), vertexShaderSources.data(), nullptr);
-  f->glCompileShader(vertexShader);
-#ifndef NDEBUG
-  f->glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-  if(!success)
-  {
-    char log[512];
-    f->glGetShaderInfoLog(vertexShader, sizeof(log), nullptr, log);
-    TRACE("%s", log);
-    ASSERT(false);
-  }
-#endif
-
-  const GLuint fragmentShader = f->glCreateShader(GL_FRAGMENT_SHADER);
-  ASSERT(fragmentShader > 0);
-  f->glShaderSource(fragmentShader, static_cast<GLsizei>(fragmentShaderSources.size()), fragmentShaderSources.data(), nullptr);
-  f->glCompileShader(fragmentShader);
-#ifndef NDEBUG
-  f->glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-  if(!success)
-  {
-    char log[512];
-    f->glGetShaderInfoLog(fragmentShader, sizeof(log), nullptr, log);
-    TRACE("%s", log);
-    ASSERT(false);
-  }
-#endif
-
   const GLuint program = f->glCreateProgram();
   ASSERT(program > 0);
-  f->glAttachShader(program, vertexShader);
-  f->glAttachShader(program, fragmentShader);
+  std::vector<GLuint> shaders;
+  for(const auto& [type, sources] : stages)
+  {
+    const GLuint shader = shaders.emplace_back(f->glCreateShader(type));
+    ASSERT(shader > 0);
+    f->glShaderSource(shader, static_cast<GLsizei>(sources.size()), sources.data(), nullptr);
+    f->glCompileShader(shader);
+#ifndef NDEBUG
+    f->glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+      char log[512];
+      f->glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
+      TRACE("%s", log);
+      ASSERT(false);
+    }
+#endif
+    f->glAttachShader(program, shader);
+  }
+
   f->glLinkProgram(program);
 #ifndef NDEBUG
   f->glGetProgramiv(program, GL_LINK_STATUS, &success);
@@ -1112,8 +1238,8 @@ GLuint GraphicsContext::compileShader(const std::vector<const char*>& vertexShad
   }
 #endif
 
-  f->glDeleteShader(vertexShader);
-  f->glDeleteShader(fragmentShader);
+  for(const GLuint shader : shaders)
+    f->glDeleteShader(shader);
 
   return program;
 }
@@ -1186,7 +1312,8 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   lightCalculationsCode += "\n";
 
   Shader shader;
-  shader.program = compileShader({versionSourceCode, defines.c_str(), vertexShaderSourceCode}, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode});
+  shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, defines.c_str(), vertexShaderSourceCode}},
+                                  {GL_FRAGMENT_SHADER, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode}}});
 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
@@ -1204,7 +1331,8 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   const char* versionSourceCode = "#version 450 core\n";
 
   Shader shader;
-  shader.program = compileShader({versionSourceCode, depthOnlyVertexShaderSourceCode}, {versionSourceCode, depthOnlyFragmentShaderSourceCode});
+  shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, depthOnlyVertexShaderSourceCode}},
+                                  {GL_FRAGMENT_SHADER, {versionSourceCode, depthOnlyFragmentShaderSourceCode}}});
 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
@@ -1217,11 +1345,29 @@ GraphicsContext::DrawingShader GraphicsContext::compileDrawingShader(const char*
   const char* versionSourceCode = "#version 450 core\n";
 
   DrawingShader shader;
-  shader.program = compileShader({versionSourceCode, vertexShaderSourceCode}, {versionSourceCode, fragmentShaderSourceCode});
+  shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, vertexShaderSourceCode}},
+                                  {GL_FRAGMENT_SHADER, {versionSourceCode, fragmentShaderSourceCode}}});
 
   ASSERT(f);
   shader.pvmLocation = f->glGetUniformLocation(shader.program, "pvm");
   shader.alphaLocation = f->glGetUniformLocation(shader.program, "alphaScale");
+  return shader;
+}
+
+GraphicsContext::ReadbackShader GraphicsContext::compileReadbackShader(ImageFormat format)
+{
+  const char* versionSourceCode = "#version 450 core\n";
+  static const char* formatDefines[] = {"#define RGB\n", "#define YUYV\n", "#define DEPTH\n"};
+
+  ReadbackShader shader;
+  shader.program = compileShader({{GL_COMPUTE_SHADER, {versionSourceCode, formatDefines[format], readbackShaderSourceCode}}});
+
+  ASSERT(f);
+  shader.widthLocation = f->glGetUniformLocation(shader.program, "width");
+  shader.heightLocation = f->glGetUniformLocation(shader.program, "height");
+  shader.firstRowLocation = f->glGetUniformLocation(shader.program, "firstRow");
+  shader.depthNumeratorLocation = f->glGetUniformLocation(shader.program, "depthNumerator");
+  shader.depthOffsetLocation = f->glGetUniformLocation(shader.program, "depthOffset");
   return shader;
 }
 

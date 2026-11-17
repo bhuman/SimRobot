@@ -10,6 +10,7 @@
 #include "Simulation/Sensors/Sensor.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
+#include <vector>
 
 /**
  * @class DepthImageSensor
@@ -49,17 +50,17 @@ private:
   public:
     ::PhysicalObject* physicalObject; /**< The physical object were the distance sensor is mounted on */
     DepthImageSensor* depthImageSensor;
-    float* imageBuffer; /**< A buffer for rendered image data */
+    float* imageBuffer; /**< A buffer for the distances of a spherical projection (otherwise, the image is in the readback buffer). */
     Pose3f offset; /**< Offset of the camera relative to the body it mounted on */
     Matrix4f projection; /**< The perspective projection matrix */
     float min; /**< Smallest measurable value in m. */
     float max; /**< Largest measurable value in m. */
-    float* renderBuffer; /**< The buffer used for rendering. Only differs from imageBuffer for spherical projection. */
+    std::vector<GraphicsContext::ReadbackBuffer*> readbackBuffers; /**< The buffers into which the parts are rendered (one for a perspective projection). */
     unsigned int renderWidth; /**< The horizontal number of pixels to render. Only differs from depthImageSensor->imageWidth for spherical projection. */
     unsigned int renderHeight; /**< The vertical number of pixels to render. Equals depthImageSensor->imageHeight. */
     float renderAngleX; /**< The horizontal opening angle of the render context. */
-    float** lut; /**< Lookup table for transforming perspective projection to spherical projection. */
-    unsigned int numOfBuffers; /**< Number of rending buffers. Actually, the same buffer is reused numOfBuffers times. */
+    unsigned int* lut; /**< Lookup table for transforming perspective projection to spherical projection (indices of the rendered pixels). */
+    unsigned int numOfBuffers; /**< Number of parts that are rendered (for a spherical projection). */
     unsigned int bufferWidth; /**< The number of values in single buffer for multipart rendering. */
 
     /** Update the sensor value. Is called when required. */

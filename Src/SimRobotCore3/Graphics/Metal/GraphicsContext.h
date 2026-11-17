@@ -17,6 +17,7 @@
 #include <Metal/Metal.hpp>
 #include <array>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <list>
 #include <memory>
@@ -105,19 +106,24 @@ public:
    * Starts rendering into an off-screen render target.
    * @param width The width of an image that will be rendered.
    * @param height The height of an image that will be rendered.
-   * @param depthOnly Whether only depth rendering is required (also affects what is read back in \c finishOffscreenRendering).
+   * @param depthOnly Whether only depth rendering is required (then only depth images can be read).
    * @return Whether rendering was successfully started.
    */
   bool startOffscreenRendering(int width, int height, bool depthOnly = false);
 
   /**
-   * Reads an image from the off-screen render target. Must be called as counterpart to \c startOffscreenRendering.
-   * Like in OpenGL, the bottom row is returned first.
-   * @param image The buffer where is image will be saved to (RGB bytes or depth floats).
-   * @param width The image width.
-   * @param height The image height.
+   * Submits the off-screen rendering and the conversions of its images into readback buffers (see \c readOffscreenImage)
+   * without waiting for them. Must be called as counterpart to \c startOffscreenRendering.
+   * @return The number of the submission (see \c waitForOffscreenRendering).
    */
-  void finishOffscreenRendering(void* image, int width, int height);
+  std::uint64_t finishOffscreenRendering();
+
+  /**
+   * Waits until a submission of an off-screen rendering (and all before it) has been completed, so that the contents of
+   * its readback buffers are valid.
+   * @param submission The number of the submission.
+   */
+  void waitForOffscreenRendering(std::uint64_t submission);
 
   /**
    * Starts rendering into a render pass of a QRhi (between \c beginExternal and \c endExternal).
@@ -164,7 +170,6 @@ private:
   struct OffscreenTarget
   {
     MTL::RenderPassDescriptor* renderPass = nullptr; /**< The render pass descriptor (which retains the attachments). */
-    MTL::Buffer* readbackBuffer = nullptr; /**< The buffer to which the result is copied (in the layout that is returned). */
   };
 
   /** Creates all resources on the device. */
@@ -275,8 +280,10 @@ private:
   MTL::DepthStencilState* noDepthWriteState = nullptr; /**< The depth test configuration for drawings that must not write to the depth buffer. */
   MTL::DepthStencilState* clearDepthState = nullptr; /**< The depth configuration for clearing the depth buffer by drawing a triangle. */
   std::unordered_map<std::uint64_t, DrawingTexture> drawingTextureCache; /**< The textures of the images of controller drawings by their ids. */
-  MTL::ComputePipelineState* colorReadbackPipelineState = nullptr; /**< The compute pipeline that converts a color attachment to RGB bytes. */
-  MTL::ComputePipelineState* depthReadbackPipelineState = nullptr; /**< The compute pipeline that converts a depth attachment to floats. */
+  std::array<MTL::ComputePipelineState*, 3> readbackPipelineStates = {}; /**< The compute pipelines that convert render targets into readback buffers per \c ImageFormat. */
+  std::vector<MTL::Buffer*> mtlReadbackBuffers; /**< The buffers of the readback buffers. */
+  std::deque<std::pair<std::uint64_t, MTL::CommandBuffer*>> submissions; /**< The command buffers of the off-screen renderings that may not have been completed yet, by their numbers. */
+  std::uint64_t numOfSubmissions = 0; /**< The number of off-screen renderings that have been submitted. */
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
   std::unordered_map<std::uint64_t, OffscreenTarget> offscreenTargets; /**< Off-screen render targets by encoded size. */
   std::size_t externalReferenceCounter = 0; /**< The number of registered external renderers. */

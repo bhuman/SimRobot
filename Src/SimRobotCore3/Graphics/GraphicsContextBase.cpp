@@ -43,6 +43,8 @@ GraphicsContextBase::~GraphicsContextBase()
     delete indexBuffer;
   for(const auto* mesh : meshes)
     delete mesh;
+  for(const auto* readbackBuffer : readbackBuffers)
+    delete readbackBuffer;
 }
 
 void GraphicsContextBase::layoutResources()
@@ -147,6 +149,34 @@ GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* a
   surface->texture = texture;
   surfaces.push_back(surface);
   return surface;
+}
+
+GraphicsContextBase::ReadbackBuffer* GraphicsContextBase::requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection)
+{
+  auto* readbackBuffer = new ReadbackBuffer;
+  readbackBuffer->format = format;
+  readbackBuffer->width = width;
+  readbackBuffer->height = height;
+  const std::size_t pixels = static_cast<std::size_t>(width) * height;
+  // The OpenGL kernels write 32 bit words (three of them per four pixels for RGB).
+  readbackBuffer->size = format == rgbImage ? (pixels + 3) / 4 * 12 : pixels * (format == yuyvImage ? 2 : sizeof(float));
+  readbackBuffer->index = readbackBuffers.size();
+  if(format == depthImage)
+  {
+    // The depth d in [0, 1] corresponds to the distance p23 / 2 / (d + p22 / 2 - 1 / 2) (OpenGL conventions).
+    ASSERT(projection);
+    readbackBuffer->depthNumerator = (*projection)(2, 3) * 0.5f;
+    readbackBuffer->depthOffset = (*projection)(2, 2) * 0.5f - 0.5f;
+  }
+  readbackBuffers.push_back(readbackBuffer);
+  return readbackBuffer;
+}
+
+void GraphicsContextBase::readOffscreenImage(const ReadbackBuffer& buffer, int y)
+{
+  OffscreenReadback& readback = offscreenReadbacks.emplace_back();
+  readback.buffer = &buffer;
+  readback.y = y;
 }
 
 void GraphicsContextBase::setGlobalAmbientLight(const float* color)

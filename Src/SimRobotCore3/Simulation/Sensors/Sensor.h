@@ -9,6 +9,7 @@
 #include "Simulation/SimObject.h"
 #include "Simulation/PhysicalObject.h"
 #include <QStringList>
+#include <cstdint>
 
 /**
  * @class Sensor
@@ -27,6 +28,7 @@ public:
     QStringList descriptions; /**< A description for each sensor reading dimension */
     QString unit; /**< The unit of the sensor readings */
     unsigned int lastSimulationStep = 0xffffffff; /**< The last time this sensor was computed. */
+    std::uint64_t submission = 0; /**< The off-screen rendering that computes the sensor reading (0 if none is pending, see \c GraphicsContext::waitForOffscreenRendering). */
 
     /** Update the sensor value. Is called when required. */
     virtual void updateValue() = 0;

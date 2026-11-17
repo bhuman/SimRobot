@@ -17,11 +17,13 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <list>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <qopengl.h>
@@ -31,7 +33,6 @@
 class Light;
 class QOffscreenSurface;
 class QOpenGLContext;
-class QOpenGLFramebufferObject;
 class QOpenGLFunctions_4_5_Core;
 
 class GraphicsContext : public GraphicsContextBase
@@ -101,21 +102,27 @@ public:
   void finishRendering();
 
   /**
-   * Selects the OpenGL context of the off-screen renderer.
+   * Selects the OpenGL context of the off-screen renderer and an off-screen render target.
    * @param width The width of an image that will be rendered using this off-screen renderer.
    * @param height The height of an image that will be rendered using this off-screen renderer.
-   * @param depthOnly Whether only depth rendering is required (also affects what is read back in \c finishOffscreenRendering).
+   * @param depthOnly Whether only depth rendering is required (then only depth images can be read).
    * @return Whether the OpenGL context was successfully selected.
    */
   bool startOffscreenRendering(int width, int height, bool depthOnly = false);
 
   /**
-   * Reads an image from the current rendering context. Must be called as counterpart to \c startOffscreenRendering.
-   * @param image The buffer where is image will be saved to.
-   * @param width The image width.
-   * @param height The image height.
+   * Submits the off-screen rendering and the conversions of its images into readback buffers (see \c readOffscreenImage)
+   * without waiting for them. Must be called as counterpart to \c startOffscreenRendering.
+   * @return The number of the submission (see \c waitForOffscreenRendering).
    */
-  void finishOffscreenRendering(void* image, int width, int height);
+  std::uint64_t finishOffscreenRendering();
+
+  /**
+   * Waits until a submission of an off-screen rendering (and all before it) has been completed, so that the contents of
+   * its readback buffers are valid. This changes the rendering context to the rendering context of the off-screen renderer.
+   * @param submission The number of the submission.
+   */
+  void waitForOffscreenRendering(std::uint64_t submission);
 
   /**
    * Selects the (already current) OpenGL context for rendering, e.g. into an external framebuffer.
@@ -189,6 +196,29 @@ private:
     GLint alphaLocation = -1; /**< The location of the alphaScale uniform in the program. */
   };
 
+  /**
+   * A compute shader (OpenGL: program) that converts a render target into a readback buffer, with extracted uniform locations.
+   */
+  struct ReadbackShader
+  {
+    GLuint program = 0; /**< The program object. */
+    GLint widthLocation = -1; /**< The location of the width uniform in the program. */
+    GLint heightLocation = -1; /**< The location of the height uniform in the program. */
+    GLint firstRowLocation = -1; /**< The location of the firstRow uniform in the program. */
+    GLint depthNumeratorLocation = -1; /**< The location of the depthNumerator uniform in the program. */
+    GLint depthOffsetLocation = -1; /**< The location of the depthOffset uniform in the program. */
+  };
+
+  /**
+   * An off-screen render target.
+   */
+  struct OffscreenTarget
+  {
+    GLuint framebuffer = 0; /**< The framebuffer object. */
+    GLuint colorTexture = 0; /**< The color attachment. */
+    GLuint depthTexture = 0; /**< The depth attachment (a texture, so that compute shaders can read it). */
+  };
+
   /** The shaders for controller drawings. */
   enum DrawingShaderType
   {
@@ -249,12 +279,11 @@ private:
   void setSurface(const Surface* surface);
 
   /**
-   * Compile a shader from a list of vertex shader sources and fragment shader sources
-   * @param vertexShaderSources A list of source code fragments that are concatenated to form the vertex shader.
-   * @param fragmentShaderSources A list of source code fragments that are concatenated to form the fragment shader.
+   * Compile a shader program from the sources of its stages.
+   * @param stages The stages, each with its type and a list of source code fragments that are concatenated to form it.
    * @return A shader ID.
    */
-  GLuint compileShader(const std::vector<const char*>& vertexShaderSources, const std::vector<const char*>& fragmentShaderSources);
+  GLuint compileShader(const std::vector<std::pair<GLenum, std::vector<const char*>>>& stages);
 
   /**
    * Compile a shader for color render passes.
@@ -270,6 +299,13 @@ private:
    * @return A shader object.
    */
   Shader compileDepthOnlyShader();
+
+  /**
+   * Compile a compute shader that converts a render target into a readback buffer.
+   * @param format The format into which the shader converts.
+   * @return A shader object.
+   */
+  ReadbackShader compileReadbackShader(ImageFormat format);
 
   /**
    * Compile a shader for controller drawings.
@@ -354,7 +390,12 @@ private:
   // Offscreen rendering:
   QOpenGLContext* offscreenContext = nullptr; /**< The OpenGL context used for offscreen rendering. */
   QOffscreenSurface* offscreenSurface = nullptr; /**< The surface used for offscreen rendering. */
-  std::unordered_map<unsigned int, QOpenGLFramebufferObject*> offscreenBuffers; /**< Map from encoded sizes to framebuffer objects. */
+  std::unordered_map<unsigned int, OffscreenTarget> offscreenTargets; /**< Map from encoded sizes to off-screen render targets. */
+  std::array<ReadbackShader, 3> readbackShaders; /**< The shaders that convert render targets into readback buffers per \c ImageFormat. */
+  std::vector<GLuint> readbackBufferIDs; /**< The buffer objects of the readback buffers (persistently mapped). */
+  std::deque<std::pair<std::uint64_t, GLsync>> submissions; /**< The fences of the off-screen renderings that may not have been completed yet, by their numbers. */
+  std::uint64_t numOfSubmissions = 0; /**< The number of off-screen renderings that have been submitted. */
+  OffscreenTarget* offscreenTarget = nullptr; /**< The current off-screen render target (only valid between \c startOffscreenRendering and \c finishOffscreenRendering). */
 };
 
 #endif
