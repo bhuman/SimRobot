@@ -165,6 +165,8 @@ public:
     PrimitiveTopology topology = triangleList; /**< The primitive type of this mesh. */
     const VertexBufferBase* vertexBuffer = nullptr; /**< The vertex buffer of this mesh. */
     const IndexBuffer* indexBuffer = nullptr; /**< The (optional) index buffer of this mesh. */
+    Vector3f boundsCenter = Vector3f::Zero(); /**< The center of a sphere that contains the mesh (in model space). */
+    float boundsRadius = 0.f; /**< The radius of that sphere. */
 
     friend class GraphicsContextBase;
     friend class ::GraphicsContext;
@@ -351,6 +353,54 @@ public:
 
     friend class GraphicsContextBase;
     friend class ::GraphicsContext;
+  };
+
+  /**
+   * The volume that a view can see, to find out which instances of a draw list do not have to be drawn.
+   */
+  struct ViewFrustum final
+  {
+    /**
+     * Sets the frustum from the matrix that transforms from world space to clip space.
+     * @param projectionView The product of the projection and the view matrix (with OpenGL conventions for clip space).
+     */
+    void set(const Matrix4f& projectionView)
+    {
+      planes.row(0) = projectionView.row(3) + projectionView.row(0);
+      planes.row(1) = projectionView.row(3) - projectionView.row(0);
+      planes.row(2) = projectionView.row(3) + projectionView.row(1);
+      planes.row(3) = projectionView.row(3) - projectionView.row(1);
+      planes.row(4) = projectionView.row(3) + projectionView.row(2);
+      planes.row(5) = projectionView.row(3) - projectionView.row(2);
+      for(int i = 0; i < 6; ++i)
+        planes.row(i) /= planes.row(i).head<3>().norm();
+    }
+
+    /**
+     * Returns whether a sphere is at least partially inside the frustum (or whether it cannot be excluded).
+     * @param center The center of the sphere in world space.
+     * @param radius The radius of the sphere.
+     * @return Whether the sphere might be visible.
+     */
+    bool intersects(const Vector3f& center, float radius) const
+    {
+      for(int i = 0; i < 6; ++i)
+        if(planes.row(i).head<3>().dot(center) + planes(i, 3) < -radius)
+          return false;
+      return true;
+    }
+
+    Eigen::Matrix<float, 6, 4> planes; /**< The planes (normal and offset, normals point inwards and have length 1). */
+  };
+
+  /**
+   * The instances of a pass of a draw list that are inside a view frustum.
+   */
+  struct VisibleInstances final
+  {
+    std::vector<DrawList::Instance> instances; /**< The instances (in the order of the pass, i.e. grouped by batch). */
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> ranges; /**< The index of the first instance and the number of instances of each batch of the pass. */
+    bool all = false; /**< Whether all instances of the pass are visible (then \c instances and \c ranges are not filled). */
   };
 
   /**
@@ -669,6 +719,21 @@ protected:
   void layoutResources();
 
   /**
+   * Remembers the frustum that is used to exclude instances in \c cullInstances. Must be called when rendering starts.
+   * Instances are not excluded when the next view is rendered into a shadow map (\c renderingShadowMap).
+   * @param projectionView The product of the projection and the view matrix.
+   */
+  void startCulling(const Matrix4f& projectionView);
+
+  /**
+   * Finds the instances of a pass of a draw list that are inside the frustum of \c startCulling (considering the model
+   * matrices without any scaling). The graphics API draws these instead of all instances of the pass.
+   * @param pass The pass of a draw list.
+   * @param visible The visible instances. The memory of the object is reused.
+   */
+  void cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const;
+
+  /**
    * Creates the batches of a draw list from its recorded draw calls.
    * @param drawList The draw list.
    */
@@ -723,6 +788,10 @@ protected:
   std::uint64_t modelMatrixGeneration = 1; /**< A number that is increased whenever \c modelMatrixArray changes. */
   bool batchByTexture = false; /**< Whether instances of the same mesh must not be batched if their surfaces have different textures (the graphics API can't select the texture per instance). */
   std::unordered_map<DrawListKey, std::unique_ptr<DrawList>, DrawListKey::Hasher> drawLists; /**< The draw lists that were requested so far. */
+  bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
+  bool cullingActive = false; /**< Whether instances outside \c viewFrustum are not drawn. */
+  ViewFrustum viewFrustum; /**< The frustum of the current view. */
+  VisibleInstances visibleInstances; /**< The instances of the pass that is being drawn (its memory is reused for all passes). */
   DrawList* recordingList = nullptr; /**< The draw list that \c draw records into, while there is one. */
   const Mesh* drawingSphereMesh = nullptr; /**< The mesh of the spheres of controller drawings (a sphere with radius 1, centered at the origin). */
   const Mesh* drawingCylinderMesh = nullptr; /**< The mesh of the cylinders of controller drawings (a cylinder with radius 1 and height 1 along the z-axis, centered at the origin). */

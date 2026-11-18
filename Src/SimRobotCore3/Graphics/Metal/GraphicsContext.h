@@ -240,6 +240,7 @@ private:
     numOfDrawingPipelineStates
   };
 
+  static constexpr std::size_t maxSetBytesSize = 4096; /**< The maximum size of data that can be passed to the encoder with \c setVertexBytes. */
   static constexpr std::size_t numOfColorShaders = 8; /**< The number of color shader variants (lighting x textures x smooth shading). */
   static constexpr std::size_t depthOnlyShaderIndex = numOfColorShaders; /**< The index of the depth only shader. */
   static constexpr std::size_t numOfShaders = numOfColorShaders + 1; /**< The number of shader variants. */
@@ -303,7 +304,6 @@ private:
   MTL::Buffer* drawingInstanceBuffer = nullptr; /**< The buffer with the instances of meshes in the drawings (spheres and cylinders). */
   std::vector<MTL::Texture*> drawingTextures; /**< The textures of the images of the drawings (in the order of \c DrawingList), which are retained until the command buffer has been completed. */
 
-  bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
   int renderTargetHeight = 0; /**< The height of the current off-screen render target or shadow map. */
 
   // Only valid between \c startRendering and \c finishRendering:

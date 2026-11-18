@@ -15,8 +15,10 @@
 #include "Simulation/Simulation.h"
 #include <QImage>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <map>
 #include <numeric>
 #include <string_view>
@@ -55,6 +57,33 @@ GraphicsContextBase::~GraphicsContextBase()
 
 void GraphicsContextBase::layoutResources()
 {
+  // The bounds of the meshes (a sphere around the box of the vertices that are used by the mesh).
+  for(Mesh* mesh : meshes)
+  {
+    const char* const vertices = static_cast<const char*>(mesh->vertexBuffer->data);
+    const std::size_t stride = vertexStrides[mesh->vertexBuffer->category];
+    const std::size_t count = mesh->indexBuffer ? mesh->indexBuffer->indices.size() : mesh->vertexBuffer->count;
+    const auto position = [&](std::size_t i)
+    {
+      Vector3f result; // The position is the first member of all vertex types.
+      std::memcpy(result.data(), vertices + (mesh->indexBuffer ? mesh->indexBuffer->indices[i] : i) * stride, sizeof(result));
+      return result;
+    };
+    Vector3f min = Vector3f::Constant(std::numeric_limits<float>::max());
+    Vector3f max = Vector3f::Constant(std::numeric_limits<float>::lowest());
+    for(std::size_t i = 0; i < count; ++i)
+    {
+      const Vector3f p = position(i);
+      min = min.cwiseMin(p);
+      max = max.cwiseMax(p);
+    }
+    mesh->boundsCenter = (min + max) * 0.5f;
+    float squaredRadius = 0.f;
+    for(std::size_t i = 0; i < count; ++i)
+      squaredRadius = std::max(squaredRadius, (position(i) - mesh->boundsCenter).squaredNorm());
+    mesh->boundsRadius = std::sqrt(squaredRadius);
+  }
+
   // Buffers with the same contents (e.g. the meshes of the parts that several robots have in common) share their memory.
   std::vector<std::pair<VertexBufferBase*, const VertexBufferBase*>> sharedVertexBuffers;
   std::unordered_map<std::size_t, std::vector<VertexBufferBase*>> uniqueVertexBuffers;
@@ -457,6 +486,34 @@ const GraphicsContextBase::DrawList* GraphicsContextBase::getDrawList(const Draw
     buildDrawList(*drawList);
   }
   return drawList.get();
+}
+
+void GraphicsContextBase::startCulling(const Matrix4f& projectionView)
+{
+  cullingActive = !renderingShadowMap;
+  if(cullingActive)
+    viewFrustum.set(projectionView);
+}
+
+void GraphicsContextBase::cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const
+{
+  visible.instances.clear();
+  visible.ranges.clear();
+  for(const DrawList::Batch& batch : pass.batches)
+  {
+    const Mesh& mesh = *batch.mesh;
+    const std::uint32_t first = static_cast<std::uint32_t>(visible.instances.size());
+    for(std::uint32_t i = batch.firstInstance; i < batch.firstInstance + batch.numOfInstances; ++i)
+    {
+      const DrawList::Instance& instance = pass.instances[i];
+      const Matrix4f& modelMatrix = modelMatrixArray[instance.modelMatrix];
+      // Model matrices are rigid, so the radius does not change.
+      if(viewFrustum.intersects(modelMatrix.topLeftCorner<3, 3>() * mesh.boundsCenter + modelMatrix.topRightCorner<3, 1>(), mesh.boundsRadius))
+        visible.instances.push_back(instance);
+    }
+    visible.ranges.emplace_back(first, static_cast<std::uint32_t>(visible.instances.size()) - first);
+  }
+  visible.all = visible.instances.size() == pass.instances.size();
 }
 
 void GraphicsContextBase::buildDrawList(DrawList& drawList) const

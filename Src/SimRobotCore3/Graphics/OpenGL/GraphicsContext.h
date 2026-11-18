@@ -264,6 +264,7 @@ private:
 
     GLuint modelMatrixSSBO = 0; /**< The buffer with all model matrices, which is filled again when they changed. This exists per context. */
     std::uint64_t uploadedModelMatrixGeneration = 0; /**< The value of \c modelMatrixGeneration that \c modelMatrixSSBO was filled for. */
+    GLuint culledInstanceSSBO = 0; /**< The buffer with the instances of a pass that are inside the view (filled for each pass that is drawn). This exists per context. */
     GLuint boundInstanceSSBO = 0; /**< The buffer with instances that is currently bound in this context. */
     std::uint32_t uniformForcedSurface = 0; /**< The current value of the forcedSurface uniform of the shader in this context. */
     std::uint32_t uniformBaseInstance = 0; /**< The current value of the baseInstance uniform of the shader in this context. */
