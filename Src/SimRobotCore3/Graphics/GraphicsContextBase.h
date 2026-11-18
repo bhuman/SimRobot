@@ -94,6 +94,13 @@ public:
      */
     virtual std::size_t size() const = 0;
 
+    /**
+     * Returns the position of a vertex.
+     * @param index The index of the vertex.
+     * @return The position of the vertex.
+     */
+    virtual const Vector3f& getPosition(std::size_t index) const = 0;
+
     void* data = nullptr; /**< Pointer to the vertex data. */
     std::uint32_t count = 0; /**< The number of vertices in this buffer. */
     std::uint32_t base = 0; /**< The index of the first vertex within the global vertex buffer. */
@@ -130,6 +137,16 @@ public:
     {
       return VertexBufferBase::count * VertexType::size;
     }
+
+    /**
+     * Returns the position of a vertex.
+     * @param index The index of the vertex.
+     * @return The position of the vertex.
+     */
+    const Vector3f& getPosition(std::size_t index) const override
+    {
+      return vertices[index].position;
+    }
   };
 
   /**
@@ -165,6 +182,8 @@ public:
     PrimitiveTopology topology = triangleList; /**< The primitive type of this mesh. */
     const VertexBufferBase* vertexBuffer = nullptr; /**< The vertex buffer of this mesh. */
     const IndexBuffer* indexBuffer = nullptr; /**< The (optional) index buffer of this mesh. */
+    Vector3f boundsCenter = Vector3f::Zero(); /**< The center of a sphere that contains the mesh (in model space, determined by \c requestMesh). */
+    float boundsRadius = 0.f; /**< The radius of that sphere. */
 
     friend class GraphicsContextBase;
     friend class ::GraphicsContext;
@@ -354,6 +373,53 @@ public:
   };
 
   /**
+   * The volume that a view can see, to find out which instances of a draw list do not have to be drawn.
+   */
+  struct ViewFrustum final
+  {
+    /**
+     * Sets the frustum from the matrix that transforms from world space to clip space.
+     * @param projectionView The product of the projection and the view matrix (with OpenGL conventions for clip space).
+     */
+    void set(const Matrix4f& projectionView)
+    {
+      planes.row(0) = projectionView.row(3) + projectionView.row(0);
+      planes.row(1) = projectionView.row(3) - projectionView.row(0);
+      planes.row(2) = projectionView.row(3) + projectionView.row(1);
+      planes.row(3) = projectionView.row(3) - projectionView.row(1);
+      planes.row(4) = projectionView.row(3) + projectionView.row(2);
+      planes.row(5) = projectionView.row(3) - projectionView.row(2);
+      for(int i = 0; i < 6; ++i)
+        planes.row(i) /= planes.row(i).head<3>().norm();
+    }
+
+    /**
+     * Returns whether a sphere is at least partially inside the frustum (or whether it cannot be excluded).
+     * @param center The center of the sphere in world space.
+     * @param radius The radius of the sphere.
+     * @return Whether the sphere might be visible.
+     */
+    bool intersects(const Vector3f& center, float radius) const
+    {
+      for(int i = 0; i < 6; ++i)
+        if(planes.row(i).head<3>().dot(center) + planes(i, 3) < -radius)
+          return false;
+      return true;
+    }
+
+    Eigen::Matrix<float, 6, 4> planes; /**< The planes (normal and offset, normals point inwards and have length 1). */
+  };
+
+  /**
+   * The instances of a pass of a draw list that are inside a view frustum.
+   */
+  struct VisibleInstances final
+  {
+    std::vector<DrawList::Instance> instances; /**< The instances (in the order of the pass, i.e. grouped by batch). */
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> ranges; /**< The index of the first instance and the number of instances of each batch of the pass. */
+  };
+
+  /**
    * A controller drawing (see \c SimRobotCore3::Drawing), prepared for being drawn by the graphics context. It is created
    * once when the drawing is drawn for the first time (in the thread that draws the scenes) and is not changed afterwards,
    * so it can be drawn by any number of views without a lock. Lines, dots and quads become vertices, spheres and ellipsoids
@@ -467,9 +533,10 @@ public:
   IndexBuffer* requestIndexBuffer();
 
   /**
-   * Requests a mesh made of the given objects.
-   * @param vertexBuffer The vertex buffer of the mesh.
-   * @param indexBuffer The index buffer of the mesh. May be \c nullptr.
+   * Requests a mesh made of the given objects. The bounds of the mesh are determined from them, so neither of them may be
+   * changed after this call.
+   * @param vertexBuffer The vertex buffer of the mesh (it must have been finished).
+   * @param indexBuffer The index buffer of the mesh (it must have been filled). May be \c nullptr.
    * @param primitiveTopology The primitive topology to draw the mesh.
    * @return The new mesh. The graphics context retains ownership of the object.
    */
@@ -679,6 +746,22 @@ protected:
   void layoutResources();
 
   /**
+   * Remembers the frustum that is used to exclude instances in \c cullInstances. Must be called when rendering starts.
+   * Instances are not excluded when the next view is rendered into a shadow map (\c renderingShadowMap).
+   * @param projectionView The product of the projection and the view matrix.
+   */
+  void setupCulling(const Matrix4f& projectionView);
+
+  /**
+   * Finds the instances of a pass of a draw list that are inside the frustum of \c setupCulling (considering the model
+   * matrices without any scaling). The graphics API draws these instead of all instances of the pass.
+   * @param pass The pass of a draw list.
+   * @param visible The visible instances. The memory of the object is reused.
+   * @return Whether instances were excluded (otherwise, \c visible is not needed because all instances of the pass are drawn).
+   */
+  bool cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const;
+
+  /**
    * Creates the batches of a draw list from its recorded draw calls.
    * @param drawList The draw list.
    */
@@ -741,6 +824,15 @@ protected:
   std::vector<Matrix4f> modelMatrixArray; /**< The model matrices of all usage classes (indexed by \c ModelMatrix::index), which the graphics API makes available to the shaders. */
   std::uint64_t modelMatrixGeneration = 0; /**< A number that is increased whenever \c modelMatrixArray changes. */
   std::unordered_map<DrawListKey, std::unique_ptr<DrawList>, DrawListKey::Hasher> drawLists; /**< The draw lists that were requested so far. */
+
+  // Only valid while the shadow maps are rendered (by \c updateShadowMaps of the graphics API):
+  bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
+
+  // Only valid between \c startRendering and \c finishRendering of the graphics API:
+  std::optional<ViewFrustum> viewFrustum; /**< The frustum of the current view if the instances outside of it are not drawn (see \c setupCulling). */
+
+  // Scratch memory of \c drawList of the graphics API (only used while it runs):
+  VisibleInstances visibleInstances; /**< The instances of the pass that is being drawn (its memory is reused for all passes). */
 
   // Only valid while a draw list is recorded (see \c getDrawList):
   DrawList* recordingList = nullptr; /**< The draw list that \c draw records into, while there is one. */

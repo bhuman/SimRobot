@@ -15,8 +15,10 @@
 #include "Simulation/Simulation.h"
 #include <QImage>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <map>
 #include <numeric>
 #include <string_view>
@@ -183,6 +185,23 @@ GraphicsContextBase::Mesh* GraphicsContextBase::requestMesh(const VertexBufferBa
   mesh->vertexBuffer = vertexBuffer;
   mesh->indexBuffer = indexBuffer;
   mesh->topology = primitiveTopology;
+
+  // The bounds of the mesh (a sphere around the box of the vertices that are used by the mesh).
+  const std::size_t count = indexBuffer ? indexBuffer->indices.size() : vertexBuffer->count;
+  const auto position = [&](std::size_t i) -> const Vector3f& {return vertexBuffer->getPosition(indexBuffer ? indexBuffer->indices[i] : i);};
+  Vector3f min = Vector3f::Constant(std::numeric_limits<float>::max());
+  Vector3f max = Vector3f::Constant(std::numeric_limits<float>::lowest());
+  for(std::size_t i = 0; i < count; ++i)
+  {
+    min = min.cwiseMin(position(i));
+    max = max.cwiseMax(position(i));
+  }
+  mesh->boundsCenter = (min + max) * 0.5f;
+  float squaredRadius = 0.f;
+  for(std::size_t i = 0; i < count; ++i)
+    squaredRadius = std::max(squaredRadius, (position(i) - mesh->boundsCenter).squaredNorm());
+  mesh->boundsRadius = std::sqrt(squaredRadius);
+
   meshes.push_back(mesh);
   return mesh;
 }
@@ -462,6 +481,37 @@ void GraphicsContextBase::updateModelMatrices(ModelMatrix::Usage usage, bool for
     modelMatrix->updateMemory();
   if(!modelMatrixSets[usage].variableModelMatrices.empty())
     ++modelMatrixGeneration;
+}
+
+void GraphicsContextBase::setupCulling(const Matrix4f& projectionView)
+{
+  // The shadow maps must contain everything that can cast a shadow into the view, so nothing is excluded from them.
+  if(renderingShadowMap)
+    viewFrustum.reset();
+  else
+    viewFrustum.emplace().set(projectionView);
+}
+
+bool GraphicsContextBase::cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const
+{
+  ASSERT(viewFrustum);
+  visible.instances.clear();
+  visible.ranges.clear();
+  for(const DrawList::Batch& batch : pass.batches)
+  {
+    const Mesh& mesh = *batch.mesh;
+    const std::uint32_t first = static_cast<std::uint32_t>(visible.instances.size());
+    for(std::uint32_t i = batch.firstInstance; i < batch.firstInstance + batch.numOfInstances; ++i)
+    {
+      const DrawList::Instance& instance = pass.instances[i];
+      const Matrix4f& modelMatrix = modelMatrixArray[instance.modelMatrix];
+      // Model matrices are rigid, so the radius does not change.
+      if(viewFrustum->intersects(modelMatrix.topLeftCorner<3, 3>() * mesh.boundsCenter + modelMatrix.topRightCorner<3, 1>(), mesh.boundsRadius))
+        visible.instances.push_back(instance);
+    }
+    visible.ranges.emplace_back(first, static_cast<std::uint32_t>(visible.instances.size()) - first);
+  }
+  return visible.instances.size() != pass.instances.size();
 }
 
 void GraphicsContextBase::buildDrawList(DrawList& drawList) const

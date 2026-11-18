@@ -647,6 +647,7 @@ void GraphicsContext::createGraphics()
   // The model matrices (uploaded when they changed).
   f->glCreateBuffers(1, &data.modelMatrixSSBO);
   data.uploadedModelMatrixGeneration = 0;
+  f->glCreateBuffers(1, &data.culledInstanceSSBO);
 
   // The VAOs and VBOs of controller drawings. The contents of the VBOs are uploaded for every frame.
   f->glCreateBuffers(1, &data.drawingVBO);
@@ -748,6 +749,7 @@ void GraphicsContext::destroyGraphics()
 
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   data.f->glDeleteBuffers(1, &data.modelMatrixSSBO);
+  data.f->glDeleteBuffers(1, &data.culledInstanceSSBO);
   data.f->glDeleteVertexArrays(1, &data.drawingVAO);
   data.f->glDeleteBuffers(1, &data.drawingVBO);
   data.f->glDeleteVertexArrays(1, &data.drawingInstanceVAO);
@@ -807,6 +809,7 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool o
   f->glGetIntegerv(GL_VIEWPORT, previousViewport);
 
   renderDepthOnly = true;
+  renderingShadowMap = true;
   // Rendering the back faces avoids most self-shadowing artifacts.
   f->glCullFace(GL_FRONT);
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
@@ -818,6 +821,7 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool o
     finishRendering();
   }
   f->glCullFace(GL_BACK);
+  renderingShadowMap = false;
   renderDepthOnly = false;
 
   f->glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFramebuffer));
@@ -842,6 +846,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   f->glPolygonMode(GL_FRONT_AND_BACK, (fillPolygons || renderDepthOnly) ? GL_FILL : GL_LINE);
   f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
+  setupCulling(pv);
   f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
@@ -903,19 +908,38 @@ void GraphicsContext::drawList(const DrawList* drawList)
   const DrawList::Pass& pass = renderDepthOnly ? drawList->depthOnly : drawList->color;
   if(pass.batches.empty())
     return;
-  if(!pass.native)
-  {
-    GLuint buffer;
-    f->glCreateBuffers(1, &buffer);
-    f->glNamedBufferStorage(buffer, static_cast<GLsizeiptr>(pass.instances.size() * sizeof(DrawList::Instance)), pass.instances.data(), 0);
-    pass.native = buffer;
-    f->glFlush(); // The buffer is also used in the other contexts that share it.
-  }
   if(data->uploadedModelMatrixGeneration != modelMatrixGeneration)
     bindModelMatrices();
-  bindInstances(static_cast<GLuint>(pass.native));
-  for(const DrawList::Batch& batch : pass.batches)
+
+  // Only the instances that are inside the view are drawn (if they are all, the instances of the pass are used as they are).
+  const bool culled = viewFrustum && cullInstances(pass, visibleInstances);
+  if(culled)
   {
+    if(visibleInstances.instances.empty())
+      return;
+    // The buffer gets new memory, so that it can be filled while the draw calls of earlier passes are still pending.
+    f->glNamedBufferData(data->culledInstanceSSBO, static_cast<GLsizeiptr>(visibleInstances.instances.size() * sizeof(DrawList::Instance)), visibleInstances.instances.data(), GL_STREAM_DRAW);
+    bindInstances(data->culledInstanceSSBO);
+  }
+  else
+  {
+    if(!pass.native)
+    {
+      GLuint buffer;
+      f->glCreateBuffers(1, &buffer);
+      f->glNamedBufferStorage(buffer, static_cast<GLsizeiptr>(pass.instances.size() * sizeof(DrawList::Instance)), pass.instances.data(), 0);
+      pass.native = buffer;
+      f->glFlush(); // The buffer is also used in the other contexts that share it.
+    }
+    bindInstances(static_cast<GLuint>(pass.native));
+  }
+  for(std::size_t i = 0; i < pass.batches.size(); ++i)
+  {
+    const DrawList::Batch& batch = pass.batches[i];
+    const std::uint32_t firstInstance = culled ? visibleInstances.ranges[i].first : batch.firstInstance;
+    const std::uint32_t numOfInstances = culled ? visibleInstances.ranges[i].second : batch.numOfInstances;
+    if(!numOfInstances)
+      continue;
     const Mesh* mesh = batch.mesh;
     const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
     if(newVAO != data->boundVAO)
@@ -938,11 +962,11 @@ void GraphicsContext::drawList(const DrawList* drawList)
         data->blendEnabled = false;
       }
     }
-    setBaseInstance(batch.firstInstance);
+    setBaseInstance(firstInstance);
     if(mesh->indexBuffer)
-      f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(batch.numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+      f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
     else
-      f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(batch.numOfInstances));
+      f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(numOfInstances));
   }
 }
 
