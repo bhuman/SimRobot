@@ -46,6 +46,15 @@ public:
   virtual void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
 
   /**
+   * Draws the same as \c drawPhysics, but through a draw list of the graphics context, which is recorded the first time
+   * (for each combination of flags) and then drawn with fewer draw calls. Must only be used after the scene has been
+   * created.
+   * @param graphicsContext The graphics context to draw the object to
+   * @param flags Flags to enable or disable certain features
+   */
+  void drawPhysicsCached(GraphicsContext& graphicsContext, unsigned int flags) const;
+
+  /**
    * Adds the drawings that controllers attached to this physical object (and its children) to a list
    * @param list The list of drawings of a frame
    */

@@ -18,6 +18,11 @@ void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext) const
     graphicalObject->drawAppearances(graphicsContext);
 }
 
+void GraphicalObject::drawAppearancesCached(GraphicsContext& graphicsContext) const
+{
+  graphicsContext.drawList(graphicsContext.getDrawList({this}, [&] {drawAppearances(graphicsContext);}));
+}
+
 void GraphicalObject::addParent(Element& element)
 {
   dynamic_cast<GraphicalObject*>(&element)->graphicalDrawings.push_back(this);

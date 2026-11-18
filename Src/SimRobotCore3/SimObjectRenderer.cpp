@@ -165,7 +165,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
 
   // The shadow maps contain the whole scene (not only the displayed object).
   if(drawAppearances && (renderFlags & enableLights))
-    graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, false, dragging && dragSelection);
+    graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearancesCached(graphicsContext);}, false, dragging && dragSelection);
 
   graphicsContext.startExternalRendering(
 #ifndef SIMROBOTCORE3_USE_OPENGL
@@ -177,9 +177,13 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawCoordinateSystem)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, false);
-    graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
-    graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
-    graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
+    static const char originKey = 0;
+    graphicsContext.drawList(graphicsContext.getDrawList({&originKey}, [&]
+    {
+      graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
+      graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
+      graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
+    }));
     graphicsContext.finishRendering();
   }
 
@@ -187,7 +191,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawAppearances)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
-    graphicalObject->drawAppearances(graphicsContext);
+    graphicalObject->drawAppearancesCached(graphicsContext);
     graphicsContext.finishRendering();
   }
 
@@ -195,7 +199,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawPhysics || drawSensors)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
-    physicalObject->drawPhysics(graphicsContext, renderFlags | (physicsShadeMode != noShading ? showPhysics : 0));
+    physicalObject->drawPhysicsCached(graphicsContext, renderFlags | (physicsShadeMode != noShading ? showPhysics : 0));
     graphicsContext.finishRendering();
   }
 
@@ -203,7 +207,11 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawDragPlane)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, true);
-    graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
+    static const char dragPlaneKey = 0;
+    graphicsContext.drawList(graphicsContext.getDrawList({&dragPlaneKey}, [&]
+    {
+      graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
+    }));
     graphicsContext.finishRendering();
   }
 

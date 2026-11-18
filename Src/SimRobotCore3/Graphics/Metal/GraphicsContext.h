@@ -86,18 +86,16 @@ public:
   void startRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
 
   /**
-   * Forces the following draw calls to use a specific surface.
-   * @param surface The surface to use. \c nullptr makes draw calls use the default surface again.
+   * Forces the instances of the draw lists that are drawn next to use a specific surface.
+   * @param surface The surface to use. \c nullptr makes them use their own surfaces again.
    */
   void setForcedSurface(const Surface* surface);
 
   /**
-   * Draws a mesh with a given transformation and surface.
-   * @param mesh The mesh to draw.
-   * @param modelMatrix The model matrix representing the transformation of the mesh.
-   * @param surface The surface to use (ignored if a forced surface has been set).
+   * Draws all the instances of a draw list (see \c getDrawList) with their current model matrices.
+   * @param drawList The draw list.
    */
-  void draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface);
+  void drawList(const DrawList* drawList);
 
   /** Must be called as counterpart to \c startRendering. */
   void finishRendering();
@@ -269,6 +267,8 @@ private:
   MTL::Buffer* vertexBuffer = nullptr; /**< The global vertex buffer. */
   MTL::Buffer* indexBuffer = nullptr; /**< The global index buffer. */
   MTL::Buffer* surfaceBuffer = nullptr; /**< The buffer with the properties of all surfaces. */
+  MTL::Buffer* modelMatrixBuffer = nullptr; /**< The buffer with all model matrices (it is replaced whenever they change, because command buffers that use the old one may still be running). */
+  std::uint64_t uploadedModelMatrixGeneration = 0; /**< The value of \c modelMatrixGeneration that \c modelMatrixBuffer was created for. */
   MTL::Heap* textureHeap = nullptr; /**< The heap in which all textures are allocated (\c nullptr if there are no textures). */
   std::vector<MTL::Texture*> mtlTextures; /**< All textures. */
   std::vector<MTL::Texture*> shadowMapTextures; /**< The depth textures of the shadow maps. */
@@ -309,7 +309,11 @@ private:
   // Only valid between \c startRendering and \c finishRendering:
   MTL::RenderPipelineState* const* selectedPipelineStates = nullptr; /**< The pipeline states (per vertex type) of the current shader. */
   const MTL::RenderPipelineState* boundPipelineState = nullptr; /**< The pipeline state that is currently bound to the encoder (also used by \c drawDrawings). */
-  const Surface* forcedSurface = nullptr; /**< The surface which overrides \c draw's argument. */
+  const Surface* forcedSurface = nullptr; /**< The surface which overrides the surfaces of the instances of drawn lists. */
+  bool modelMatrixBound = false; /**< Whether the current \c modelMatrixBuffer is bound to the encoder. */
+
+  /** Binds the model matrices to the encoder (they are copied to a new buffer if they changed). */
+  void bindModelMatrices();
 };
 
 #endif

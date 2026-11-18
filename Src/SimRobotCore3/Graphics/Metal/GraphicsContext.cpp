@@ -32,6 +32,7 @@ struct VertexOut
   float3 positionInWorld;
   float3 normalInWorld NORMAL_QUALIFIER;
   float2 textureCoordinates;
+  uint surfaceIndex [[flat]];
 };
 
 struct DirLight
@@ -77,9 +78,21 @@ struct Surface
   metal::texture2d<float> texture;
 };
 
-vertex VertexOut vertexMain(VertexIn in [[stage_in]], constant metal::float4x4& cameraPV [[buffer(1)]], constant metal::float4x4& modelMatrix [[buffer(2)]])
+// Must match GraphicsContext::DrawList::Instance. The instance_id includes the base instance of the draw call.
+struct InstanceData
 {
+  uint modelMatrix;
+  uint surface;
+};
+
+vertex VertexOut vertexMain(VertexIn in [[stage_in]], uint instanceID [[instance_id]],
+                            constant metal::float4x4& cameraPV [[buffer(1)]], device const metal::float4x4* modelMatrices [[buffer(2)]],
+                            device const InstanceData* instances [[buffer(4)]], constant uint& forcedSurface [[buffer(5)]])
+{
+  const InstanceData instance = instances[instanceID];
+  const metal::float4x4 modelMatrix = modelMatrices[instance.modelMatrix];
   VertexOut out;
+  out.surfaceIndex = forcedSurface != 0xffffffffu ? forcedSurface : instance.surface;
   out.positionInWorld = (modelMatrix * float4(in.positionInModel, 1.0)).xyz;
   out.normalInWorld = (modelMatrix * float4(in.normalInModel, 0.0)).xyz;
   out.textureCoordinates = in.textureCoordinates;
@@ -215,7 +228,7 @@ float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float
 DECLARE_LIGHTS
 #endif
 
-fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]], constant float4& cameraPos [[buffer(1)]], constant uint& surfaceIndex [[buffer(2)]]
+fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]], constant float4& cameraPos [[buffer(1)]]
 #ifdef WITH_SHADOWS
                              , device const ShadowMapData* shadowMaps [[buffer(3)]]
 #endif
@@ -224,7 +237,7 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
 #ifdef WITH_TEXTURES
   constexpr metal::sampler textureSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::repeat);
 #endif
-  device const Surface& surface = surfaces[surfaceIndex];
+  device const Surface& surface = surfaces[in.surfaceIndex];
   float4 color;
 #ifdef WITH_LIGHTING
   float3 normalizedNormal = metal::normalize(in.normalInWorld);
@@ -371,9 +384,17 @@ struct VertexIn
   float3 positionInModel [[attribute(0)]];
 };
 
-vertex float4 vertexMain(VertexIn in [[stage_in]], constant metal::float4x4& cameraPV [[buffer(1)]], constant metal::float4x4& modelMatrix [[buffer(2)]])
+struct InstanceData
 {
-  return cameraPV * modelMatrix * float4(in.positionInModel, 1.0);
+  uint modelMatrix;
+  uint surface;
+};
+
+vertex float4 vertexMain(VertexIn in [[stage_in]], uint instanceID [[instance_id]],
+                         constant metal::float4x4& cameraPV [[buffer(1)]], device const metal::float4x4* modelMatrices [[buffer(2)]],
+                         device const InstanceData* instances [[buffer(4)]])
+{
+  return cameraPV * modelMatrices[instances[instanceID].modelMatrix] * float4(in.positionInModel, 1.0);
 }
 )metal";
 
@@ -606,6 +627,9 @@ void GraphicsContext::createDeviceResources()
   }
 
   // Upload surfaces.
+  modelMatrixBuffer = nullptr;
+  uploadedModelMatrixGeneration = 0;
+
   surfaceBuffer = device->newBuffer(std::max<std::size_t>(surfaces.size(), 1) * surfaceMemorySize, MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
   std::memset(surfaceBuffer->contents(), 0, surfaceBuffer->length());
   for(const Surface* surface : surfaces)
@@ -807,6 +831,16 @@ void GraphicsContext::destroyDeviceResources()
   shadowMapTextures.clear();
   if(shadowMapBuffer)
     shadowMapBuffer->release();
+  for(auto& entry : drawLists)
+    for(DrawList::Pass* pass : {&entry.second->color, &entry.second->depthOnly})
+      if(pass->native)
+      {
+        reinterpret_cast<MTL::Buffer*>(pass->native)->release();
+        pass->native = 0;
+      }
+  if(modelMatrixBuffer)
+    modelMatrixBuffer->release();
+  modelMatrixBuffer = nullptr;
   surfaceBuffer->release();
   for(MTL::Texture* texture : mtlTextures)
     if(texture)
@@ -920,6 +954,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   encoder->setVertexBuffer(vertexBuffer, 0, 0);
   const Matrix4f pv = clipSpaceCorrection * projection * view;
   encoder->setVertexBytes(pv.data(), sizeof(Matrix4f), 1);
+  bindModelMatrices();
   if(!renderDepthOnly)
   {
     Vector4f pos;
@@ -942,24 +977,55 @@ void GraphicsContext::setForcedSurface(const Surface* surface)
   ASSERT(encoder);
   forcedSurface = surface;
   if(forcedSurface && !renderDepthOnly)
-    encoder->setFragmentBytes(&forcedSurface->index, sizeof(forcedSurface->index), 2);
+  {
+    const std::uint32_t index = static_cast<std::uint32_t>(forcedSurface->index);
+    encoder->setVertexBytes(&index, sizeof(index), 5);
+  }
 }
 
-void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface)
+void GraphicsContext::bindModelMatrices()
+{
+  if(!modelMatrixBuffer || uploadedModelMatrixGeneration != modelMatrixGeneration)
+  {
+    if(modelMatrixBuffer)
+      modelMatrixBuffer->release(); // Command buffers that were encoded with it keep it alive.
+    modelMatrixBuffer = device->newBuffer(modelMatrixArray.data(), std::max<std::size_t>(modelMatrixArray.size(), 1) * sizeof(Matrix4f), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
+    uploadedModelMatrixGeneration = modelMatrixGeneration;
+  }
+  encoder->setVertexBuffer(modelMatrixBuffer, 0, 2);
+  modelMatrixBound = true;
+}
+
+void GraphicsContext::drawList(const DrawList* drawList)
 {
   ASSERT(encoder);
   ASSERT(selectedPipelineStates);
-  MTL::RenderPipelineState* pipelineState = selectedPipelineStates[mesh->vertexBuffer->category];
-  if(pipelineState != boundPipelineState)
-    encoder->setRenderPipelineState((boundPipelineState = pipelineState));
-  encoder->setVertexBytes(modelMatrix->getPointer(), sizeof(Matrix4f), 2);
-  // Blending is always enabled, which gives the same result as OpenGL (where it is only enabled for transparent surfaces).
+  ASSERT(!recordingList);
+  const DrawList::Pass& pass = renderDepthOnly ? drawList->depthOnly : drawList->color;
+  if(pass.batches.empty())
+    return;
+  if(!pass.native)
+    pass.native = reinterpret_cast<std::uintptr_t>(device->newBuffer(pass.instances.data(), pass.instances.size() * sizeof(DrawList::Instance), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared));
+  const MTL::Buffer* instanceBuffer = reinterpret_cast<const MTL::Buffer*>(pass.native);
+  if(!modelMatrixBound || uploadedModelMatrixGeneration != modelMatrixGeneration)
+    bindModelMatrices();
+  encoder->setVertexBuffer(instanceBuffer, 0, 4);
   if(!renderDepthOnly && !forcedSurface)
-    encoder->setFragmentBytes(&surface->index, sizeof(surface->index), 2);
-  if(mesh->indexBuffer)
-    encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), mesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, mesh->indexBuffer->offset, 1, mesh->vertexBuffer->base, 0);
-  else
-    encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count);
+  {
+    const std::uint32_t noSurface = 0xffffffffu;
+    encoder->setVertexBytes(&noSurface, sizeof(noSurface), 5);
+  }
+  for(const DrawList::Batch& batch : pass.batches)
+  {
+    const Mesh* mesh = batch.mesh;
+    MTL::RenderPipelineState* pipelineState = selectedPipelineStates[mesh->vertexBuffer->category];
+    if(pipelineState != boundPipelineState)
+      encoder->setRenderPipelineState((boundPipelineState = pipelineState));
+    if(mesh->indexBuffer)
+      encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), mesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, mesh->indexBuffer->offset, batch.numOfInstances, mesh->vertexBuffer->base, batch.firstInstance);
+    else
+      encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count, batch.numOfInstances, batch.firstInstance);
+  }
 }
 
 void GraphicsContext::finishRendering()

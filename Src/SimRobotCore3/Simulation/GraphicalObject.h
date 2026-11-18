@@ -34,6 +34,14 @@ public:
    */
   virtual void drawAppearances(GraphicsContext& graphicsContext) const;
 
+  /**
+   * Draws the same as \c drawAppearances, but through a draw list of the graphics context, which is recorded the first
+   * time and then drawn with fewer draw calls. Must only be used after the scene has been created and if the appearances
+   * of this object do not change.
+   * @param graphicsContext The graphics context to draw the object to
+   */
+  void drawAppearancesCached(GraphicsContext& graphicsContext) const;
+
   GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this graphical object (if it has something to draw) */
 
 protected:

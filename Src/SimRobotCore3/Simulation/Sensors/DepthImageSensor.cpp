@@ -227,7 +227,7 @@ void DepthImageSensor::DistanceSensor::updateValue()
     graphicsContext.startRendering(projection, transformation, 0, y, renderWidth, renderHeight);
 
     // draw all objects
-    Simulation::simulation->scene->drawAppearances(graphicsContext);
+    Simulation::simulation->scene->drawAppearancesCached(graphicsContext);
 
     graphicsContext.finishRendering();
 

@@ -85,13 +85,15 @@ void ObjectSegmentedImageSensor::registerObjects()
 
 void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::drawScene(GraphicsContext& graphicsContext) const
 {
-  Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
+  // The draw list of what the scene itself contains (without its bodies) has its own key.
+  static const char sceneKey = 0;
+  graphicsContext.drawList(graphicsContext.getDrawList({&sceneKey}, [&] {Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);}));
   int j = 0;
   for(auto iter = Simulation::simulation->scene->bodies.begin(),
       end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
   {
     graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
-    (*iter)->drawAppearances(graphicsContext);
+    (*iter)->drawAppearancesCached(graphicsContext);
   }
   graphicsContext.setForcedSurface(nullptr);
 }

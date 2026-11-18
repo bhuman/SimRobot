@@ -55,7 +55,7 @@ void Camera::registerObjects()
 
 void Camera::CameraSensor::drawScene(GraphicsContext& graphicsContext) const
 {
-  Simulation::simulation->scene->drawAppearances(graphicsContext);
+  Simulation::simulation->scene->drawAppearancesCached(graphicsContext);
 }
 
 void Camera::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const

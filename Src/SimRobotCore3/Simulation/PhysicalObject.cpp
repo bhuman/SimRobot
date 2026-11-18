@@ -47,6 +47,14 @@ void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int 
     drawing->drawPhysics(graphicsContext, flags);
 }
 
+void PhysicalObject::drawPhysicsCached(GraphicsContext& graphicsContext, unsigned int flags) const
+{
+  // Only these flags change what is drawn.
+  flags &= SimRobotCore3::Renderer::showPhysics | SimRobotCore3::Renderer::showSensors;
+  if(flags)
+    graphicsContext.drawList(graphicsContext.getDrawList({this, flags}, [&] {drawPhysics(graphicsContext, flags);}));
+}
+
 void PhysicalObject::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const
 {
   ASSERT(modelMatrix);
