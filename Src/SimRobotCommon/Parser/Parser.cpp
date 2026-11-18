@@ -364,6 +364,8 @@ const std::string& Parser::replacePlaceholders(const std::string& str, const Loc
       result += str.substr(varEnd);
       return result;
     }
+    // Add the text between the placeholders.
+    result += str.substr(varEnd, varStart - varEnd);
   }
 }
 
