@@ -394,7 +394,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       action->setShortcut(QKeySequence(key));
       action->setCheckable(true);
       action->setChecked(objectRenderer.getDragPlane() == plane);
-      connect(action, &QAction::triggered, this, [this, plane]{ const_cast<SimObjectWidget*>(this)->setDragPlane(plane); });
+      connect(action, &QAction::triggered, this, [this, plane]{const_cast<SimObjectWidget*>(this)->setDragPlane(plane);});
     };
     addPlaneAction("X/Y Plane", Qt::Key_Z, SimRobotCore3::Renderer::xyPlane);
     addPlaneAction("X/Z Plane", Qt::Key_Y, SimRobotCore3::Renderer::xzPlane);
@@ -408,7 +408,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       action->setShortcut(QKeySequence(key));
       action->setCheckable(true);
       action->setChecked(objectRenderer.getDragMode() == mode);
-      connect(action, &QAction::triggered, this, [this, mode]{ const_cast<SimObjectWidget*>(this)->setDragMode(mode); });
+      connect(action, &QAction::triggered, this, [this, mode]{const_cast<SimObjectWidget*>(this)->setDragMode(mode);});
     };
     addModeAction("&Keep Dynamics", Qt::Key_7, SimRobotCore3::Renderer::keepDynamics);
     addModeAction("&Reset Dynamics", Qt::Key_8, SimRobotCore3::Renderer::resetDynamics);
@@ -441,7 +441,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       action->setShortcut(QKeySequence(key));
       action->setCheckable(true);
       action->setChecked(objectRenderer.getFovY() == fovY);
-      connect(action, &QAction::triggered, this, [this, fovY]{ const_cast<SimObjectWidget*>(this)->setFovY(fovY); });
+      connect(action, &QAction::triggered, this, [this, fovY]{const_cast<SimObjectWidget*>(this)->setFovY(fovY);});
     };
     addFovYAction("&20°", Qt::Key_1, 20);
     addFovYAction("&40°", Qt::Key_2, 40);
@@ -495,7 +495,7 @@ QMenu* SimObjectWidget::createUserMenu() const
         action->setShortcut(QKeySequence(static_cast<int>(Qt::CTRL) + static_cast<int>(key)));
       action->setCheckable(true);
       action->setChecked(objectRenderer.getSurfaceShadeMode() == shading);
-      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setSurfaceShadeMode(shading); });
+      connect(action, &QAction::triggered, this, [this, shading]{const_cast<SimObjectWidget*>(this)->setSurfaceShadeMode(shading);});
     };
     addShadingAction("&Off", Qt::Key(0), SimRobotCore3::Renderer::noShading);
     addShadingAction("&Wire Frame", Qt::Key_W, SimRobotCore3::Renderer::wireframeShading);
@@ -517,7 +517,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       actionGroup->addAction(action);
       action->setCheckable(true);
       action->setChecked(objectRenderer.getPhysicsShadeMode() == shading);
-      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setPhysicsShadeMode(shading); });
+      connect(action, &QAction::triggered, this, [this, shading]{const_cast<SimObjectWidget*>(this)->setPhysicsShadeMode(shading);});
     };
     addShadingAction("&Off", SimRobotCore3::Renderer::noShading);
     addShadingAction("&Wire Frame", SimRobotCore3::Renderer::wireframeShading);
@@ -539,7 +539,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       actionGroup->addAction(action);
       action->setCheckable(true);
       action->setChecked(objectRenderer.getDrawingsShadeMode() == shading);
-      connect(action, &QAction::triggered, this, [this, shading]{ const_cast<SimObjectWidget*>(this)->setDrawingsShadeMode(shading); });
+      connect(action, &QAction::triggered, this, [this, shading]{const_cast<SimObjectWidget*>(this)->setDrawingsShadeMode(shading);});
     };
     addShadingAction("&Off", SimRobotCore3::Renderer::noShading);
     addShadingAction("&Wire Frame", SimRobotCore3::Renderer::wireframeShading);
@@ -558,7 +558,7 @@ QMenu* SimObjectWidget::createUserMenu() const
       actionGroup->addAction(action);
       action->setCheckable(true);
       action->setChecked((objectRenderer.getRenderFlags() & (SimRobotCore3::Renderer::enableDrawingsOcclusion | SimRobotCore3::Renderer::enableDrawingsTransparentOcclusion)) == flag);
-      connect(action, &QAction::triggered, this, [this, flag]{ const_cast<SimObjectWidget*>(this)->setDrawingsOcclusion(flag); });
+      connect(action, &QAction::triggered, this, [this, flag]{const_cast<SimObjectWidget*>(this)->setDrawingsOcclusion(flag);});
     };
 
     addOcclusionAction("&On", SimRobotCore3::Renderer::enableDrawingsOcclusion);
@@ -583,7 +583,7 @@ QMenu* SimObjectWidget::createUserMenu() const
     action->setStatusTip(tr(tip));
     action->setCheckable(true);
     action->setChecked(objectRenderer.getRenderFlags() & flag);
-    connect(action, &QAction::triggered, this, [this, flag]{ const_cast<SimObjectWidget*>(this)->toggleRenderFlag(flag); });
+    connect(action, &QAction::triggered, this, [this, flag]{const_cast<SimObjectWidget*>(this)->toggleRenderFlag(flag);});
   };
 
   addRenderFlagAction("Enable &Lights", "Enable lighting", SimRobotCore3::Renderer::enableLights);

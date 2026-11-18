@@ -65,7 +65,7 @@ void ServoMotor::act()
     Simulation::simulation->model->dof_armature[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = armature;
     Simulation::simulation->model->dof_frictionloss[Simulation::simulation->model->jnt_dofadr[joint->jointIndex]] = 0.f;
     for(unsigned i = 0; i < targetSize; i++)
-      target[i] = { static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]), static_cast<float>(Simulation::simulation->simulatedTime) };
+      target[i] = {static_cast<float>(Simulation::simulation->data->qpos[Simulation::simulation->model->jnt_qposadr[joint->jointIndex]]), static_cast<float>(Simulation::simulation->simulatedTime)};
   }
 
   // For puppets just overwrite the values
@@ -77,7 +77,7 @@ void ServoMotor::act()
     return;
   }
 
-  target[index] = { this->setpoint, static_cast<float>(Simulation::simulation->simulatedTime + delay) };
+  target[index] = {this->setpoint, static_cast<float>(Simulation::simulation->simulatedTime + delay)};
 
   unsigned searchIndex = index;
   while(true)

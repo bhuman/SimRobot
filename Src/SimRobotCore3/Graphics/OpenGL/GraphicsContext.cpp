@@ -31,12 +31,27 @@ layout(location = 2) in vec2 inTexCoords;
 out vec3 FragPosInWorld;
 NORMAL_QUALIFIER out vec3 NormalInWorld;
 out vec2 TexCoords;
+flat out uint SurfaceIndex;
 
 uniform mat4 cameraPV;
-uniform mat4 modelMatrix;
+uniform uint baseInstance; // The index of the first instance of the draw call in the instances (gl_InstanceID does not include it).
+
+layout(std430, binding = 0) readonly buffer ModelMatrices
+{
+  mat4 modelMatrices[];
+};
+
+// Must match GraphicsContext::DrawList::Instance.
+layout(std430, binding = 1) readonly buffer Instances
+{
+  uvec2 instances[]; // The index of the model matrix and the index of the surface.
+};
 
 void main()
 {
+  const uvec2 instance = instances[baseInstance + uint(gl_InstanceID)];
+  const mat4 modelMatrix = modelMatrices[instance.x];
+  SurfaceIndex = instance.y;
   FragPosInWorld = vec3(modelMatrix * vec4(inPosInModel, 1.0));
   NormalInWorld = mat3(modelMatrix) * inNormalInModel;
   TexCoords = inTexCoords;
@@ -48,11 +63,22 @@ static const char* depthOnlyVertexShaderSourceCode = R"glsl(
 layout(location = 0) in vec3 inPosInModel;
 
 uniform mat4 cameraPV;
-uniform mat4 modelMatrix;
+uniform uint baseInstance; // The index of the first instance of the draw call in the instances (gl_InstanceID does not include it).
+
+layout(std430, binding = 0) readonly buffer ModelMatrices
+{
+  mat4 modelMatrices[];
+};
+
+// Must match GraphicsContext::DrawList::Instance.
+layout(std430, binding = 1) readonly buffer Instances
+{
+  uvec2 instances[]; // The index of the model matrix and the index of the surface.
+};
 
 void main()
 {
-  gl_Position = cameraPV * modelMatrix * vec4(inPosInModel, 1.0);
+  gl_Position = cameraPV * modelMatrices[instances[baseInstance + uint(gl_InstanceID)].x] * vec4(inPosInModel, 1.0);
 }
 )glsl";
 
@@ -98,7 +124,8 @@ NORMAL_QUALIFIER in vec3 NormalInWorld;
 in vec2 TexCoords;
 
 uniform vec3 cameraPos;
-uniform uint surfaceIndex;
+flat in uint SurfaceIndex;
+#define surfaceIndex SurfaceIndex
 #ifdef WITH_TEXTURES
 layout(binding = 0) uniform sampler2D albedoTexture;
 #endif
@@ -432,9 +459,10 @@ static void QT_APIENTRY reportDebugMessage(GLenum, GLenum, GLuint, GLenum, GLsiz
 }
 #endif
 
-GraphicsContext::GraphicsContext()
-{
-}
+GraphicsContext::GraphicsContext() :
+  // The textures are bound by the graphics context, so instances with different textures can't be drawn together.
+  GraphicsContextBase(true)
+{}
 
 GraphicsContext::~GraphicsContext()
 {
@@ -616,6 +644,10 @@ void GraphicsContext::createGraphics()
     vertexAttributeSetups[vaoIndex](*f, data.vao[vaoIndex], data.vbo);
   }
 
+  // The model matrices (uploaded when they changed).
+  f->glCreateBuffers(1, &data.modelMatrixSSBO);
+  data.uploadedModelMatrixGeneration = 0;
+
   // The VAOs and VBOs of controller drawings. The contents of the VBOs are uploaded for every frame.
   f->glCreateBuffers(1, &data.drawingVBO);
   f->glCreateVertexArrays(1, &data.drawingVAO);
@@ -715,6 +747,7 @@ void GraphicsContext::destroyGraphics()
     return;
 
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
+  data.f->glDeleteBuffers(1, &data.modelMatrixSSBO);
   data.f->glDeleteVertexArrays(1, &data.drawingVAO);
   data.f->glDeleteBuffers(1, &data.drawingVBO);
   data.f->glDeleteVertexArrays(1, &data.drawingInstanceVAO);
@@ -725,6 +758,14 @@ void GraphicsContext::destroyGraphics()
     data.f->glDeleteBuffers(1, &data.vbo);
     data.f->glDeleteBuffers(1, &data.ebo);
     data.f->glDeleteBuffers(1, &data.surfaceUBO);
+    for(auto& entry : drawLists)
+      for(DrawList::Pass* pass : {&entry.second->color, &entry.second->depthOnly})
+        if(pass->native)
+        {
+          const GLuint buffer = static_cast<GLuint>(pass->native);
+          data.f->glDeleteBuffers(1, &buffer);
+          pass->native = 0;
+        }
     data.f->glDeleteTextures(static_cast<GLsizei>(data.textureIDs.size()), data.textureIDs.data());
     data.f->glDeleteTextures(static_cast<GLsizei>(data.shadowMapTextures.size()), data.shadowMapTextures.data());
     for(const auto& shader : data.shaders)
@@ -816,39 +857,93 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
       f->glBindTextureUnit(static_cast<GLuint>(i) + 1, data->shadowMapTextures[i]);
     }
   f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->surfaceUBO);
+  // The values of the uniforms of the program are unknown.
+  data->uniformBaseInstance = 0xffffffffu;
+  data->boundInstanceSSBO = 0;
+  bindModelMatrices();
 
   // Controller drawings might have changed these states in the meantime:
   data->boundVAO = 0;
   // If this shader uses textures, we bind some non-null texture initially. This prevents warnings
-  // on Apple devices and signals setSurface that textures have to be bound.
+  // on Apple devices and signals drawList that textures have to be bound.
   data->boundTexture = (textures && !renderDepthOnly) ? data->textureIDs.front() : 0;
   data->blendEnabled = false;
   f->glBindTextureUnit(0, data->boundTexture);
   f->glDisable(GL_BLEND);
 }
 
-void GraphicsContext::setForcedSurface(const Surface* surface)
+void GraphicsContext::bindModelMatrices()
 {
-  forcedSurface = surface;
-  if(forcedSurface)
-    setSurface(forcedSurface);
+  if(data->uploadedModelMatrixGeneration != modelMatrixGeneration)
+  {
+    f->glNamedBufferData(data->modelMatrixSSBO, static_cast<GLsizeiptr>(modelMatrixArray.size() * sizeof(Matrix4f)), modelMatrixArray.data(), GL_STREAM_DRAW);
+    data->uploadedModelMatrixGeneration = modelMatrixGeneration;
+  }
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, data->modelMatrixSSBO);
 }
 
-void GraphicsContext::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface)
+void GraphicsContext::bindInstances(GLuint buffer)
+{
+  if(data->boundInstanceSSBO != buffer)
+    f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, (data->boundInstanceSSBO = buffer));
+}
+
+void GraphicsContext::setBaseInstance(std::uint32_t baseInstance)
+{
+  if(data->uniformBaseInstance != baseInstance)
+    f->glUniform1ui(shader->baseInstanceLocation, (data->uniformBaseInstance = baseInstance));
+}
+
+void GraphicsContext::drawList(const DrawList* drawList)
 {
   ASSERT(data);
   ASSERT(f);
   ASSERT(shader);
-  const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
-  if(newVAO != data->boundVAO)
-    f->glBindVertexArray((data->boundVAO = newVAO));
-  f->glUniformMatrix4fv(shader->modelMatrixLocation, 1, GL_FALSE, modelMatrix->memory.data());
-  if(!forcedSurface)
-    setSurface(surface);
-  if(mesh->indexBuffer)
-    f->glDrawElementsBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLint>(mesh->vertexBuffer->base));
-  else
-    f->glDrawArrays(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count));
+  ASSERT(!recordingList);
+  const DrawList::Pass& pass = renderDepthOnly ? drawList->depthOnly : drawList->color;
+  if(pass.batches.empty())
+    return;
+  if(!pass.native)
+  {
+    GLuint buffer;
+    f->glCreateBuffers(1, &buffer);
+    f->glNamedBufferStorage(buffer, static_cast<GLsizeiptr>(pass.instances.size() * sizeof(DrawList::Instance)), pass.instances.data(), 0);
+    pass.native = buffer;
+    f->glFlush(); // The buffer is also used in the other contexts that share it.
+  }
+  if(data->uploadedModelMatrixGeneration != modelMatrixGeneration)
+    bindModelMatrices();
+  bindInstances(static_cast<GLuint>(pass.native));
+  for(const DrawList::Batch& batch : pass.batches)
+  {
+    const Mesh* mesh = batch.mesh;
+    const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
+    if(newVAO != data->boundVAO)
+      f->glBindVertexArray((data->boundVAO = newVAO));
+    if(!renderDepthOnly)
+    {
+      // The texture and the blend state are those of the instances (all of them have the same).
+      const GLuint newTexture = batch.texture ? data->textureIDs[batch.texture->index] : 0;
+      if(newTexture && data->boundTexture && newTexture != data->boundTexture)
+        f->glBindTextureUnit(0, (data->boundTexture = newTexture));
+      if(batch.blend && !data->blendEnabled)
+      {
+        f->glEnable(GL_BLEND);
+        f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        data->blendEnabled = true;
+      }
+      else if(!batch.blend && data->blendEnabled)
+      {
+        f->glDisable(GL_BLEND);
+        data->blendEnabled = false;
+      }
+    }
+    setBaseInstance(batch.firstInstance);
+    if(mesh->indexBuffer)
+      f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(batch.numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+    else
+      f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(batch.numOfInstances));
+  }
 }
 
 void GraphicsContext::finishRendering()
@@ -1169,34 +1264,6 @@ void GraphicsContext::clearDepth()
   f->glClear(GL_DEPTH_BUFFER_BIT);
 }
 
-void GraphicsContext::setSurface(const Surface* surface)
-{
-  ASSERT(data);
-  ASSERT(shader);
-  ASSERT(f);
-  if(renderDepthOnly)
-    return;
-  const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
-  // data->boundTexture is != 0 here iff the shader uses a texture. If the new surface doesn't have
-  // a texture, the old one must stay bound.
-  if(newTexture && data->boundTexture && newTexture != data->boundTexture)
-    f->glBindTextureUnit(0, (data->boundTexture = newTexture));
-  if(shader->surfaceIndexLocation >= 0)
-    f->glUniform1ui(shader->surfaceIndexLocation, static_cast<GLuint>(surface->index));
-  const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->alpha < 1.f);
-  if(newBlendState && !data->blendEnabled)
-  {
-    f->glEnable(GL_BLEND);
-    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    data->blendEnabled = true;
-  }
-  else if(!newBlendState && data->blendEnabled)
-  {
-    f->glDisable(GL_BLEND);
-    data->blendEnabled = false;
-  }
-}
-
 GLuint GraphicsContext::compileShader(const std::vector<std::pair<GLenum, std::vector<const char*>>>& stages)
 {
   ASSERT(f);
@@ -1318,8 +1385,7 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
   shader.cameraPosLocation = f->glGetUniformLocation(shader.program, "cameraPos");
-  shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
-  shader.surfaceIndexLocation = f->glGetUniformLocation(shader.program, "surfaceIndex");
+  shader.baseInstanceLocation = f->glGetUniformLocation(shader.program, "baseInstance");
   shader.lightPVLocation.resize(shadowMaps.size());
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
     shader.lightPVLocation[i] = f->glGetUniformLocation(shader.program, ("lightPV" + std::to_string(i)).c_str());
@@ -1336,7 +1402,7 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
-  shader.modelMatrixLocation = f->glGetUniformLocation(shader.program, "modelMatrix");
+  shader.baseInstanceLocation = f->glGetUniformLocation(shader.program, "baseInstance");
   return shader;
 }
 

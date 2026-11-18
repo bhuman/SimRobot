@@ -14,9 +14,17 @@
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <QImage>
+#include <algorithm>
 #include <cstring>
+#include <functional>
+#include <map>
+#include <numeric>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
 
-GraphicsContextBase::GraphicsContextBase()
+GraphicsContextBase::GraphicsContextBase(bool batchByTexture) :
+  batchByTexture(batchByTexture)
 {
   drawingSphereMesh = Primitives::createSphere(*this, 1.f, 16, 16, false);
   drawingCylinderMesh = Primitives::createCylinder(*this, 1.f, 1.f, 16);
@@ -49,6 +57,27 @@ GraphicsContextBase::~GraphicsContextBase()
 
 void GraphicsContextBase::layoutResources()
 {
+  // Buffers with the same contents (e.g. the meshes of the parts that several robots have in common) share their memory.
+  std::vector<std::pair<VertexBufferBase*, const VertexBufferBase*>> sharedVertexBuffers;
+  std::unordered_map<std::size_t, std::vector<VertexBufferBase*>> uniqueVertexBuffers;
+  for(auto& category : vertexBuffers)
+    for(auto* buffer : category)
+    {
+      const std::string_view bytes(static_cast<const char*>(buffer->data), buffer->size());
+      auto& candidates = uniqueVertexBuffers[std::hash<std::string_view>()(bytes) ^ buffer->category];
+      const auto original = std::find_if(candidates.begin(), candidates.end(), [&](const VertexBufferBase* candidate)
+      {
+        return candidate->category == buffer->category && candidate->size() == buffer->size() && !std::memcmp(candidate->data, buffer->data, buffer->size());
+      });
+      if(original != candidates.end())
+        sharedVertexBuffers.emplace_back(buffer, *original);
+      else
+        candidates.push_back(buffer);
+    }
+  std::unordered_set<const VertexBufferBase*> sharedVertexBufferSet;
+  for(const auto& [buffer, original] : sharedVertexBuffers)
+    sharedVertexBufferSet.insert(buffer);
+
   // Determine buffer memory layout of vertex buffer.
   std::uint32_t base = 0;
   std::uint64_t offset = 0;
@@ -61,6 +90,8 @@ void GraphicsContextBase::layoutResources()
     offset = base * static_cast<std::uint64_t>(stride);
     for(auto* buffer : vertexBuffers[category])
     {
+      if(sharedVertexBufferSet.contains(buffer))
+        continue;
       buffer->base = base;
       buffer->offset = offset;
       base += buffer->count;
@@ -68,16 +99,34 @@ void GraphicsContextBase::layoutResources()
     }
   }
   vertexBufferTotalSize = offset;
+  for(const auto& [buffer, original] : sharedVertexBuffers)
+  {
+    buffer->base = original->base;
+    buffer->offset = original->offset;
+  }
 
   // Determine buffer memory layout of index buffer.
   offset = 0;
+  std::vector<std::pair<IndexBuffer*, const IndexBuffer*>> sharedIndexBuffers;
+  std::unordered_map<std::size_t, std::vector<IndexBuffer*>> uniqueIndexBuffers;
   for(auto* buffer : indexBuffers)
   {
-    buffer->offset = offset;
     buffer->count = static_cast<std::uint32_t>(buffer->indices.size());
+    const std::string_view bytes(reinterpret_cast<const char*>(buffer->indices.data()), buffer->indices.size() * sizeof(std::uint32_t));
+    auto& candidates = uniqueIndexBuffers[std::hash<std::string_view>()(bytes)];
+    const auto original = std::find_if(candidates.begin(), candidates.end(), [&](const IndexBuffer* candidate){return candidate->indices == buffer->indices;});
+    if(original != candidates.end())
+    {
+      sharedIndexBuffers.emplace_back(buffer, *original);
+      continue;
+    }
+    candidates.push_back(buffer);
+    buffer->offset = offset;
     offset += buffer->size();
   }
   indexBufferTotalSize = offset;
+  for(const auto& [buffer, original] : sharedIndexBuffers)
+    buffer->offset = original->offset;
 
   // Determine texture indices.
   std::size_t index = 0;
@@ -88,6 +137,34 @@ void GraphicsContextBase::layoutResources()
   index = 0;
   for(auto* surface : surfaces)
     surface->index = index++;
+
+  // Determine the indices of the model matrices: the constant ones first, then the variable ones, of each usage class.
+  // The matrices live in the array from now on (it must not change its size anymore).
+  ASSERT(modelMatrixArray.empty());
+  std::uint32_t matrixIndex = 0;
+  for(ModelMatrixSet& set : modelMatrixSets)
+  {
+    for(ModelMatrix* modelMatrix : set.constantModelMatrices)
+      modelMatrix->index = matrixIndex++;
+    for(ModelMatrix* modelMatrix : set.variableModelMatrices)
+      modelMatrix->index = matrixIndex++;
+  }
+  modelMatrixArray.resize(std::max<std::uint32_t>(matrixIndex, 1)); // Never empty, so that the array has a valid address to upload.
+  for(ModelMatrixSet& set : modelMatrixSets)
+    for(auto* matrices : {&set.constantModelMatrices, &set.variableModelMatrices})
+      for(ModelMatrix* modelMatrix : *matrices)
+      {
+        modelMatrix->memory = &modelMatrixArray[modelMatrix->index];
+        modelMatrix->memory->row(3) = Eigen::RowVector4f(0.f, 0.f, 0.f, 1.f);
+        if(modelMatrix->variablePart)
+          modelMatrix->updateMemory();
+        else
+        {
+          modelMatrix->memory->topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
+          modelMatrix->memory->topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
+        }
+      }
+  ++modelMatrixGeneration;
 }
 
 void GraphicsContextBase::setClearColor(const float* color)
@@ -340,16 +417,39 @@ GraphicsContextBase::ModelMatrix* GraphicsContextBase::requestModelMatrix(ModelM
   modelMatrix->constantPart = product.size() > startIndex ? *product[startIndex] : Pose3f();
   for(std::size_t i = startIndex + 1; i < product.size(); ++i)
     modelMatrix->constantPart *= *product[i];
-  modelMatrix->memory.row(3) = Eigen::RowVector4f(0.f, 0.f, 0.f, 1.f);
   if(modelMatrix->variablePart)
     modelMatrixSets[usage].variableModelMatrices.push_back(modelMatrix);
   else
-  {
-    modelMatrix->memory.topLeftCorner<3, 3>() = modelMatrix->constantPart.rotation;
-    modelMatrix->memory.topRightCorner<3, 1>() = modelMatrix->constantPart.translation;
     modelMatrixSets[usage].constantModelMatrices.push_back(modelMatrix);
-  }
   return modelMatrix;
+}
+
+const GraphicsContextBase::DrawList* GraphicsContextBase::getDrawList(const DrawListKey& key, const std::function<void()>& record)
+{
+  std::unique_ptr<DrawList>& drawList = drawLists[key];
+  if(!drawList)
+  {
+    ASSERT(!recordingList);
+    drawList = std::make_unique<DrawList>();
+    recordingList = drawList.get();
+    record();
+    ASSERT(!forcedSurface);
+    recordingList = nullptr;
+    buildDrawList(*drawList);
+  }
+  return drawList.get();
+}
+
+void GraphicsContextBase::setForcedSurface(const Surface* surface)
+{
+  ASSERT(recordingList);
+  forcedSurface = surface;
+}
+
+void GraphicsContextBase::draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface)
+{
+  ASSERT(recordingList);
+  recordingList->items.push_back({mesh, modelMatrix, forcedSurface ? forcedSurface : surface});
 }
 
 void GraphicsContextBase::updateModelMatrices(ModelMatrix::Usage usage, bool forceUpdate)
@@ -360,6 +460,75 @@ void GraphicsContextBase::updateModelMatrices(ModelMatrix::Usage usage, bool for
 
   for(ModelMatrix* modelMatrix : modelMatrixSets[usage].variableModelMatrices)
     modelMatrix->updateMemory();
+  if(!modelMatrixSets[usage].variableModelMatrices.empty())
+    ++modelMatrixGeneration;
+}
+
+void GraphicsContextBase::buildDrawList(DrawList& drawList) const
+{
+  const std::vector<DrawList::Item>& items = drawList.items;
+
+  // Meshes with the same geometry (they might use different objects with the same contents) get the same number.
+  std::map<std::tuple<std::size_t, std::uint32_t, std::uint32_t, std::uint64_t, std::uint32_t, int>, std::size_t> meshNumbers;
+  std::vector<std::size_t> meshNumber(items.size());
+  for(std::size_t i = 0; i < items.size(); ++i)
+  {
+    const Mesh& mesh = *items[i].mesh;
+    const auto key = std::make_tuple(mesh.vertexBuffer->category, mesh.vertexBuffer->base, mesh.vertexBuffer->count,
+                                     mesh.indexBuffer ? mesh.indexBuffer->offset : ~std::uint64_t(0), mesh.indexBuffer ? mesh.indexBuffer->count : 0u, static_cast<int>(mesh.topology));
+    meshNumber[i] = meshNumbers.try_emplace(key, meshNumbers.size()).first->second;
+  }
+  const auto category = [&](std::size_t i){return items[i].mesh->vertexBuffer->category;};
+  const auto texture = [&](std::size_t i){return items[i].surface->texture;};
+  const auto textureNumber = [&](std::size_t i){return batchByTexture && texture(i) ? texture(i)->index + 1 : std::size_t(0);};
+
+  // Makes the instances in the given order batches of the same mesh (and texture, if required) that follow each other.
+  const auto addBatches = [&](DrawList::Pass& pass, const std::vector<std::size_t>& order, bool withSurfaces, bool blend)
+  {
+    const std::size_t* previous = nullptr;
+    for(const std::size_t& i : order)
+    {
+      if(!previous || category(*previous) != category(i) || meshNumber[*previous] != meshNumber[i] || (withSurfaces && textureNumber(*previous) != textureNumber(i)))
+      {
+        DrawList::Batch& batch = pass.batches.emplace_back();
+        batch.mesh = items[i].mesh;
+        batch.firstInstance = static_cast<std::uint32_t>(pass.instances.size());
+        batch.numOfInstances = 0;
+        batch.texture = withSurfaces && batchByTexture ? texture(i) : nullptr;
+        batch.blend = blend;
+      }
+      ++pass.batches.back().numOfInstances;
+      pass.instances.push_back({items[i].modelMatrix->index, withSurfaces ? static_cast<std::uint32_t>(items[i].surface->index) : 0u});
+      previous = &i;
+    }
+  };
+
+  // Colors: Opaque instances are sorted (this keeps the order of equal ones), transparent ones must stay in their order.
+  const auto isTransparent = [&](std::size_t i)
+  {
+    const Surface& surface = *items[i].surface;
+    return surface.texture ? surface.texture->hasAlpha : surface.alpha < 1.f;
+  };
+  std::vector<std::size_t> opaque, transparent;
+  for(std::size_t i = 0; i < items.size(); ++i)
+    (isTransparent(i) ? transparent : opaque).push_back(i);
+  std::stable_sort(opaque.begin(), opaque.end(), [&](std::size_t a, std::size_t b)
+  {
+    return std::make_tuple(category(a), textureNumber(a), meshNumber[a]) < std::make_tuple(category(b), textureNumber(b), meshNumber[b]);
+  });
+  drawList.color = DrawList::Pass();
+  addBatches(drawList.color, opaque, true, false);
+  addBatches(drawList.color, transparent, true, true);
+
+  // Depths: All instances are drawn, and the surfaces do not matter.
+  std::vector<std::size_t> all(items.size());
+  std::iota(all.begin(), all.end(), std::size_t(0));
+  std::stable_sort(all.begin(), all.end(), [&](std::size_t a, std::size_t b)
+  {
+    return std::make_tuple(category(a), meshNumber[a]) < std::make_tuple(category(b), meshNumber[b]);
+  });
+  drawList.depthOnly = DrawList::Pass();
+  addBatches(drawList.depthOnly, all, false, false);
 }
 
 void GraphicsContextBase::ModelMatrix::updateMemory()
@@ -367,6 +536,6 @@ void GraphicsContextBase::ModelMatrix::updateMemory()
   if(!variablePart)
     return;
   const Pose3f result = *variablePart * constantPart;
-  memory.topLeftCorner<3, 3>() = result.rotation;
-  memory.topRightCorner<3, 1>() = result.translation;
+  memory->topLeftCorner<3, 3>() = result.rotation;
+  memory->topRightCorner<3, 1>() = result.translation;
 }

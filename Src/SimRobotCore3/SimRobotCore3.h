@@ -660,8 +660,8 @@ namespace SimRobotCore3
     int getKind() const override {return actuatorPort;}
 
     virtual void setValue(float value) = 0;
-    virtual void setPuppetState(bool) {};
-    virtual void setMotorParameters(float, float, float) {};
+    virtual void setPuppetState(bool) {}
+    virtual void setMotorParameters(float, float, float) {}
     virtual bool getMinAndMax(float& min, float& max) const = 0;
 
     /**

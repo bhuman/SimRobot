@@ -34,11 +34,12 @@ protected:
 
 private:
   /**
-   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
-   * @param graphicsContext The graphics context to draw the object to
+   * Records draw calls for the physical primitives of the object (including children) in the draw list that the graphics
+   * context is currently recording (see \c GraphicsContextBase::getDrawList).
+   * @param graphicsContext The graphics context to record the draw calls in
    * @param flags Flags to enable or disable certain features
    */
-  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+  void recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
 
   /** Registers this object with children, actuators and sensors at SimRobot's GUI */
   void registerObjects() override;

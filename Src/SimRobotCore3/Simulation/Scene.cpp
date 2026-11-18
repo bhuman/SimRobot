@@ -45,18 +45,18 @@ void Scene::createGraphics(GraphicsContext& graphicsContext)
   GraphicalObject::createGraphics(graphicsContext);
 }
 
-void Scene::drawAppearances(GraphicsContext& graphicsContext) const
+void Scene::recordAppearances(GraphicsContext& graphicsContext) const
 {
   for(const Body* body : bodies)
-    body->drawAppearances(graphicsContext);
-  GraphicalObject::drawAppearances(graphicsContext);
+    body->recordAppearances(graphicsContext);
+  GraphicalObject::recordAppearances(graphicsContext);
 }
 
-void Scene::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Scene::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   for(const Body* body : bodies)
-    body->drawPhysics(graphicsContext, flags);
-  ::PhysicalObject::drawPhysics(graphicsContext, flags);
+    body->recordPhysics(graphicsContext, flags);
+  ::PhysicalObject::recordPhysics(graphicsContext, flags);
 }
 
 void Scene::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

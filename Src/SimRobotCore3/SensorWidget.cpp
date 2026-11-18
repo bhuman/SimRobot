@@ -19,7 +19,9 @@
 #include <vector>
 
 static inline float toDeg(float angleInRad)
-{ return (angleInRad * 180.f / pi);}
+{
+  return (angleInRad * 180.f / pi);
+}
 
 SensorWidget::SensorWidget(SimRobotCore3::SensorPort* sensor) : pen(QColor::fromRgb(255, 0, 0)), sensor(sensor)
 {
@@ -91,7 +93,7 @@ void SensorWidget::paintEvent(QPaintEvent*)
         // Convert to RGB with the inverse of the BT.601 conversion.
         rgb.resize(static_cast<std::size_t>(xSize) * ySize * 3);
         unsigned char* pDest = rgb.data();
-        const auto toByte = [](float value) {return static_cast<unsigned char>(std::clamp(value + 0.5f, 0.f, 255.f));};
+        const auto toByte = [](float value){return static_cast<unsigned char>(std::clamp(value + 0.5f, 0.f, 255.f));};
         for(const unsigned char* pSrc = vals, * end = vals + static_cast<std::size_t>(xSize) * ySize * 2; pSrc < end; pSrc += 4)
           for(int i = 0; i < 2; ++i)
           {

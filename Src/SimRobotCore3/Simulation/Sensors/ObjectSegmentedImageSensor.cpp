@@ -85,21 +85,26 @@ void ObjectSegmentedImageSensor::registerObjects()
 
 void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::drawScene(GraphicsContext& graphicsContext) const
 {
-  Simulation::simulation->scene->GraphicalObject::drawAppearances(graphicsContext);
-  int j = 0;
-  for(auto iter = Simulation::simulation->scene->bodies.begin(),
-      end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
+  // Everything is in one draw list (all sensors use the same surfaces for the bodies): the scene itself, and each body with its own surface.
+  static const char sceneKey = 0;
+  graphicsContext.drawList(graphicsContext.getDrawList({&sceneKey}, [&]
   {
-    graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
-    (*iter)->drawAppearances(graphicsContext);
-  }
-  graphicsContext.setForcedSurface(nullptr);
+    Simulation::simulation->scene->GraphicalObject::recordAppearances(graphicsContext);
+    int j = 0;
+    for(auto iter = Simulation::simulation->scene->bodies.begin(),
+        end = Simulation::simulation->scene->bodies.end(); iter != end; ++iter, ++j)
+    {
+      graphicsContext.setForcedSurface(camera->surfaces[j % numOfBodySurfaces]);
+      (*iter)->recordAppearances(graphicsContext);
+    }
+    graphicsContext.setForcedSurface(nullptr);
+  }));
 }
 
-void ObjectSegmentedImageSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void ObjectSegmentedImageSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   if(flags & SimRobotCore3::Renderer::showSensors)
     graphicsContext.draw(pyramid, modelMatrix, surface);
 
-  Sensor::drawPhysics(graphicsContext, flags);
+  Sensor::recordPhysics(graphicsContext, flags);
 }

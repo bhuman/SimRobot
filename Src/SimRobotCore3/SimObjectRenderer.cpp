@@ -177,9 +177,13 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawCoordinateSystem)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, false);
-    graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
-    graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
-    graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
+    static const char originKey = 0;
+    graphicsContext.drawList(graphicsContext.getDrawList({&originKey}, [&]
+    {
+      graphicsContext.draw(Simulation::simulation->xAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->xAxisSurface);
+      graphicsContext.draw(Simulation::simulation->yAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->yAxisSurface);
+      graphicsContext.draw(Simulation::simulation->zAxisMesh, Simulation::simulation->originModelMatrix, Simulation::simulation->zAxisSurface);
+    }));
     graphicsContext.finishRendering();
   }
 
@@ -203,7 +207,11 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawDragPlane)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, false, false, false, true);
-    graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
+    static const char dragPlaneKey = 0;
+    graphicsContext.drawList(graphicsContext.getDrawList({&dragPlaneKey}, [&]
+    {
+      graphicsContext.draw(Simulation::simulation->dragPlaneMesh, Simulation::simulation->dragPlaneModelMatrix, Simulation::simulation->dragPlaneSurface);
+    }));
     graphicsContext.finishRendering();
   }
 

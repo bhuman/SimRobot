@@ -65,10 +65,10 @@ void Appearance::Surface::addParent(Element& element)
   appearance->surface = this;
 }
 
-void Appearance::drawAppearances(GraphicsContext& graphicsContext) const
+void Appearance::recordAppearances(GraphicsContext& graphicsContext) const
 {
   if(mesh)
     graphicsContext.draw(mesh, modelMatrix, surface->surface);
 
-  GraphicalObject::drawAppearances(graphicsContext);
+  GraphicalObject::recordAppearances(graphicsContext);
 }

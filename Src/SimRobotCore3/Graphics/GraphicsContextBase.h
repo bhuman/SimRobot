@@ -17,6 +17,7 @@
 #include "Tools/Math/Pose3f.h"
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stack>
@@ -267,7 +268,7 @@ public:
      * Returns a pointer to the calculated column-major 4x4 model matrix.
      * @return A pointer to the calculated column-major 4x4 model matrix.
      */
-    const float* getPointer() const {return memory.data();}
+    const float* getPointer() const {return memory->data();}
 
     /** Updates the memory for the final product. */
     void updateMemory();
@@ -275,7 +276,78 @@ public:
   private:
     Pose3f constantPart; /**< The constant part of the model matrix. */
     const Pose3f* variablePart = nullptr; /**< An optional (pre-)multiplier that is evaluated each frame. */
-    Matrix4f memory; /**< The memory for the final product. */
+    Matrix4f* memory = nullptr; /**< The memory for the final product (its element of \c modelMatrixArray, set by \c layoutResources). */
+    std::uint32_t index = 0; /**< The index of this matrix in the model matrix array of the graphics API. */
+
+    friend class GraphicsContextBase;
+    friend class ::GraphicsContext;
+  };
+
+  /**
+   * Identifies a draw list: the object whose meshes it contains and which variant of them (e.g. depending on render flags).
+   */
+  struct DrawListKey final
+  {
+    const void* object; /**< The object whose meshes are in the draw list. */
+    unsigned int variant = 0; /**< Distinguishes the draw lists of the same object. */
+
+    bool operator==(const DrawListKey& other) const {return object == other.object && variant == other.variant;}
+
+    /** Hashes keys for unordered containers. */
+    struct Hasher
+    {
+      std::size_t operator()(const DrawListKey& key) const {return std::hash<const void*>()(key.object) * 31u + key.variant;}
+    };
+  };
+
+  /**
+   * Meshes of (a part of) the scene with their model matrices and surfaces, recorded once by drawing them while the
+   * graphics context records (see \c getDrawList). This is how everything that is not a controller drawing gets drawn:
+   * the recording is turned into batches of instances of the same mesh, which the graphics API draws with a few calls and
+   * which can be replayed any number of times (by cameras, views and shadow maps), because the poses of the instances are
+   * not part of the list but come from the model matrices. A list does not contain any state of the render pass (pipeline,
+   * camera, lighting), which is set by \c startRendering before the list is drawn.
+   */
+  struct DrawList final
+  {
+    /** The data that the shaders read for each instance. */
+    struct Instance
+    {
+      std::uint32_t modelMatrix; /**< The index of the model matrix. */
+      std::uint32_t surface; /**< The index of the surface. */
+    };
+
+    /** Instances of the same mesh that are drawn with one call. */
+    struct Batch
+    {
+      const Mesh* mesh; /**< The mesh (one of those that have the same geometry). */
+      std::uint32_t firstInstance; /**< The index of the first instance of the batch in the instances of the pass. */
+      std::uint32_t numOfInstances; /**< The number of instances. */
+      const Texture* texture; /**< The texture of the surfaces of the instances (only if the graphics API needs to draw the textures separately). */
+      bool blend; /**< Whether the surfaces of the instances are transparent. */
+    };
+
+    /** The batches that are drawn by one kind of render pass. */
+    struct Pass
+    {
+      std::vector<Batch> batches; /**< The batches in drawing order. */
+      std::vector<Instance> instances; /**< The instances of the batches. */
+      mutable std::uintptr_t native = 0; /**< The graphics API's handle of this pass, which it creates when it draws the pass the first time (e.g. a buffer with the instances; for Vulkan it would be a secondary command buffer). */
+    };
+
+    Pass color; /**< The pass with colors (opaque instances first, then transparent instances in the order of drawing). */
+    Pass depthOnly; /**< The pass with depths only (the surfaces are not needed, so there are fewer batches). */
+
+  private:
+    /** An appearance as it was drawn. */
+    struct Item
+    {
+      const Mesh* mesh;
+      const ModelMatrix* modelMatrix;
+      const Surface* surface;
+    };
+
+    std::vector<Item> items; /**< The recorded draw calls. */
 
     friend class GraphicsContextBase;
     friend class ::GraphicsContext;
@@ -461,6 +533,32 @@ public:
   ModelMatrix* requestModelMatrix(ModelMatrix::Usage usage);
 
   /**
+   * Returns the draw list of something that is drawn with \c draw. The first time, \c record is called while \c draw
+   * records the calls (without drawing), and the draw list is created from them. It must only be used for things that
+   * always draw the same meshes with the same model matrices and surfaces. Must not be nested.
+   * @param key Identifies the thing that is drawn.
+   * @param record Draws everything that is part of the draw list.
+   * @return The draw list. The graphics context retains ownership of the object.
+   */
+  const DrawList* getDrawList(const DrawListKey& key, const std::function<void()>& record);
+
+  /**
+   * Makes \c draw record a specific surface instead of the one that it is given (until it is called again). Like \c draw,
+   * this is only allowed while a draw list is being recorded (see \c getDrawList).
+   * @param surface The surface to use. \c nullptr makes \c draw use the surface that it is given again.
+   */
+  void setForcedSurface(const Surface* surface);
+
+  /**
+   * Adds a mesh with a given transformation and surface to the draw list that is being recorded (see \c getDrawList).
+   * Meshes can only be drawn by drawing a draw list.
+   * @param mesh The mesh to draw.
+   * @param modelMatrix The model matrix representing the transformation of the mesh.
+   * @param surface The surface to use (ignored if a forced surface has been set).
+   */
+  void draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface);
+
+  /**
    * Recalculates the model matrices that have a reference component.
    * @param usage The usage class that should be updated.
    * @param forceUpdate Whether the model matrices should be updated although the simulation step did not change.
@@ -564,8 +662,11 @@ protected:
 
   static constexpr std::size_t maxShadowMaps = 8; /**< The maximum number of lights with shadow maps (limited by the number of texture units). */
 
-  /** Constructor. Requests the meshes that are used to draw controller drawings. */
-  GraphicsContextBase();
+  /**
+   * Constructor. Requests the meshes that are used to draw controller drawings.
+   * @param batchByTexture Whether instances of the same mesh must not be batched if their surfaces have different textures.
+   */
+  explicit GraphicsContextBase(bool batchByTexture = false);
 
   /** Destructor. Frees all objects that were requested. */
   ~GraphicsContextBase();
@@ -576,6 +677,12 @@ protected:
    * Must be called after all objects have been requested and before the GPU resources are created.
    */
   void layoutResources();
+
+  /**
+   * Creates the batches of a draw list from its recorded draw calls.
+   * @param drawList The draw list.
+   */
+  void buildDrawList(DrawList& drawList) const;
 
   /**
    * A stack of constant \c Pose3f pointers backed by a standard vector.
@@ -630,10 +737,21 @@ protected:
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
   float globalAmbientLight[3] = {0.f}; /**< The color of the global ambient light. */
 
+  // Objects that are used and updated throughout the runtime.
+  std::vector<Matrix4f> modelMatrixArray; /**< The model matrices of all usage classes (indexed by \c ModelMatrix::index), which the graphics API makes available to the shaders. */
+  std::uint64_t modelMatrixGeneration = 0; /**< A number that is increased whenever \c modelMatrixArray changes. */
+  std::unordered_map<DrawListKey, std::unique_ptr<DrawList>, DrawListKey::Hasher> drawLists; /**< The draw lists that were requested so far. */
+
+  // Only valid while a draw list is recorded (see \c getDrawList):
+  DrawList* recordingList = nullptr; /**< The draw list that \c draw records into, while there is one. */
+  const Surface* forcedSurface = nullptr; /**< The surface that \c draw records instead of its argument. */
+
   // State of the current off-screen rendering (between \c startOffscreenRendering and \c finishOffscreenRendering).
   std::vector<OffscreenReadback> offscreenReadbacks; /**< The conversions of the images of the rendering into readback buffers. */
 
 private:
+  const bool batchByTexture; /**< Whether instances of the same mesh must not be batched if their surfaces have different textures (the graphics API can't select the texture per instance). */
+
   // To construct the model matrices:
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */
 };

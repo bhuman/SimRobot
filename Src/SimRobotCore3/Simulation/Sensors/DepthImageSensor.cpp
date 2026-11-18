@@ -272,10 +272,10 @@ bool DepthImageSensor::DistanceSensor::getMinAndMax(float& min, float& max) cons
   return true;
 }
 
-void DepthImageSensor::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void DepthImageSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   if(flags & SimRobotCore3::Renderer::showSensors)
     graphicsContext.draw(pyramidChain, modelMatrix, surface);
 
-  Sensor::drawPhysics(graphicsContext, flags);
+  Sensor::recordPhysics(graphicsContext, flags);
 }

@@ -12,10 +12,15 @@ void GraphicalObject::createGraphics(GraphicsContext& graphicsContext)
     graphicalObject->createGraphics(graphicsContext);
 }
 
-void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext) const
+void GraphicalObject::recordAppearances(GraphicsContext& graphicsContext) const
 {
   for(const GraphicalObject* graphicalObject : graphicalDrawings)
-    graphicalObject->drawAppearances(graphicsContext);
+    graphicalObject->recordAppearances(graphicsContext);
+}
+
+void GraphicalObject::drawAppearances(GraphicsContext& graphicsContext) const
+{
+  graphicsContext.drawList(graphicsContext.getDrawList({this}, [&]{recordAppearances(graphicsContext);}));
 }
 
 void GraphicalObject::addParent(Element& element)

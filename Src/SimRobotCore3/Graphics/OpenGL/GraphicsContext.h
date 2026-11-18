@@ -85,18 +85,10 @@ public:
   void startRendering(const Matrix4f& projection, const Matrix4f& view, int viewportX, int viewportY, int viewportWidth, int viewportHeight, bool lighting = true, bool textures = true, bool smoothShading = true, bool fillPolygons = true);
 
   /**
-   * Forces the following draw calls to use a specific surface.
-   * @param surface The surface to use. \c nullptr makes draw calls use the default surface again.
+   * Draws all the instances of a draw list (see \c getDrawList) with their current model matrices.
+   * @param drawList The draw list.
    */
-  void setForcedSurface(const Surface* surface);
-
-  /**
-   * Draws a mesh with a given transformation and surface.
-   * @param mesh The mesh to draw.
-   * @param modelMatrix The model matrix representing the transformation of the mesh.
-   * @param surface The surface to use (ignored if a forced surface has been set).
-   */
-  void draw(const Mesh* mesh, const ModelMatrix* modelMatrix, const Surface* surface);
+  void drawList(const DrawList* drawList);
 
   /** Must be called as counterpart to \c startRendering. */
   void finishRendering();
@@ -181,8 +173,7 @@ private:
     GLuint program; /**< The program object. */
     GLint cameraPVLocation = -1; /**< The location of the cameraPV uniform in the program. */
     GLint cameraPosLocation = -1; /**< The location of the cameraPos uniform in the program. */
-    GLint modelMatrixLocation = -1; /**< The location of the modelMatrix uniform in the program. */
-    GLint surfaceIndexLocation = -1; /**< The location of the surfaceIndex uniform in the program. */
+    GLint baseInstanceLocation = -1; /**< The location of the baseInstance uniform in the program. */
     std::vector<GLint> lightPVLocation; /**< The locations of the lightPV uniforms (per shadow map) in the program (the shadow map of a light is used iff its lightPV is). */
   };
 
@@ -264,6 +255,10 @@ private:
     std::shared_ptr<std::unordered_map<std::uint64_t, DrawingTexture>> drawingTextureCache; /**< The textures of the images of controller drawings by their ids (shared between contexts within a share group). */
     std::vector<GLuint> drawingTextures; /**< The textures of the images of the controller drawings of the current frame (in the order of \c DrawingList). */
 
+    GLuint modelMatrixSSBO = 0; /**< The buffer with all model matrices, which is filled again when they changed. This exists per context. */
+    std::uint64_t uploadedModelMatrixGeneration = 0; /**< The value of \c modelMatrixGeneration that \c modelMatrixSSBO was filled for. */
+    GLuint boundInstanceSSBO = 0; /**< The buffer with instances that is currently bound in this context. */
+    std::uint32_t uniformBaseInstance = 0; /**< The current value of the baseInstance uniform of the shader in this context. */
     bool blendEnabled = false; /**< The current blend state in this context. */
     GLuint boundTexture = 0; /**< The texture currently bound to texture unit 0 in this context. */
     GLuint boundVAO = 0; /**< The currently bound VAO in this context. */
@@ -273,10 +268,22 @@ private:
   };
 
   /**
-   * Sets uniforms for a surface.
-   * @param surface The surface to set.
+   * Binds the model matrices to the shader storage buffer binding that the shaders read them from
+   * (the buffer is filled again if they changed).
    */
-  void setSurface(const Surface* surface);
+  void bindModelMatrices();
+
+  /**
+   * Binds a buffer with instances to the shader storage buffer binding that the shaders read them from.
+   * @param buffer The buffer.
+   */
+  void bindInstances(GLuint buffer);
+
+  /**
+   * Sets the base instance of the following draw calls.
+   * @param baseInstance The index of the first instance.
+   */
+  void setBaseInstance(std::uint32_t baseInstance);
 
   /**
    * Compile a shader program from the sources of its stages.
@@ -385,7 +392,6 @@ private:
 
   // Only valid between \c startRendering and \c finishRendering:
   Shader* shader = nullptr; /**< The currently selected shader. */
-  const Surface* forcedSurface = nullptr; /**< The surface which overrides \c draw's argument. */
 
   // Offscreen rendering:
   QOpenGLContext* offscreenContext = nullptr; /**< The OpenGL context used for offscreen rendering. */

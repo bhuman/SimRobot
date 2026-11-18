@@ -159,24 +159,24 @@ void Body::updateTransformation()
     child->updateTransformation();
 }
 
-void Body::drawAppearances(GraphicsContext& graphicsContext) const
+void Body::recordAppearances(GraphicsContext& graphicsContext) const
 {
-  GraphicalObject::drawAppearances(graphicsContext);
+  GraphicalObject::recordAppearances(graphicsContext);
   for(const Body* child : bodyChildren)
-    child->drawAppearances(graphicsContext);
+    child->recordAppearances(graphicsContext);
 }
 
-void Body::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Body::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   // draw center of mass
   if(flags & SimRobotCore3::Renderer::showPhysics)
     graphicsContext.draw(Simulation::simulation->bodyComSphereMesh, comModelMatrix, Simulation::simulation->bodyComSphereSurface);
 
   // draw children
-  ::PhysicalObject::drawPhysics(graphicsContext, flags);
+  ::PhysicalObject::recordPhysics(graphicsContext, flags);
 
   for(const Body* child : bodyChildren)
-    child->drawPhysics(graphicsContext, flags);
+    child->recordPhysics(graphicsContext, flags);
 }
 
 void Body::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

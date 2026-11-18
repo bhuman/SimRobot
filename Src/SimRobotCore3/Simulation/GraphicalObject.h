@@ -29,10 +29,19 @@ public:
   virtual void createGraphics(GraphicsContext& graphicsContext);
 
   /**
-   * Submits draw calls for appearance primitives of the object (including children) in the given graphics context
+   * Records draw calls for the appearance primitives of the object (including children) in the draw list that the graphics
+   * context is currently recording (see \c GraphicsContextBase::getDrawList).
+   * @param graphicsContext The graphics context to record the draw calls in
+   */
+  virtual void recordAppearances(GraphicsContext& graphicsContext) const;
+
+  /**
+   * Draws the appearances of the object (including children) through a draw list of the graphics context, which is
+   * recorded by \c recordAppearances the first time and then drawn with fewer draw calls. Must only be used after the
+   * scene has been created and if the appearances of this object do not change.
    * @param graphicsContext The graphics context to draw the object to
    */
-  virtual void drawAppearances(GraphicsContext& graphicsContext) const;
+  void drawAppearances(GraphicsContext& graphicsContext) const;
 
   GraphicsContext::ModelMatrix* modelMatrix = nullptr; /**< The model matrix of this graphical object (if it has something to draw) */
 

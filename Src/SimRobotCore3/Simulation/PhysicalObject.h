@@ -39,11 +39,21 @@ public:
   virtual void createPhysics(GraphicsContext& graphicsContext);
 
   /**
-   * Submits draw calls for physical primitives of the object (including children) in the given graphics context
+   * Records draw calls for the physical primitives of the object (including children) in the draw list that the graphics
+   * context is currently recording (see \c GraphicsContextBase::getDrawList).
+   * @param graphicsContext The graphics context to record the draw calls in
+   * @param flags Flags to enable or disable certain features
+   */
+  virtual void recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
+
+  /**
+   * Draws the physical primitives of the object (including children) through a draw list of the graphics context, which
+   * is recorded by \c recordPhysics the first time (for each combination of flags) and then drawn with fewer draw calls.
+   * Must only be used after the scene has been created.
    * @param graphicsContext The graphics context to draw the object to
    * @param flags Flags to enable or disable certain features
    */
-  virtual void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
 
   /**
    * Adds the drawings that controllers attached to this physical object (and its children) to a list

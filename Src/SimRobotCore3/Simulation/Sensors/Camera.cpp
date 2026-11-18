@@ -58,10 +58,10 @@ void Camera::CameraSensor::drawScene(GraphicsContext& graphicsContext) const
   Simulation::simulation->scene->drawAppearances(graphicsContext);
 }
 
-void Camera::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Camera::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
 {
   if(flags & SimRobotCore3::Renderer::showSensors)
     graphicsContext.draw(pyramid, modelMatrix, surface);
 
-  Sensor::drawPhysics(graphicsContext, flags);
+  Sensor::recordPhysics(graphicsContext, flags);
 }
