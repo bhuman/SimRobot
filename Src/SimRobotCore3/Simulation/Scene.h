@@ -16,7 +16,7 @@
 #include <unordered_map>
 
 class Body;
-class Light;
+class Environment;
 
 /**
  * @class Scene
@@ -27,21 +27,13 @@ class Scene : public PhysicalObject, public GraphicalObject, public SimRobotCore
 public:
 
   std::string controller; /**< The name of the controller library. */
-  float color[4]; /**< The background (clear color). */
   float stepLength; /**< The length of a simulation step. */
   float gravity; /**< The gravity in the simulated world. */
   bool detectBodyCollisions = true; /**< Whether to detect collision between different bodies. */
 
   std::list<Body*> bodies; /**< List of bodies without a parent body */
   std::list<Actuator::Port*> actuators; /**< List of actuators that need to do something in every simulation step */
-  std::list<Light*> lights; /**< List of scene lights */
-
-  /** Default constructor */
-  Scene()
-  {
-    color[0] = color[1] = color[2] = 0.f;
-    color[3] = 1.f;
-  }
+  Environment* environment = nullptr; /**< The environment of the scene (its background, ambient light and lights) or \c nullptr if there is none */
 
   /** Updates the transformation of movable objects */
   void updateTransformations();

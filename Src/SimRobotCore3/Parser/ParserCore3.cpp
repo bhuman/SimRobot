@@ -5,6 +5,7 @@
  */
 
 #include "ParserCore3.h"
+#include "Graphics/Environment.h"
 #include "Graphics/Light.h"
 #include "Platform/Assert.h"
 #include "Simulation/Actuators/Hinge.h"
@@ -37,6 +38,8 @@
 #include "Simulation/Sensors/ObjectSegmentedImageSensor.h"
 #include "Simulation/Sensors/SingleDistanceSensor.h"
 #include "Simulation/Simulation.h"
+#include <algorithm>
+#include <iterator>
 #include "Simulation/UserInput.h"
 
 ParserCore3::ParserCore3()
@@ -56,7 +59,9 @@ ParserCore3::ParserCore3()
       0, 0, 0, {}},
 
     {"Scene", sceneClass, std::bind(&ParserCore3::sceneElement, this), nullptr, 0,
-      0, 0, setClass | bodyClass | compoundClass | lightClass | userInputClass, {}},
+      0, environmentClass, setClass | bodyClass | compoundClass | userInputClass, {}},
+    {"Environment", environmentClass, std::bind(&ParserCore3::environmentElement, this), nullptr, 0,
+      0, 0, lightClass, {}},
     {"DirLight", lightClass, std::bind(&ParserCore3::dirLightElement, this), nullptr, 0,
       0, shadowMapClass, 0, {}},
     {"PointLight", lightClass, std::bind(&ParserCore3::pointLightElement, this), nullptr, 0,
@@ -193,12 +198,36 @@ Element* ParserCore3::setElement()
   return nullptr;
 }
 
+Element* ParserCore3::environmentElement()
+{
+  ASSERT(Simulation::simulation->scene);
+  Environment* environment = new Environment();
+  getColor("color", false, environment->color, true);
+  // The ambient light from below is the same as the one from above unless it is specified.
+  const bool hasAmbient = getColor("ambient", false, environment->ambient, false);
+  if(!getColor("ambientGround", false, environment->ambientGround, false) && hasAmbient)
+    std::copy(std::begin(environment->ambient), std::end(environment->ambient), environment->ambientGround);
+  const float ambientIntensity = getFloatPositive("ambientIntensity", false, 1.f);
+  for(int i = 0; i < 3; ++i)
+  {
+    environment->ambient[i] *= ambientIntensity;
+    environment->ambientGround[i] *= ambientIntensity;
+  }
+  environment->exposure = getFloatPositive("exposure", false, environment->exposure);
+  const std::string& toneMapping = getString("toneMapping", false);
+  if(toneMapping == "filmic")
+    environment->filmicToneMapping = true;
+  else if(!toneMapping.empty() && toneMapping != "reinhard")
+    handleError("Unknown tone mapping", attributes->find("toneMapping")->second.valueLocation);
+  Simulation::simulation->scene->environment = environment;
+  return environment;
+}
+
 Element* ParserCore3::sceneElement()
 {
   Scene* scene = new Scene();
   scene->name = getString("name", false);
   scene->controller = getString("controller", false);
-  getColor("color", false, scene->color, true);
   scene->stepLength = getTimeNonZeroPositive("stepLength", false, 0.01f);
   scene->gravity = getAcceleration("gravity", false, -9.80665f, false);
   scene->detectBodyCollisions = getBool("bodyCollisions", false, true);
@@ -757,6 +786,7 @@ Element* ParserCore3::surfaceElement()
   surface->metallic = getFloatMinMax("metallic", false, surface->metallic, 0.f, 1.f);
   surface->roughness = getFloatMinMax("roughness", false, surface->roughness, 0.f, 1.f);
   surface->ambient = getFloatMinMax("ambient", false, surface->ambient, 0.f, 1.f);
+  surface->textureVariation = getFloatMinMax("textureVariation", false, surface->textureVariation, 0.f, 1.f);
   surface->texturePath = getString("texture", false);
   return surface;
 }

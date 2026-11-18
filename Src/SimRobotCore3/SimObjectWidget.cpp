@@ -43,10 +43,9 @@ SimObjectWidget::SimObjectWidget(SimObject& simObject) :
   setApi(QRhiWidget::Api::Metal);
   // The render target is created in \c initialize, because the graphics context expects a D32F depth attachment.
   setAutoRenderTarget(false);
-  backgroundColor = QColor(static_cast<int>(Simulation::simulation->scene->color[0] * 255.f + 0.5f),
-                           static_cast<int>(Simulation::simulation->scene->color[1] * 255.f + 0.5f),
-                           static_cast<int>(Simulation::simulation->scene->color[2] * 255.f + 0.5f),
-                           static_cast<int>(Simulation::simulation->scene->color[3] * 255.f + 0.5f));
+  const float* clearColor = Simulation::simulation->graphicsContext.getClearColor();
+  backgroundColor = QColor(static_cast<int>(clearColor[0] * 255.f + 0.5f), static_cast<int>(clearColor[1] * 255.f + 0.5f),
+                           static_cast<int>(clearColor[2] * 255.f + 0.5f), static_cast<int>(clearColor[3] * 255.f + 0.5f));
 #else
 #error "No graphics API selected."
 #endif
@@ -673,7 +672,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
     f->glViewport(previousViewport[0], previousViewport[1], previousViewport[2], previousViewport[3]);
 
     // Restore the clear color from the scene file
-    const float* color = Simulation::simulation->scene->color;
+    const float* color = Simulation::simulation->graphicsContext.getClearColor();
     f->glClearColor(color[0], color[1], color[2], color[3]);
 
     doneCurrent();
