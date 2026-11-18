@@ -6,6 +6,7 @@
 
 #include "Scene.h"
 #include "CoreModule.h"
+#include "Graphics/Environment.h"
 #include "Platform/Assert.h"
 #include "Simulation/Actuators/Actuator.h"
 #include "Simulation/Body.h"
@@ -33,12 +34,11 @@ void Scene::createGraphics(GraphicsContext& graphicsContext)
   ASSERT(!::PhysicalObject::modelMatrix);
   ::PhysicalObject::modelMatrix = graphicsContext.requestModelMatrix(GraphicsContext::ModelMatrix::controllerDrawing);
 
-  graphicsContext.setClearColor(Simulation::simulation->scene->color);
-
-  const float color[3] = {0.4f, 0.4f, 0.4f};
-  graphicsContext.setGlobalAmbientLight(color);
-  for(Light* light : lights)
-    graphicsContext.addLight(light);
+  // A scene without an environment has one with the default values (a black background and a dark gray ambient light).
+  // Elements register themselves in the simulation, which owns them, so the object cannot be a temporary one.
+  if(!environment)
+    environment = new Environment();
+  graphicsContext.setEnvironment(*environment);
 
   for(Body* body : bodies)
     body->createGraphics(graphicsContext);

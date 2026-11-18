@@ -26,6 +26,7 @@
 #include <vector>
 
 class GraphicsContext;
+class Environment;
 class Light;
 
 class GraphicsContextBase
@@ -206,6 +207,7 @@ public:
     float roughness = 0.5f; /**< The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering). */
     float ambient = 1.f; /**< The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting). */
     const Texture* texture = nullptr; /**< The texture of the surface. */
+    float textureVariation = 0.f; /**< How much the repetition of the texture is hidden, from 0 (not at all) to 1 (as much as possible). */
 
     std::size_t index = 0; /**< The index of this surface in the surface array of the graphics API. */
 
@@ -491,10 +493,17 @@ public:
   };
 
   /**
-   * Set the color that the color buffer is cleared to.
-   * @param color Pointer to a four-element (RGBA) color.
+   * Sets the environment of the scene: the color that the color buffer is cleared to, the ambient light, how the colors of
+   * lit surfaces are converted to displayable colors and the lights.
+   * @param environment The environment.
    */
-  void setClearColor(const float* color);
+  void setEnvironment(const Environment& environment);
+
+  /**
+   * Returns the color that the color buffer is cleared to (which is the background of views).
+   * @return Pointer to a four-element (RGBA) color.
+   */
+  const float* getClearColor() const {return clearColor;}
 
   /**
    * Requests a vertex buffer that is filled by the client.
@@ -540,9 +549,10 @@ public:
    * @param roughness The roughness of the surface, from 0 (perfect mirror) to 1 (maximum scattering).
    * @param ambient The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting).
    * @param texture The texture of the surface. May be \c nullptr.
+   * @param textureVariation How much the repetition of the texture is hidden, from 0 (not at all) to 1 (as much as possible). Has no effect without a texture.
    * @return The new surface. The graphics context retains ownership of the object.
    */
-  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr);
+  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr, float textureVariation = 0.f);
 
   /**
    * Requests a buffer into which images of off-screen renderings are converted.
@@ -562,18 +572,6 @@ public:
    * @param y The lower edge of the part in the render target (as the viewport in \c startRendering).
    */
   void readOffscreenImage(const ReadbackBuffer& buffer, int y);
-
-  /**
-   * Sets the color of the global ambient light.
-   * @param color Pointer to a three-element (RGB) color.
-   */
-  void setGlobalAmbientLight(const float* color);
-
-  /**
-   * Adds a light to the scene.
-   * @param light The light element.
-   */
-  void addLight(const Light* light);
 
   /**
    * Requests a model matrix that represents the state of the top of the current model matrix stack.
@@ -799,12 +797,21 @@ protected:
   std::vector<LightData> lights; /**< The lights of the scene. */
   std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
-  float globalAmbientLight[3] = {0.f}; /**< The color of the global ambient light. */
+  float globalAmbientLight[3] = {0.f}; /**< The color of the global ambient light that comes from above. */
+  float globalAmbientLightGround[3] = {0.f}; /**< The color of the global ambient light that comes from below. */
+  float exposure = 1.f; /**< The factor that the brightness of lit surfaces is multiplied with before tone mapping. */
+  bool filmicToneMapping = false; /**< Whether a filmic curve is used for tone mapping instead of the curve of Reinhard. */
 
   // State of the current off-screen rendering (between \c startOffscreenRendering and \c finishOffscreenRendering).
   std::vector<OffscreenReadback> offscreenReadbacks; /**< The conversions of the images of the rendering into readback buffers. */
 
 private:
+  /**
+   * Adds a light to the scene.
+   * @param light The light element.
+   */
+  void addLight(const Light* light);
+
   // To construct the model matrices:
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */
 };

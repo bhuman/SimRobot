@@ -75,6 +75,7 @@ struct Surface
   float metallic;
   float roughness;
   float ambient;
+  float textureVariation;
   metal::texture2d<float> texture;
 };
 
@@ -150,8 +151,11 @@ float3 calcBrdf(float3 lightDir, float3 normal, float3 viewDir, float3 albedo, f
 }
 
 #ifdef WITH_SHADOWS
+// The offsets (in texels) of the lookups into the shadow map: a spiral that covers a disk with a radius of 1.5 texels.
+constant float2 shadowFilter[12] = {float2(0.30619, 0.00000), float2(-0.39105, 0.35823), float2(0.05986, -0.68203), float2(0.49289, 0.64289), float2(-0.90452, -0.16000), float2(0.85684, -0.54505), float2(-0.28660, 1.06612), float2(-0.54657, -1.05238), float2(1.18584, 0.43307), float2(-1.23366, 0.50924), float2(0.59471, -1.27086), float2(0.43947, 1.40111)};
+
 // Returns the fraction of the fragment that is lit. The shadow map is sampled with hardware percentage closer filtering
-// (a bilinear comparison) at four positions that together cover 3x3 texels. This is a port of the GLSL function, but
+// (a bilinear comparison) at twelve positions that together cover about 5x5 texels. This is a port of the GLSL function, but
 // the depth range of Metal's clip space (and thereby of the matrix) is already from 0 to 1.
 float illumination(metal::depth2d<float> shadowMap, metal::float4x4 lightPV, float3 positionInWorld, float3 lightDir, float3 normal)
 {
@@ -180,12 +184,9 @@ float illumination(metal::depth2d<float> shadowMap, metal::float4x4 lightPV, flo
   float2 texel = 1.0 / size;
   float reference = coordinates.z - 0.0005;
   float visibility = 0.0;
-  for(int x = -1; x <= 1; x += 2)
-  {
-    for(int y = -1; y <= 1; y += 2)
-      visibility += shadowMap.sample_compare(shadowSampler, position + 0.5 * float2(x, y) * texel, reference, metal::level(0));
-  }
-  return 0.25 * visibility;
+  for(int i = 0; i < 12; ++i)
+    visibility += shadowMap.sample_compare(shadowSampler, position + shadowFilter[i] * texel, reference, metal::level(0));
+  return visibility / 12.0;
 }
 #endif
 
@@ -249,6 +250,21 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
   if(!metal::is_null_texture(surface.texture))
   {
     float4 modulation = surface.texture.sample(textureSampler, in.textureCoordinates);
+    if(surface.textureVariation > 0.0)
+    {
+      // Hides the repetition of the texture: A second layer of the texture with another scale and orientation is added (with the
+      // mean color subtracted, so that the contrast stays the same), and large patches are slightly brighter or darker.
+      float3 mean = surface.texture.sample(textureSampler, in.textureCoordinates, metal::level(16)).rgb;
+      float3 second = surface.texture.sample(textureSampler, metal::float2x2(0.5657, 0.4243, -0.4243, 0.5657) * in.textureCoordinates + float2(0.37, 0.19)).rgb;
+      float3 layers = mean + (modulation.rgb + second - 2.0 * mean) * 0.7071;
+      float2 cell = in.textureCoordinates * 0.11;
+      float2 f = metal::fract(cell);
+      f = f * f * (3.0 - 2.0 * f);
+      float2 i = metal::floor(cell);
+      float4 h = metal::fract(metal::sin(float4(metal::dot(i, float2(12.9898, 78.233)), metal::dot(i + float2(1.0, 0.0), float2(12.9898, 78.233)), metal::dot(i + float2(0.0, 1.0), float2(12.9898, 78.233)), metal::dot(i + float2(1.0, 1.0), float2(12.9898, 78.233)))) * 43758.5453);
+      float macro = metal::mix(metal::mix(h.x, h.y, f.x), metal::mix(h.z, h.w, f.x), f.y);
+      modulation.rgb = metal::max(layers * (1.0 + 0.35 * surface.textureVariation * (macro - 0.5)), 0.0);
+    }
     albedo = albedo * modulation.rgb;
     color.a = color.a * modulation.a;
   }
@@ -259,9 +275,14 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
 
   float3 Lo = float3(0.0);
   CALCULATE_LIGHTS
-  float3 ambient = GLOBAL_AMBIENT_LIGHT * albedo * surface.ambient;
-  color.rgb = ambient + Lo;
+  // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
+  float3 ambient = metal::mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z) * albedo * surface.ambient;
+  color.rgb = (ambient + Lo) * EXPOSURE;
+#ifdef FILMIC_TONE_MAPPING
+  color.rgb = metal::clamp((color.rgb * (2.51 * color.rgb + 0.03)) / (color.rgb * (2.43 * color.rgb + 0.59) + 0.14), 0.0, 1.0); // ACES approximation
+#else
   color.rgb = color.rgb / (color.rgb + float3(1.0)); // Reinhard tone mapping
+#endif
   color.rgb = metal::pow(color.rgb, float3(1.0 / 2.2)); // convert from linear to sRGB
 #else
   color = surface.albedoAlpha;
@@ -637,6 +658,7 @@ void GraphicsContext::createDeviceResources()
     static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
     std::uint8_t* memory = static_cast<std::uint8_t*>(surfaceBuffer->contents()) + surface->index * surfaceMemorySize;
     std::memcpy(memory, &surface->albedo, verbatimPart);
+    std::memcpy(memory + verbatimPart, &surface->textureVariation, sizeof(surface->textureVariation));
     if(surface->texture)
     {
       const MTL::ResourceID resourceID = mtlTextures[surface->texture->index]->gpuResourceID();
@@ -736,6 +758,10 @@ void GraphicsContext::createDeviceResources()
   for(std::size_t i = 0; i < numOfColorShaders; ++i)
   {
     std::string sourceCode = "#define GLOBAL_AMBIENT_LIGHT " + toMSL(globalAmbientLight) + "\n";
+    sourceCode += "#define GLOBAL_AMBIENT_LIGHT_GROUND " + toMSL(globalAmbientLightGround) + "\n";
+    sourceCode += "#define EXPOSURE " + std::to_string(exposure) + "\n";
+    if(filmicToneMapping)
+      sourceCode += "#define FILMIC_TONE_MAPPING\n";
     if(i & 4)
     {
       sourceCode += "#define WITH_LIGHTING\n";

@@ -117,7 +117,7 @@ struct Surface
   float metallic;
   float roughness;
   float ambient;
-  bool hasTexture;
+  float textureVariation; // negative if the surface has no texture
 };
 
 in vec3 FragPosInWorld;
@@ -185,8 +185,11 @@ vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo,
   return kD * albedo / PI + specular;
 }
 
+// The offsets (in texels) of the lookups into the shadow map: a spiral that covers a disk with a radius of 1.5 texels.
+const vec2 shadowFilter[12] = vec2[12](vec2(0.30619, 0.00000), vec2(-0.39105, 0.35823), vec2(0.05986, -0.68203), vec2(0.49289, 0.64289), vec2(-0.90452, -0.16000), vec2(0.85684, -0.54505), vec2(-0.28660, 1.06612), vec2(-0.54657, -1.05238), vec2(1.18584, 0.43307), vec2(-1.23366, 0.50924), vec2(0.59471, -1.27086), vec2(0.43947, 1.40111));
+
 // Returns the fraction of the fragment that is lit. The shadow map is sampled with hardware percentage closer filtering
-// (a bilinear comparison) at four positions that together cover 3x3 texels.
+// (a bilinear comparison) at twelve positions that together cover about 5x5 texels.
 float illumination(in sampler2DShadow shadowMap, in mat4 lightPV, in vec3 lightDir, in vec3 normal)
 {
   float cosTheta = dot(normal, lightDir);
@@ -214,12 +217,9 @@ float illumination(in sampler2DShadow shadowMap, in mat4 lightPV, in vec3 lightD
   float reference = coordinates.z - 0.0005;
   float visibility = 0.0;
   // The explicit level of detail is required because this code is not executed uniformly.
-  for (int x = -1; x <= 1; x += 2)
-  {
-    for (int y = -1; y <= 1; y += 2)
-      visibility += textureLod(shadowMap, vec3(coordinates.xy + 0.5 * vec2(x, y) * texel, reference), 0.0);
-  }
-  return 0.25 * visibility;
+  for (int i = 0; i < 12; ++i)
+    visibility += textureLod(shadowMap, vec3(coordinates.xy + shadowFilter[i] * texel, reference), 0.0);
+  return visibility / 12.0;
 }
 
 vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
@@ -272,9 +272,24 @@ void main()
   vec3 albedo = surfaces[surfaceIndex].albedo;
   color.a = surfaces[surfaceIndex].alpha;
 #ifdef WITH_TEXTURES
-  if (surfaces[surfaceIndex].hasTexture)
+  if (surfaces[surfaceIndex].textureVariation >= 0.0)
   {
     vec4 modulation = texture(albedoTexture, TexCoords);
+    if (surfaces[surfaceIndex].textureVariation > 0.0)
+    {
+      // Hides the repetition of the texture: A second layer of the texture with another scale and orientation is added (with the
+      // mean color subtracted, so that the contrast stays the same), and large patches are slightly brighter or darker.
+      vec3 mean = textureLod(albedoTexture, TexCoords, 16.0).rgb;
+      vec3 second = texture(albedoTexture, mat2(0.5657, 0.4243, -0.4243, 0.5657) * TexCoords + vec2(0.37, 0.19)).rgb;
+      vec3 layers = mean + (modulation.rgb + second - 2.0 * mean) * 0.7071;
+      vec2 cell = TexCoords * 0.11;
+      vec2 f = fract(cell);
+      f = f * f * (3.0 - 2.0 * f);
+      vec2 i = floor(cell);
+      vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + vec2(1.0, 1.0), vec2(12.9898, 78.233)))) * 43758.5453);
+      float macro = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y);
+      modulation.rgb = max(layers * (1.0 + 0.35 * surfaces[surfaceIndex].textureVariation * (macro - 0.5)), 0.0);
+    }
     albedo = albedo * modulation.rgb;
     color.a = color.a * modulation.a;
   }
@@ -285,14 +300,19 @@ void main()
 
   vec3 Lo = vec3(0.0);
   CALCULATE_LIGHTS
-  vec3 ambient = GLOBAL_AMBIENT_LIGHT * albedo * surfaces[surfaceIndex].ambient;
-  color.rgb = ambient + Lo;
+  // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
+  vec3 ambient = mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z) * albedo * surfaces[surfaceIndex].ambient;
+  color.rgb = (ambient + Lo) * EXPOSURE;
+#ifdef FILMIC_TONE_MAPPING
+  color.rgb = clamp((color.rgb * (2.51 * color.rgb + 0.03)) / (color.rgb * (2.43 * color.rgb + 0.59) + 0.14), 0.0, 1.0); // ACES approximation
+#else
   color.rgb = color.rgb / (color.rgb + vec3(1.0)); // Reinhard tone mapping
+#endif
   color.rgb = pow(color.rgb, vec3(1.0 / 2.2)); // convert from linear to sRGB
 #else
   color = vec4(surfaces[surfaceIndex].albedo, surfaces[surfaceIndex].alpha);
 #ifdef WITH_TEXTURES
-  if (surfaces[surfaceIndex].hasTexture)
+  if (surfaces[surfaceIndex].textureVariation >= 0.0)
     color = color * texture(albedoTexture, TexCoords);
 #endif
 #endif
@@ -631,7 +651,7 @@ void GraphicsContext::createGraphics()
       static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
       unsigned char* const buf = memory.data() + i * surfaceMemorySize;
       std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
-      *reinterpret_cast<unsigned int*>(buf + verbatimPart) = surfaces[i]->texture != nullptr;
+      *reinterpret_cast<float*>(buf + verbatimPart) = surfaces[i]->texture ? surfaces[i]->textureVariation : -1.f;
     }
     f->glCreateBuffers(1, &data.surfaceUBO);
     f->glNamedBufferStorage(data.surfaceUBO, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
@@ -1400,7 +1420,9 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   else
     defines += "#define NORMAL_QUALIFIER flat\n";
 
-  const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT vec3(" + std::to_string(globalAmbientLight[0]) + ", " + std::to_string(globalAmbientLight[1]) + ", " + std::to_string(globalAmbientLight[2]) + ")\n";
+  const std::string globalAmbientLightCode = "#define GLOBAL_AMBIENT_LIGHT vec3(" + std::to_string(globalAmbientLight[0]) + ", " + std::to_string(globalAmbientLight[1]) + ", " + std::to_string(globalAmbientLight[2]) + ")\n" +
+                                             "#define GLOBAL_AMBIENT_LIGHT_GROUND vec3(" + std::to_string(globalAmbientLightGround[0]) + ", " + std::to_string(globalAmbientLightGround[1]) + ", " + std::to_string(globalAmbientLightGround[2]) + ")\n" +
+                                             "#define EXPOSURE " + std::to_string(exposure) + "\n" + (filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "");
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
     lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; layout(binding = " + std::to_string(i + 1) + ") uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";

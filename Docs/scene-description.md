@@ -60,6 +60,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     bodyClass                  = Body;
     compoundClass              = Compound;
     deflectionClass            = Deflection;
+    environmentClass           = Environment;
     extSensorClass             = Camera
                                | DepthImageSensor
                                | ObjectSegmentedImageSensor
@@ -303,9 +304,15 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     Rotation                   = "<Rotation>" "</Rotation>"
                                | "<Rotation/>";
     
+    Environment                = "<Environment>"
+                                 ?( {lightClass} )?
+                                 "</Environment>"
+                               | "<Environment/>";
+
     Scene                      = "<Scene>"
-                                 ?( {setClass | bodyClass | compoundClass
-                                    | lightClass | userInputClass} )?
+                                 ?( [environmentClass]
+                                    {setClass | bodyClass | compoundClass
+                                    | userInputClass} )?
                                  "</Scene>"
                                | "<Scene/>";
     
@@ -640,6 +647,32 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Range**: String
 
 
+### environmentClass
+
+  - `Environment`: Sets the background color, the ambient light and the tone mapping of the scene, and contains lights. It is a child of the `Scene`. Since it can have a `name` and be used with `ref` like other elements, an environment with its lights can be defined once and shared by scenes.
+      - `color`: The RGBA background color of the scene, see [this section](#color-specification).
+          - **Default**: #000000ff
+          - **Use**: optional
+      - `ambient`: The RGB color of the ambient light that comes from above, see [this section](#color-specification). The light that every surface receives from all directions, in addition to the lights of the scene.
+          - **Default**: rgb(40%, 40%, 40%)
+          - **Use**: optional
+      - `ambientGround`: The RGB color of the ambient light that comes from below (e.g. light that is reflected by the ground). The ambient light of a surface is interpolated between this and `ambient` by the direction of its normal.
+          - **Default**: the value of `ambient`
+          - **Use**: optional
+      - `ambientIntensity`: A factor for `ambient` and `ambientGround` .
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `exposure`: A factor that the brightness of lit surfaces is multiplied with before tone mapping.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `toneMapping`: How the brightness of lit surfaces is mapped to displayable colors: `reinhard` (the default) or `filmic` (an S-shaped curve with more contrast).
+          - **Default**: reinhard
+          - **Use**: optional
+          - **Range**: reinhard, filmic
+
+
 ### lightClass
 
   - `DirLight`: Specifies a directional light source.
@@ -968,9 +1001,6 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `controller`: The name of the controller library (without platform-specific prefixes/suffixes such as *lib*, *.so*, *.dylib*, *.dll*).
           - **Use**: optional
           - **Range**: String
-      - `color`: The RGBA background color of the scene, see [this section](#color-specification).
-          - **Default**: #000000ff
-          - **Use**: optional
       - `stepLength`: The duration of each simulation step.
           - **Units**: s
           - **Default**: 0.01s
@@ -1067,6 +1097,10 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `texture`: The path to a texture that modulates the albedo / alpha values.
           - **Use**: optional
           - **Range**: String
+      - `textureVariation`: How much the repetition of the texture is hidden, from 0 (the texture repeats as it is) to 1. A second layer of the texture with another scale and orientation is blended in, and large patches of the surface become slightly brighter or darker. This is meant for textures of natural materials like turf; it costs one more texture lookup per pixel.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, 1]
 
 
 ### texCoordsClass

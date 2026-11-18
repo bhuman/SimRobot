@@ -26,7 +26,7 @@ void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
     texture = graphicsContext.requestTexture(texturePath);
   }
 
-  surface = graphicsContext.requestSurface(albedo, alpha, metallic, roughness, ambient, texture);
+  surface = graphicsContext.requestSurface(albedo, alpha, metallic, roughness, ambient, texture, textureVariation);
 }
 
 void Appearance::createGraphics(GraphicsContext& graphicsContext)

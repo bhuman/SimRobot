@@ -49,11 +49,13 @@ private:
     lightClass          = (1 << 21),
     userInputClass      = (1 << 22),
     shadowMapClass      = (1 << 23),
+    environmentClass    = (1 << 24),
   };
 
   bool getColor(const char* key, bool required, float* colors, bool withAlpha);
 
   Element* sceneElement();
+  Element* environmentElement();
   Element* setElement();
   Element* compoundElement();
   Element* bodyElement();

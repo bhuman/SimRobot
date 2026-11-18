@@ -8,6 +8,7 @@
  */
 
 #include "GraphicsContextBase.h"
+#include "Graphics/Environment.h"
 #include "Graphics/Light.h"
 #include "Graphics/LightSpace.h"
 #include "Graphics/Primitives.h"
@@ -189,9 +190,15 @@ void GraphicsContextBase::layoutResources()
   ++modelMatrixGeneration;
 }
 
-void GraphicsContextBase::setClearColor(const float* color)
+void GraphicsContextBase::setEnvironment(const Environment& environment)
 {
-  std::memcpy(clearColor, color, sizeof(clearColor));
+  std::memcpy(clearColor, environment.color, sizeof(clearColor));
+  std::memcpy(globalAmbientLight, environment.ambient, sizeof(globalAmbientLight));
+  std::memcpy(globalAmbientLightGround, environment.ambientGround, sizeof(globalAmbientLightGround));
+  exposure = environment.exposure;
+  filmicToneMapping = environment.filmicToneMapping;
+  for(const Light* light : environment.lights)
+    addLight(light);
 }
 
 GraphicsContextBase::IndexBuffer* GraphicsContextBase::requestIndexBuffer()
@@ -237,7 +244,7 @@ GraphicsContextBase::Texture* GraphicsContextBase::requestTexture(const std::str
   return texture;
 }
 
-GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture)
+GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture, float textureVariation)
 {
   auto* surface = new Surface;
   std::memcpy(surface->albedo, albedo, sizeof(surface->albedo));
@@ -246,6 +253,7 @@ GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* a
   surface->roughness = roughness;
   surface->ambient = ambient;
   surface->texture = texture;
+  surface->textureVariation = textureVariation;
   surfaces.push_back(surface);
   return surface;
 }
@@ -276,11 +284,6 @@ void GraphicsContextBase::readOffscreenImage(const ReadbackBuffer& buffer, int y
   OffscreenReadback& readback = offscreenReadbacks.emplace_back();
   readback.buffer = &buffer;
   readback.y = y;
-}
-
-void GraphicsContextBase::setGlobalAmbientLight(const float* color)
-{
-  std::memcpy(globalAmbientLight, color, sizeof(globalAmbientLight));
 }
 
 void GraphicsContextBase::addLight(const Light* light)

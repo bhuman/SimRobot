@@ -28,6 +28,7 @@ public:
     float metallic = 0.f;
     float roughness = 0.5f;
     float ambient = 1.f;
+    float textureVariation = 0.f;
     std::string texturePath;
     GraphicsContext::Texture* texture = nullptr;
     GraphicsContext::Surface* surface = nullptr;

@@ -9,7 +9,7 @@
 
 #include "Light.h"
 #include "Platform/Assert.h"
-#include "Simulation/Scene.h"
+#include "Graphics/Environment.h"
 
 Light::Light()
 {
@@ -18,9 +18,9 @@ Light::Light()
 
 void Light::addParent(Element& element)
 {
-  Scene* scene = dynamic_cast<Scene*>(&element);
-  ASSERT(scene);
-  scene->lights.push_back(this);
+  Environment* environment = dynamic_cast<Environment*>(&element);
+  ASSERT(environment);
+  environment->lights.push_back(this);
 }
 
 DirLight::DirLight()
