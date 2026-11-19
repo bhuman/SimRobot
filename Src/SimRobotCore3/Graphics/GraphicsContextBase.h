@@ -237,6 +237,23 @@ public:
   };
 
   /**
+   * The properties of an image sensor that are applied when an RGB or YUYV image is converted (in this order: blur,
+   * exposure and white balance, saturation, vignetting, noise). The default is an ideal sensor, which leaves the image as
+   * it is rendered.
+   */
+  struct SensorModel final
+  {
+    float blur = 0.f; /**< The standard deviation of a Gaussian blur in pixels (0 to disable; larger than about 1.5 is clamped). */
+    float gain[3] = {1.f, 1.f, 1.f}; /**< The factors for red, green and blue (the exposure and the white balance). */
+    float saturation = 1.f; /**< The saturation (0: gray, 1: unchanged). */
+    float vignette = 0.f; /**< The loss of brightness at the corners (0: none, 1: black), which grows with the squared distance from the center. */
+    float noise = 0.f; /**< The standard deviation of the noise (relative to the full range) of a medium bright pixel. */
+
+    /** Returns whether the sensor changes images at all. */
+    bool isIdeal() const {return blur == 0.f && gain[0] == 1.f && gain[1] == 1.f && gain[2] == 1.f && saturation == 1.f && vignette == 0.f && noise == 0.f;}
+  };
+
+  /**
    * A buffer into which the GPU writes images of off-screen renderings and from which they are read without a copy.
    */
   struct ReadbackBuffer final
@@ -254,6 +271,7 @@ public:
     unsigned int height = 0; /**< The height of the images. */
     std::size_t size = 0; /**< The size of the buffer in bytes. */
     std::size_t index = 0; /**< The index of this buffer in the readback buffers of the graphics API. */
+    SensorModel sensorModel; /**< The properties of the sensor (for RGB and YUYV images). */
     float depthNumerator = 0.f; /**< The numerator of the conversion of depths d into distances (\c depthNumerator / (d + \c depthOffset)). */
     float depthOffset = 0.f; /**< The offset in the denominator of the conversion of depths into distances. */
     unsigned char* memory = nullptr; /**< The memory of the buffer (after the graphics context has been compiled). */
@@ -606,9 +624,10 @@ public:
    * @param width The width of the images.
    * @param height The height of the images.
    * @param projection The projection matrix of the renderings (only required for the format \c depthImage).
+   * @param sensorModel The properties of the sensor (ignored for the format \c depthImage; \c nullptr for an ideal sensor).
    * @return The new readback buffer. The graphics context retains ownership of the object.
    */
-  ReadbackBuffer* requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection = nullptr);
+  ReadbackBuffer* requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection = nullptr, const SensorModel* sensorModel = nullptr);
 
   /**
    * Converts a part of the image of the current off-screen rendering into a readback buffer (when the rendering is

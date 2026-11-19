@@ -106,7 +106,7 @@ public:
    * @param depthOnly Whether only depth rendering is required (then only depth images can be read).
    * @return Whether the OpenGL context was successfully selected.
    */
-  bool startOffscreenRendering(int width, int height, bool depthOnly = false);
+  bool startOffscreenRendering(int width, int height, bool depthOnly = false, bool multisample = false);
 
   /**
    * Submits the off-screen rendering and the conversions of its images into readback buffers (see \c readOffscreenImage)
@@ -205,6 +205,13 @@ private:
     GLint firstRowLocation = -1; /**< The location of the firstRow uniform in the program. */
     GLint depthNumeratorLocation = -1; /**< The location of the depthNumerator uniform in the program. */
     GLint depthOffsetLocation = -1; /**< The location of the depthOffset uniform in the program. */
+    GLint seedLocation = -1; /**< The location of the seed uniform in the program (RGB and YUYV only). */
+    GLint modeledLocation = -1; /**< The location of the modeled uniform in the program (RGB and YUYV only). */
+    GLint blurLocation = -1; /**< The location of the blur uniform in the program (RGB and YUYV only). */
+    GLint gainLocation = -1; /**< The location of the gain uniform in the program (RGB and YUYV only). */
+    GLint saturationLocation = -1; /**< The location of the saturation uniform in the program (RGB and YUYV only). */
+    GLint vignetteLocation = -1; /**< The location of the vignette uniform in the program (RGB and YUYV only). */
+    GLint noiseLocation = -1; /**< The location of the noise uniform in the program (RGB and YUYV only). */
   };
 
   /**
@@ -213,8 +220,12 @@ private:
   struct OffscreenTarget
   {
     GLuint framebuffer = 0; /**< The framebuffer object. */
-    GLuint colorTexture = 0; /**< The color attachment. */
+    GLuint colorTexture = 0; /**< The color attachment (if multisampled, the texture into which it is resolved). */
     GLuint depthTexture = 0; /**< The depth attachment (a texture, so that compute shaders can read it). */
+    GLuint multisampleColorTexture = 0; /**< The multisampled color attachment (only if multisampled). */
+    GLuint resolveFramebuffer = 0; /**< The framebuffer object with the resolved color (only if multisampled). */
+    int width = 0; /**< The width of the render target. */
+    int height = 0; /**< The height of the render target. */
   };
 
   /** The shaders for controller drawings. */
@@ -347,6 +358,7 @@ private:
   std::vector<unsigned> referenceCounters; /**< Reference counters of shared data per share group. */
   std::unordered_map<const QOpenGLContext*, PerContextData> perContextData; /**< Map of OpenGL context pointers to per context data. */
 
+  static constexpr int multisampleCount = 4; /**< The sample count of multisampled off-screen render targets. */
   static constexpr std::size_t surfaceMemorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
 
   /**

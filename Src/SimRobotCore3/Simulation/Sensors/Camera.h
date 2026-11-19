@@ -22,6 +22,8 @@ public:
   float angleX;
   float angleY;
   GraphicsContext::ImageFormat format = GraphicsContext::rgbImage; /**< The format of the camera images (RGB or YUYV). */
+  GraphicsContext::SensorModel sensorModel; /**< The properties of the sensor that are applied to the images. */
+  bool multisample = false; /**< Whether the images are rendered with multisampling. */
 
   /** Default constructor */
   Camera();

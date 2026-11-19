@@ -10,6 +10,7 @@
 
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
+#include "Graphics/SensorShader.h"
 #include "Graphics/LightSpace.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
@@ -411,6 +412,13 @@ uniform uint height; // The height of the image.
 uniform int firstRow; // The row of the render target with the top row of the image (counted from the bottom).
 uniform float depthNumerator; // The conversion of depths d into distances: depthNumerator / (d + depthOffset).
 uniform float depthOffset;
+uniform uint seed; // The seed of the noise.
+uniform bool modeled; // Whether the properties of the sensor are applied (otherwise the following values are ignored).
+uniform float blur;
+uniform vec3 gain;
+uniform float saturation;
+uniform float vignette;
+uniform float noise;
 
 layout(binding = 0) uniform sampler2D inTexture;
 
@@ -425,10 +433,42 @@ ivec2 texelOfPixel(uint index)
   return ivec2(int(index % width), firstRow - int(index / width));
 }
 
+#if defined(RGB) || defined(YUYV)
+// Reads the color of a pixel with the properties of the sensor applied.
+vec3 readColor(uint index)
+{
+  if(!modeled)
+    return clamp(texelFetch(inTexture, texelOfPixel(index), 0).rgb, 0.0, 1.0);
+  ivec2 position = ivec2(int(index % width), int(index / width));
+  vec3 color;
+  if(blur > 0.0)
+  {
+    // A Gaussian kernel of 3 x 3 pixels (the weights of the edge and the corner neighbors are given relative to the center).
+    float edge = exp(-0.5 / (blur * blur));
+    float corner = edge * edge;
+    vec3 sum = vec3(0.0);
+    for(int dy = -1; dy <= 1; ++dy)
+      for(int dx = -1; dx <= 1; ++dx)
+      {
+        ivec2 neighbor = clamp(position + ivec2(dx, dy), ivec2(0), ivec2(int(width) - 1, int(height) - 1));
+        // The corners are only read if their weight is noticeable.
+        if(dx == 0 || dy == 0 || corner > 0.04)
+          sum += (dx == 0 && dy == 0 ? 1.0 : dx == 0 || dy == 0 ? edge : corner) * texelFetch(inTexture, ivec2(neighbor.x, firstRow - neighbor.y), 0).rgb;
+      }
+    if(corner <= 0.04)
+      corner = 0.0;
+    color = sum / (1.0 + 4.0 * edge + 4.0 * corner);
+  }
+  else
+    color = texelFetch(inTexture, ivec2(position.x, firstRow - position.y), 0).rgb;
+  return clamp(applySensorModel(color, uvec2(position), vec2(width, height), seed, gain, saturation, vignette, noise), 0.0, 1.0);
+}
+
 uvec3 readRGB(uint index)
 {
-  return uvec3(roundEven(clamp(texelFetch(inTexture, texelOfPixel(index), 0).rgb, 0.0, 1.0) * 255.0));
+  return uvec3(roundEven(readColor(index) * 255.0));
 }
+#endif
 
 void main()
 {
@@ -504,6 +544,8 @@ GraphicsContext::~GraphicsContext()
       functions.glDeleteFramebuffers(1, &pair.second.framebuffer);
       functions.glDeleteTextures(1, &pair.second.colorTexture);
       functions.glDeleteTextures(1, &pair.second.depthTexture);
+      functions.glDeleteTextures(1, &pair.second.multisampleColorTexture);
+      functions.glDeleteFramebuffers(1, &pair.second.resolveFramebuffer);
     }
     // Deleting the buffers also unmaps them.
     functions.glDeleteBuffers(static_cast<GLsizei>(readbackBufferIDs.size()), readbackBufferIDs.data());
@@ -1024,7 +1066,7 @@ void GraphicsContext::finishRendering()
   shader = nullptr;
 }
 
-bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthOnly)
+bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthOnly, bool multisample)
 {
   ASSERT(offscreenContext && offscreenSurface);
   ASSERT(width > 0 && height > 0);
@@ -1036,26 +1078,43 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
   ASSERT(!shader);
   ASSERT(!offscreenTarget);
   QOpenGLFunctions_4_5_Core& functions = *perContextData[offscreenContext].f;
+  multisample = multisample && !depthOnly;
 
   // Considering weak graphics cards glClear is faster when the color and depth buffers are not greater then they have to be.
   // So we create an individual render target for each size in demand. Its attachments are textures, so that the
-  // compute shaders can read them.
-  OffscreenTarget& target = offscreenTargets[width << 16 | height];
+  // compute shaders can read them (if it is multisampled, the color is resolved into a texture before).
+  OffscreenTarget& target = offscreenTargets[(multisample ? 1u << 31 : 0u) | static_cast<unsigned int>(width << 16 | height)];
   if(!target.framebuffer)
   {
+    target.width = width;
+    target.height = height;
     functions.glCreateTextures(GL_TEXTURE_2D, 1, &target.colorTexture);
     functions.glTextureStorage2D(target.colorTexture, 1, GL_RGBA8, width, height);
-    functions.glCreateTextures(GL_TEXTURE_2D, 1, &target.depthTexture);
-    functions.glTextureStorage2D(target.depthTexture, 1, GL_DEPTH_COMPONENT32F, width, height);
-    for(const GLuint texture : {target.colorTexture, target.depthTexture})
+    functions.glCreateTextures(multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, 1, &target.depthTexture);
+    if(multisample)
     {
-      functions.glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      functions.glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      functions.glTextureStorage2DMultisample(target.depthTexture, multisampleCount, GL_DEPTH_COMPONENT32F, width, height, GL_TRUE);
+      functions.glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &target.multisampleColorTexture);
+      functions.glTextureStorage2DMultisample(target.multisampleColorTexture, multisampleCount, GL_RGBA8, width, height, GL_TRUE);
     }
+    else
+      functions.glTextureStorage2D(target.depthTexture, 1, GL_DEPTH_COMPONENT32F, width, height);
+    for(const GLuint texture : {target.colorTexture, multisample ? 0 : target.depthTexture})
+      if(texture)
+      {
+        functions.glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        functions.glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      }
     functions.glCreateFramebuffers(1, &target.framebuffer);
-    functions.glNamedFramebufferTexture(target.framebuffer, GL_COLOR_ATTACHMENT0, target.colorTexture, 0);
+    functions.glNamedFramebufferTexture(target.framebuffer, GL_COLOR_ATTACHMENT0, multisample ? target.multisampleColorTexture : target.colorTexture, 0);
     functions.glNamedFramebufferTexture(target.framebuffer, GL_DEPTH_ATTACHMENT, target.depthTexture, 0);
     ASSERT(functions.glCheckNamedFramebufferStatus(target.framebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    if(multisample)
+    {
+      functions.glCreateFramebuffers(1, &target.resolveFramebuffer);
+      functions.glNamedFramebufferTexture(target.resolveFramebuffer, GL_COLOR_ATTACHMENT0, target.colorTexture, 0);
+      ASSERT(functions.glCheckNamedFramebufferStatus(target.resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    }
   }
   functions.glBindFramebuffer(GL_FRAMEBUFFER, target.framebuffer);
 
@@ -1076,6 +1135,8 @@ std::uint64_t GraphicsContext::finishOffscreenRendering()
   ASSERT(!shader);
   ASSERT(offscreenTarget);
 
+  if(offscreenTarget->resolveFramebuffer)
+    f->glBlitNamedFramebuffer(offscreenTarget->framebuffer, offscreenTarget->resolveFramebuffer, 0, 0, offscreenTarget->width, offscreenTarget->height, 0, 0, offscreenTarget->width, offscreenTarget->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
   for(const OffscreenReadback& readback : offscreenReadbacks)
   {
     const ReadbackBuffer& buffer = *readback.buffer;
@@ -1088,6 +1149,17 @@ std::uint64_t GraphicsContext::finishOffscreenRendering()
     f->glUniform1i(readbackShader.firstRowLocation, readback.y + static_cast<GLint>(buffer.height) - 1);
     f->glUniform1f(readbackShader.depthNumeratorLocation, buffer.depthNumerator);
     f->glUniform1f(readbackShader.depthOffsetLocation, buffer.depthOffset);
+    if(buffer.format != depthImage)
+    {
+      const SensorModel& sensorModel = buffer.sensorModel;
+      f->glUniform1ui(readbackShader.seedLocation, static_cast<std::uint32_t>(numOfSubmissions * 2654435761u) + static_cast<std::uint32_t>(buffer.index) * 0x9e3779b9u);
+      f->glUniform1i(readbackShader.modeledLocation, sensorModel.isIdeal() ? 0 : 1);
+      f->glUniform1f(readbackShader.blurLocation, sensorModel.blur);
+      f->glUniform3fv(readbackShader.gainLocation, 1, sensorModel.gain);
+      f->glUniform1f(readbackShader.saturationLocation, sensorModel.saturation);
+      f->glUniform1f(readbackShader.vignetteLocation, sensorModel.vignette);
+      f->glUniform1f(readbackShader.noiseLocation, sensorModel.noise);
+    }
     f->glBindTextureUnit(0, renderDepthOnly ? offscreenTarget->depthTexture : offscreenTarget->colorTexture);
     f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, readbackBufferIDs[buffer.index]);
     // The number of invocations (four pixels per invocation for RGB, two for YUYV, one for depth) is distributed over
@@ -1525,7 +1597,8 @@ GraphicsContext::ReadbackShader GraphicsContext::compileReadbackShader(ImageForm
   static const char* formatDefines[] = {"#define RGB\n", "#define YUYV\n", "#define DEPTH\n"};
 
   ReadbackShader shader;
-  shader.program = compileShader({{GL_COMPUTE_SHADER, {versionSourceCode, formatDefines[format], readbackShaderSourceCode}}});
+  static const char* typeDefines = "#define float2 vec2\n#define float3 vec3\n#define float4 vec4\n#define uint2 uvec2\n";
+  shader.program = compileShader({{GL_COMPUTE_SHADER, {versionSourceCode, formatDefines[format], typeDefines, sensorShaderSharedCode, readbackShaderSourceCode}}});
 
   ASSERT(f);
   shader.widthLocation = f->glGetUniformLocation(shader.program, "width");
@@ -1533,6 +1606,13 @@ GraphicsContext::ReadbackShader GraphicsContext::compileReadbackShader(ImageForm
   shader.firstRowLocation = f->glGetUniformLocation(shader.program, "firstRow");
   shader.depthNumeratorLocation = f->glGetUniformLocation(shader.program, "depthNumerator");
   shader.depthOffsetLocation = f->glGetUniformLocation(shader.program, "depthOffset");
+  shader.seedLocation = f->glGetUniformLocation(shader.program, "seed");
+  shader.modeledLocation = f->glGetUniformLocation(shader.program, "modeled");
+  shader.blurLocation = f->glGetUniformLocation(shader.program, "blur");
+  shader.gainLocation = f->glGetUniformLocation(shader.program, "gain");
+  shader.saturationLocation = f->glGetUniformLocation(shader.program, "saturation");
+  shader.vignetteLocation = f->glGetUniformLocation(shader.program, "vignette");
+  shader.noiseLocation = f->glGetUniformLocation(shader.program, "noise");
   return shader;
 }
 

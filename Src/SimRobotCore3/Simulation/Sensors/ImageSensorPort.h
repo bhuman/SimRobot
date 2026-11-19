@@ -25,6 +25,8 @@ class ImageSensorPort : public Sensor::Port
 public:
   ::PhysicalObject* physicalObject = nullptr; /**< The physical object the sensor is mounted on. */
   Pose3f offset; /**< Offset of the sensor relative to the object it is mounted on. */
+  GraphicsContext::SensorModel sensorModel; /**< The properties of the sensor that are applied to the images (set before \c initialize). */
+  bool multisample = false; /**< Whether the images are rendered with multisampling (set before \c initialize). */
 
   /**
    * Initializes the port (in \c createPhysics of the sensor).

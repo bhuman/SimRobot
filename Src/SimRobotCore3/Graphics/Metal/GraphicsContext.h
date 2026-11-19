@@ -110,9 +110,10 @@ public:
    * @param width The width of an image that will be rendered.
    * @param height The height of an image that will be rendered.
    * @param depthOnly Whether only depth rendering is required (then only depth images can be read).
+   * @param multisample Whether the color is rendered with multisampling (ignored if \c depthOnly).
    * @return Whether rendering was successfully started.
    */
-  bool startOffscreenRendering(int width, int height, bool depthOnly = false);
+  bool startOffscreenRendering(int width, int height, bool depthOnly = false, bool multisample = false);
 
   /**
    * Submits the off-screen rendering and the conversions of its images into readback buffers (see \c readOffscreenImage)
@@ -173,6 +174,7 @@ private:
   struct OffscreenTarget
   {
     MTL::RenderPassDescriptor* renderPass = nullptr; /**< The render pass descriptor (which retains the attachments). */
+    MTL::Texture* readTexture = nullptr; /**< The texture with the image that is read (the color attachment or its resolved version; \c nullptr for depth-only targets). */
   };
 
   /** Waits until the command buffer that renders the shadow maps (if it has not been waited for) has been completed. */
@@ -225,9 +227,10 @@ private:
    * @param width The width of the render target.
    * @param height The height of the render target.
    * @param depthOnly Whether the render target only has a depth attachment.
+   * @param multisample Whether the color attachment has \c multisampleCount samples (it is resolved into the texture that is read).
    * @return The off-screen render target.
    */
-  OffscreenTarget& getOffscreenTarget(int width, int height, bool depthOnly);
+  OffscreenTarget& getOffscreenTarget(int width, int height, bool depthOnly, bool multisample);
 
   /**
    * The texture of an image of a controller drawing, which exists as long as the drawing.

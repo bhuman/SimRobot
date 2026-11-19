@@ -23,6 +23,8 @@ void Camera::createPhysics(GraphicsContext& graphicsContext)
 
   if(format == GraphicsContext::yuyvImage)
     sensor.sensorType = SimRobotCore3::SensorPort::yuyvCameraSensor;
+  sensor.sensorModel = sensorModel;
+  sensor.multisample = multisample;
   sensor.initialize(graphicsContext, imageWidth, imageHeight, angleX, angleY, format);
 
   if(translation)

@@ -827,6 +827,17 @@ Element* ParserCore3::cameraElement()
   else
     handleError("Unexpected format \"" + format + "\" (expected one of \"rgb, yuyv\")",
                 attributes->find("format")->second.valueLocation);
+
+  camera->multisample = getBool("multisample", false, false);
+  GraphicsContext::SensorModel& sensorModel = camera->sensorModel;
+  sensorModel.blur = getFloatMinMax("blur", false, 0.f, 0.f, 1.5f);
+  const float gain = getFloatPositive("gain", false, 1.f);
+  sensorModel.gain[0] = gain * getFloatPositive("redGain", false, 1.f);
+  sensorModel.gain[1] = gain;
+  sensorModel.gain[2] = gain * getFloatPositive("blueGain", false, 1.f);
+  sensorModel.saturation = getFloatPositive("saturation", false, 1.f);
+  sensorModel.vignette = getFloatMinMax("vignette", false, 0.f, 0.f, 1.f);
+  sensorModel.noise = getFloatPositive("noise", false, 0.f);
   return camera;
 }
 

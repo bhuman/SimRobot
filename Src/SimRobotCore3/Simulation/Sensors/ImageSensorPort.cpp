@@ -25,7 +25,7 @@ void ImageSensorPort::initialize(GraphicsContext& graphicsContext, unsigned int 
   const float aspect = std::tan(angleX * 0.5f) / std::tan(angleY * 0.5f);
   OpenGLTools::computePerspective(angleY, aspect, 0.01f, 500.f, projection);
 
-  readbackBuffer = graphicsContext.requestReadbackBuffer(format, imageWidth, imageHeight);
+  readbackBuffer = graphicsContext.requestReadbackBuffer(format, imageWidth, imageHeight, nullptr, &sensorModel);
 }
 
 void ImageSensorPort::updateValue()
@@ -44,7 +44,7 @@ bool ImageSensorPort::renderCameraImages(SimRobotCore3::SensorPort** cameras, un
   {
     ImageSensorPort* port = dynamic_cast<ImageSensorPort*>(cameras[i]);
     if(port && port->lastSimulationStep != Simulation::simulation->simulationStep && typeid(*port) == typeid(*this) &&
-       port->imageWidth == imageWidth && port->imageHeight == imageHeight && std::find(ports.begin(), ports.end(), port) == ports.end())
+       port->imageWidth == imageWidth && port->imageHeight == imageHeight && port->multisample == multisample && std::find(ports.begin(), ports.end(), port) == ports.end())
       ports.push_back(port);
   }
   if(!ports.empty())
@@ -64,7 +64,7 @@ void ImageSensorPort::render(const std::vector<ImageSensorPort*>& ports)
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
   if(first.lighting)
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearancesCached(graphicsContext);}, true, false);
-  if(!graphicsContext.startOffscreenRendering(first.imageWidth, first.imageHeight * static_cast<int>(ports.size())))
+  if(!graphicsContext.startOffscreenRendering(first.imageWidth, first.imageHeight * static_cast<int>(ports.size()), false, first.multisample))
     return;
 
   // The images are rendered on top of each other.

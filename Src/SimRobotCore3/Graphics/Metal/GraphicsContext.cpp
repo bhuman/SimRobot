@@ -10,6 +10,7 @@
 
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
+#include "Graphics/SensorShader.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <rhi/qrhi.h>
@@ -420,18 +421,58 @@ vertex float4 vertexMain(VertexIn in [[stage_in]], uint instanceID [[instance_id
 )metal";
 
 // These kernels convert a part of a render target into a buffer, with the top row first.
-static const char* readbackShaderSourceCode = R"metal(
+static const std::string readbackShaderSourceCode = std::string(R"metal(
+using namespace metal;
 struct ReadbackParameters
 {
   uint width; // The width of the image.
+  uint height; // The height of the image.
   uint firstRow; // The row of the render target with the top row of the image.
+  uint seed; // The seed of the noise.
   float depthNumerator; // The conversion of depths d into distances: depthNumerator / (d + depthOffset).
   float depthOffset;
+  uint modeled; // Whether the properties of the sensor are applied (otherwise the following values are ignored).
+  float blur;
+  float gainR;
+  float gainG;
+  float gainB;
+  float saturation;
+  float vignette;
+  float noise;
 };
-
-uint3 readRGB(metal::texture2d<float, metal::access::read> inTexture, uint2 position)
+)metal") + sensorShaderSharedCode + R"metal(
+// Reads the color of the pixel at the position (counted from the top left of the image) with the properties of the sensor applied.
+float3 readColor(texture2d<float, access::read> inTexture, constant ReadbackParameters& parameters, uint2 position)
 {
-  return uint3(metal::rint(metal::saturate(inTexture.read(position).rgb) * 255.0));
+  if(!parameters.modeled)
+    return saturate(inTexture.read(uint2(position.x, parameters.firstRow + position.y)).rgb);
+  float3 color;
+  if(parameters.blur > 0.0)
+  {
+    // A Gaussian kernel of 3 x 3 pixels (the weights of the edge and the corner neighbors are given relative to the center).
+    float edge = exp(-0.5 / (parameters.blur * parameters.blur));
+    float corner = edge * edge;
+    float3 sum = float3(0.0);
+    for(int dy = -1; dy <= 1; ++dy)
+      for(int dx = -1; dx <= 1; ++dx)
+      {
+        uint2 neighbor = uint2(clamp(int(position.x) + dx, 0, int(parameters.width) - 1), clamp(int(position.y) + dy, 0, int(parameters.height) - 1));
+        // The corners are only read if their weight is noticeable.
+        if(dx == 0 || dy == 0 || corner > 0.04)
+          sum += (dx == 0 && dy == 0 ? 1.0 : dx == 0 || dy == 0 ? edge : corner) * inTexture.read(uint2(neighbor.x, parameters.firstRow + neighbor.y)).rgb;
+      }
+    if(corner <= 0.04)
+      corner = 0.0;
+    color = sum / (1.0 + 4.0 * edge + 4.0 * corner);
+  }
+  else
+    color = inTexture.read(uint2(position.x, parameters.firstRow + position.y)).rgb;
+  return saturate(applySensorModel(color, position, float2(parameters.width, parameters.height), parameters.seed, float3(parameters.gainR, parameters.gainG, parameters.gainB), parameters.saturation, parameters.vignette, parameters.noise));
+}
+
+uint3 readRGB(texture2d<float, access::read> inTexture, constant ReadbackParameters& parameters, uint2 position)
+{
+  return uint3(rint(readColor(inTexture, parameters, position) * 255.0));
 }
 
 kernel void readbackRGB(metal::texture2d<float, metal::access::read> inTexture [[texture(0)]],
@@ -439,7 +480,7 @@ kernel void readbackRGB(metal::texture2d<float, metal::access::read> inTexture [
                         constant ReadbackParameters& parameters [[buffer(1)]],
                         uint2 gid [[thread_position_in_grid]])
 {
-  uint3 rgb = readRGB(inTexture, uint2(gid.x, parameters.firstRow + gid.y));
+  uint3 rgb = readRGB(inTexture, parameters, gid);
   uint index = (gid.y * parameters.width + gid.x) * 3;
   outBuffer[index] = uchar(rgb.r);
   outBuffer[index + 1] = uchar(rgb.g);
@@ -452,8 +493,8 @@ kernel void readbackYUYV(metal::texture2d<float, metal::access::read> inTexture 
                          constant ReadbackParameters& parameters [[buffer(1)]],
                          uint2 gid [[thread_position_in_grid]])
 {
-  int3 rgb0 = int3(readRGB(inTexture, uint2(gid.x * 2, parameters.firstRow + gid.y)));
-  int3 rgb1 = int3(readRGB(inTexture, uint2(gid.x * 2 + 1, parameters.firstRow + gid.y)));
+  int3 rgb0 = int3(readRGB(inTexture, parameters, uint2(gid.x * 2, gid.y)));
+  int3 rgb1 = int3(readRGB(inTexture, parameters, uint2(gid.x * 2 + 1, gid.y)));
   int y0 = (rgb0.r * 4898 + rgb0.g * 9617 + rgb0.b * 1867) >> 14;
   int y1 = (rgb1.r * 4898 + rgb1.g * 9617 + rgb1.b * 1867) >> 14;
   // The offset of 256 keeps the shifted values positive, so that they are rounded down.
@@ -1154,7 +1195,7 @@ void GraphicsContext::finishRendering()
   boundPipelineState = nullptr;
 }
 
-bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthOnly)
+bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthOnly, bool multisample)
 {
   ASSERT(device);
   ASSERT(width > 0 && height > 0);
@@ -1164,7 +1205,8 @@ bool GraphicsContext::startOffscreenRendering(int width, int height, bool depthO
 
   autoreleasePool = NS::AutoreleasePool::alloc()->init();
 
-  offscreenTarget = &getOffscreenTarget(width, height, depthOnly);
+  offscreenTarget = &getOffscreenTarget(width, height, depthOnly, multisample && !depthOnly);
+  sampleCountIndex = multisample && !depthOnly ? 1 : 0;
   renderTargetHeight = height;
   commandBuffer = commandQueue->commandBuffer();
   encoder = commandBuffer->renderCommandEncoder(offscreenTarget->renderPass);
@@ -1189,23 +1231,35 @@ std::uint64_t GraphicsContext::finishOffscreenRendering()
     struct ReadbackParameters
     {
       std::uint32_t width;
+      std::uint32_t height;
       std::uint32_t firstRow;
+      std::uint32_t seed;
       float depthNumerator;
       float depthOffset;
+      std::uint32_t modeled;
+      float blur;
+      float gain[3];
+      float saturation;
+      float vignette;
+      float noise;
     };
 
-    const MTL::RenderPassDescriptor* renderPass = offscreenTarget->renderPass;
-    MTL::ComputeCommandEncoder* computeEncoder = commandBuffer->computeCommandEncoder();
+    MTL::Texture* colorTexture = offscreenTarget->readTexture;
+    MTL::ComputeCommandEncoder* computeEncoder = commandBuffer->computeCommandEncoder(MTL::DispatchTypeConcurrent);
     for(const OffscreenReadback& readback : offscreenReadbacks)
     {
       const ReadbackBuffer& buffer = *readback.buffer;
       // Depth images can only be read from depth-only render targets (otherwise the depth is not stored) and vice versa.
       ASSERT((buffer.format == depthImage) == renderDepthOnly);
       ASSERT(readback.y >= 0 && readback.y + static_cast<int>(buffer.height) <= renderTargetHeight);
-      MTL::Texture* texture = renderDepthOnly ? renderPass->depthAttachment()->texture() : renderPass->colorAttachments()->object(0)->texture();
+      MTL::Texture* texture = renderDepthOnly ? offscreenTarget->renderPass->depthAttachment()->texture() : colorTexture;
       ASSERT(texture->width() >= buffer.width);
       // The rows of textures are counted from the top in Metal.
-      const ReadbackParameters parameters = {buffer.width, static_cast<std::uint32_t>(renderTargetHeight - readback.y - static_cast<int>(buffer.height)), buffer.depthNumerator, buffer.depthOffset};
+      const SensorModel& sensorModel = buffer.sensorModel;
+      const bool modeled = buffer.format != depthImage && !sensorModel.isIdeal();
+      const ReadbackParameters parameters = {buffer.width, buffer.height, static_cast<std::uint32_t>(renderTargetHeight - readback.y - static_cast<int>(buffer.height)),
+                                             static_cast<std::uint32_t>(numOfSubmissions * 2654435761u) + static_cast<std::uint32_t>(buffer.index) * 0x9e3779b9u, buffer.depthNumerator, buffer.depthOffset,
+                                             modeled ? 1u : 0u, sensorModel.blur, {sensorModel.gain[0], sensorModel.gain[1], sensorModel.gain[2]}, sensorModel.saturation, sensorModel.vignette, sensorModel.noise};
       computeEncoder->setComputePipelineState(readbackPipelineStates[buffer.format]);
       computeEncoder->setTexture(texture, 0);
       computeEncoder->setBuffer(mtlReadbackBuffers[buffer.index], 0, 0);
@@ -1217,6 +1271,7 @@ std::uint64_t GraphicsContext::finishOffscreenRendering()
   }
 
   // The command buffer is autoreleased, so it must be retained until it has been waited for.
+  sampleCountIndex = 0;
   commandBuffer->commit();
   submissions.emplace_back(++numOfSubmissions, commandBuffer->retain());
   commandBuffer = nullptr;
@@ -1547,25 +1602,38 @@ MTL::ComputePipelineState* GraphicsContext::createComputePipelineState(MTL::Libr
   return pipelineState;
 }
 
-GraphicsContext::OffscreenTarget& GraphicsContext::getOffscreenTarget(int width, int height, bool depthOnly)
+GraphicsContext::OffscreenTarget& GraphicsContext::getOffscreenTarget(int width, int height, bool depthOnly, bool multisample)
 {
+  ASSERT(!depthOnly || !multisample);
+
   // Considering weak graphics cards clearing is faster when the render targets are not greater than they have to be.
   // So we create an individual render target for each size in demand.
-  OffscreenTarget& target = offscreenTargets[static_cast<std::uint64_t>(width) << 32 | static_cast<std::uint64_t>(height) << 1 | (depthOnly ? 1 : 0)];
+  OffscreenTarget& target = offscreenTargets[static_cast<std::uint64_t>(width) << 32 | static_cast<std::uint64_t>(height) << 2 | (multisample ? 2 : 0) | (depthOnly ? 1 : 0)];
   if(target.renderPass)
     return target;
 
   target.renderPass = MTL::RenderPassDescriptor::alloc()->init();
 
-  const auto createAttachmentTexture = [this, width, height](MTL::PixelFormat pixelFormat)
+  // The multisampled attachments only exist while the render pass is executed (on the tiles of the GPU).
+  const auto createAttachmentTexture = [this, width, height, multisample](MTL::PixelFormat pixelFormat, bool resolved)
   {
     MTL::TextureDescriptor* descriptor = MTL::TextureDescriptor::alloc()->init();
-    descriptor->setTextureType(MTL::TextureType2D);
     descriptor->setPixelFormat(pixelFormat);
     descriptor->setWidth(width);
     descriptor->setHeight(height);
-    descriptor->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
-    descriptor->setStorageMode(MTL::StorageModePrivate);
+    if(multisample && !resolved)
+    {
+      descriptor->setTextureType(MTL::TextureType2DMultisample);
+      descriptor->setSampleCount(multisampleCount);
+      descriptor->setUsage(MTL::TextureUsageRenderTarget);
+      descriptor->setStorageMode(MTL::StorageModeMemoryless);
+    }
+    else
+    {
+      descriptor->setTextureType(MTL::TextureType2D);
+      descriptor->setUsage(MTL::TextureUsageRenderTarget | MTL::TextureUsageShaderRead);
+      descriptor->setStorageMode(MTL::StorageModePrivate);
+    }
     MTL::Texture* texture = device->newTexture(descriptor);
     descriptor->release();
     ASSERT(texture);
@@ -1575,16 +1643,29 @@ GraphicsContext::OffscreenTarget& GraphicsContext::getOffscreenTarget(int width,
   // The render pass descriptor retains the attachment textures, so they are released after being set.
   if(!depthOnly)
   {
-    MTL::Texture* colorTexture = createAttachmentTexture(MTL::PixelFormatRGBA8Unorm);
+    MTL::Texture* colorTexture = createAttachmentTexture(MTL::PixelFormatRGBA8Unorm, false);
     auto* colorAttachment = target.renderPass->colorAttachments()->object(0);
     colorAttachment->setTexture(colorTexture);
     colorAttachment->setLoadAction(MTL::LoadActionClear);
-    colorAttachment->setStoreAction(MTL::StoreActionStore);
     colorAttachment->setClearColor(MTL::ClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]));
+    if(multisample)
+    {
+      // The resolved image is the one that is read. The samples are discarded.
+      MTL::Texture* resolveTexture = createAttachmentTexture(MTL::PixelFormatRGBA8Unorm, true);
+      colorAttachment->setResolveTexture(resolveTexture);
+      colorAttachment->setStoreAction(MTL::StoreActionMultisampleResolve);
+      target.readTexture = resolveTexture;
+      resolveTexture->release();
+    }
+    else
+    {
+      colorAttachment->setStoreAction(MTL::StoreActionStore);
+      target.readTexture = colorTexture;
+    }
     colorTexture->release();
   }
 
-  MTL::Texture* depthTexture = createAttachmentTexture(MTL::PixelFormatDepth32Float);
+  MTL::Texture* depthTexture = createAttachmentTexture(MTL::PixelFormatDepth32Float, false);
   auto* depthAttachment = target.renderPass->depthAttachment();
   depthAttachment->setTexture(depthTexture);
   depthAttachment->setLoadAction(MTL::LoadActionClear);

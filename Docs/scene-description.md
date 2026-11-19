@@ -475,6 +475,40 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: rgb
           - **Use**: optional
           - **Range**: rgb, yuyv
+      - `multisample`: Whether the image is rendered with multisampling (four samples per pixel), which smooths the edges like the optics of a real camera does. It costs rendering time, most with OpenGL.
+          - **Default**: false
+          - **Use**: optional
+          - **Range**: true, false
+      - `blur`: The standard deviation of a Gaussian blur in pixels, which models the limited sharpness of the lens.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, 1.5]
+      - `gain`: A factor for all color channels, which models the exposure of the camera. The color values are those of the tone mapped image, which the camera does not adapt to the brightness of the scene.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `redGain`: An additional factor for the red channel (white balance).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `blueGain`: An additional factor for the blue channel (white balance).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `saturation`: The saturation of the colors (0 is gray, 1 is unchanged).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `vignette`: How much darker the corners of the image are than the center (the loss grows with the squared distance from the center).
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `noise`: The standard deviation of the noise of medium bright pixels as a fraction of the full range. The noise is different in each image, independent per pixel, stronger in bright pixels, and partly the same in all channels.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+
+    The attributes from `blur` on are applied by the GPU when the image is converted into the format of the sensor, in this order: blur, gain, saturation, vignette, noise. The defaults are those of an ideal camera, which does not change the rendered image.
   - `DepthImageSensor`: Instantiates a depth image camera.
       - `name`: The name of the sensor.
           - **Use**: optional

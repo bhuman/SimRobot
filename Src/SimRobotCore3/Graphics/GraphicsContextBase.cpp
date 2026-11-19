@@ -320,9 +320,11 @@ GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* a
   return surface;
 }
 
-GraphicsContextBase::ReadbackBuffer* GraphicsContextBase::requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection)
+GraphicsContextBase::ReadbackBuffer* GraphicsContextBase::requestReadbackBuffer(ImageFormat format, unsigned int width, unsigned int height, const Matrix4f* projection, const SensorModel* sensorModel)
 {
   auto* readbackBuffer = new ReadbackBuffer;
+  if(sensorModel)
+    readbackBuffer->sensorModel = *sensorModel;
   readbackBuffer->format = format;
   readbackBuffer->width = width;
   readbackBuffer->height = height;
