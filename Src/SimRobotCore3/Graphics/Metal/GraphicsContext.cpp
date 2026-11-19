@@ -977,7 +977,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
 {
   ASSERT(encoder);
   ASSERT(!selectedPipelineStates);
-  setupCulling(projection * view);
+  setupCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
   selectedPipelineStates = &pipelineStates[((renderDepthOnly ? 0 : sampleCountIndex * numOfShaders) + (renderDepthOnly ? depthOnlyShaderIndex : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)))) * numOfVertexCategories];
   boundPipelineState = nullptr;
 
@@ -1031,8 +1031,9 @@ void GraphicsContext::drawList(const DrawList* drawList)
   if(uploadedModelMatrixGeneration != modelMatrixGeneration)
     bindModelMatrices();
 
-  // Only the instances that are inside the view are drawn (if they are all, the instances of the pass are used as they are).
-  const bool culled = viewFrustum && cullInstances(pass, visibleInstances);
+  // Only the instances that are inside the view are drawn, with the level of detail that the view needs (if all of them are drawn with
+  // the original meshes, the instances of the pass are used as they are).
+  const bool culled = cullInstances(pass, !renderDepthOnly || renderingShadowMap, visibleInstances);
   if(culled)
   {
     if(visibleInstances.instances.empty())
@@ -1053,21 +1054,23 @@ void GraphicsContext::drawList(const DrawList* drawList)
       pass.native = reinterpret_cast<std::uintptr_t>(device->newBuffer(pass.instances.data(), pass.instances.size() * sizeof(DrawList::Instance), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared));
     encoder->setVertexBuffer(reinterpret_cast<const MTL::Buffer*>(pass.native), 0, 4);
   }
-  for(std::size_t i = 0; i < pass.batches.size(); ++i)
+  const std::size_t numOfDraws = culled ? visibleInstances.ranges.size() : pass.batches.size();
+  for(std::size_t i = 0; i < numOfDraws; ++i)
   {
-    const DrawList::Batch& batch = pass.batches[i];
-    const std::uint32_t firstInstance = culled ? visibleInstances.ranges[i].first : batch.firstInstance;
-    const std::uint32_t numOfInstances = culled ? visibleInstances.ranges[i].second : batch.numOfInstances;
-    if(!numOfInstances)
-      continue;
+    // Without culling, the batches are drawn as they are.
+    const VisibleInstances::Range range = culled ? visibleInstances.ranges[i] : VisibleInstances::Range{static_cast<std::uint32_t>(i), 0, pass.batches[i].firstInstance, pass.batches[i].numOfInstances};
+    const DrawList::Batch& batch = pass.batches[range.batch];
     const Mesh* mesh = batch.mesh;
     MTL::RenderPipelineState* pipelineState = selectedPipelineStates[mesh->vertexBuffer->category];
     if(pipelineState != boundPipelineState)
       encoder->setRenderPipelineState((boundPipelineState = pipelineState));
     if(mesh->indexBuffer)
-      encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), mesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, mesh->indexBuffer->offset, numOfInstances, mesh->vertexBuffer->base, firstInstance);
+    {
+      const IndexBuffer* indices = getIndexBuffer(*mesh, range.lod);
+      encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), indices->count, MTL::IndexTypeUInt32, indexBuffer, indices->offset, range.numOfInstances, mesh->vertexBuffer->base, range.firstInstance);
+    }
     else
-      encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count, numOfInstances, firstInstance);
+      encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count, range.numOfInstances, range.firstInstance);
   }
 }
 

@@ -20,6 +20,10 @@ TODO: Describe where Box2D comes from, what the current version is and how it wa
 
 [metal-cpp](https://developer.apple.com/metal/cpp/) is Apple's header-only C++ interface for Metal, which is used by the Metal backend of `SimRobotCore3` on macOS (source releases can be downloaded from the same page). The headers in `Util/metal-cpp` are version 27.0.1 (macOS 27.0.1); the Python script for creating a single header file is not included. The implementation is generated in exactly one translation unit that defines `NS_PRIVATE_IMPLEMENTATION`, `CA_PRIVATE_IMPLEMENTATION` and `MTL_PRIVATE_IMPLEMENTATION` before including the headers.
 
+## meshoptimizer
+
+[meshoptimizer](https://github.com/zeux/meshoptimizer) is a library for optimizing meshes. `SimRobotCore3` uses it to generate simplified versions of meshes for the level of detail (`GraphicsContextBase::layoutResources`) and to optimize their order of vertex indices for the vertex cache. `Util/meshoptimizer` contains the version 1.3 (source releases can be downloaded from [here](https://github.com/zeux/meshoptimizer/releases)), reduced to `LICENSE.md` and the files of `src` that are used: `meshoptimizer.h`, `allocator.cpp`, `simplifier.cpp` and `vcacheoptimizer.cpp`. They are built as the static library `meshoptimizer` (`Make/CMake/meshoptimizer.cmake`), which is always optimized (also in the Debug configuration) and without assertions. When updating, these files are replaced by those of the new release; if the simplifier or the vertex cache optimizer start to need other source files (the linker reports undefined `meshopt_` functions), these have to be added as well (and to `meshoptimizer.cmake`).
+
 ## Qt
 
 [Qt](https://www.qt.io/) is mainly used as GUI framework and as OpenGL provider in `SimRobotCore3`. For Windows and macOS, the necessary parts of Qt are present in `Util/qt`. On Linux, the system's Qt is used, which must be installed separately (e.g. via a package manager as instructed by the [compilation intstructions](/README.md#linux)).

@@ -866,7 +866,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   f->glPolygonMode(GL_FRONT_AND_BACK, (fillPolygons || renderDepthOnly) ? GL_FILL : GL_LINE);
   f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
-  setupCulling(pv);
+  setupCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
   f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
@@ -931,8 +931,9 @@ void GraphicsContext::drawList(const DrawList* drawList)
   if(data->uploadedModelMatrixGeneration != modelMatrixGeneration)
     bindModelMatrices();
 
-  // Only the instances that are inside the view are drawn (if they are all, the instances of the pass are used as they are).
-  const bool culled = viewFrustum && cullInstances(pass, visibleInstances);
+  // Only the instances that are inside the view are drawn, with the level of detail that the view needs (if all of them are drawn with
+  // the original meshes, the instances of the pass are used as they are).
+  const bool culled = cullInstances(pass, !renderDepthOnly || renderingShadowMap, visibleInstances);
   if(culled)
   {
     if(visibleInstances.instances.empty())
@@ -953,13 +954,12 @@ void GraphicsContext::drawList(const DrawList* drawList)
     }
     bindInstances(static_cast<GLuint>(pass.native));
   }
-  for(std::size_t i = 0; i < pass.batches.size(); ++i)
+  const std::size_t numOfDraws = culled ? visibleInstances.ranges.size() : pass.batches.size();
+  for(std::size_t i = 0; i < numOfDraws; ++i)
   {
-    const DrawList::Batch& batch = pass.batches[i];
-    const std::uint32_t firstInstance = culled ? visibleInstances.ranges[i].first : batch.firstInstance;
-    const std::uint32_t numOfInstances = culled ? visibleInstances.ranges[i].second : batch.numOfInstances;
-    if(!numOfInstances)
-      continue;
+    // Without culling, the batches are drawn as they are.
+    const VisibleInstances::Range range = culled ? visibleInstances.ranges[i] : VisibleInstances::Range{static_cast<std::uint32_t>(i), 0, pass.batches[i].firstInstance, pass.batches[i].numOfInstances};
+    const DrawList::Batch& batch = pass.batches[range.batch];
     const Mesh* mesh = batch.mesh;
     const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
     if(newVAO != data->boundVAO)
@@ -982,11 +982,14 @@ void GraphicsContext::drawList(const DrawList* drawList)
         data->blendEnabled = false;
       }
     }
-    setBaseInstance(firstInstance);
+    setBaseInstance(range.firstInstance);
     if(mesh->indexBuffer)
-      f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(mesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(mesh->indexBuffer->offset), static_cast<GLsizei>(numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+    {
+      const IndexBuffer* indices = getIndexBuffer(*mesh, range.lod);
+      f->glDrawElementsInstancedBaseVertex(getPrimitiveType(mesh->topology), static_cast<GLsizei>(indices->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(indices->offset), static_cast<GLsizei>(range.numOfInstances), static_cast<GLint>(mesh->vertexBuffer->base));
+    }
     else
-      f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(numOfInstances));
+      f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(range.numOfInstances));
   }
 }
 

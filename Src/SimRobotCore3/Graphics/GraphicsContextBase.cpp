@@ -15,16 +15,29 @@
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <QImage>
+#include <meshoptimizer.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <numeric>
 #include <string_view>
 #include <tuple>
 #include <unordered_set>
+
+namespace
+{
+  constexpr float lodPixelError = 0.5f; /**< The maximum error of simplified meshes in views in pixels. */
+  constexpr float shadowLodTexelError = 1.f; /**< The maximum error of simplified meshes in shadow maps in texels. */
+  constexpr float lodErrors[GraphicsContextBase::maxLods] = {0.001f, 0.003f, 0.009f, 0.027f}; /**< The maximum errors of the simplified versions of a mesh (in meters, which are the units of model space). */
+  constexpr std::size_t minLodTriangles = 256; /**< The number of triangles from which a mesh gets simplified versions (smaller meshes are not worth the trouble). */
+  constexpr std::size_t minSimplifiedTriangles = 4; /**< The number of triangles that a simplified version needs to have at least. */
+  constexpr float maxLodSizeRatio = 0.8f; /**< The maximum size of a simplified version compared to the previous one (otherwise it is not worth it). */
+  constexpr float lodAttributeWeights[5] = {1.f, 1.f, 1.f, 0.5f, 0.5f}; /**< How much the normal and the texture coordinates count when meshes are simplified (they keep shading and textures intact). */
+}
 
 GraphicsContextBase::GraphicsContextBase(bool batchByTexture) :
   batchByTexture(batchByTexture)
@@ -60,6 +73,56 @@ GraphicsContextBase::~GraphicsContextBase()
 
 void GraphicsContextBase::layoutResources()
 {
+  // Meshes with many triangles get simplified versions that use a subset of their vertices (so the vertex buffers stay as they are).
+  // Meshes with equal contents get the same versions.
+  std::unordered_map<std::size_t, std::vector<std::pair<const Mesh*, std::vector<Mesh::Lod>>>> cache;
+  for(Mesh* mesh : meshes)
+  {
+    if(mesh->topology != triangleList || !mesh->indexBuffer || mesh->indexBuffer->indices.size() < minLodTriangles * 3)
+      continue;
+    const std::size_t stride = vertexStrides[mesh->vertexBuffer->category];
+    const std::string_view vertexBytes(static_cast<const char*>(mesh->vertexBuffer->data), mesh->vertexBuffer->size());
+    const std::string_view indexBytes(reinterpret_cast<const char*>(mesh->indexBuffer->indices.data()), mesh->indexBuffer->indices.size() * sizeof(std::uint32_t));
+    auto& candidates = cache[std::hash<std::string_view>()(vertexBytes) ^ (std::hash<std::string_view>()(indexBytes) << 1)];
+    const auto original = std::find_if(candidates.begin(), candidates.end(), [&](const auto& candidate)
+    {
+      const Mesh& other = *candidate.first;
+      return other.vertexBuffer->category == mesh->vertexBuffer->category && other.vertexBuffer->size() == mesh->vertexBuffer->size() &&
+             !std::memcmp(other.vertexBuffer->data, mesh->vertexBuffer->data, mesh->vertexBuffer->size()) && other.indexBuffer->indices == mesh->indexBuffer->indices;
+    });
+    if(original != candidates.end())
+    {
+      mesh->lods = original->second;
+      continue;
+    }
+
+    // Normals and (if there are any) texture coordinates follow the position in all vertex types.
+    const float* const positions = static_cast<const float*>(mesh->vertexBuffer->data);
+    const float* const attributes = positions + 3;
+    const std::size_t numOfAttributes = stride / sizeof(float) - 3;
+    ASSERT(numOfAttributes <= std::size(lodAttributeWeights));
+    const std::vector<std::uint32_t>& indices = mesh->indexBuffer->indices;
+    std::size_t previousSize = indices.size();
+    std::vector<Mesh::Lod> lods;
+    for(const float targetError : lodErrors)
+    {
+      std::vector<std::uint32_t> simplified(indices.size());
+      float error = 0.f;
+      simplified.resize(meshopt_simplifyWithAttributes(simplified.data(), indices.data(), indices.size(), positions, mesh->vertexBuffer->count, stride,
+                                                       attributes, stride, lodAttributeWeights, numOfAttributes, nullptr, 0, targetError, meshopt_SimplifyErrorAbsolute, &error));
+      // Versions that are not much smaller are not worth it.
+      if(simplified.size() < 3 * minSimplifiedTriangles || static_cast<float>(simplified.size()) > maxLodSizeRatio * static_cast<float>(previousSize))
+        continue;
+      meshopt_optimizeVertexCache(simplified.data(), simplified.data(), simplified.size(), mesh->vertexBuffer->count);
+      IndexBuffer* indexBuffer = requestIndexBuffer();
+      indexBuffer->indices = std::move(simplified);
+      previousSize = indexBuffer->indices.size();
+      lods.push_back({indexBuffer, error});
+    }
+    mesh->lods = lods;
+    candidates.emplace_back(mesh, std::move(lods));
+  }
+
   // Buffers with the same contents (e.g. the meshes of the parts that several robots have in common) share their memory.
   std::vector<std::pair<VertexBufferBase*, const VertexBufferBase*>> sharedVertexBuffers;
   std::unordered_map<std::size_t, std::vector<VertexBufferBase*>> uniqueVertexBuffers;
@@ -486,35 +549,57 @@ void GraphicsContextBase::updateModelMatrices(ModelMatrix::Usage usage, bool for
     ++modelMatrixGeneration;
 }
 
-void GraphicsContextBase::setupCulling(const Matrix4f& projectionView)
+void GraphicsContextBase::setupCulling(const Matrix4f& projection, const Matrix4f& view, int viewportHeight)
 {
-  // The shadow maps must contain everything that can cast a shadow into the view, so nothing is excluded from them.
-  if(renderingShadowMap)
-    viewFrustum.reset();
-  else
-    viewFrustum.emplace().set(projectionView);
+  frustumCulling = !renderingShadowMap;
+  viewFrustum.set(projection, view, viewportHeight);
 }
 
-bool GraphicsContextBase::cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const
+bool GraphicsContextBase::cullInstances(const DrawList::Pass& pass, bool allowLods, VisibleInstances& visible) const
 {
-  ASSERT(viewFrustum);
   visible.instances.clear();
   visible.ranges.clear();
-  for(const DrawList::Batch& batch : pass.batches)
+  allowLods &= viewFrustum.pixelsPerMeterAtOne > 0.f;
+  const float maxPixelError = renderingShadowMap ? shadowLodTexelError : lodPixelError;
+  bool all = true;
+  auto& lodInstances = visible.instancesOfLod;
+  for(std::uint32_t b = 0; b < pass.batches.size(); ++b)
   {
+    const DrawList::Batch& batch = pass.batches[b];
     const Mesh& mesh = *batch.mesh;
-    const std::uint32_t first = static_cast<std::uint32_t>(visible.instances.size());
+    const bool useLods = allowLods && !batch.blend && !mesh.lods.empty();
+    for(auto& instances : lodInstances)
+      instances.clear();
     for(std::uint32_t i = batch.firstInstance; i < batch.firstInstance + batch.numOfInstances; ++i)
     {
       const DrawList::Instance& instance = pass.instances[i];
       const Matrix4f& modelMatrix = modelMatrixArray[instance.modelMatrix];
       // Model matrices are rigid, so the radius does not change.
-      if(viewFrustum->intersects(modelMatrix.topLeftCorner<3, 3>() * mesh.boundsCenter + modelMatrix.topRightCorner<3, 1>(), mesh.boundsRadius))
-        visible.instances.push_back(instance);
+      const Vector3f center = modelMatrix.topLeftCorner<3, 3>() * mesh.boundsCenter + modelMatrix.topRightCorner<3, 1>();
+      if(frustumCulling && !viewFrustum.intersects(center, mesh.boundsRadius))
+      {
+        all = false;
+        continue;
+      }
+      std::size_t lod = 0;
+      if(useLods)
+      {
+        // The error of the level must not be seen in the nearest part of the mesh.
+        const float maxError = maxPixelError * std::max(viewFrustum.nearestDistance(center, mesh.boundsRadius), 0.01f) / viewFrustum.pixelsPerMeterAtOne;
+        while(lod < mesh.lods.size() && mesh.lods[lod].error <= maxError)
+          ++lod;
+        all &= lod == 0;
+      }
+      lodInstances[lod].push_back(instance);
     }
-    visible.ranges.emplace_back(first, static_cast<std::uint32_t>(visible.instances.size()) - first);
+    for(std::uint32_t lod = 0; lod <= maxLods; ++lod)
+      if(!lodInstances[lod].empty())
+      {
+        visible.ranges.push_back({b, lod, static_cast<std::uint32_t>(visible.instances.size()), static_cast<std::uint32_t>(lodInstances[lod].size())});
+        visible.instances.insert(visible.instances.end(), lodInstances[lod].begin(), lodInstances[lod].end());
+      }
   }
-  return visible.instances.size() != pass.instances.size();
+  return !all;
 }
 
 void GraphicsContextBase::buildDrawList(DrawList& drawList) const

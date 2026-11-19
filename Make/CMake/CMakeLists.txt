@@ -164,6 +164,7 @@ endif()
 
 include("../CMake/Box2D.cmake")
 include("../CMake/Eigen.cmake")
+include("../CMake/meshoptimizer.cmake")
 include("../CMake/MuJoCo.cmake")
 include("../CMake/Qt6.cmake")
 include("../CMake/SimRobot.cmake")

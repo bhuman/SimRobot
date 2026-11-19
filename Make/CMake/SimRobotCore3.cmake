@@ -39,6 +39,7 @@ endif()
 # The graphics API is part of the interface of SimRobotCore3 (e.g. the signatures of the renderer).
 target_compile_definitions(SimRobotCore3 PUBLIC ${SIMROBOTCORE3_GRAPHICS_DEFINITION})
 target_link_libraries(SimRobotCore3 PRIVATE Eigen::Eigen)
+target_link_libraries(SimRobotCore3 PRIVATE meshoptimizer)
 target_link_libraries(SimRobotCore3 PRIVATE mujoco::mujoco)
 target_link_libraries(SimRobotCore3 PRIVATE SimRobotInterface)
 target_link_libraries(SimRobotCore3 PRIVATE SimRobotCommon)
