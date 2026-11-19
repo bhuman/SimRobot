@@ -14,6 +14,10 @@
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include "Graphics/GraphicsContextBase.h"
+#include <chrono>
+#include <mutex>
+#include <utility>
+#include <vector>
 #include <Metal/Metal.hpp>
 #include <array>
 #include <cstdint>
@@ -295,6 +299,31 @@ private:
   std::size_t externalReferenceCounter = 0; /**< The number of registered external renderers. */
 
   // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
+  /**
+   * Releases a buffer that the command buffers that were encoded so far may use when the current command buffer has completed.
+   * @param buffer The buffer.
+   */
+  void releaseWhenCompleted(MTL::Buffer* buffer);
+
+  /** Buffers that are not used anymore but may still be used by the GPU (shared with the completion handlers of command buffers). */
+  struct RetiredBuffers
+  {
+    std::mutex mutex; /**< Protects the other members. */
+    std::vector<std::pair<MTL::Buffer*, std::chrono::steady_clock::time_point>> buffers; /**< The buffers and when they were retired. */
+    bool closed = false; /**< Whether the graphics context has been destroyed (buffers are released right away). */
+
+    /** Releases all buffers. */
+    void releaseAll()
+    {
+      std::lock_guard lock(mutex);
+      for(auto& buffer : buffers)
+        buffer.first->release();
+      buffers.clear();
+    }
+  };
+
+  std::shared_ptr<RetiredBuffers> retiredBuffers = std::make_shared<RetiredBuffers>(); /**< The buffers that were retired. */
+
   MTL::CommandBuffer* commandBuffer = nullptr; /**< The command buffer to which commands are encoded. */
   MTL::RenderCommandEncoder* encoder = nullptr; /**< The encoder of the current render pass. */
   bool renderDepthOnly = false; /**< Whether the current rendering is into a depth-only render target. */

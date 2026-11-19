@@ -868,6 +868,11 @@ void GraphicsContext::destroyDeviceResources()
   if(modelMatrixBuffer)
     modelMatrixBuffer->release();
   modelMatrixBuffer = nullptr;
+  {
+    std::lock_guard lock(retiredBuffers->mutex);
+    retiredBuffers->closed = true;
+  }
+  retiredBuffers->releaseAll();
   surfaceBuffer->release();
   for(MTL::Texture* texture : mtlTextures)
     if(texture)
@@ -985,7 +990,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
 {
   ASSERT(encoder);
   ASSERT(!selectedPipelineStates);
-  startCulling(projection * view);
+  startCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
   selectedPipelineStates = &pipelineStates[((renderDepthOnly ? 0 : sampleCountIndex * numOfShaders) + (renderDepthOnly ? depthOnlyShaderIndex : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)))) * numOfVertexCategories];
   boundPipelineState = nullptr;
 
@@ -1038,12 +1043,38 @@ void GraphicsContext::setForcedSurface(const Surface* surface)
   }
 }
 
+void GraphicsContext::releaseWhenCompleted(MTL::Buffer* buffer)
+{
+  // The command buffer of a QRhiWidget has unretained references (it does not keep the resources that it uses alive), and the
+  // command buffers of the other queue (the one that renders the cameras) and earlier ones may still be running, so the buffer is
+  // kept for a second after the current command buffer has completed (a frame takes a few milliseconds).
+  const auto retire = [](RetiredBuffers& retired, MTL::Buffer* buffer)
+  {
+    const auto now = std::chrono::steady_clock::now();
+    std::lock_guard lock(retired.mutex);
+    if(retired.closed)
+    {
+      buffer->release();
+      return;
+    }
+    retired.buffers.emplace_back(buffer, now);
+    std::size_t numOfOld = 0;
+    while(numOfOld < retired.buffers.size() && now - retired.buffers[numOfOld].second > std::chrono::seconds(1))
+      retired.buffers[numOfOld++].first->release();
+    retired.buffers.erase(retired.buffers.begin(), retired.buffers.begin() + static_cast<std::ptrdiff_t>(numOfOld));
+  };
+  if(commandBuffer)
+    commandBuffer->addCompletedHandler([retire, retired = retiredBuffers, buffer](MTL::CommandBuffer*){retire(*retired, buffer);});
+  else
+    retire(*retiredBuffers, buffer);
+}
+
 void GraphicsContext::bindModelMatrices()
 {
   if(!modelMatrixBuffer || uploadedModelMatrixGeneration != modelMatrixGeneration)
   {
     if(modelMatrixBuffer)
-      modelMatrixBuffer->release(); // Command buffers that were encoded with it keep it alive.
+      releaseWhenCompleted(modelMatrixBuffer);
     modelMatrixBuffer = device->newBuffer(modelMatrixArray.data(), std::max<std::size_t>(modelMatrixArray.size(), 1) * sizeof(Matrix4f), MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
     uploadedModelMatrixGeneration = modelMatrixGeneration;
   }
@@ -1066,7 +1097,7 @@ void GraphicsContext::drawList(const DrawList* drawList)
   bool culled = false;
   if(cullingActive)
   {
-    cullInstances(pass, visibleInstances);
+    cullInstances(pass, !renderDepthOnly || renderingShadowMap, visibleInstances);
     culled = !visibleInstances.all;
   }
   if(culled)
@@ -1080,7 +1111,7 @@ void GraphicsContext::drawList(const DrawList* drawList)
     {
       MTL::Buffer* buffer = device->newBuffer(visibleInstances.instances.data(), size, MTL::ResourceCPUCacheModeDefaultCache | MTL::ResourceStorageModeShared);
       encoder->setVertexBuffer(buffer, 0, 4);
-      buffer->release(); // The command buffer keeps it alive.
+      releaseWhenCompleted(buffer);
     }
   }
   else
@@ -1094,21 +1125,23 @@ void GraphicsContext::drawList(const DrawList* drawList)
     const std::uint32_t noSurface = 0xffffffffu;
     encoder->setVertexBytes(&noSurface, sizeof(noSurface), 5);
   }
-  for(std::size_t i = 0; i < pass.batches.size(); ++i)
+  const std::size_t numOfDraws = culled ? visibleInstances.ranges.size() : pass.batches.size();
+  for(std::size_t i = 0; i < numOfDraws; ++i)
   {
-    const DrawList::Batch& batch = pass.batches[i];
-    const std::uint32_t firstInstance = culled ? visibleInstances.ranges[i].first : batch.firstInstance;
-    const std::uint32_t numOfInstances = culled ? visibleInstances.ranges[i].second : batch.numOfInstances;
-    if(!numOfInstances)
-      continue;
+    // Without culling, the batches are drawn as they are.
+    const VisibleInstances::Range range = culled ? visibleInstances.ranges[i] : VisibleInstances::Range{static_cast<std::uint32_t>(i), 0, pass.batches[i].firstInstance, pass.batches[i].numOfInstances};
+    const DrawList::Batch& batch = pass.batches[range.batch];
     const Mesh* mesh = batch.mesh;
     MTL::RenderPipelineState* pipelineState = selectedPipelineStates[mesh->vertexBuffer->category];
     if(pipelineState != boundPipelineState)
       encoder->setRenderPipelineState((boundPipelineState = pipelineState));
     if(mesh->indexBuffer)
-      encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), mesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, mesh->indexBuffer->offset, numOfInstances, mesh->vertexBuffer->base, firstInstance);
+    {
+      const IndexBuffer* indices = getIndexBuffer(*mesh, range.lod);
+      encoder->drawIndexedPrimitives(getPrimitiveType(mesh->topology), indices->count, MTL::IndexTypeUInt32, indexBuffer, indices->offset, range.numOfInstances, mesh->vertexBuffer->base, range.firstInstance);
+    }
     else
-      encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count, numOfInstances, firstInstance);
+      encoder->drawPrimitives(getPrimitiveType(mesh->topology), mesh->vertexBuffer->base, mesh->vertexBuffer->count, range.numOfInstances, range.firstInstance);
   }
 }
 

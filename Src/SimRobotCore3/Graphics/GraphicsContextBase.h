@@ -76,6 +76,7 @@ public:
   };
 
   static constexpr std::size_t numOfVertexCategories = 2; /**< The number of vertex types. */
+  static constexpr std::size_t maxLods = 4; /**< The maximum number of simplified versions of a mesh. */
 
   /**
    * Base class for vertex buffers.
@@ -168,6 +169,15 @@ public:
     const IndexBuffer* indexBuffer = nullptr; /**< The (optional) index buffer of this mesh. */
     Vector3f boundsCenter = Vector3f::Zero(); /**< The center of a sphere that contains the mesh (in model space). */
     float boundsRadius = 0.f; /**< The radius of that sphere. */
+    Vector3f boundsHalfExtent = Vector3f::Zero(); /**< The half sizes of the axis-aligned box that contains the mesh and has the same center (in model space). */
+
+    /** A simplified version of the mesh that uses some of the vertices of the vertex buffer. */
+    struct Lod
+    {
+      const IndexBuffer* indexBuffer; /**< The index buffer of the simplified mesh. */
+      float error; /**< The maximum distance between the surfaces of the simplified mesh and the mesh (in model space). */
+    };
+    std::vector<Lod> lods; /**< The simplified versions of the mesh with ascending errors (empty if the mesh is not simplified). */
 
     friend class GraphicsContextBase;
     friend class ::GraphicsContext;
@@ -358,16 +368,20 @@ public:
   };
 
   /**
-   * The volume that a view can see, to find out which instances of a draw list do not have to be drawn.
+   * The volume that a view can see, to find out which instances of a draw list do not have to be drawn and how detailed
+   * they have to be.
    */
   struct ViewFrustum final
   {
     /**
-     * Sets the frustum from the matrix that transforms from world space to clip space.
-     * @param projectionView The product of the projection and the view matrix (with OpenGL conventions for clip space).
+     * Sets the frustum from the matrices of the view.
+     * @param projection The projection matrix (with OpenGL conventions for clip space).
+     * @param view The view matrix.
+     * @param viewportHeight The height of the viewport in pixels (0 if it is unknown, then sizes in pixels are not known).
      */
-    void set(const Matrix4f& projectionView)
+    void set(const Matrix4f& projection, const Matrix4f& view, int viewportHeight)
     {
+      const Matrix4f projectionView = projection * view;
       planes.row(0) = projectionView.row(3) + projectionView.row(0);
       planes.row(1) = projectionView.row(3) - projectionView.row(0);
       planes.row(2) = projectionView.row(3) + projectionView.row(1);
@@ -376,6 +390,13 @@ public:
       planes.row(5) = projectionView.row(3) - projectionView.row(2);
       for(int i = 0; i < 6; ++i)
         planes.row(i) /= planes.row(i).head<3>().norm();
+      // Sizes are known for perspective projections (where w in clip space is the distance from the camera plane) and for
+      // orthographic projections (where all distances are the same).
+      const bool perspective = projection(3, 2) == -1.f && projection(3, 3) == 0.f;
+      const bool orthographic = projection(3, 0) == 0.f && projection(3, 1) == 0.f && projection(3, 2) == 0.f && projection(3, 3) == 1.f;
+      pixelsPerMeterAtOne = (perspective || orthographic) && viewportHeight > 0 ? projection(1, 1) * static_cast<float>(viewportHeight) * 0.5f : 0.f;
+      depthRow = projectionView.row(3);
+      this->orthographic = orthographic;
     }
 
     /**
@@ -392,7 +413,21 @@ public:
       return true;
     }
 
+    /**
+     * Returns the distance from the camera plane of the nearest point of a sphere, which determines the size of its details in pixels.
+     * @param center The center of the sphere in world space.
+     * @param radius The radius of the sphere.
+     * @return The distance (1 for an orthographic projection, where all distances are the same).
+     */
+    float nearestDistance(const Vector3f& center, float radius) const
+    {
+      return orthographic ? 1.f : depthRow.head<3>().dot(center) + depthRow[3] - radius;
+    }
+
     Eigen::Matrix<float, 6, 4> planes; /**< The planes (normal and offset, normals point inwards and have length 1). */
+    Eigen::Matrix<float, 1, 4> depthRow; /**< The row that computes the distance from the camera plane (w in clip space) from a point in world space. */
+    float pixelsPerMeterAtOne = 0.f; /**< The size in pixels of a meter that is at a distance of one meter (0 if it is not known). */
+    bool orthographic = false; /**< Whether the projection is orthographic (then the size in pixels does not depend on the distance). */
   };
 
   /**
@@ -400,9 +435,20 @@ public:
    */
   struct VisibleInstances final
   {
-    std::vector<DrawList::Instance> instances; /**< The instances (in the order of the pass, i.e. grouped by batch). */
-    std::vector<std::pair<std::uint32_t, std::uint32_t>> ranges; /**< The index of the first instance and the number of instances of each batch of the pass. */
-    bool all = false; /**< Whether all instances of the pass are visible (then \c instances and \c ranges are not filled). */
+    /** Visible instances of a batch that are drawn with the same level of detail. */
+    struct Range
+    {
+      std::uint32_t batch; /**< The index of the batch of the pass. */
+      std::uint32_t lod; /**< The level of detail (0: the mesh itself, otherwise the index of the \c Mesh::Lod plus one). */
+      std::uint32_t firstInstance; /**< The index of the first instance in \c instances. */
+      std::uint32_t numOfInstances; /**< The number of instances. */
+    };
+
+    std::vector<DrawList::Instance> instances; /**< The instances (in the order of the ranges). */
+    std::vector<Range> ranges; /**< The ranges, in the order of the batches. */
+    bool all = false; /**< Whether all instances of the pass are visible and drawn with the mesh itself (then \c instances and \c ranges are not filled). */
+
+    std::array<std::vector<DrawList::Instance>, maxLods + 1> instancesOfLod; /**< Memory that is used while the instances of a batch are sorted by their level of detail. */
   };
 
   /**
@@ -718,18 +764,34 @@ protected:
 
   /**
    * Remembers the frustum that is used to exclude instances in \c cullInstances. Must be called when rendering starts.
-   * Instances are not excluded when the next view is rendered into a shadow map (\c renderingShadowMap).
-   * @param projectionView The product of the projection and the view matrix.
+   * Instances are not excluded when the next view is rendered into a shadow map (\c renderingShadowMap), because the
+   * instances that matter for them depend on the light and not on the view.
+   * @param projection The projection matrix.
+   * @param view The view matrix.
+   * @param viewportHeight The height of the viewport in pixels (0 if it is unknown).
    */
-  void startCulling(const Matrix4f& projectionView);
+  void startCulling(const Matrix4f& projection, const Matrix4f& view, int viewportHeight);
 
   /**
    * Finds the instances of a pass of a draw list that are inside the frustum of \c startCulling (considering the model
-   * matrices without any scaling). The graphics API draws these instead of all instances of the pass.
+   * matrices without any scaling) and selects the level of detail of the meshes of opaque instances such that its error is
+   * less than \c lodPixelError pixels in the view (in a shadow map: less than \c shadowLodTexelError texels). The graphics API draws these instead of all instances of the pass.
    * @param pass The pass of a draw list.
+   * @param allowLods Whether simplified meshes may be used.
    * @param visible The visible instances. The memory of the object is reused.
    */
-  void cullInstances(const DrawList::Pass& pass, VisibleInstances& visible) const;
+  void cullInstances(const DrawList::Pass& pass, bool allowLods, VisibleInstances& visible) const;
+
+  /**
+   * Returns the index buffer of a level of detail of a mesh.
+   * @param mesh The mesh.
+   * @param lod The level of detail (see \c VisibleInstances::Range).
+   * @return The index buffer.
+   */
+  static const IndexBuffer* getIndexBuffer(const Mesh& mesh, std::uint32_t lod)
+  {
+    return lod ? mesh.lods[lod - 1].indexBuffer : mesh.indexBuffer;
+  }
 
   /**
    * Creates the batches of a draw list from its recorded draw calls.
@@ -787,8 +849,11 @@ protected:
   bool batchByTexture = false; /**< Whether instances of the same mesh must not be batched if their surfaces have different textures (the graphics API can't select the texture per instance). */
   std::unordered_map<DrawListKey, std::unique_ptr<DrawList>, DrawListKey::Hasher> drawLists; /**< The draw lists that were requested so far. */
   bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
-  bool cullingActive = false; /**< Whether instances outside \c viewFrustum are not drawn. */
+  bool cullingActive = false; /**< Whether instances are selected (by their visibility in \c viewFrustum and their level of detail) before they are drawn. */
+  bool frustumCulling = false; /**< Whether instances outside \c viewFrustum are not drawn (shadow maps are not culled, but their level of detail is selected). */
   ViewFrustum viewFrustum; /**< The frustum of the current view. */
+  static constexpr float shadowLodTexelError = 1.f; /**< The maximum error of simplified meshes in shadow maps in texels. */
+  float lodPixelError = 0.5f; /**< The maximum error of simplified meshes in pixels (0: meshes are not simplified). */
   VisibleInstances visibleInstances; /**< The instances of the pass that is being drawn (its memory is reused for all passes). */
   DrawList* recordingList = nullptr; /**< The draw list that \c draw records into, while there is one. */
   const Mesh* drawingSphereMesh = nullptr; /**< The mesh of the spheres of controller drawings (a sphere with radius 1, centered at the origin). */
