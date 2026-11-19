@@ -14,7 +14,12 @@
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
+#include <QFont>
+#include <QFontDatabase>
+#include <QFontMetrics>
 #include <QImage>
+#include <QPainter>
+#include <QString>
 #include <meshoptimizer.h>
 #include <algorithm>
 #include <cmath>
@@ -404,6 +409,47 @@ void GraphicsContextBase::addLight(const Light* light)
   lights.push_back(data);
 }
 
+namespace
+{
+  constexpr int textCellWidth = 24; /**< The width of the cell of a character of a text in pixels (0.6 times its height, as in SimRobotCore3::Drawing::Text). */
+  constexpr int textCellHeight = 40; /**< The height of the cell of a character of a text in pixels. */
+
+  /** Renders a text with a monospace font: every character is centered in a cell, so the layout does not depend on the font. */
+  QImage renderText(const std::string& text, const SimRobotCore3::Drawing::Color& color, bool outline)
+  {
+    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    for(int size = textCellHeight - 5; size > 4; --size)
+    {
+      font.setPixelSize(size);
+      const QFontMetrics metrics(font);
+      if(metrics.height() <= textCellHeight - 2 && metrics.maxWidth() <= textCellWidth - 2)
+        break;
+    }
+    QImage image(std::max<int>(static_cast<int>(text.size()), 1) * textCellWidth, textCellHeight, QImage::Format_RGBA8888);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+    painter.setFont(font);
+    for(std::size_t i = 0; i < text.size(); ++i)
+    {
+      const char character = text[i] >= ' ' && text[i] < 127 ? text[i] : ' ';
+      const QString string(QChar(static_cast<ushort>(character)));
+      const QRect cell(static_cast<int>(i) * textCellWidth, 0, textCellWidth, textCellHeight);
+      if(outline)
+      {
+        painter.setPen(QColor(0, 0, 0, 200));
+        for(int dx = -1; dx <= 1; ++dx)
+          for(int dy = -1; dy <= 1; ++dy)
+            if(dx || dy)
+              painter.drawText(cell.translated(dx, dy), Qt::AlignCenter, string);
+      }
+      painter.setPen(QColor(color.r, color.g, color.b, color.a));
+      painter.drawText(cell, Qt::AlignCenter, string);
+    }
+    return image;
+  }
+}
+
 GraphicsContextBase::PreparedDrawing::PreparedDrawing(SimRobotCore3::Drawing&& drawing) :
   transformation(Eigen::Map<const Matrix4f>(drawing.transformation)), renderOptions(drawing.renderOptions)
 {
@@ -481,6 +527,47 @@ GraphicsContextBase::PreparedDrawing::PreparedDrawing(SimRobotCore3::Drawing&& d
       preparedImage.rgba = std::move(image.rgba);
     preparedImage.id = nextImageId++;
   }
+
+  // Texts are images that are turned towards the viewer.
+  for(const SimRobotCore3::Drawing::Text& text : drawing.texts)
+  {
+    if(text.text.empty() || text.height <= 0.f)
+      continue;
+    const QImage rendered = renderText(text.text, text.color, text.outline);
+    Image& preparedImage = images.emplace_back();
+    preparedImage.transformation = (Matrix4f() << Matrix3f::Identity(), Eigen::Map<const Vector3f>(text.point), Eigen::RowVector3f::Zero(), 1.f).finished();
+    preparedImage.width = static_cast<unsigned int>(rendered.width());
+    preparedImage.height = static_cast<unsigned int>(rendered.height());
+    preparedImage.rgba.resize(static_cast<std::size_t>(rendered.width()) * rendered.height() * 4);
+    for(int y = 0; y < rendered.height(); ++y)
+      std::memcpy(preparedImage.rgba.data() + static_cast<std::size_t>(y) * rendered.width() * 4, rendered.constScanLine(y), static_cast<std::size_t>(rendered.width()) * 4);
+    preparedImage.billboard = true;
+    preparedImage.size[0] = static_cast<float>(text.text.size()) * 0.6f * text.height;
+    preparedImage.size[1] = text.height;
+    // The center of the text relative to the anchor (to the right and up).
+    preparedImage.offset[0] = text.horizontal == SimRobotCore3::Drawing::Text::left ? 0.5f * preparedImage.size[0] : text.horizontal == SimRobotCore3::Drawing::Text::right ? -0.5f * preparedImage.size[0] : 0.f;
+    preparedImage.offset[1] = text.vertical == SimRobotCore3::Drawing::Text::top ? -0.5f * preparedImage.size[1] : text.vertical == SimRobotCore3::Drawing::Text::bottom ? 0.5f * preparedImage.size[1] : 0.f;
+    preparedImage.id = nextImageId++;
+  }
+}
+
+Matrix4f GraphicsContextBase::imageToWorld(const DrawingList::Item& item, const PreparedDrawing::Image& image, const Matrix4f& view)
+{
+  if(!image.billboard)
+    return item.transformation * image.transformation;
+
+  // The unit quad is turned so that its normal points away from the viewer and its top is up in the view. The size is scaled like the drawing.
+  const float scale = item.transformation.col(0).head<3>().norm();
+  const Vector3f anchor = (item.transformation * image.transformation).topRightCorner<3, 1>();
+  const Vector3f right = view.block<1, 3>(0, 0).transpose();
+  const Vector3f up = view.block<1, 3>(1, 0).transpose();
+  const Vector3f back = view.block<1, 3>(2, 0).transpose();
+  Matrix4f result = Matrix4f::Identity();
+  result.col(0).head<3>() = -back; // the image is seen along its x axis
+  result.col(1).head<3>() = -right * (0.5f * image.size[0] * scale); // the first pixel of each row is at +y, which is on the left for the viewer
+  result.col(2).head<3>() = up * (0.5f * image.size[1] * scale);
+  result.col(3).head<3>() = anchor + (right * image.offset[0] + up * image.offset[1]) * scale;
+  return result;
 }
 
 void GraphicsContextBase::DrawingList::add(const std::shared_ptr<const PreparedDrawing>& drawing, const float* objectTransformation)

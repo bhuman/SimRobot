@@ -10,6 +10,7 @@
 #include <QList>
 #include <QStringList>
 #include <functional>
+#include <string>
 #include <vector>
 
 #ifndef SIMROBOTCORE3_USE_OPENGL
@@ -301,6 +302,38 @@ namespace SimRobotCore3
       std::function<void(unsigned char* rgba)> fill;
     };
 
+    /**
+     * A text that is always turned towards the viewer (upright on the screen). It is drawn with a monospace font, and every
+     * character is in a cell that is 0.6 times as wide as \c height, so the width of a text is \c text.size() * 0.6 * height
+     * independent of the font. The size is in the unit of the drawing (so it scales like everything else).
+     */
+    struct Text
+    {
+      /** Where the text is relative to \c point (horizontally). */
+      enum Horizontal
+      {
+        left, /**< \c point is at the left edge of the text. */
+        center, /**< \c point is at the center of the text. */
+        right /**< \c point is at the right edge of the text. */
+      };
+
+      /** Where the text is relative to \c point (vertically). */
+      enum Vertical
+      {
+        top, /**< \c point is at the top edge of the text. */
+        middle, /**< \c point is at the center of the text. */
+        bottom /**< \c point is at the bottom edge of the text. */
+      };
+
+      float point[3]; /**< The anchor of the text. */
+      std::string text; /**< The text (ASCII characters, no line breaks). */
+      float height; /**< The height of a character cell. */
+      Color color;
+      Horizontal horizontal = center;
+      Vertical vertical = middle;
+      bool outline = true; /**< Whether the characters have a dark outline (so they can be read on any background). */
+    };
+
     /** Options that change how the drawing is drawn. */
     enum RenderOption
     {
@@ -319,6 +352,7 @@ namespace SimRobotCore3
     std::vector<Ellipsoid> ellipsoids;
     std::vector<Cylinder> cylinders;
     std::vector<Image> images;
+    std::vector<Text> texts;
   };
 
   /**

@@ -507,6 +507,9 @@ public:
       unsigned int width, height; /**< The size of the image in pixels. */
       std::uint64_t id; /**< A number that identifies the image during the lifetime of the program (the graphics contexts cache their textures by it). */
       std::vector<std::uint8_t> rgba; /**< The pixels (RGBA, top row first). */
+      bool billboard = false; /**< Whether the image is turned towards the viewer (a text): Then \c transformation only has the position of its anchor, and the other members define the rest. */
+      float size[2] = {0.f, 0.f}; /**< The width and the height of a billboard (in the unit of the drawing). */
+      float offset[2] = {0.f, 0.f}; /**< The position of the center of a billboard relative to its anchor to the right and up (in the unit of the drawing). */
     };
 
     /**
@@ -561,6 +564,16 @@ public:
      */
     void add(const std::shared_ptr<const PreparedDrawing>& drawing, const float* objectTransformation);
   };
+
+  /**
+   * Computes the matrix that transforms the unit quad of an image of a drawing to the world. For images that are turned
+   * towards the viewer (texts), it depends on the view.
+   * @param item The drawing that the image belongs to.
+   * @param image The image.
+   * @param view The view matrix.
+   * @return The matrix (the unit quad is in the yz-plane, with the top row of the image at +z).
+   */
+  static Matrix4f imageToWorld(const DrawingList::Item& item, const PreparedDrawing::Image& image, const Matrix4f& view);
 
   /**
    * Sets the environment of the scene: the color that the color buffer is cleared to, the ambient light, how the colors of

@@ -504,6 +504,8 @@ out vec4 FragColor;
 void main()
 {
   vec4 color = texture(tex, TexCoords);
+  if(color.a < 0.02)
+    discard; // transparent parts must not write the depth buffer
   FragColor = vec4(color.rgb, color.a * alphaScale);
 }
 )glsl";
@@ -1517,7 +1519,7 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
       f->glDisable(GL_CULL_FACE);
       for(std::size_t i = 0; i < drawing.images.size(); ++i)
       {
-        const Matrix4f imagePVM = pvm * drawing.images[i].transformation;
+        const Matrix4f imagePVM = pv * imageToWorld(item, drawing.images[i], view);
         f->glUniformMatrix4fv(imageShader.pvmLocation, 1, GL_FALSE, imagePVM.data());
         f->glBindTextureUnit(0, data->drawingTextures[item.firstImage + i]);
         f->glDrawElementsBaseVertex(getPrimitiveType(drawingQuadMesh->topology), static_cast<GLsizei>(drawingQuadMesh->indexBuffer->count), GL_UNSIGNED_INT, reinterpret_cast<void*>(drawingQuadMesh->indexBuffer->offset), static_cast<GLint>(drawingQuadMesh->vertexBuffer->base));

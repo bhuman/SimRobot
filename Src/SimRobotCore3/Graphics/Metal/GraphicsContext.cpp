@@ -434,6 +434,8 @@ fragment float4 drawingImageFragment(ImageOut in [[stage_in]], metal::texture2d<
 {
   constexpr metal::sampler imageSampler(metal::filter::linear, metal::address::clamp_to_edge);
   float4 color = image.sample(imageSampler, in.textureCoordinates);
+  if(color.a < 0.02)
+    metal::discard_fragment(); // transparent parts must not write the depth buffer
   return float4(color.rgb, color.a * alphaScale);
 }
 
@@ -1644,7 +1646,7 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
       encoder->setCullMode(MTL::CullModeNone);
       for(std::size_t i = 0; i < drawing.images.size(); ++i)
       {
-        const Matrix4f imagePVM = pvm * drawing.images[i].transformation;
+        const Matrix4f imagePVM = pv * imageToWorld(item, drawing.images[i], view);
         encoder->setVertexBytes(imagePVM.data(), sizeof(Matrix4f), 1);
         encoder->setFragmentTexture(drawingTextures[item.firstImage + i], 0);
         encoder->drawIndexedPrimitives(getPrimitiveType(drawingQuadMesh->topology), drawingQuadMesh->indexBuffer->count, MTL::IndexTypeUInt32, indexBuffer, drawingQuadMesh->indexBuffer->offset, 1, drawingQuadMesh->vertexBuffer->base, 0);
