@@ -43,6 +43,7 @@ ComplexAppearance::Descriptor::Descriptor(const ComplexAppearance& appearance) :
   vertices(appearance.vertices),
   normals(appearance.normals),
   texCoords(appearance.texCoords),
+  textured(appearance.texCoords && appearance.surface && appearance.surface->texture),
   primitiveGroups(&appearance.primitiveGroups)
 {}
 
@@ -51,6 +52,7 @@ bool ComplexAppearance::Descriptor::operator==(const Descriptor& other) const
   return vertices == other.vertices &&
          normals == other.normals &&
          texCoords == other.texCoords &&
+         textured == other.textured &&
          std::equal(primitiveGroups->begin(), primitiveGroups->end(), other.primitiveGroups->begin(), other.primitiveGroups->end());
 }
 

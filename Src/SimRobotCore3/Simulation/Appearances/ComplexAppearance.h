@@ -128,6 +128,7 @@ public:
     ComplexAppearance::Vertices* vertices;
     ComplexAppearance::Normals* normals;
     ComplexAppearance::TexCoords* texCoords;
+    bool textured; /**< Whether the mesh has texture coordinates (which depends on the surface, too). */
     const std::list<ComplexAppearance::PrimitiveGroup*>* primitiveGroups;
 
     friend struct ComplexAppearance::Hasher;
