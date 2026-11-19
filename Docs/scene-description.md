@@ -1135,6 +1135,24 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0
           - **Use**: optional
           - **Range**: [0, 1]
+      - `sheen`: The color of the sheen: fibers (like those of cloth or turf) look brighter at grazing angles. The sheen is added to the light (a lobe of the lights as in the glTF extension `KHR_materials_sheen`, and a term of the ambient light that grows towards the silhouette), so it depends on the lights and their shadows. Black means no sheen.
+          - **Default**: black
+          - **Use**: optional
+          - **Range**: Color
+      - `sheenRoughness`: The width of the lobe of the sheen, from 0 (only at the most grazing angles) to 1 (wide).
+          - **Default**: 0.5
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `normalMap`: The path to a normal map (tangent space, the green channel points to the top of the texture). It bends the normal that is used for lighting. The tangent frame is computed from the texture coordinates, so it only works for meshes with texture coordinates (not for meshes without them, like most CAD meshes). With `textureVariation`, a second, rotated layer is added like with the texture. It costs a texture lookup per pixel (two with `textureVariation`).
+          - **Use**: optional
+          - **Range**: String
+      - `normalScale`: How strong the normal map bends the normal (0: not at all, 1: as in the map).
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, 4]
+      - `roughnessMap`: The path to a texture whose red channel is multiplied with `roughness` (also only for meshes with texture coordinates).
+          - **Use**: optional
+          - **Range**: String
 
 
 ### texCoordsClass

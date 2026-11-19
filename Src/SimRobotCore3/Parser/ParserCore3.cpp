@@ -133,7 +133,7 @@ ParserCore3::ParserCore3()
       0, 0, 0, {}},
 
     {"Surface", surfaceClass, std::bind(&ParserCore3::surfaceElement, this), nullptr, constantFlag,
-      0, 0, 0, {"texture"}},
+      0, 0, 0, {"texture", "normalMap", "roughnessMap"}},
 
     {"Hinge", jointClass, std::bind(&ParserCore3::hingeElement, this), nullptr, 0,
       bodyClass | axisClass, translationClass | rotationClass, setClass, {}},
@@ -788,6 +788,12 @@ Element* ParserCore3::surfaceElement()
   surface->ambient = getFloatMinMax("ambient", false, surface->ambient, 0.f, 1.f);
   surface->textureVariation = getFloatMinMax("textureVariation", false, surface->textureVariation, 0.f, 1.f);
   surface->texturePath = getString("texture", false);
+  if(attributes->find("sheen") != attributes->end())
+    getColor("sheen", false, surface->sheen, false);
+  surface->sheenRoughness = getFloatMinMax("sheenRoughness", false, surface->sheenRoughness, 0.f, 1.f);
+  surface->normalMapPath = getString("normalMap", false);
+  surface->normalScale = getFloatMinMax("normalScale", false, surface->normalScale, 0.f, 4.f);
+  surface->roughnessMapPath = getString("roughnessMap", false);
   return surface;
 }
 

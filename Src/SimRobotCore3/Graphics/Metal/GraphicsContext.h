@@ -260,8 +260,10 @@ private:
 
   static constexpr std::size_t shadowMapMemorySize = 80; /**< Size of the data of a shadow map in graphics memory (see the ShadowMapData struct in the shader). */
   static constexpr std::size_t shadowMapTextureOffset = 64; /**< Offset of the texture handle within the data of a shadow map in graphics memory. */
-  static constexpr std::size_t surfaceMemorySize = 48; /**< Size of a surface in graphics memory (see the Surface struct in the shader). */
-  static constexpr std::size_t surfaceTextureOffset = 32; /**< Offset of the texture handle within a surface in graphics memory. */
+  static constexpr std::size_t surfaceMemorySize = 80; /**< Size of a surface in graphics memory (see the Surface struct in the shader). */
+  static constexpr std::size_t surfaceSheenOffset = 32; /**< Offset of the color and the roughness of the sheen within a surface in graphics memory. */
+  static constexpr std::size_t surfaceTextureOffset = 48; /**< Offset of the texture handle within a surface in graphics memory (followed by those of the normal map and the roughness map). */
+  static constexpr std::size_t surfaceNormalScaleOffset = 72; /**< Offset of the scale of the normal map within a surface in graphics memory. */
 
   /**
    * Returns the Metal primitive type that corresponds to a primitive topology.
@@ -287,6 +289,7 @@ private:
   std::vector<MTL::RenderPassDescriptor*> shadowMapRenderPasses; /**< The render passes that render into the shadow maps. */
   MTL::Buffer* shadowMapBuffer = nullptr; /**< The buffer with the data of all shadow maps (\c nullptr if there are none). */
   unsigned int lastShadowMapUpdate = -1; /**< The simulation step of the last shadow map update (-1 if they were not rendered yet). */
+  MTL::RenderPipelineState* depthOnlyAlphaTestPipelineState = nullptr; /**< The pipeline for depth-only renderings of instances with textures with alpha (for the vertex type with texture coordinates). */
   std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfShaders * numOfVertexCategories> pipelineStates = {}; /**< Render pipeline states per sample count, shader variant and vertex type. */
   std::array<MTL::RenderPipelineState*, numOfSampleCounts * numOfDrawingPipelineStates> drawingPipelineStates = {}; /**< Render pipeline states for controller drawings per sample count (see \c DrawingPipeline). */
   MTL::DepthStencilState* noDepthWriteState = nullptr; /**< The depth test configuration for drawings that must not write to the depth buffer. */

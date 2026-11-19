@@ -26,7 +26,18 @@ void Appearance::Surface::createGraphics(GraphicsContext& graphicsContext)
     texture = graphicsContext.requestTexture(texturePath);
   }
 
-  surface = graphicsContext.requestSurface(albedo, alpha, metallic, roughness, ambient, texture, textureVariation);
+  if(!normalMapPath.empty())
+  {
+    ASSERT(!normalMap);
+    normalMap = graphicsContext.requestTexture(normalMapPath);
+  }
+  if(!roughnessMapPath.empty())
+  {
+    ASSERT(!roughnessMap);
+    roughnessMap = graphicsContext.requestTexture(roughnessMapPath);
+  }
+
+  surface = graphicsContext.requestSurface(albedo, alpha, metallic, roughness, ambient, texture, textureVariation, sheen, sheenRoughness, normalMap, normalScale, roughnessMap);
 }
 
 void Appearance::createGraphics(GraphicsContext& graphicsContext)

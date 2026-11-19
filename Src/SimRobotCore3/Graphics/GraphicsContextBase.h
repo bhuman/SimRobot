@@ -218,6 +218,11 @@ public:
     float ambient = 1.f; /**< The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting). */
     const Texture* texture = nullptr; /**< The texture of the surface. */
     float textureVariation = 0.f; /**< How much the repetition of the texture is hidden, from 0 (not at all) to 1 (as much as possible). */
+    float sheen[3] = {0.f, 0.f, 0.f}; /**< The color of the sheen (the brightening of fibers at grazing angles), black for none. */
+    float sheenRoughness = 0.5f; /**< The width of the lobe of the sheen, from 0 (narrow, only at the most grazing angles) to 1 (wide). */
+    const Texture* normalMap = nullptr; /**< The normal map (tangent space, x to the right and y up in the texture), which needs a texture (coordinates). */
+    float normalScale = 1.f; /**< How strong the normal map bends the normal (0: not at all, 1: as in the map). */
+    const Texture* roughnessMap = nullptr; /**< A map with factors for the roughness (in its red channel). */
 
     std::size_t index = 0; /**< The index of this surface in the surface array of the graphics API. */
 
@@ -355,8 +360,9 @@ public:
       const Mesh* mesh; /**< The mesh (one of those that have the same geometry). */
       std::uint32_t firstInstance; /**< The index of the first instance of the batch in the instances of the pass. */
       std::uint32_t numOfInstances; /**< The number of instances. */
-      const Texture* texture; /**< The texture of the surfaces of the instances (only if the graphics API needs to draw the textures separately). */
+      const Surface* surface; /**< A surface of the instances, which have the same textures (only if the graphics API needs to bind the textures separately). */
       bool blend; /**< Whether the surfaces of the instances are transparent. */
+      bool alphaTest; /**< Whether the fragments of the instances are discarded depending on the alpha of the texture (only in depth-only passes, the instances of other batches have no textures with alpha). */
     };
 
     /** The batches that are drawn by one kind of render pass. */
@@ -368,7 +374,7 @@ public:
     };
 
     Pass color; /**< The pass with colors (opaque instances first, then transparent instances in the order of drawing). */
-    Pass depthOnly; /**< The pass with depths only (the surfaces are not needed, so there are fewer batches). */
+    Pass depthOnly; /**< The pass with depths only (the surfaces are only needed for textures with alpha, so there are fewer batches). */
 
   private:
     /** An appearance as it was drawn. */
@@ -614,9 +620,15 @@ public:
    * @param ambient The ambient occlusion factor from 0 (no ambient lighting) to 1 (full ambient lighting).
    * @param texture The texture of the surface. May be \c nullptr.
    * @param textureVariation How much the repetition of the texture is hidden, from 0 (not at all) to 1 (as much as possible). Has no effect without a texture.
+   * @param sheen The color of the sheen (RGB), the brightening of fibers (like those of cloth or turf) at grazing angles. May be \c nullptr (no sheen).
+   * @param sheenRoughness The width of the lobe of the sheen, from 0 (narrow) to 1 (wide).
+   * @param normalMap The normal map (in tangent space, with the y axis of the texture pointing up). May be \c nullptr. The surface should only be used for meshes with texture coordinates.
+   * @param normalScale How strong the normal map bends the normal (0: not at all, 1: as in the map).
+   * @param roughnessMap A texture whose red channel is multiplied with the roughness. May be \c nullptr. The surface should only be used for meshes with texture coordinates.
    * @return The new surface. The graphics context retains ownership of the object.
    */
-  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr, float textureVariation = 0.f);
+  Surface* requestSurface(const float* albedo, float alpha = 1.f, float metallic = 0.f, float roughness = 0.5f, float ambient = 1.f, const Texture* texture = nullptr, float textureVariation = 0.f,
+                          const float* sheen = nullptr, float sheenRoughness = 0.5f, const Texture* normalMap = nullptr, float normalScale = 1.f, const Texture* roughnessMap = nullptr);
 
   /**
    * Requests a buffer into which images of off-screen renderings are converted.
@@ -865,7 +877,7 @@ protected:
   std::vector<ReadbackBuffer*> readbackBuffers; /**< List of all registered readback buffers. */
   std::vector<Matrix4f> modelMatrixArray; /**< The model matrices of all usage classes (indexed by \c ModelMatrix::index), which the graphics API makes available to the shaders. */
   std::uint64_t modelMatrixGeneration = 1; /**< A number that is increased whenever \c modelMatrixArray changes. */
-  bool batchByTexture = false; /**< Whether instances of the same mesh must not be batched if their surfaces have different textures (the graphics API can't select the texture per instance). */
+  bool batchByTexture = false; /**< Whether instances of the same mesh must not be batched if their surfaces have different textures (albedo, normal or roughness map; the graphics API can't select the texture per instance). */
   std::unordered_map<DrawListKey, std::unique_ptr<DrawList>, DrawListKey::Hasher> drawLists; /**< The draw lists that were requested so far. */
   bool renderingShadowMap = false; /**< Whether the current rendering is into a shadow map. */
   bool cullingActive = false; /**< Whether instances are selected (by their visibility in \c viewFrustum and their level of detail) before they are drawn. */

@@ -29,8 +29,15 @@ public:
     float roughness = 0.5f;
     float ambient = 1.f;
     float textureVariation = 0.f;
+    float sheen[3] = {0.f, 0.f, 0.f};
+    float sheenRoughness = 0.5f;
+    float normalScale = 1.f;
     std::string texturePath;
+    std::string normalMapPath;
+    std::string roughnessMapPath;
     GraphicsContext::Texture* texture = nullptr;
+    GraphicsContext::Texture* normalMap = nullptr;
+    GraphicsContext::Texture* roughnessMap = nullptr;
     GraphicsContext::Surface* surface = nullptr;
 
     /** Constructor */

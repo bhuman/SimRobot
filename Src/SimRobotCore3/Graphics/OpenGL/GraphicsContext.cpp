@@ -84,6 +84,62 @@ void main()
 }
 )glsl";
 
+// The shaders for depth-only renderings of instances with textures with alpha: the fragments that are transparent are discarded.
+static const char* depthOnlyAlphaTestVertexShaderSourceCode = R"glsl(
+layout(location = 0) in vec3 inPosInModel;
+layout(location = 2) in vec2 inTexCoords;
+
+out vec2 TexCoords;
+flat out uint SurfaceIndex;
+
+uniform mat4 cameraPV;
+uniform uint baseInstance; // The index of the first instance of the draw call in the instances (gl_InstanceID does not include it).
+
+layout(std430, binding = 0) readonly buffer ModelMatrices
+{
+  mat4 modelMatrices[];
+};
+
+// Must match GraphicsContext::DrawList::Instance.
+layout(std430, binding = 1) readonly buffer Instances
+{
+  uvec2 instances[]; // The index of the model matrix and the index of the surface.
+};
+
+void main()
+{
+  const uvec2 instance = instances[baseInstance + uint(gl_InstanceID)];
+  SurfaceIndex = instance.y;
+  TexCoords = inTexCoords;
+  gl_Position = cameraPV * modelMatrices[instance.x] * vec4(inPosInModel, 1.0);
+}
+)glsl";
+
+static const char* depthOnlyAlphaTestFragmentShaderSourceCode = R"glsl(
+struct Surface
+{
+  vec4 albedoAlpha;
+  vec4 material;
+  vec4 sheen;
+  vec4 maps;
+};
+
+in vec2 TexCoords;
+flat in uint SurfaceIndex;
+
+layout(binding = 0) uniform sampler2D albedoTexture;
+layout(std430, binding = 2) readonly buffer Surfaces
+{
+  Surface surfaces[];
+};
+
+void main()
+{
+  if(texture(albedoTexture, TexCoords).a * surfaces[SurfaceIndex].albedoAlpha.a < 0.5)
+    discard;
+}
+)glsl";
+
 static const char* fragmentShaderSourceCode = R"glsl(
 struct DirLight
 {
@@ -111,14 +167,13 @@ struct SpotLight
   float cutoff;
 };
 
+// Must match GraphicsContext::surfaceMemorySize (and the other members of surfaces in graphics memory).
 struct Surface
 {
-  vec3 albedo;
-  float alpha;
-  float metallic;
-  float roughness;
-  float ambient;
-  float textureVariation; // negative if the surface has no texture
+  vec4 albedoAlpha;
+  vec4 material; // The metallic, roughness, ambient and texture variation (negative if the surface has no texture).
+  vec4 sheen; // The color and the roughness of the sheen.
+  vec4 maps; // The scale of the normal map (negative if there is none) and 1 if there is a roughness map (otherwise 0).
 };
 
 in vec3 FragPosInWorld;
@@ -130,10 +185,12 @@ flat in uint SurfaceIndex;
 #define surfaceIndex SurfaceIndex
 #ifdef WITH_TEXTURES
 layout(binding = 0) uniform sampler2D albedoTexture;
+layout(binding = 9) uniform sampler2D normalMapTexture;
+layout(binding = 10) uniform sampler2D roughnessMapTexture;
 #endif
-layout(std140, binding = 0) uniform Surfaces
+layout(std430, binding = 2) readonly buffer Surfaces
 {
-  Surface surfaces[NUM_OF_SURFACES];
+  Surface surfaces[];
 };
 
 out vec4 FragColor;
@@ -166,14 +223,14 @@ vec3 fresnelSchlick(in float cosTheta, in vec3 F0)
   return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0)
+vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float roughness, in float metallic)
 {
   vec3 halfDir = normalize(viewDir + lightDir);
   float cosView = max(dot(normal, viewDir), 0.0);
   float cosLight = max(dot(normal, lightDir), 0.0);
 
-  float NDF = distributionTrowbridgeReitz(normal, halfDir, surfaces[surfaceIndex].roughness);
-  float G = geometrySmith(normal, cosView, cosLight, surfaces[surfaceIndex].roughness);
+  float NDF = distributionTrowbridgeReitz(normal, halfDir, roughness);
+  float G = geometrySmith(normal, cosView, cosLight, roughness);
   vec3 F = fresnelSchlick(clamp(dot(halfDir, viewDir), 0.0, 1.0), F0);
 
   vec3 numerator = NDF * G * F;
@@ -181,7 +238,7 @@ vec3 calcBrdf(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo,
   vec3 specular = numerator / denominator;
 
   vec3 kS = F;
-  vec3 kD = (vec3(1.0) - kS) * (1.0 - surfaces[surfaceIndex].metallic);
+  vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
   return kD * albedo / PI + specular;
 }
@@ -223,31 +280,49 @@ float illumination(in sampler2DShadow shadowMap, in mat4 lightPV, in vec3 lightD
   return visibility / 12.0;
 }
 
-vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
+// The sheen of fibers (cloth, turf): the lobe of Charlie with the visibility term of Neubelt and Pettineo (see the glTF
+// extension KHR_materials_sheen), which is brightest at grazing angles. The roughness of the sheen is in the fourth component.
+vec3 calcSheen(in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec4 sheen)
 {
-  float cosTheta = max(dot(normal, lightDir), 0.0);
-  return calcBrdf(lightDir, normal, viewDir, albedo, F0) * irradiance * cosTheta * visibility;
+  vec3 halfDir = normalize(viewDir + lightDir);
+  float cosView = max(dot(normal, viewDir), 0.0);
+  float cosLight = max(dot(normal, lightDir), 0.0);
+  float cosHalf = clamp(dot(normal, halfDir), 0.0, 1.0);
+  float inverseAlpha = 1.0 / max(sheen.w * sheen.w, 0.0625);
+  float sinHalf = sqrt(max(1.0 - cosHalf * cosHalf, 0.0001));
+  float distribution = (2.0 + inverseAlpha) * pow(sinHalf, inverseAlpha) / (2.0 * PI);
+  float visibility = 1.0 / (4.0 * (cosLight + cosView - cosLight * cosView) + 0.0001);
+  return sheen.rgb * distribution * visibility;
 }
 
-vec3 calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
+vec3 calcLight(in vec3 irradiance, in vec3 lightDir, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float roughness, in float metallic, in vec4 sheen, in float visibility)
+{
+  float cosTheta = max(dot(normal, lightDir), 0.0);
+  vec3 brdf = calcBrdf(lightDir, normal, viewDir, albedo, F0, roughness, metallic);
+  if (sheen.r + sheen.g + sheen.b > 0.0)
+    brdf += calcSheen(lightDir, normal, viewDir, sheen);
+  return brdf * irradiance * cosTheta * visibility;
+}
+
+vec3 calcDirLight(const in DirLight light, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float roughness, in float metallic, in vec4 sheen, in float visibility)
 {
   vec3 lightDir = normalize(-light.direction);
   vec3 irradiance = light.color;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-vec3 calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
+vec3 calcPointLight(const in PointLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float roughness, in float metallic, in vec4 sheen, in float visibility)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   vec3 irradiance = light.color * attenuation;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float visibility)
+vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec3 viewDir, in vec3 albedo, in vec3 F0, in float roughness, in float metallic, in vec4 sheen, in float visibility)
 {
   vec3 lightDir = normalize(light.position - pos);
   float distance = length(light.position - pos);
@@ -256,7 +331,7 @@ vec3 calcSpotLight(const in SpotLight light, in vec3 pos, in vec3 normal, in vec
   float intensity = clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
   vec3 irradiance = light.color * attenuation * intensity;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
 #ifdef WITH_LIGHTING
@@ -270,13 +345,16 @@ void main()
   vec3 normalizedNormal = normalize(NormalInWorld);
   vec3 viewDir = normalize(cameraPos - FragPosInWorld);
 
-  vec3 albedo = surfaces[surfaceIndex].albedo;
-  color.a = surfaces[surfaceIndex].alpha;
+  vec3 albedo = surfaces[surfaceIndex].albedoAlpha.rgb;
+  color.a = surfaces[surfaceIndex].albedoAlpha.a;
+  float roughness = surfaces[surfaceIndex].material.y;
+  float metallic = surfaces[surfaceIndex].material.x;
+  vec4 sheen = surfaces[surfaceIndex].sheen;
 #ifdef WITH_TEXTURES
-  if (surfaces[surfaceIndex].textureVariation >= 0.0)
+  if (surfaces[surfaceIndex].material.w >= 0.0)
   {
     vec4 modulation = texture(albedoTexture, TexCoords);
-    if (surfaces[surfaceIndex].textureVariation > 0.0)
+    if (surfaces[surfaceIndex].material.w > 0.0)
     {
       // Hides the repetition of the texture: A second layer of the texture with another scale and orientation is added (with the
       // mean color subtracted, so that the contrast stays the same), and large patches are slightly brighter or darker.
@@ -289,20 +367,48 @@ void main()
       vec2 i = floor(cell);
       vec4 h = fract(sin(vec4(dot(i, vec2(12.9898, 78.233)), dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233)), dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233)), dot(i + vec2(1.0, 1.0), vec2(12.9898, 78.233)))) * 43758.5453);
       float macro = mix(mix(h.x, h.y, f.x), mix(h.z, h.w, f.x), f.y);
-      modulation.rgb = max(layers * (1.0 + 0.35 * surfaces[surfaceIndex].textureVariation * (macro - 0.5)), 0.0);
+      modulation.rgb = max(layers * (1.0 + 0.35 * surfaces[surfaceIndex].material.w * (macro - 0.5)), 0.0);
     }
     albedo = albedo * modulation.rgb;
     color.a = color.a * modulation.a;
   }
+  if (surfaces[surfaceIndex].maps.x >= 0.0)
+  {
+    // The x and y components of the normal in tangent space (the second layer, which is needed to hide the repetition, is rotated).
+    vec2 slope = texture(normalMapTexture, TexCoords).xy * 2.0 - 1.0;
+    if (surfaces[surfaceIndex].material.w > 0.0)
+    {
+      vec2 second = texture(normalMapTexture, mat2(0.5657, 0.4243, -0.4243, 0.5657) * TexCoords + vec2(0.37, 0.19)).xy * 2.0 - 1.0;
+      slope = (slope + vec2(0.8 * second.x + 0.6 * second.y, -0.6 * second.x + 0.8 * second.y)) * 0.7071;
+    }
+    slope *= surfaces[surfaceIndex].maps.x;
+    vec3 tangentNormal = vec3(slope, sqrt(max(1.0 - dot(slope, slope), 0.0001)));
+    // The tangent frame comes from the derivatives of the position and the texture coordinates.
+    vec3 positionDx = dFdx(FragPosInWorld);
+    vec3 positionDy = dFdy(FragPosInWorld);
+    vec2 textureDx = dFdx(TexCoords);
+    vec2 textureDy = dFdy(TexCoords);
+    vec3 perpendicularY = cross(positionDy, normalizedNormal);
+    vec3 perpendicularX = cross(normalizedNormal, positionDx);
+    vec3 tangent = perpendicularY * textureDx.x + perpendicularX * textureDy.x;
+    vec3 bitangent = perpendicularY * textureDx.y + perpendicularX * textureDy.y;
+    float scale = inversesqrt(max(max(dot(tangent, tangent), dot(bitangent, bitangent)), 1e-20));
+    normalizedNormal = normalize(tangent * scale * tangentNormal.x + bitangent * scale * tangentNormal.y + normalizedNormal * tangentNormal.z);
+  }
+  if (surfaces[surfaceIndex].maps.y > 0.0)
+    roughness = clamp(roughness * texture(roughnessMapTexture, TexCoords).r, 0.0, 1.0);
 #endif
   albedo = pow(albedo, vec3(2.2)); // convert from sRGB to linear
   vec3 F0 = vec3(0.04);
-  F0 = mix(F0, albedo, surfaces[surfaceIndex].metallic);
+  F0 = mix(F0, albedo, metallic);
 
   vec3 Lo = vec3(0.0);
   CALCULATE_LIGHTS
   // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
-  vec3 ambient = mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z) * albedo * surfaces[surfaceIndex].ambient;
+  vec3 ambientLight = mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z);
+  vec3 ambient = ambientLight * albedo * surfaces[surfaceIndex].material.z;
+  if (sheen.r + sheen.g + sheen.b > 0.0)
+    ambient += sheen.rgb * ambientLight * pow(1.0 - max(dot(normalizedNormal, viewDir), 0.0), 1.0 / max(sheen.w * sheen.w, 0.0625)) * surfaces[surfaceIndex].material.z;
   color.rgb = (ambient + Lo) * EXPOSURE;
 #ifdef FILMIC_TONE_MAPPING
   color.rgb = clamp((color.rgb * (2.51 * color.rgb + 0.03)) / (color.rgb * (2.43 * color.rgb + 0.59) + 0.14), 0.0, 1.0); // ACES approximation
@@ -311,9 +417,9 @@ void main()
 #endif
   color.rgb = pow(color.rgb, vec3(1.0 / 2.2)); // convert from linear to sRGB
 #else
-  color = vec4(surfaces[surfaceIndex].albedo, surfaces[surfaceIndex].alpha);
+  color = surfaces[surfaceIndex].albedoAlpha;
 #ifdef WITH_TEXTURES
-  if (surfaces[surfaceIndex].textureVariation >= 0.0)
+  if (surfaces[surfaceIndex].material.w >= 0.0)
     color = color * texture(albedoTexture, TexCoords);
 #endif
 #endif
@@ -669,7 +775,7 @@ void GraphicsContext::createGraphics()
   {
     data.vbo = shareData->vbo;
     data.ebo = shareData->ebo;
-    data.surfaceUBO = shareData->surfaceUBO;
+    data.surfaceSSBO = shareData->surfaceSSBO;
   }
   else
   {
@@ -690,13 +796,22 @@ void GraphicsContext::createGraphics()
     memory.assign(surfaces.size() * surfaceMemorySize, 0);
     for(std::size_t i = 0; i < surfaces.size(); ++i)
     {
-      static constexpr std::size_t verbatimPart = offsetof(Surface, ambient) - offsetof(Surface, albedo) + sizeof(Surface::ambient);
-      unsigned char* const buf = memory.data() + i * surfaceMemorySize;
-      std::memcpy(buf, &surfaces[i]->albedo, verbatimPart);
-      *reinterpret_cast<float*>(buf + verbatimPart) = surfaces[i]->texture ? surfaces[i]->textureVariation : -1.f;
+      // The memory layout is that of the struct Surface in the shaders (four vectors of four floats).
+      const Surface& surface = *surfaces[i];
+      float* const values = reinterpret_cast<float*>(memory.data() + i * surfaceMemorySize);
+      std::memcpy(values, surface.albedo, sizeof(surface.albedo));
+      values[3] = surface.alpha;
+      values[4] = surface.metallic;
+      values[5] = surface.roughness;
+      values[6] = surface.ambient;
+      values[7] = surface.texture ? surface.textureVariation : -1.f;
+      std::memcpy(values + 8, surface.sheen, sizeof(surface.sheen));
+      values[11] = surface.sheenRoughness;
+      values[12] = surface.normalMap ? surface.normalScale : -1.f;
+      values[13] = surface.roughnessMap ? 1.f : 0.f;
     }
-    f->glCreateBuffers(1, &data.surfaceUBO);
-    f->glNamedBufferStorage(data.surfaceUBO, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
+    f->glCreateBuffers(1, &data.surfaceSSBO);
+    f->glNamedBufferStorage(data.surfaceSSBO, static_cast<GLsizeiptr>(memory.size()), memory.data(), 0);
   }
 
   // VAOs are never shared between contexts, so they must be created here. All of them use the same VBO and EBO.
@@ -736,6 +851,13 @@ void GraphicsContext::createGraphics()
   else
   {
     // Upload textures (with all mipmap levels). Textures that could not be loaded are left empty (no surface uses them).
+    // Textures are filtered anisotropically (if the driver can), so that they stay sharp at grazing angles.
+    GLfloat anisotropy = 0.f;
+    if(QOpenGLContext::currentContext()->hasExtension("GL_EXT_texture_filter_anisotropic"))
+    {
+      f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &anisotropy);
+      anisotropy = std::min(anisotropy, 2.f);
+    }
     data.textureIDs.resize(textures.size());
     f->glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(textures.size()), data.textureIDs.data());
     for(const auto& pair : textures)
@@ -750,6 +872,8 @@ void GraphicsContext::createGraphics()
       f->glTextureSubImage2D(id, 0, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, texture->data.data());
       f->glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
       f->glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      if(anisotropy > 1.f)
+        f->glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
       f->glGenerateTextureMipmap(id);
     }
 
@@ -774,6 +898,7 @@ void GraphicsContext::createGraphics()
     for(unsigned int i = 0; i < 8; ++i)
       data.shaders[i] = compileColorShader(i & 4, i & 2, i & 1);
     data.shaders[8] = compileDepthOnlyShader();
+    data.shaders[9] = compileDepthOnlyAlphaTestShader();
     data.drawingShaders[streamDrawingShader] = compileDrawingShader(drawingStreamVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
     data.drawingShaders[instanceDrawingShader] = compileDrawingShader(drawingInstanceVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
     data.drawingShaders[imageDrawingShader] = compileDrawingShader(drawingImageVertexShaderSourceCode, drawingImageFragmentShaderSourceCode);
@@ -823,7 +948,7 @@ void GraphicsContext::destroyGraphics()
   {
     data.f->glDeleteBuffers(1, &data.vbo);
     data.f->glDeleteBuffers(1, &data.ebo);
-    data.f->glDeleteBuffers(1, &data.surfaceUBO);
+    data.f->glDeleteBuffers(1, &data.surfaceSSBO);
     for(auto& entry : drawLists)
       for(DrawList::Pass* pass : {&entry.second->color, &entry.second->depthOnly})
         if(pass->native)
@@ -911,6 +1036,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
   startCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
+  currentPV = pv;
   f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
@@ -925,7 +1051,7 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
       // Texture unit 0 is used for the albedo textures (see the bindings in the shaders).
       f->glBindTextureUnit(static_cast<GLuint>(i) + 1, data->shadowMapTextures[i]);
     }
-  f->glBindBufferBase(GL_UNIFORM_BUFFER, 0, data->surfaceUBO);
+  f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, data->surfaceSSBO);
   // The values of the uniforms of the program are unknown.
   data->uniformBaseInstance = 0xffffffffu;
   data->uniformForcedSurface = 0xfffffffeu;
@@ -937,8 +1063,11 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   // If this shader uses textures, we bind some non-null texture initially. This prevents warnings
   // on Apple devices and signals setSurface that textures have to be bound.
   data->boundTexture = (textures && !renderDepthOnly) ? data->textureIDs.front() : 0;
+  data->boundNormalMap = data->boundRoughnessMap = data->boundTexture;
   data->blendEnabled = false;
   f->glBindTextureUnit(0, data->boundTexture);
+  f->glBindTextureUnit(normalMapUnit, data->boundNormalMap);
+  f->glBindTextureUnit(roughnessMapUnit, data->boundRoughnessMap);
   f->glDisable(GL_BLEND);
 }
 
@@ -963,6 +1092,16 @@ void GraphicsContext::bindInstances(GLuint buffer)
 {
   if(data->boundInstanceSSBO != buffer)
     f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, (data->boundInstanceSSBO = buffer));
+}
+
+void GraphicsContext::useShader(Shader* newShader)
+{
+  if(shader == newShader)
+    return;
+  shader = newShader;
+  f->glUseProgram(shader->program);
+  f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, currentPV.data());
+  data->uniformBaseInstance = 0xffffffffu;
 }
 
 void GraphicsContext::setBaseInstance(std::uint32_t baseInstance)
@@ -1028,12 +1167,22 @@ void GraphicsContext::drawList(const DrawList* drawList)
     const GLuint newVAO = data->vao[mesh->vertexBuffer->category];
     if(newVAO != data->boundVAO)
       f->glBindVertexArray((data->boundVAO = newVAO));
-    if(!renderDepthOnly && !forcedSurface)
+    if(renderingShadowMap)
     {
-      // The texture and the blend state are those of the instances (all of them have the same).
-      const GLuint newTexture = batch.texture ? data->textureIDs[batch.texture->index] : 0;
-      if(newTexture && data->boundTexture && newTexture != data->boundTexture)
-        f->glBindTextureUnit(0, (data->boundTexture = newTexture));
+      // The fragments of instances with textures with alpha are discarded where the texture is transparent.
+      useShader(&data->shaders[batch.alphaTest ? 9 : 8]);
+      if(batch.alphaTest)
+      {
+        const GLuint newTexture = data->textureIDs[batch.surface->texture->index];
+        if(newTexture != data->boundTexture)
+          f->glBindTextureUnit(0, (data->boundTexture = newTexture));
+      }
+    }
+    else if(!renderDepthOnly && !forcedSurface)
+    {
+      // The textures and the blend state are those of the instances (all of them have the same).
+      if(batch.surface)
+        bindTextures(*batch.surface);
       if(batch.blend && !data->blendEnabled)
       {
         f->glEnable(GL_BLEND);
@@ -1055,6 +1204,8 @@ void GraphicsContext::drawList(const DrawList* drawList)
     else
       f->glDrawArraysInstanced(getPrimitiveType(mesh->topology), static_cast<GLint>(mesh->vertexBuffer->base), static_cast<GLsizei>(mesh->vertexBuffer->count), static_cast<GLsizei>(range.numOfInstances));
   }
+  if(renderingShadowMap)
+    useShader(&data->shaders[8]);
 }
 
 void GraphicsContext::finishRendering()
@@ -1386,7 +1537,7 @@ void GraphicsContext::drawDrawings(const DrawingList& drawings, const Matrix4f& 
   f->glBindVertexArray(0);
   f->glUseProgram(0);
   data->boundVAO = 0;
-  data->boundTexture = 0;
+  data->boundTexture = data->boundNormalMap = data->boundRoughnessMap = 0;
   data->blendEnabled = false;
 }
 
@@ -1405,6 +1556,25 @@ void GraphicsContext::clearDepth()
   f->glClear(GL_DEPTH_BUFFER_BIT);
 }
 
+void GraphicsContext::bindTextures(const Surface& surface)
+{
+  // data->boundTexture is != 0 iff the shader uses textures. If the new surface doesn't have a texture of a kind,
+  // the old one must stay bound (the shader doesn't use it).
+  if(!data->boundTexture)
+    return;
+  const auto bind = [&](GLuint unit, const Texture* texture, GLuint& boundTexture)
+  {
+    if(!texture)
+      return;
+    const GLuint newTexture = data->textureIDs[texture->index];
+    if(newTexture != boundTexture)
+      f->glBindTextureUnit(unit, (boundTexture = newTexture));
+  };
+  bind(0, surface.texture, data->boundTexture);
+  bind(normalMapUnit, surface.normalMap, data->boundNormalMap);
+  bind(roughnessMapUnit, surface.roughnessMap, data->boundRoughnessMap);
+}
+
 void GraphicsContext::setSurface(const Surface* surface)
 {
   ASSERT(data);
@@ -1412,11 +1582,7 @@ void GraphicsContext::setSurface(const Surface* surface)
   ASSERT(f);
   if(renderDepthOnly)
     return;
-  const GLuint newTexture = surface->texture ? data->textureIDs[surface->texture->index] : 0;
-  // data->boundTexture is != 0 here iff the shader uses a texture. If the new surface doesn't have
-  // a texture, the old one must stay bound.
-  if(newTexture && data->boundTexture && newTexture != data->boundTexture)
-    f->glBindTextureUnit(0, (data->boundTexture = newTexture));
+  bindTextures(*surface);
   setForcedSurfaceIndex(static_cast<std::uint32_t>(surface->index));
   const bool newBlendState = surface->texture ? surface->texture->hasAlpha : (surface->alpha < 1.f);
   if(newBlendState && !data->blendEnabled)
@@ -1484,7 +1650,6 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
   const char* versionSourceCode = "#version 450 core\n";
 
   std::string defines;
-  defines += "#define NUM_OF_SURFACES " + std::to_string(surfaces.size()) + "\n";
   if(lighting)
     defines += "#define WITH_LIGHTING\n";
   if(textures)
@@ -1535,13 +1700,13 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
     switch(light.type)
     {
       case LightData::directional:
-        lightCalculationsCode += " Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        lightCalculationsCode += " Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, roughness, metallic, sheen, " + visibility + ");";
         break;
       case LightData::spot:
-        lightCalculationsCode += " Lo += calcSpotLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        lightCalculationsCode += " Lo += calcSpotLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, roughness, metallic, sheen, " + visibility + ");";
         break;
       case LightData::point:
-        lightCalculationsCode += " Lo += calcPointLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, " + visibility + ");";
+        lightCalculationsCode += " Lo += calcPointLight(" + name + ", FragPosInWorld, normalizedNormal, viewDir, albedo, F0, roughness, metallic, sheen, " + visibility + ");";
         break;
     }
   }
@@ -1570,6 +1735,20 @@ GraphicsContext::Shader GraphicsContext::compileDepthOnlyShader()
   Shader shader;
   shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, depthOnlyVertexShaderSourceCode}},
                                   {GL_FRAGMENT_SHADER, {versionSourceCode, depthOnlyFragmentShaderSourceCode}}});
+
+  ASSERT(f);
+  shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");
+  shader.baseInstanceLocation = f->glGetUniformLocation(shader.program, "baseInstance");
+  return shader;
+}
+
+GraphicsContext::Shader GraphicsContext::compileDepthOnlyAlphaTestShader()
+{
+  const char* versionSourceCode = "#version 450 core\n";
+
+  Shader shader;
+  shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, depthOnlyAlphaTestVertexShaderSourceCode}},
+                                  {GL_FRAGMENT_SHADER, {versionSourceCode, depthOnlyAlphaTestFragmentShaderSourceCode}}});
 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");

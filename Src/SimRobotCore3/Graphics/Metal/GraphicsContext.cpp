@@ -69,7 +69,7 @@ struct ShadowMapData
   metal::depth2d<float> map;
 };
 
-// Must match GraphicsContext::surfaceMemorySize and surfaceTextureOffset.
+// Must match GraphicsContext::surfaceMemorySize and the offsets of the members of a surface.
 struct Surface
 {
   float4 albedoAlpha;
@@ -77,7 +77,11 @@ struct Surface
   float roughness;
   float ambient;
   float textureVariation;
+  float4 sheen; // The color and the roughness of the sheen.
   metal::texture2d<float> texture;
+  metal::texture2d<float> normalMap;
+  metal::texture2d<float> roughnessMap;
+  float normalScale;
 };
 
 // Must match GraphicsContext::DrawList::Instance. The instance_id includes the base instance of the draw call.
@@ -191,31 +195,49 @@ float illumination(metal::depth2d<float> shadowMap, metal::float4x4 lightPV, flo
 }
 #endif
 
-float3 calcLight(float3 irradiance, float3 lightDir, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
+// The sheen of fibers (cloth, turf): the lobe of Charlie with the visibility term of Neubelt and Pettineo (see the glTF
+// extension KHR_materials_sheen), which is brightest at grazing angles. The roughness of the sheen is in the fourth component.
+float3 calcSheen(float3 lightDir, float3 normal, float3 viewDir, float4 sheen)
 {
-  float cosTheta = metal::max(metal::dot(normal, lightDir), 0.0);
-  return calcBrdf(lightDir, normal, viewDir, albedo, F0, roughness, metallic) * irradiance * cosTheta * visibility;
+  float3 halfDir = metal::normalize(viewDir + lightDir);
+  float cosView = metal::max(metal::dot(normal, viewDir), 0.0);
+  float cosLight = metal::max(metal::dot(normal, lightDir), 0.0);
+  float cosHalf = metal::clamp(metal::dot(normal, halfDir), 0.0, 1.0);
+  float inverseAlpha = 1.0 / metal::max(sheen.w * sheen.w, 0.0625);
+  float sinHalf = metal::sqrt(metal::max(1.0 - cosHalf * cosHalf, 0.0001));
+  float distribution = (2.0 + inverseAlpha) * metal::pow(sinHalf, inverseAlpha) / (2.0 * PI);
+  float visibility = 1.0 / (4.0 * (cosLight + cosView - cosLight * cosView) + 0.0001);
+  return sheen.rgb * distribution * visibility;
 }
 
-float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
+float3 calcLight(float3 irradiance, float3 lightDir, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
+{
+  float cosTheta = metal::max(metal::dot(normal, lightDir), 0.0);
+  float3 brdf = calcBrdf(lightDir, normal, viewDir, albedo, F0, roughness, metallic);
+  if(sheen.r + sheen.g + sheen.b > 0.0)
+    brdf += calcSheen(lightDir, normal, viewDir, sheen);
+  return brdf * irradiance * cosTheta * visibility;
+}
+
+float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(-light.direction);
   float3 irradiance = light.color;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
+float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
   float attenuation = 1.0 / (light.constantAttenuation + light.linearAttenuation * distance + light.quadraticAttenuation * distance * distance);
   float3 irradiance = light.color * attenuation;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float visibility)
+float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
@@ -224,7 +246,7 @@ float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float
   float intensity = metal::clamp((cosTheta - light.cutoff) / (1 - light.cutoff), 0.0, 1.0);
   float3 irradiance = light.color * attenuation * intensity;
 
-  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, visibility);
+  return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
 DECLARE_LIGHTS
@@ -237,7 +259,7 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
                             )
 {
 #ifdef WITH_TEXTURES
-  constexpr metal::sampler textureSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::repeat);
+  constexpr metal::sampler textureSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::repeat, metal::max_anisotropy(2));
 #endif
   device const Surface& surface = surfaces[in.surfaceIndex];
   float4 color;
@@ -247,6 +269,8 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
 
   float3 albedo = surface.albedoAlpha.rgb;
   color.a = surface.albedoAlpha.a;
+  float roughness = surface.roughness;
+  float4 sheen = surface.sheen;
 #ifdef WITH_TEXTURES
   if(!metal::is_null_texture(surface.texture))
   {
@@ -269,6 +293,31 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
     albedo = albedo * modulation.rgb;
     color.a = color.a * modulation.a;
   }
+  if(!metal::is_null_texture(surface.normalMap))
+  {
+    // The x and y components of the normal in tangent space (the second layer, which is needed to hide the repetition, is rotated).
+    float2 slope = surface.normalMap.sample(textureSampler, in.textureCoordinates).xy * 2.0 - 1.0;
+    if(surface.textureVariation > 0.0)
+    {
+      float2 second = surface.normalMap.sample(textureSampler, metal::float2x2(0.5657, 0.4243, -0.4243, 0.5657) * in.textureCoordinates + float2(0.37, 0.19)).xy * 2.0 - 1.0;
+      slope = (slope + float2(0.8 * second.x + 0.6 * second.y, -0.6 * second.x + 0.8 * second.y)) * 0.7071;
+    }
+    slope *= surface.normalScale;
+    float3 tangentNormal = float3(slope, metal::sqrt(metal::max(1.0 - metal::dot(slope, slope), 0.0001)));
+    // The tangent frame comes from the derivatives of the position and the texture coordinates.
+    float3 positionDx = metal::dfdx(in.positionInWorld);
+    float3 positionDy = metal::dfdy(in.positionInWorld);
+    float2 textureDx = metal::dfdx(in.textureCoordinates);
+    float2 textureDy = metal::dfdy(in.textureCoordinates);
+    float3 perpendicularY = metal::cross(positionDy, normalizedNormal);
+    float3 perpendicularX = metal::cross(normalizedNormal, positionDx);
+    float3 tangent = perpendicularY * textureDx.x + perpendicularX * textureDy.x;
+    float3 bitangent = perpendicularY * textureDx.y + perpendicularX * textureDy.y;
+    float scale = metal::rsqrt(metal::max(metal::max(metal::dot(tangent, tangent), metal::dot(bitangent, bitangent)), 1e-20));
+    normalizedNormal = metal::normalize(tangent * scale * tangentNormal.x + bitangent * scale * tangentNormal.y + normalizedNormal * tangentNormal.z);
+  }
+  if(!metal::is_null_texture(surface.roughnessMap))
+    roughness = metal::clamp(roughness * surface.roughnessMap.sample(textureSampler, in.textureCoordinates).r, 0.0, 1.0);
 #endif
   albedo = metal::pow(albedo, float3(2.2)); // convert from sRGB to linear
   float3 F0 = float3(0.04);
@@ -277,7 +326,10 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
   float3 Lo = float3(0.0);
   CALCULATE_LIGHTS
   // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
-  float3 ambient = metal::mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z) * albedo * surface.ambient;
+  float3 ambientLight = metal::mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z);
+  float3 ambient = ambientLight * albedo * surface.ambient;
+  if(sheen.r + sheen.g + sheen.b > 0.0)
+    ambient += sheen.rgb * ambientLight * metal::pow(1.0 - metal::max(metal::dot(normalizedNormal, viewDir), 0.0), 1.0 / metal::max(sheen.w * sheen.w, 0.0625)) * surface.ambient;
   color.rgb = (ambient + Lo) * EXPOSURE;
 #ifdef FILMIC_TONE_MAPPING
   color.rgb = metal::clamp((color.rgb * (2.51 * color.rgb + 0.03)) / (color.rgb * (2.43 * color.rgb + 0.59) + 0.14), 0.0, 1.0); // ACES approximation
@@ -417,6 +469,64 @@ vertex float4 vertexMain(VertexIn in [[stage_in]], uint instanceID [[instance_id
                          device const InstanceData* instances [[buffer(4)]])
 {
   return cameraPV * modelMatrices[instances[instanceID].modelMatrix] * float4(in.positionInModel, 1.0);
+}
+)metal";
+
+// The shader for depth-only renderings of instances with textures with alpha: it discards the fragments that are transparent.
+static const char* depthOnlyAlphaTestShaderSourceCode = R"metal(
+struct VertexIn
+{
+  float3 positionInModel [[attribute(0)]];
+  float3 normalInModel [[attribute(1)]];
+  float2 textureCoordinates [[attribute(2)]];
+};
+
+struct VertexOut
+{
+  float4 positionInClip [[position]];
+  float2 textureCoordinates;
+  uint surfaceIndex [[flat]];
+};
+
+struct InstanceData
+{
+  uint modelMatrix;
+  uint surface;
+};
+
+// Must match GraphicsContext::surfaceMemorySize and the offsets of the members of a surface.
+struct Surface
+{
+  float4 albedoAlpha;
+  float metallic;
+  float roughness;
+  float ambient;
+  float textureVariation;
+  float4 sheen; // The color and the roughness of the sheen.
+  metal::texture2d<float> texture;
+  metal::texture2d<float> normalMap;
+  metal::texture2d<float> roughnessMap;
+  float normalScale;
+};
+
+vertex VertexOut vertexMain(VertexIn in [[stage_in]], uint instanceID [[instance_id]],
+                            constant metal::float4x4& cameraPV [[buffer(1)]], device const metal::float4x4* modelMatrices [[buffer(2)]],
+                            device const InstanceData* instances [[buffer(4)]])
+{
+  const InstanceData instance = instances[instanceID];
+  VertexOut out;
+  out.positionInClip = cameraPV * modelMatrices[instance.modelMatrix] * float4(in.positionInModel, 1.0);
+  out.textureCoordinates = in.textureCoordinates;
+  out.surfaceIndex = instance.surface;
+  return out;
+}
+
+fragment void fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]])
+{
+  constexpr metal::sampler textureSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::repeat, metal::max_anisotropy(2));
+  device const Surface& surface = surfaces[in.surfaceIndex];
+  if(!metal::is_null_texture(surface.texture) && surface.texture.sample(textureSampler, in.textureCoordinates).a * surface.albedoAlpha.a < 0.5)
+    metal::discard_fragment();
 }
 )metal";
 
@@ -700,11 +810,16 @@ void GraphicsContext::createDeviceResources()
     std::uint8_t* memory = static_cast<std::uint8_t*>(surfaceBuffer->contents()) + surface->index * surfaceMemorySize;
     std::memcpy(memory, &surface->albedo, verbatimPart);
     std::memcpy(memory + verbatimPart, &surface->textureVariation, sizeof(surface->textureVariation));
-    if(surface->texture)
-    {
-      const MTL::ResourceID resourceID = mtlTextures[surface->texture->index]->gpuResourceID();
-      std::memcpy(memory + surfaceTextureOffset, &resourceID, sizeof(resourceID));
-    }
+    std::memcpy(memory + surfaceSheenOffset, surface->sheen, sizeof(surface->sheen));
+    std::memcpy(memory + surfaceSheenOffset + sizeof(surface->sheen), &surface->sheenRoughness, sizeof(surface->sheenRoughness));
+    std::memcpy(memory + surfaceNormalScaleOffset, &surface->normalScale, sizeof(surface->normalScale));
+    const Texture* const textures[] = {surface->texture, surface->normalMap, surface->roughnessMap};
+    for(std::size_t i = 0; i < 3; ++i)
+      if(textures[i])
+      {
+        const MTL::ResourceID resourceID = mtlTextures[textures[i]->index]->gpuResourceID();
+        std::memcpy(memory + surfaceTextureOffset + i * sizeof(resourceID), &resourceID, sizeof(resourceID));
+      }
   }
 
   // Create the shadow maps. Everything is lit until they have been rendered, so they are cleared with the farthest depth.
@@ -779,7 +894,7 @@ void GraphicsContext::createDeviceResources()
       const std::string index = std::to_string(*light.shadowMap);
       visibility = "illumination(shadowMaps[" + index + "].map, shadowMaps[" + index + "].lightPV, in.positionInWorld, " + lightDirection + ", normalizedNormal)";
     }
-    const std::string arguments = ", viewDir, albedo, F0, surface.roughness, surface.metallic, " + visibility + ");";
+    const std::string arguments = ", viewDir, albedo, F0, roughness, surface.metallic, sheen, " + visibility + ");";
     switch(light.type)
     {
       case LightData::directional:
@@ -824,6 +939,27 @@ void GraphicsContext::createDeviceResources()
   if(MTL::Library* library = compileLibrary(depthOnlyShaderSourceCode); library)
   {
     createRenderPipelineStates(library, true, false, &pipelineStates[depthOnlyShaderIndex * numOfVertexCategories]);
+    library->release();
+  }
+  if(MTL::Library* library = compileLibrary(depthOnlyAlphaTestShaderSourceCode); library)
+  {
+    MTL::RenderPipelineDescriptor* descriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    MTL::Function* vertexFunction = library->newFunction(toNSString("vertexMain"));
+    MTL::Function* fragmentFunction = library->newFunction(toNSString("fragmentMain"));
+    descriptor->setVertexFunction(vertexFunction);
+    descriptor->setFragmentFunction(fragmentFunction);
+    descriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float);
+    descriptor->setVertexDescriptor(vertexDescriptors[VertexPNT::category]);
+    NS::Error* error = nullptr;
+    depthOnlyAlphaTestPipelineState = device->newRenderPipelineState(descriptor, &error);
+    if(!depthOnlyAlphaTestPipelineState)
+    {
+      TRACE("%s", error ? error->localizedDescription()->utf8String() : "Unknown error while creating a Metal render pipeline state.");
+      ASSERT(false);
+    }
+    fragmentFunction->release();
+    vertexFunction->release();
+    descriptor->release();
     library->release();
   }
   if(MTL::Library* library = compileLibrary(readbackShaderSourceCode); library)
@@ -891,6 +1027,9 @@ void GraphicsContext::destroyDeviceResources()
     if(pipelineState)
       pipelineState->release();
   pipelineStates.fill(nullptr);
+  if(depthOnlyAlphaTestPipelineState)
+    depthOnlyAlphaTestPipelineState->release();
+  depthOnlyAlphaTestPipelineState = nullptr;
   for(MTL::RenderPassDescriptor* renderPass : shadowMapRenderPasses)
     renderPass->release();
   shadowMapRenderPasses.clear();
@@ -1056,7 +1195,14 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   const Matrix4f pv = clipSpaceCorrection * projection * view;
   encoder->setVertexBytes(pv.data(), sizeof(Matrix4f), 1);
   bindModelMatrices();
-  if(!renderDepthOnly)
+  if(renderDepthOnly)
+  {
+    // The surfaces are needed to discard the fragments of instances with textures with alpha.
+    encoder->setFragmentBuffer(surfaceBuffer, 0, 0);
+    if(textureHeap)
+      encoder->useHeap(textureHeap, MTL::RenderStageFragment);
+  }
+  else
   {
     Vector4f pos;
     pos << -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>(), 0.f;
@@ -1173,7 +1319,7 @@ void GraphicsContext::drawList(const DrawList* drawList)
     const VisibleInstances::Range range = culled ? visibleInstances.ranges[i] : VisibleInstances::Range{static_cast<std::uint32_t>(i), 0, pass.batches[i].firstInstance, pass.batches[i].numOfInstances};
     const DrawList::Batch& batch = pass.batches[range.batch];
     const Mesh* mesh = batch.mesh;
-    MTL::RenderPipelineState* pipelineState = selectedPipelineStates[mesh->vertexBuffer->category];
+    MTL::RenderPipelineState* pipelineState = batch.alphaTest && renderingShadowMap ? depthOnlyAlphaTestPipelineState : selectedPipelineStates[mesh->vertexBuffer->category];
     if(pipelineState != boundPipelineState)
       encoder->setRenderPipelineState((boundPipelineState = pipelineState));
     if(mesh->indexBuffer)

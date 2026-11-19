@@ -256,14 +256,14 @@ private:
     std::vector<GLuint> vao; /**< The VAOs per vertex type. These exist per context. */
     GLuint vbo; /**< The VBO (shared between contexts within a share group). */
     GLuint ebo; /**< The EBO (shared between contexts within a share group). */
-    GLuint surfaceUBO; /**< The UBO of surfaces (shared between contexts within a share group). */
+    GLuint surfaceSSBO; /**< The shader storage buffer with the surfaces (shared between contexts within a share group). */
 
     std::vector<GLuint> shadowMapFBOs; /**< The FBOs of the shadow maps. These exist per context. */
     std::vector<GLuint> shadowMapTextures; /**< The depth textures of the shadow maps (shared between contexts within a share group). */
 
     std::vector<GLuint> textureIDs; /**< IDs for all textures (shared between contexts within a share group). */
 
-    std::array<Shader, 9> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
+    std::array<Shader, 10> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
     std::array<DrawingShader, numOfDrawingShaders> drawingShaders; /**< Shaders for controller drawings (shared between contexts within a share group). */
 
     GLuint drawingVAO = 0; /**< The VAO of the vertices of controller drawings. This exists per context. */
@@ -281,6 +281,8 @@ private:
     std::uint32_t uniformBaseInstance = 0; /**< The current value of the baseInstance uniform of the shader in this context. */
     bool blendEnabled = false; /**< The current blend state in this context. */
     GLuint boundTexture = 0; /**< The texture currently bound to texture unit 0 in this context. */
+    GLuint boundNormalMap = 0; /**< The texture currently bound to the texture unit of the normal map in this context. */
+    GLuint boundRoughnessMap = 0; /**< The texture currently bound to the texture unit of the roughness map in this context. */
     GLuint boundVAO = 0; /**< The currently bound VAO in this context. */
 
     std::size_t referenceCounter = 1; /**< Reference counter for this context. */
@@ -340,6 +342,25 @@ private:
   Shader compileDepthOnlyShader();
 
   /**
+   * Compiles the shader for depth-only renderings of instances with textures with alpha.
+   * @return The shader.
+   */
+  Shader compileDepthOnlyAlphaTestShader();
+
+  /**
+   * Makes a shader of the current rendering the current one (if it is not), with the camera of the rendering.
+   * @param newShader The shader (one of those of the current context).
+   */
+  void useShader(Shader* newShader);
+
+  /**
+   * Binds the textures of a surface (the albedo texture, the normal map and the roughness map, if it has them) if the
+   * current shader uses textures.
+   * @param surface The surface.
+   */
+  void bindTextures(const Surface& surface);
+
+  /**
    * Compile a compute shader that converts a render target into a readback buffer.
    * @param format The format into which the shader converts.
    * @return A shader object.
@@ -359,7 +380,9 @@ private:
   std::unordered_map<const QOpenGLContext*, PerContextData> perContextData; /**< Map of OpenGL context pointers to per context data. */
 
   static constexpr int multisampleCount = 4; /**< The sample count of multisampled off-screen render targets. */
-  static constexpr std::size_t surfaceMemorySize = 32; /**< Size of a surface in graphics memory. The std140 layout pads array elements to multiples of 16 bytes. */
+  static constexpr std::size_t surfaceMemorySize = 64; /**< Size of a surface in graphics memory (four vectors of four floats, see the Surface struct in the shaders). */
+  static constexpr GLuint normalMapUnit = 9; /**< The texture unit of the normal map (after those of the albedo texture and the shadow maps). */
+  static constexpr GLuint roughnessMapUnit = 10; /**< The texture unit of the roughness map. */
 
   /**
    * Declares a vertex attribute of a VAO.
@@ -425,6 +448,7 @@ private:
 
   // Only valid between \c startRendering and \c finishRendering:
   Shader* shader = nullptr; /**< The currently selected shader. */
+  Matrix4f currentPV = Matrix4f::Identity(); /**< The product of the projection and view matrix of the current rendering. */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides the surfaces of the instances of drawn lists. */
 
   // Offscreen rendering:

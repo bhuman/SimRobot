@@ -306,7 +306,8 @@ GraphicsContextBase::Texture* GraphicsContextBase::requestTexture(const std::str
   return texture;
 }
 
-GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture, float textureVariation)
+GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* albedo, float alpha, float metallic, float roughness, float ambient, const Texture* texture, float textureVariation,
+                                                                    const float* sheen, float sheenRoughness, const Texture* normalMap, float normalScale, const Texture* roughnessMap)
 {
   auto* surface = new Surface;
   std::memcpy(surface->albedo, albedo, sizeof(surface->albedo));
@@ -316,6 +317,12 @@ GraphicsContextBase::Surface* GraphicsContextBase::requestSurface(const float* a
   surface->ambient = ambient;
   surface->texture = texture;
   surface->textureVariation = textureVariation;
+  if(sheen)
+    std::memcpy(surface->sheen, sheen, sizeof(surface->sheen));
+  surface->sheenRoughness = sheenRoughness;
+  surface->normalMap = normalMap;
+  surface->normalScale = normalScale;
+  surface->roughnessMap = roughnessMap;
   surfaces.push_back(surface);
   return surface;
 }
@@ -625,10 +632,19 @@ void GraphicsContextBase::buildDrawList(DrawList& drawList) const
   }
   const auto category = [&](std::size_t i) {return items[i].mesh->vertexBuffer->category;};
   const auto texture = [&](std::size_t i) {return items[i].surface->texture;};
-  const auto textureNumber = [&](std::size_t i) {return batchByTexture && texture(i) ? texture(i)->index + 1 : std::size_t(0);};
+  // Instances with the same textures get the same number (which is 0 if the graphics API selects them per instance or there are none).
+  std::map<std::tuple<std::size_t, std::size_t, std::size_t>, std::size_t> textureNumbers;
+  const auto textureNumber = [&](std::size_t i) -> std::size_t
+  {
+    const Surface& surface = *items[i].surface;
+    if(!batchByTexture || (!surface.texture && !surface.normalMap && !surface.roughnessMap))
+      return 0;
+    const auto key = std::make_tuple(surface.texture ? surface.texture->index + 1 : 0, surface.normalMap ? surface.normalMap->index + 1 : 0, surface.roughnessMap ? surface.roughnessMap->index + 1 : 0);
+    return textureNumbers.try_emplace(key, textureNumbers.size() + 1).first->second;
+  };
 
   // Makes the instances in the given order batches of the same mesh (and texture, if required) that follow each other.
-  const auto addBatches = [&](DrawList::Pass& pass, const std::vector<std::size_t>& order, bool withSurfaces, bool blend)
+  const auto addBatches = [&](DrawList::Pass& pass, const std::vector<std::size_t>& order, bool withSurfaces, bool blend, bool alphaTest = false)
   {
     const std::size_t* previous = nullptr;
     for(const std::size_t& i : order)
@@ -639,8 +655,9 @@ void GraphicsContextBase::buildDrawList(DrawList& drawList) const
         batch.mesh = items[i].mesh;
         batch.firstInstance = static_cast<std::uint32_t>(pass.instances.size());
         batch.numOfInstances = 0;
-        batch.texture = withSurfaces && batchByTexture ? texture(i) : nullptr;
+        batch.surface = withSurfaces && batchByTexture ? items[i].surface : nullptr;
         batch.blend = blend;
+        batch.alphaTest = alphaTest;
       }
       ++pass.batches.back().numOfInstances;
       pass.instances.push_back({items[i].modelMatrix->index, withSurfaces ? static_cast<std::uint32_t>(items[i].surface->index) : 0u});
@@ -665,15 +682,23 @@ void GraphicsContextBase::buildDrawList(DrawList& drawList) const
   addBatches(drawList.color, opaque, true, false);
   addBatches(drawList.color, transparent, true, true);
 
-  // Depths: All instances are drawn, and the surfaces do not matter.
-  std::vector<std::size_t> all(items.size());
-  std::iota(all.begin(), all.end(), std::size_t(0));
-  std::stable_sort(all.begin(), all.end(), [&](std::size_t a, std::size_t b)
+  // Depths: All instances are drawn. The surfaces do not matter, except for those with textures with alpha (the fragments of
+  // the instances that have them are discarded where the texture is transparent), which are drawn after the others.
+  const auto isCutout = [&](std::size_t i) {return texture(i) && texture(i)->hasAlpha && category(i) == VertexPNT::category;};
+  std::vector<std::size_t> solid, cutouts;
+  for(std::size_t i = 0; i < items.size(); ++i)
+    (isCutout(i) ? cutouts : solid).push_back(i);
+  std::stable_sort(solid.begin(), solid.end(), [&](std::size_t a, std::size_t b)
   {
     return std::make_tuple(category(a), meshNumber[a]) < std::make_tuple(category(b), meshNumber[b]);
   });
+  std::stable_sort(cutouts.begin(), cutouts.end(), [&](std::size_t a, std::size_t b)
+  {
+    return std::make_tuple(category(a), textureNumber(a), meshNumber[a]) < std::make_tuple(category(b), textureNumber(b), meshNumber[b]);
+  });
   drawList.depthOnly = DrawList::Pass();
-  addBatches(drawList.depthOnly, all, false, false);
+  addBatches(drawList.depthOnly, solid, false, false);
+  addBatches(drawList.depthOnly, cutouts, true, false, true);
 }
 
 void GraphicsContextBase::ModelMatrix::updateMemory()
