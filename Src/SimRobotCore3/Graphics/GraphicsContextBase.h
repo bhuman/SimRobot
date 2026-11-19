@@ -13,6 +13,7 @@
 
 #include "Platform/Assert.h"
 #include "SimRobotCore3.h"
+#include "Graphics/EnvironmentMap.h"
 #include "Tools/Math/Eigen.h"
 #include "Tools/Math/Pose3f.h"
 #include <array>
@@ -577,7 +578,7 @@ public:
 
   /**
    * Sets the environment of the scene: the color that the color buffer is cleared to, the ambient light, how the colors of
-   * lit surfaces are converted to displayable colors and the lights.
+   * lit surfaces are converted to displayable colors and the lights (including the sky).
    * @param environment The environment.
    */
   void setEnvironment(const Environment& environment);
@@ -662,6 +663,40 @@ public:
    * @param y The lower edge of the part in the render target (as the viewport in \c startRendering).
    */
   void readOffscreenImage(const ReadbackBuffer& buffer, int y);
+
+  /**
+   * The state of the sky at a time: where the sun and the moon are, and the light and colors that follow from it.
+   */
+  struct SkyState
+  {
+    Vector3f sunDirection = Vector3f::UnitZ(); /**< The direction to the sun. */
+    float day = 1.f; /**< How much it is day, from 0 (night) to 1. */
+    Vector3f moonDirection = -Vector3f::UnitZ(); /**< The direction to the moon. */
+    float moonRadius = 0.026f; /**< The angular radius of the moon in radians. */
+    Vector3f sunColor = Vector3f::Ones(); /**< The color of the sunlight at the horizon relative to the color above (reddish for a low sun). */
+    float twilight = 0.f; /**< How strong the glow of the sunrise or the sunset is, from 0 to 1. */
+    float night = 0.f; /**< How much it is night (stars are visible), from 0 to 1. */
+    float aurora = 0.f; /**< The visibility of polar lights, from 0 to 1. */
+    float time = 0.f; /**< A time in seconds that animates the polar lights. */
+    float exposure = 1.f; /**< The factor that the brightness is multiplied with before tone mapping. */
+    float clouds = 0.f; /**< How much of the sky is covered by clouds, from 0 to 1. */
+    float leaves = 1.f; /**< How much foliage the trees have, from 0 (bare) to 1. */
+    float autumn = 0.f; /**< How much the foliage has the colors of the autumn, from 0 to 1. */
+    Vector3f auroraDirection = Vector3f::UnitY(); /**< The horizontal direction in which the polar lights are. */
+    Matrix3f stars = Matrix3f::Identity(); /**< The rotation from directions in the scene to directions in the frame of the stars. */
+    Vector3f lightColor = Vector3f::Zero(); /**< The color of the light of the sky (the sun or the moon, including its intensity). */
+    Vector3f lightDirection = -Vector3f::UnitZ(); /**< The direction into which the light of the sky shines. */
+    Vector3f ambientSky = Vector3f::Zero(); /**< The color of the ambient light from above. */
+    Vector3f ambientGround = Vector3f::Zero(); /**< The color of the ambient light from below. */
+    std::optional<Matrix4f> lightView; /**< The view matrix of the shadow map of the light of the sky (if it casts shadows). */
+    std::optional<Matrix4f> lightProjection; /**< The projection matrix of the shadow map of the light of the sky. */
+  };
+
+  /**
+   * Sets the state of the sky of the scene. The light of the sky (the dynamic light) and the ambient light follow it.
+   * @param sky The state of the sky.
+   */
+  void setSky(const SkyState& sky);
 
   /**
    * Requests a model matrix that represents the state of the top of the current model matrix stack.
@@ -769,6 +804,7 @@ protected:
     float quadraticAttenuation = 0.f; /**< The quadratic attenuation (point and spot lights). */
     float cutoff = 0.f; /**< The cosine of the angle of the light cone (spot lights). */
     std::optional<std::size_t> shadowMap; /**< The index of the shadow map of this light (if it casts shadows). */
+    bool dynamic = false; /**< Whether the color and direction of this light come from the sky (they are not part of the shaders). */
   };
 
   /**
@@ -780,6 +816,7 @@ protected:
     Matrix4f projection; /**< The projection matrix of the light. */
     unsigned int width; /**< The width of the shadow map. */
     unsigned int height; /**< The height of the shadow map. */
+    Light* light; /**< The light that casts the shadows. */
   };
 
   /**
@@ -905,11 +942,69 @@ protected:
   const Mesh* drawingQuadMesh = nullptr; /**< The mesh of the images of controller drawings (a quad in the yz-plane, see \c Primitives::createQuad). */
   std::vector<LightData> lights; /**< The lights of the scene. */
   std::vector<ShadowMap> shadowMaps; /**< The shadow maps of the lights that cast shadows. */
+  bool hasSky = false; /**< Whether the scene has a sky (with a dynamic light). */
+  std::unique_ptr<EnvironmentMap> environmentMap; /**< The maps of the backdrop of the scene (\c nullptr if it has none). */
+  SkyState sky; /**< The current state of the sky. */
+
+  /** The ground of the scene (an infinite plane that is drawn in the background). */
+  struct GroundState
+  {
+    bool present = false; /**< Whether the scene has a ground. */
+    Vector3f albedo = Vector3f::Constant(0.2f); /**< The color of the tiles (linear). */
+    float height = 0.f; /**< The height of the plane. */
+    float tileSize = 1.f; /**< The side length of the tiles (0: no tiles). */
+    float jointWidth = 0.01f; /**< The width of the joints between the tiles. */
+    float treeDistance = 0.f; /**< The distance of the line of trees (0: there are none). */
+    float treeHeight = 8.f; /**< The mean height of the trees. */
+  };
+
+  GroundState ground; /**< The ground of the scene. */
+
+  /** The number of vectors that the shader of the sky needs (see Graphics/SkyShader.h). */
+  static constexpr std::size_t numOfSkyUniforms = 19;
+  Vector3f roomSize = Vector3f::Zero(); /**< The size of the room of the backdrop (zero if the scene has none). */
+  std::uint64_t skyGeneration = 0; /**< A number that is increased whenever \c sky changes. */
+  std::optional<std::size_t> skyLight; /**< The index of the dynamic light in \c lights. */
+
+  /**
+   * Returns the values that the shaders need from the sky for lighting: the color and direction of the light,
+   * the ambient colors, the exposure and the matrix of the shadow map. The layout is one \c float4 each for the color of
+   * the light and the exposure (in w), the direction of the light, the ambient color from above, the ambient color from
+   * below, followed by the four columns of the matrix from world space to the clip space of the shadow map.
+   * @return The values.
+   */
+  std::array<Vector4f, 8> getSkyLightValues() const;
+
+  /**
+   * Returns the values that the shader that draws the sky needs.
+   * @param projection The projection matrix of the view.
+   * @param view The view matrix of the view.
+   * @return The values (as \c float4, see the shader for their meanings).
+   */
+  std::array<Vector4f, numOfSkyUniforms> getSkyUniforms(const Matrix4f& projection, const Matrix4f& view) const;
   float clearColor[4] = {0.f}; /**< The color to clear the framebuffer to. */
   float globalAmbientLight[3] = {0.f}; /**< The color of the global ambient light that comes from above. */
   float globalAmbientLightGround[3] = {0.f}; /**< The color of the global ambient light that comes from below. */
   float exposure = 1.f; /**< The factor that the brightness of lit surfaces is multiplied with before tone mapping. */
   bool filmicToneMapping = false; /**< Whether a filmic curve is used for tone mapping instead of the curve of Reinhard. */
+
+  /**
+   * Fits the bounding boxes of the shadow maps that do not have one to the scene, if that has not been done yet. The
+   * scene is the union of the bounds of everything that is drawn by \c draw, so the model matrices must be up to date.
+   * It is called by the graphics APIs before they render the shadow maps.
+   * @param draw A function that draws everything that casts shadows (the appearances of the scene).
+   * @return Whether bounding boxes have been fitted (so the matrices of the shadow maps have changed).
+   */
+  bool fitShadowMaps(const std::function<void()>& draw);
+
+  /**
+   * Adds the bounds of the instances of a pass to the bounds of the scene (instead of drawing it) while the shadow maps
+   * are being fitted. It must only be called for lists that are drawn while \c fittingShadowMaps is set.
+   * @param pass The pass.
+   */
+  void accumulateBounds(const DrawList::Pass& pass);
+
+  bool fittingShadowMaps = false; /**< Whether the drawing functions only add the bounds of what they draw to \c fitMinimum and \c fitMaximum (see \c fitShadowMaps). */
 
   // State of the current off-screen rendering (between \c startOffscreenRendering and \c finishOffscreenRendering).
   std::vector<OffscreenReadback> offscreenReadbacks; /**< The conversions of the images of the rendering into readback buffers. */
@@ -919,7 +1014,12 @@ private:
    * Adds a light to the scene.
    * @param light The light element.
    */
-  void addLight(const Light* light);
+  void addLight(Light* light);
+
+  Vector3f fitMinimum = Vector3f::Zero(); /**< The minimum of the bounds of what has been drawn while \c fittingShadowMaps is set. */
+  Vector3f fitMaximum = Vector3f::Zero(); /**< The maximum of the bounds of what has been drawn while \c fittingShadowMaps is set. */
+  Vector3f fitFlatMinimum = Vector3f::Zero(); /**< The minimum of the bounds of the flat surfaces that have been drawn while \c fittingShadowMaps is set. */
+  Vector3f fitFlatMaximum = Vector3f::Zero(); /**< The maximum of the bounds of the flat surfaces that have been drawn while \c fittingShadowMaps is set. */
 
   // To construct the model matrices:
   std::stack<ModelMatrixStack, std::vector<ModelMatrixStack>> modelMatrixStackStack; /**< A stack of model matrix stacks. */

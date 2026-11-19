@@ -11,6 +11,7 @@
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
 #include "Graphics/SensorShader.h"
+#include "Graphics/SkyShader.h"
 #include "Graphics/LightSpace.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
@@ -187,6 +188,9 @@ flat in uint SurfaceIndex;
 layout(binding = 0) uniform sampler2D albedoTexture;
 layout(binding = 9) uniform sampler2D normalMapTexture;
 layout(binding = 10) uniform sampler2D roughnessMapTexture;
+#endif
+#ifdef WITH_BACKDROP
+layout(binding = 11) uniform samplerCube environmentTexture;
 #endif
 layout(std430, binding = 2) readonly buffer Surfaces
 {
@@ -405,8 +409,21 @@ void main()
   vec3 Lo = vec3(0.0);
   CALCULATE_LIGHTS
   // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
+#ifdef WITH_BACKDROP
+  // The light of the backdrop: the diffuse part comes from the irradiance (spherical harmonics), the specular part from the
+  // prefiltered radiance in the direction of the reflection with the approximation of the BRDF of Karis.
+  vec3 ambientLight = backdropIrradiance(normalizedNormal);
+  float cosView = max(dot(normalizedNormal, viewDir), 0.0);
+  vec4 brdfRoughness = roughness * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+  float brdfBias = min(brdfRoughness.x * brdfRoughness.x, exp2(-9.28 * cosView)) * brdfRoughness.x + brdfRoughness.y;
+  vec2 brdfScaleBias = vec2(-1.04, 1.04) * brdfBias + brdfRoughness.zw;
+  vec3 specularAlbedo = F0 * brdfScaleBias.x + brdfScaleBias.y;
+  vec3 prefiltered = textureLod(environmentTexture, reflect(-viewDir, normalizedNormal), roughness * (ENVIRONMENT_LEVELS - 1.0)).rgb;
+  vec3 ambient = (ambientLight * albedo * (vec3(1.0) - specularAlbedo) * (1.0 - metallic) + prefiltered * specularAlbedo) * surfaces[surfaceIndex].material.z;
+#else
   vec3 ambientLight = mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z);
   vec3 ambient = ambientLight * albedo * surfaces[surfaceIndex].material.z;
+#endif
   if (sheen.r + sheen.g + sheen.b > 0.0)
     ambient += sheen.rgb * ambientLight * pow(1.0 - max(dot(normalizedNormal, viewDir), 0.0), 1.0 / max(sheen.w * sheen.w, 0.0625)) * surfaces[surfaceIndex].material.z;
   color.rgb = (ambient + Lo) * EXPOSURE;
@@ -829,6 +846,15 @@ void GraphicsContext::createGraphics()
   f->glCreateBuffers(1, &data.modelMatrixSSBO);
   data.uploadedModelMatrixGeneration = 0;
   f->glCreateBuffers(1, &data.culledInstanceSSBO);
+  if(hasSky)
+  {
+    f->glCreateVertexArrays(1, &data.skyVAO);
+    f->glCreateBuffers(1, &data.skyUniformUBO);
+    f->glNamedBufferStorage(data.skyUniformUBO, numOfSkyUniforms * sizeof(Vector4f), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    f->glCreateBuffers(1, &data.skyLightUBO);
+    f->glNamedBufferStorage(data.skyLightUBO, 8 * sizeof(Vector4f), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    data.uploadedSkyGeneration = 0;
+  }
 
   // The VAOs and VBOs of controller drawings. The contents of the VBOs are uploaded for every frame.
   f->glCreateBuffers(1, &data.drawingVBO);
@@ -848,6 +874,9 @@ void GraphicsContext::createGraphics()
     data.shadowMapTextures = shareData->shadowMapTextures;
     data.shaders = shareData->shaders;
     data.drawingShaders = shareData->drawingShaders;
+    data.skyProgram = shareData->skyProgram;
+    data.backdropProgram = shareData->backdropProgram;
+    data.environmentTexture = shareData->environmentTexture;
     data.drawingTextureCache = shareData->drawingTextureCache;
   }
   else
@@ -879,6 +908,24 @@ void GraphicsContext::createGraphics()
       f->glGenerateTextureMipmap(id);
     }
 
+    // Create the cube map of the backdrop.
+    if(environmentMap)
+    {
+      f->glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &data.environmentTexture);
+      f->glTextureStorage2D(data.environmentTexture, static_cast<GLsizei>(environmentMap->levels), GL_RGBA16F, static_cast<GLsizei>(environmentMap->resolution), static_cast<GLsizei>(environmentMap->resolution));
+      for(unsigned int level = 0; level < environmentMap->levels; ++level)
+      {
+        const auto size = static_cast<GLsizei>(environmentMap->size(level));
+        for(unsigned int side = 0; side < 6; ++side)
+          f->glTextureSubImage3D(data.environmentTexture, static_cast<GLint>(level), 0, 0, static_cast<GLint>(side), size, size, 1, GL_RGBA, GL_HALF_FLOAT, environmentMap->sides[level * 6 + side].data());
+      }
+      f->glTextureParameteri(data.environmentTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      f->glTextureParameteri(data.environmentTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      f->glTextureParameteri(data.environmentTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      f->glTextureParameteri(data.environmentTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      f->glTextureParameteri(data.environmentTexture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    }
+
     // Create the shadow maps. Everything in the lights' frustums is lit as long as they have not been rendered.
     data.shadowMapTextures.resize(shadowMaps.size());
     f->glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(shadowMaps.size()), data.shadowMapTextures.data());
@@ -904,8 +951,112 @@ void GraphicsContext::createGraphics()
     data.drawingShaders[streamDrawingShader] = compileDrawingShader(drawingStreamVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
     data.drawingShaders[instanceDrawingShader] = compileDrawingShader(drawingInstanceVertexShaderSourceCode, drawingColorFragmentShaderSourceCode);
     data.drawingShaders[imageDrawingShader] = compileDrawingShader(drawingImageVertexShaderSourceCode, drawingImageFragmentShaderSourceCode);
+    if(hasSky)
+    {
+      const std::string skyVertexSourceCode = R"glsl(
+out vec2 ndc;
+void main()
+{
+  // A triangle that covers everything, at the far plane.
+  vec2 position = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+  ndc = position;
+  gl_Position = vec4(position, 1.0, 1.0);
+}
+)glsl";
+      const std::string skyFragmentSourceCode = std::string(filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "") + R"glsl(
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define atan2 atan
+)glsl" + skyShaderCode(true) + R"glsl(
+in vec2 ndc;
+out vec4 outColor;
+layout(std140, binding = 2) uniform SkyUniforms
+{
+  vec4 skyValues[19];
+};
+
+void main()
+{
+  SkyParams params;
+  params.v = skyValues;
+  vec3 viewDirection = vec3(ndc.x / params.v[11].x, ndc.y / params.v[11].y, -1.0);
+  vec3 direction = normalize(vec3(dot(params.v[8].xyz, viewDirection), dot(params.v[9].xyz, viewDirection), dot(params.v[10].xyz, viewDirection)));
+  vec3 color = skyColor(direction, params) * params.v[3].w;
+#ifdef FILMIC_TONE_MAPPING
+  color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), 0.0, 1.0);
+#else
+  color = color / (color + vec3(1.0));
+#endif
+  outColor = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
+}
+)glsl";
+      data.skyProgram = compileDrawingShader(skyVertexSourceCode.c_str(), skyFragmentSourceCode.c_str()).program;
+    }
+    if(environmentMap)
+    {
+      // The backdrop is drawn like the sky, from the same values (see Graphics/SkyShader.h for the ones that are used).
+      const std::string backdropVertexSourceCode = R"glsl(
+out vec2 ndc;
+void main()
+{
+  // A triangle that covers everything, at the far plane.
+  vec2 position = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+  ndc = position;
+  gl_Position = vec4(position, 1.0, 1.0);
+}
+)glsl";
+      const std::string backdropFragmentSourceCode = "#define EXPOSURE " + std::to_string(exposure) + "\n" + std::string(filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "") + R"glsl(
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+#define atan2 atan
+)glsl" + skyShaderCode(true) + R"glsl(
+in vec2 ndc;
+out vec4 outColor;
+layout(std140, binding = 2) uniform SkyUniforms
+{
+  vec4 skyValues[19];
+};
+layout(binding = 11) uniform samplerCube environmentTexture;
+
+void main()
+{
+  SkyParams params;
+  params.v = skyValues;
+  vec3 viewDirection = vec3(ndc.x / skyValues[11].x, ndc.y / skyValues[11].y, -1.0);
+  vec3 direction = normalize(vec3(dot(skyValues[8].xyz, viewDirection), dot(skyValues[9].xyz, viewDirection), dot(skyValues[10].xyz, viewDirection)));
+  GroundSample ground = groundSample(direction, params);
+
+  // The cube map was computed at the center of the room, so the point where the ray hits the room is looked up (the walls and
+  // the ceiling are at the right place for the viewer).
+  vec3 cameraPosition = skyValues[14].xyz;
+  vec3 sides = vec3(skyValues[0].x, skyValues[0].y, direction.z > 0.0 ? skyValues[0].z : 0.0) * vec3(direction.x > 0.0 ? 1.0 : -1.0, direction.y > 0.0 ? 1.0 : -1.0, 1.0);
+  vec3 times = (sides - cameraPosition) / (direction + mix(vec3(-1e-6), vec3(1e-6), greaterThanEqual(direction, vec3(0.0))));
+  float hitTime = max(min(times.x, times.y), 0.1);
+  if(direction.z > 0.0)
+    hitTime = min(hitTime, max(times.z, 0.1));
+  vec3 lookup = normalize(cameraPosition + direction * hitTime - vec3(0.0, 0.0, skyValues[0].w));
+  vec3 color = textureLod(environmentTexture, skyValues[14].w > 0.5 ? lookup : direction, 0.0).rgb;
+  if(skyValues[14].w > 0.5 && direction.z < 0.0 && ground.t < hitTime)
+    color = groundColor(ground, params);
+  color *= EXPOSURE;
+#ifdef FILMIC_TONE_MAPPING
+  color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), 0.0, 1.0);
+#else
+  color = color / (color + vec3(1.0));
+#endif
+  outColor = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);
+}
+)glsl";
+      data.backdropProgram = compileDrawingShader(backdropVertexSourceCode.c_str(), backdropFragmentSourceCode.c_str()).program;
+    }
     data.drawingTextureCache = std::make_shared<std::unordered_map<std::uint64_t, DrawingTexture>>();
   }
+
+  // The sides of the cube map are filtered across their edges.
+  if(environmentMap)
+    f->glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
   // Framebuffer objects are not shared.
   data.shadowMapFBOs.resize(shadowMaps.size());
@@ -941,6 +1092,9 @@ void GraphicsContext::destroyGraphics()
   data.f->glDeleteVertexArrays(static_cast<GLsizei>(data.vao.size()), data.vao.data());
   data.f->glDeleteBuffers(1, &data.modelMatrixSSBO);
   data.f->glDeleteBuffers(1, &data.culledInstanceSSBO);
+  data.f->glDeleteVertexArrays(1, &data.skyVAO);
+  data.f->glDeleteBuffers(1, &data.skyUniformUBO);
+  data.f->glDeleteBuffers(1, &data.skyLightUBO);
   data.f->glDeleteVertexArrays(1, &data.drawingVAO);
   data.f->glDeleteBuffers(1, &data.drawingVBO);
   data.f->glDeleteVertexArrays(1, &data.drawingInstanceVAO);
@@ -965,6 +1119,12 @@ void GraphicsContext::destroyGraphics()
       data.f->glDeleteProgram(shader.program);
     for(const auto& drawingShader : data.drawingShaders)
       data.f->glDeleteProgram(drawingShader.program);
+    if(data.skyProgram)
+      data.f->glDeleteProgram(data.skyProgram);
+    if(data.backdropProgram)
+      data.f->glDeleteProgram(data.backdropProgram);
+    if(data.environmentTexture)
+      data.f->glDeleteTextures(1, &data.environmentTexture);
     for(const auto& pair : *data.drawingTextureCache)
       data.f->glDeleteTextures(1, &pair.second.id);
     delete data.f;
@@ -982,6 +1142,9 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool o
   if(shadowMaps.empty() || (!force && lastShadowMapUpdate == Simulation::simulation->simulationStep))
     return;
   lastShadowMapUpdate = Simulation::simulation->simulationStep;
+
+  // The matrices of the shadow maps are set whenever they are used.
+  fitShadowMaps(draw);
 
   if(offscreen)
   {
@@ -1038,7 +1201,11 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   f->glUseProgram(shader->program);
   const Matrix4f pv = projection * view;
   startCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
+  currentProjection = projection;
+  currentView = view;
   currentPV = pv;
+  currentLighting = lighting;
+  currentFillPolygons = fillPolygons || renderDepthOnly;
   f->glUniformMatrix4fv(shader->cameraPVLocation, 1, GL_FALSE, pv.data());
   if(shader->cameraPosLocation >= 0)
   {
@@ -1054,6 +1221,19 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
       f->glBindTextureUnit(static_cast<GLuint>(i) + 1, data->shadowMapTextures[i]);
     }
   f->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, data->surfaceSSBO);
+  if(lighting && data->environmentTexture && !renderDepthOnly)
+    f->glBindTextureUnit(environmentMapUnit, data->environmentTexture);
+  if(lighting && hasSky && !renderDepthOnly)
+  {
+    // The ambient light, the exposure and the light of the sky change with the sky.
+    if(data->uploadedSkyGeneration != skyGeneration)
+    {
+      const std::array<Vector4f, 8> values = getSkyLightValues();
+      f->glNamedBufferSubData(data->skyLightUBO, 0, sizeof(values), values.data());
+      data->uploadedSkyGeneration = skyGeneration;
+    }
+    f->glBindBufferBase(GL_UNIFORM_BUFFER, 1, data->skyLightUBO);
+  }
   // The values of the uniforms of the program are unknown.
   data->uniformBaseInstance = 0xffffffffu;
   data->uniformForcedSurface = 0xfffffffeu;
@@ -1120,6 +1300,11 @@ void GraphicsContext::setForcedSurfaceIndex(std::uint32_t surfaceIndex)
 
 void GraphicsContext::drawList(const DrawList* drawList)
 {
+  if(fittingShadowMaps)
+  {
+    accumulateBounds(drawList->depthOnly);
+    return;
+  }
   ASSERT(data);
   ASSERT(f);
   ASSERT(shader);
@@ -1550,6 +1735,32 @@ void GraphicsContext::finishDrawings()
   data->drawingTextures.clear();
 }
 
+void GraphicsContext::drawSky()
+{
+  ASSERT(data);
+  ASSERT(f);
+  ASSERT(shader);
+  const GLuint program = hasSky ? data->skyProgram : data->backdropProgram;
+  if(!currentLighting || renderDepthOnly || !program)
+    return;
+  const std::array<Vector4f, numOfSkyUniforms> values = getSkyUniforms(currentProjection, currentView);
+  f->glNamedBufferSubData(data->skyUniformUBO, 0, sizeof(values), values.data());
+  f->glBindBufferBase(GL_UNIFORM_BUFFER, 2, data->skyUniformUBO);
+  f->glDisable(GL_DEPTH_TEST);
+  f->glDisable(GL_CULL_FACE);
+  f->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  if(!hasSky)
+    f->glBindTextureUnit(environmentMapUnit, data->environmentTexture);
+  f->glUseProgram(program);
+  f->glBindVertexArray(data->skyVAO);
+  f->glDrawArrays(GL_TRIANGLES, 0, 3);
+  f->glUseProgram(shader->program);
+  f->glPolygonMode(GL_FRONT_AND_BACK, currentFillPolygons ? GL_FILL : GL_LINE);
+  f->glEnable(GL_CULL_FACE);
+  f->glEnable(GL_DEPTH_TEST);
+  data->boundVAO = 0;
+}
+
 void GraphicsContext::clearDepth()
 {
   ASSERT(data);
@@ -1665,6 +1876,34 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
                                              "#define GLOBAL_AMBIENT_LIGHT_GROUND vec3(" + std::to_string(globalAmbientLightGround[0]) + ", " + std::to_string(globalAmbientLightGround[1]) + ", " + std::to_string(globalAmbientLightGround[2]) + ")\n" +
                                              "#define EXPOSURE " + std::to_string(exposure) + "\n" + (filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "");
   std::string lightDeclarationsCode = "#define DECLARE_LIGHTS";
+  std::string skyLightCode;
+  if(environmentMap && lighting)
+  {
+    skyLightCode += "#define WITH_BACKDROP\n#define ENVIRONMENT_LEVELS " + std::to_string(environmentMap->levels) + ".0\n";
+    // The coefficients of the irradiance.
+    skyLightCode += "const vec3 backdropIrradianceCoefficients[9] = vec3[9](";
+    for(std::size_t j = 0; j < 9; ++j)
+      skyLightCode += (j ? ", " : "") + std::string("vec3(") + std::to_string(environmentMap->irradiance[j].x()) + ", " + std::to_string(environmentMap->irradiance[j].y()) + ", " + std::to_string(environmentMap->irradiance[j].z()) + ")";
+    skyLightCode += ");\n";
+    skyLightCode += R"glsl(
+vec3 backdropIrradiance(vec3 n)
+{
+  vec3 result = backdropIrradianceCoefficients[0] * 0.282095;
+  result += backdropIrradianceCoefficients[1] * (0.488603 * n.y) + backdropIrradianceCoefficients[2] * (0.488603 * n.z) + backdropIrradianceCoefficients[3] * (0.488603 * n.x);
+  result += backdropIrradianceCoefficients[4] * (1.092548 * n.x * n.y) + backdropIrradianceCoefficients[5] * (1.092548 * n.y * n.z) +
+            backdropIrradianceCoefficients[6] * (0.315392 * (3.0 * n.z * n.z - 1.0)) + backdropIrradianceCoefficients[7] * (1.092548 * n.x * n.z) +
+            backdropIrradianceCoefficients[8] * (0.546274 * (n.x * n.x - n.y * n.y));
+  return max(result, vec3(0.0));
+}
+)glsl";
+  }
+  if(hasSky && lighting)
+  {
+    // The ambient light and the exposure change with the sky, so they come from the same values as the light of the sky.
+    skyLightCode += "#define WITH_SKY_LIGHT\n#undef GLOBAL_AMBIENT_LIGHT\n#undef GLOBAL_AMBIENT_LIGHT_GROUND\n#undef EXPOSURE\n"
+                   "#define GLOBAL_AMBIENT_LIGHT skyLight[2].xyz\n#define GLOBAL_AMBIENT_LIGHT_GROUND skyLight[3].xyz\n#define EXPOSURE skyLight[0].w\n";
+    lightDeclarationsCode += " layout(std140, binding = 1) uniform SkyLight { vec4 skyLight[8]; };";
+  }
   for(std::size_t i = 0; i < shadowMaps.size(); ++i)
     lightDeclarationsCode += " uniform mat4 lightPV" + std::to_string(i) + "; layout(binding = " + std::to_string(i + 1) + ") uniform sampler2DShadow shadowMap" + std::to_string(i) + ";";
   std::string lightCalculationsCode = "#define CALCULATE_LIGHTS";
@@ -1678,6 +1917,19 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
     const std::string name = "light" + std::to_string(i);
     // The direction from the fragment to the light (to determine the shadow bias).
     std::string lightDirection;
+    if(light.dynamic)
+    {
+      // The light of the sky is a directional light whose color and direction are passed to the shader.
+      std::string visibility = "1.0";
+      lightDirection = "normalize(-skyLight[1].xyz)";
+      if(light.shadowMap)
+      {
+        const std::string index = std::to_string(*light.shadowMap);
+        visibility = "illumination(shadowMap" + index + ", lightPV" + index + ", " + lightDirection + ", normalizedNormal)";
+      }
+      lightCalculationsCode += " { DirLight " + name + " = DirLight(skyLight[0].xyz, skyLight[1].xyz); Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, roughness, metallic, sheen, " + visibility + "); }";
+      continue;
+    }
     switch(light.type)
     {
       case LightData::directional:
@@ -1717,7 +1969,7 @@ GraphicsContext::Shader GraphicsContext::compileColorShader(bool lighting, bool 
 
   Shader shader;
   shader.program = compileShader({{GL_VERTEX_SHADER, {versionSourceCode, defines.c_str(), vertexShaderSourceCode}},
-                                  {GL_FRAGMENT_SHADER, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode}}});
+                                  {GL_FRAGMENT_SHADER, {versionSourceCode, defines.c_str(), globalAmbientLightCode.c_str(), skyLightCode.c_str(), lightDeclarationsCode.c_str(), lightCalculationsCode.c_str(), fragmentShaderSourceCode}}});
 
   ASSERT(f);
   shader.cameraPVLocation = f->glGetUniformLocation(shader.program, "cameraPV");

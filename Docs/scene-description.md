@@ -57,10 +57,13 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | CylinderAppearance
                                | SphereAppearance;
     axisClass                  = Axis;
+    backdropClass              = Backdrop;
+    bandClass                  = Band;
     bodyClass                  = Body;
     compoundClass              = Compound;
     deflectionClass            = Deflection;
     environmentClass           = Environment;
+    groundClass                = Ground;
     extSensorClass             = Camera
                                | DepthImageSensor
                                | ObjectSegmentedImageSensor
@@ -79,7 +82,8 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                | Slider;
     lightClass                 = DirLight
                                | PointLight
-                               | SpotLight;
+                               | SpotLight
+                               | Sky;
     massClass                  = BoxMass
                                | CapsuleMass
                                | CylinderMass
@@ -249,6 +253,11 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
                                  "</PointLight>"
                                | "<PointLight/>";
     
+    Sky                        = "<Sky>"
+                                 ?( [shadowMapClass] )?
+                                 "</Sky>"
+                               | "<Sky/>";
+
     SpotLight                  = "<SpotLight>"
                                  ?( [shadowMapClass] )?
                                  "</SpotLight>"
@@ -304,8 +313,19 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
     Rotation                   = "<Rotation>" "</Rotation>"
                                | "<Rotation/>";
     
+    Backdrop                   = "<Backdrop>"
+                                 ?( {bandClass} )?
+                                 "</Backdrop>"
+                               | "<Backdrop/>";
+
+    Band                       = "<Band>" "</Band>"
+                               | "<Band/>";
+
+    Ground                     = "<Ground>" "</Ground>"
+                               | "<Ground/>";
+
     Environment                = "<Environment>"
-                                 ?( {lightClass} )?
+                                 ?( [backdropClass] [groundClass] {lightClass} )?
                                  "</Environment>"
                                | "<Environment/>";
 
@@ -683,7 +703,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
 
 ### environmentClass
 
-  - `Environment`: Sets the background color, the ambient light and the tone mapping of the scene, and contains lights. It is a child of the `Scene`. Since it can have a `name` and be used with `ref` like other elements, an environment with its lights can be defined once and shared by scenes.
+  - `Environment`: Sets the background color, the ambient light and the tone mapping of the scene, and contains lights. It is a child of the `Scene`. Since it can have a `name` and be used with `ref` like other elements, an environment with its lights can be defined once and shared by scenes. A `Sky` replaces the ambient light and the exposure by ones that depend on the time of day.
       - `color`: The RGBA background color of the scene, see [this section](#color-specification).
           - **Default**: #000000ff
           - **Use**: optional
@@ -705,6 +725,107 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: reinhard
           - **Use**: optional
           - **Range**: reinhard, filmic
+
+  - `Backdrop`: A room around the scene, which is drawn in the background (in the views and in the images of cameras, only if lighting is enabled) and which lights the scene (image-based lighting): surfaces receive diffuse light from it, and glossy surfaces reflect it, so metals and plastics do not look black. It consists of a floor (at the height 0), walls, a ceiling with a grid of lamps, and `Band` children that change the color of a part of the walls (for example crowds, stands or banners). The room is centered at the origin of the x and y axes. The radiance is computed when the scene is loaded; reflections are as if the room was infinitely far away. A backdrop replaces the ambient light of the environment (`ambient` and `ambientGround`) and cannot be combined with a `Sky`. It is a child of the `Environment`; the lights of the environment still cast their light (and shadows), the backdrop adds the light of the room without shadows.
+      - `sizeX`: The size of the room in x direction.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 40m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+      - `sizeY`: The size of the room in y direction.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 30m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+      - `sizeZ`: The height of the room.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 10m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+      - `floorColor`: The color of the floor, see [this section](#color-specification). The floor lights the scene from below (for example with the green of the turf).
+          - **Default**: rgb(50%, 50%, 50%)
+          - **Use**: optional
+      - `wallColor`: The color of the walls.
+          - **Default**: rgb(70%, 70%, 70%)
+          - **Use**: optional
+      - `ceilingColor`: The color of the ceiling.
+          - **Default**: rgb(60%, 60%, 60%)
+          - **Use**: optional
+      - `intensity`: A factor for the brightness of the floor, the walls, the ceiling and the bands.
+          - **Default**: 1
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `lampColor`: The color of the lamps in the ceiling.
+          - **Default**: #ffffff
+          - **Use**: optional
+      - `lampIntensity`: The brightness of the lamps (they are much brighter than the other parts of the room). 0 means that there are no lamps.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `lampRows`: The number of rows of lamps (arranged in the direction of the y axis).
+          - **Default**: 3
+          - **Use**: optional
+          - **Range**: (0, MAXINTEGER]
+      - `lampColumns`: The number of columns of lamps (arranged in the direction of the x axis).
+          - **Default**: 5
+          - **Use**: optional
+          - **Range**: (0, MAXINTEGER]
+      - `lampSize`: The side length of the (square) lamps.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 1m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+      - `resolution`: The size of the sides of the cube map of the room (a power of two from 32 to 2048). Larger values make the background sharper and take longer to compute when the scene is loaded.
+          - **Default**: 256
+          - **Use**: optional
+          - **Range**: 32, 64, 128, 256, 512, 1024, 2048
+  - `Ground`: An infinite horizontal plane with a tile pattern, which is drawn in the background below the horizon (the ground that is seen beyond the geometry of the scene), optionally with a line of trees at the horizon. It is lit like a horizontal surface (by the sky or by the backdrop and the directional lights) but without shadows, and it fades into the haze at the horizon. Together with a `Backdrop`, it replaces the floor of the room wherever the floor is seen (the floor of the room is still what lights the scene), and the walls and the ceiling of the room are seen from the position of the viewer instead of from the center of the room. A ground needs a `Sky` or a `Backdrop` (it is part of the background), and can be a child of the `Environment` once.
+      - `color`: The color of the tiles.
+          - **Default**: rgb(50%, 50%, 50%)
+          - **Use**: optional
+      - `height`: The height of the plane.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+      - `tileSize`: The side length of the square tiles. The joints between them are darker. 0 means that there are no tiles.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 1m
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `jointWidth`: The width of the joints between the tiles.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 1cm
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+      - `treeDistance`: The distance of a line of trees from the origin (the camera must be inside of the circle). It is a wall of foliage with crowns of different height around the scene, which is only used with a `Sky` (a backdrop has walls). With a `Sky`, the trees follow the season of the date and the latitude: green in the summer, yellow to red in the autumn, bare in the winter (not in the tropics, where they stay green). 0 means that there are no trees.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+      - `treeHeight`: The mean height of the trees.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 8m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
+
+  - `Band`: A horizontal band on the walls of a `Backdrop`. Bands that come later cover earlier ones.
+      - `minHeight`: The height of the lower edge of the band.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0m
+          - **Use**: optional
+      - `maxHeight`: The height of the upper edge of the band.
+          - **Units**: mm, cm, dm, m, km
+          - **Use**: required
+      - `color`: The color of the band.
+          - **Use**: required
+      - `variation`: How much the brightness changes over the band (noise, for seats, crowds or banners): 0 means not at all, 1 means from black to twice as bright.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `scale`: The size of the changes of the brightness.
+          - **Units**: mm, cm, dm, m, km
+          - **Default**: 0.5m
+          - **Use**: optional
+          - **Range**: (0, MAXFLOAT]
 
 
 ### lightClass
@@ -1060,11 +1181,61 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
       - `value`: The value the placeholder is set to.
           - **Use**: required
           - **Range**: String
+  - `Sky`: Specifies a sky with the sun, the moon and the stars, whose position depends on the time of day (and the place and date). It is drawn behind everything else, in the views and in the images of cameras (only if lighting is enabled), and it is also a directional light, namely the sunlight by day and the moonlight at night. This light, the ambient light (blue by day, red at sunrise and sunset, dark at night) and the exposure (which is longer at night, like an eye or camera adapts) follow the sky, so the attributes `ambient`, `ambientGround` and `exposure` of the `Environment` are replaced (the `exposure` becomes the one of the day). An environment can have one sky. A `ShadowMap` child makes the light of the sky cast shadows (the direction of the shadow map follows the light). The sky has polar lights at night if the latitude is high. Stars, moon phase and polar lights are drawn procedurally.
+      - `clock`: Where the time comes from. `simulation`: The time is the one that is given by `date` and `time`, plus the time of the simulation multiplied with `timeScale`. `wall`: The time is the one of the clock of the computer (`date`, `time` and `timeScale` are ignored).
+          - **Default**: simulation
+          - **Use**: optional
+          - **Range**: simulation, wall
+      - `date`: The date at the start (as `year-month-day`).
+          - **Default**: 2026-06-21
+          - **Use**: optional
+      - `time`: The local mean solar time at the start (as `hours:minutes` or `hours:minutes:seconds`, where 12:00 is when the sun is highest). This is not the time of the time zone, but the one of the longitude.
+          - **Default**: 17:00
+          - **Use**: optional
+      - `timeScale`: How many seconds pass in the sky for each second of the simulation. 0 freezes the time, 1 is real time, and 2160 lets a day pass in 40 seconds.
+          - **Default**: 0
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `latitude`: The latitude of the place in degrees (north is positive). It determines how high the sun climbs, how long the days are and if there are polar lights.
+          - **Default**: 53.08 (Bremen)
+          - **Use**: optional
+          - **Units**: degree, radian
+          - **Range**: [-90, 90]
+      - `longitude`: The longitude of the place in degrees (east is positive).
+          - **Default**: 8.8 (Bremen)
+          - **Use**: optional
+          - **Units**: degree, radian
+          - **Range**: [-180, 180]
+      - `north`: The direction of the geographic north in the scene as an angle in degrees around the z axis (counter-clockwise, starting at the x axis). The default means that the north is in the direction of the y axis (and the east in the direction of the x axis).
+          - **Default**: 90
+          - **Use**: optional
+          - **Units**: degree, radian
+          - **Range**: [-360, 360]
+      - `intensity`: The intensity of the sunlight when the sun is high (in the same unit as the intensity of the other lights). The moonlight is much weaker.
+          - **Default**: 5.5
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `nightExposure`: How much longer the scene is exposed at night than by day.
+          - **Default**: 6
+          - **Use**: optional
+          - **Range**: [0, MAXFLOAT]
+      - `moonRadius`: The angular radius of the moon in degrees. The real one is 0.26 degrees, but it looks larger than it is in photos, and a small one would hardly be seen.
+          - **Default**: 1.5
+          - **Use**: optional
+          - **Units**: degree, radian
+          - **Range**: [0, 180]
+      - `aurora`: How visible the polar lights are at night, from 0 to 1. By default, they are visible for a latitude of more than 55 degrees (north or south) and as bright as possible above 67 degrees.
+          - **Use**: optional
+          - **Range**: [0, 1]
+      - `clouds`: How much of the sky is covered by clouds, from 0 (none) to 1. The clouds drift slowly, they are lit by the sun (red at sunrise and sunset) and hide the sun, the moon and the stars. From about 0.5 they close up, and at 1 the sky is a gray, dark layer of clouds without a visible sun, which also lets only a small part of the sunlight through (the light of the scene is weaker, softer and the ambient light grayer).
+          - **Default**: 0.35
+          - **Use**: optional
+          - **Range**: [0, 1]
 
 
 ### shadowMapClass
 
-  - `ShadowMap`: Makes the light it is a child of cast shadows. Without this element, a light does not cast shadows and costs nothing. A shadow map is rendered from the light and only covers an axis-aligned bounding box in world coordinates; only objects inside it cast and receive shadows. Shadow maps are only used with lighting enabled. At most 8 lights can have a shadow map.
+  - `ShadowMap`: Makes the light it is a child of cast shadows. Without this element, a light does not cast shadows and costs nothing. A shadow map is rendered from the light and only covers an axis-aligned bounding box in world coordinates; only objects inside it cast and receive shadows. The bounding box is given by `aabbExtentX`, `aabbExtentY` and `aabbExtentZ` (and a center). If none of them is given, the box is fitted to the scene when the shadow maps are rendered the first time: it contains everything that is drawn at that time, except for horizontal surfaces like floors (unless there is nothing else), plus a margin of 0.75 m around it and a height of at least 2.5 m. The smaller the box, the better is the resolution of the shadows, so this is better than a fixed box for scenes of different sizes (objects that are later outside of the box do not cast shadows). Shadow maps are only used with lighting enabled. At most 8 lights can have a shadow map.
       - The shadow map is rotated around the direction of the light such that the part of it that is needed is as small as possible.
       - Directional lights use an orthographic projection that fits the bounding box.
       - Point and spot lights use a single perspective projection, so shadows are only cast within its frustum (they are not cast in all directions around the light).
@@ -1078,7 +1249,7 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 2048
           - **Use**: optional
           - **Range**: (0, MAXINTEGER]
-      - `aabbCenterX`: The x coordinate of the center of the bounding box.
+      - `aabbCenterX`: The x coordinate of the center of the bounding box (only together with the extents).
           - **Units**: mm, cm, dm, m, km
           - **Default**: 0m
           - **Use**: optional
@@ -1093,17 +1264,17 @@ In addition to the usual grouping elements `(...)`, `[...]`, and `{...}`, the fo
           - **Default**: 0m
           - **Use**: optional
           - **Range**: [-MAXFLOAT, MAXFLOAT]
-      - `aabbExtentX`: The size of the bounding box in x direction.
+      - `aabbExtentX`: The size of the bounding box in x direction. Either all three extents are given or none of them (then the box is fitted to the scene).
           - **Units**: mm, cm, dm, m, km
-          - **Use**: required
+          - **Use**: optional
           - **Range**: (0, MAXFLOAT]
-      - `aabbExtentY`: The size of the bounding box in y direction.
+      - `aabbExtentY`: The size of the bounding box in y direction. Either all three extents are given or none of them (then the box is fitted to the scene).
           - **Units**: mm, cm, dm, m, km
-          - **Use**: required
+          - **Use**: optional
           - **Range**: (0, MAXFLOAT]
-      - `aabbExtentZ`: The size of the bounding box in z direction.
+      - `aabbExtentZ`: The size of the bounding box in z direction. Either all three extents are given or none of them (then the box is fitted to the scene).
           - **Units**: mm, cm, dm, m, km
-          - **Use**: required
+          - **Use**: optional
           - **Range**: (0, MAXFLOAT]
 
 

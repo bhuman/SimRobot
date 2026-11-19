@@ -9,7 +9,9 @@
 
 #include "GraphicsContextBase.h"
 #include "Graphics/Environment.h"
+#include "Graphics/Ground.h"
 #include "Graphics/Light.h"
+#include "Graphics/Backdrop.h"
 #include "Graphics/LightSpace.h"
 #include "Graphics/Primitives.h"
 #include "Platform/Assert.h"
@@ -264,8 +266,27 @@ void GraphicsContextBase::setEnvironment(const Environment& environment)
   std::memcpy(globalAmbientLightGround, environment.ambientGround, sizeof(globalAmbientLightGround));
   exposure = environment.exposure;
   filmicToneMapping = environment.filmicToneMapping;
-  for(const Light* light : environment.lights)
+  for(Light* light : environment.lights)
     addLight(light);
+  if(environment.backdrop)
+  {
+    ASSERT(!hasSky);
+    environmentMap = EnvironmentMap::create(*environment.backdrop);
+    roomSize = environment.backdrop->size;
+  }
+  if(environment.ground)
+  {
+    const Ground& source = *environment.ground;
+    ground.present = true;
+    for(int i = 0; i < 3; ++i)
+      ground.albedo[i] = std::pow(source.color[i], 2.2f);
+    ground.height = source.height;
+    ground.tileSize = source.tileSize;
+    ground.jointWidth = source.jointWidth;
+    // The line of trees is part of the sky, a backdrop has walls instead.
+    ground.treeDistance = environment.backdrop ? 0.f : source.treeDistance;
+    ground.treeHeight = source.treeHeight;
+  }
 }
 
 GraphicsContextBase::IndexBuffer* GraphicsContextBase::requestIndexBuffer()
@@ -362,9 +383,103 @@ void GraphicsContextBase::readOffscreenImage(const ReadbackBuffer& buffer, int y
   readback.y = y;
 }
 
-void GraphicsContextBase::addLight(const Light* light)
+void GraphicsContextBase::setSky(const SkyState& state)
+{
+  sky = state;
+  if(skyLight)
+  {
+    LightData& data = lights[*skyLight];
+    std::memcpy(data.color, sky.lightColor.data(), sizeof(data.color));
+    std::memcpy(data.direction, sky.lightDirection.data(), sizeof(data.direction));
+    if(data.shadowMap && sky.lightView && sky.lightProjection)
+    {
+      shadowMaps[*data.shadowMap].view = *sky.lightView;
+      shadowMaps[*data.shadowMap].projection = *sky.lightProjection;
+    }
+  }
+  ++skyGeneration;
+}
+
+std::array<Vector4f, 8> GraphicsContextBase::getSkyLightValues() const
+{
+  std::array<Vector4f, 8> values;
+  values[0] << sky.lightColor, sky.exposure;
+  values[1] << sky.lightDirection, 0.f;
+  values[2] << sky.ambientSky, 0.f;
+  values[3] << sky.ambientGround, 0.f;
+  Matrix4f lightPV = Matrix4f::Identity();
+  if(skyLight && lights[*skyLight].shadowMap)
+    lightPV = shadowMaps[*lights[*skyLight].shadowMap].projection * shadowMaps[*lights[*skyLight].shadowMap].view;
+  for(int i = 0; i < 4; ++i)
+    values[4 + i] = lightPV.col(i);
+  return values;
+}
+
+std::array<Vector4f, GraphicsContextBase::numOfSkyUniforms> GraphicsContextBase::getSkyUniforms(const Matrix4f& projection, const Matrix4f& view) const
+{
+  constexpr float pi = 3.14159265358979323846f;
+  std::array<Vector4f, numOfSkyUniforms> values;
+  values.fill(Vector4f::Zero());
+  const Vector3f cameraPosition = -view.topLeftCorner<3, 3>().transpose() * view.topRightCorner<3, 1>();
+  if(hasSky)
+  {
+    values[0] << sky.sunDirection, sky.day;
+    values[1] << sky.moonDirection, sky.moonRadius;
+    values[2] << sky.sunColor, sky.twilight;
+    values[3] << sky.night, sky.aurora, sky.time, sky.exposure;
+    values[4] << sky.auroraDirection, 0.f;
+    for(int i = 0; i < 3; ++i)
+      values[5 + i] << sky.stars.row(i).transpose(), 0.f;
+    values[15] << ground.treeDistance, ground.treeHeight, sky.clouds, 0.f;
+    values[16] << sky.lightColor / pi, sky.leaves;
+    values[17] << -sky.lightDirection.normalized(), sky.autumn;
+    values[18] << sky.ambientSky, 0.f;
+  }
+  else
+  {
+    // A backdrop does not have a sun, so its values are those of the room: half of its size in x and y, its height and the
+    // height of the point where the cube map was computed.
+    values[0] << 0.5f * roomSize.x(), 0.5f * roomSize.y(), roomSize.z(), std::min(0.5f, 0.5f * roomSize.z());
+  }
+  for(int i = 0; i < 3; ++i)
+    // The rotation from view space to the scene is the transpose of the one of the view matrix.
+    values[8 + i] << view.topLeftCorner<3, 3>().col(i), 0.f;
+  values[11] << projection(0, 0), projection(1, 1), 0.f, 0.f;
+
+  // The ground: the light that a horizontal surface gets (as for the diffuse part of the shaders of lit surfaces, without shadows).
+  if(ground.present)
+  {
+    Vector3f light = Vector3f::Zero();
+    if(hasSky)
+      light = sky.lightColor * std::max(-sky.lightDirection.normalized().z(), 0.f) / pi + sky.ambientSky;
+    else if(environmentMap)
+    {
+      const std::array<float, 9> basis = EnvironmentMap::basis(Vector3f::UnitZ());
+      for(std::size_t i = 0; i < basis.size(); ++i)
+        light += environmentMap->irradiance[i] * basis[i];
+      for(const LightData& data : lights)
+        if(data.type == LightData::directional)
+          light += Vector3f(data.color[0], data.color[1], data.color[2]) * std::max(-Vector3f(data.direction[0], data.direction[1], data.direction[2]).normalized().z(), 0.f) / pi;
+    }
+    values[12] << ground.albedo, ground.height;
+    values[13] << light, ground.tileSize;
+    values[14] << cameraPosition, 1.f;
+    // The width of the joints is given relative to the size of the tiles.
+    values[15].w() = ground.tileSize > 0.f ? ground.jointWidth / ground.tileSize : 0.f;
+  }
+  return values;
+}
+
+void GraphicsContextBase::addLight(Light* light)
 {
   LightData data;
+  data.dynamic = light->isDynamic();
+  if(data.dynamic)
+  {
+    ASSERT(!skyLight);
+    hasSky = true;
+    skyLight = lights.size();
+  }
   std::memcpy(data.color, light->color, sizeof(data.color));
   if(const auto* dirLight = dynamic_cast<const DirLight*>(light); dirLight)
   {
@@ -401,7 +516,7 @@ void GraphicsContextBase::addLight(const Light* light)
     if(lightSpace)
     {
       data.shadowMap = shadowMaps.size();
-      shadowMaps.push_back({lightSpace->view, lightSpace->projection, light->shadowMap->width, light->shadowMap->height});
+      shadowMaps.push_back({lightSpace->view, lightSpace->projection, light->shadowMap->width, light->shadowMap->height, light});
     }
     else
       TRACE("Light %zu does not cast shadows (too many shadow maps, or the light is inside of its bounding box, or the bounding box is behind it).", lights.size());
@@ -701,6 +816,75 @@ void GraphicsContextBase::cullInstances(const DrawList::Pass& pass, bool allowLo
       }
   }
   visible.all = all;
+}
+
+bool GraphicsContextBase::fitShadowMaps(const std::function<void()>& draw)
+{
+  const auto needsFit = [](const ShadowMap& shadowMap) {return shadowMap.light->shadowMap->autoFit && !shadowMap.light->shadowMap->fitted;};
+  if(std::none_of(shadowMaps.begin(), shadowMaps.end(), needsFit))
+    return false;
+
+  // The bounds of everything that is drawn (this does not render anything).
+  fitMinimum = fitFlatMinimum = Vector3f::Constant(std::numeric_limits<float>::max());
+  fitMaximum = fitFlatMaximum = Vector3f::Constant(std::numeric_limits<float>::lowest());
+  fittingShadowMaps = true;
+  draw();
+  fittingShadowMaps = false;
+  if((fitMinimum.array() > fitMaximum.array()).any())
+  {
+    // There are only flat surfaces.
+    fitMinimum = fitFlatMinimum;
+    fitMaximum = fitFlatMaximum;
+  }
+
+  // Everything that moves a bit or is a bit higher than at the start should still cast shadows.
+  constexpr float margin = 0.75f; // The shadows of objects of the minimum height fall about that far from them.
+  constexpr float minHeight = 2.5f;
+  Vector3f center = Vector3f::Zero(), extent = Vector3f::Ones();
+  if((fitMinimum.array() <= fitMaximum.array()).all())
+  {
+    fitMinimum.array() -= margin;
+    fitMaximum.array() += margin;
+    fitMaximum.z() = std::max(fitMaximum.z(), fitMinimum.z() + minHeight);
+    center = (fitMinimum + fitMaximum) * 0.5f;
+    extent = fitMaximum - fitMinimum;
+  }
+  for(ShadowMap& shadowMap : shadowMaps)
+    if(needsFit(shadowMap))
+    {
+      TRACE("Shadow map fitted to the scene: center (%.2f, %.2f, %.2f) m, extent (%.2f, %.2f, %.2f) m.", center.x(), center.y(), center.z(), extent.x(), extent.y(), extent.z());
+      Light::ShadowMap& parameters = *shadowMap.light->shadowMap;
+      parameters.aabbCenter = center;
+      parameters.aabbExtent = extent;
+      parameters.fitted = true;
+      if(const std::optional<LightSpace> lightSpace = LightSpace::create(*shadowMap.light))
+      {
+        shadowMap.view = lightSpace->view;
+        shadowMap.projection = lightSpace->projection;
+      }
+    }
+  ++skyGeneration; // The matrices of the shadow maps are part of what the shaders read for the sky light.
+  return true;
+}
+
+void GraphicsContextBase::accumulateBounds(const DrawList::Pass& pass)
+{
+  constexpr float flatHeight = 0.01f; // The half height of the bounds of surfaces that are considered to be flat.
+  for(const DrawList::Batch& batch : pass.batches)
+  {
+    const Mesh& mesh = *batch.mesh;
+    for(std::uint32_t i = batch.firstInstance; i < batch.firstInstance + batch.numOfInstances; ++i)
+    {
+      const Matrix4f& modelMatrix = modelMatrixArray[pass.instances[i].modelMatrix];
+      const Vector3f center = modelMatrix.topLeftCorner<3, 3>() * mesh.boundsCenter + modelMatrix.topRightCorner<3, 1>();
+      const Vector3f halfExtent = modelMatrix.topLeftCorner<3, 3>().cwiseAbs() * mesh.boundsHalfExtent;
+      // Horizontal surfaces (floors, lines) only receive shadows, so they do not make the box larger if there is something else.
+      Vector3f& minimum = halfExtent.z() < flatHeight ? fitFlatMinimum : fitMinimum;
+      Vector3f& maximum = halfExtent.z() < flatHeight ? fitFlatMaximum : fitMaximum;
+      minimum = minimum.cwiseMin(center - halfExtent);
+      maximum = maximum.cwiseMax(center + halfExtent);
+    }
+  }
 }
 
 void GraphicsContextBase::buildDrawList(DrawList& drawList) const

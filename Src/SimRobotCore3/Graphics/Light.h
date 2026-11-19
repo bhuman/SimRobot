@@ -30,6 +30,8 @@ public:
     unsigned int height = 2048; /**< The height of the shadow map in pixels. */
     Vector3f aabbCenter = Vector3f::Zero(); /**< The center of the bounding box (in world coordinates). */
     Vector3f aabbExtent = Vector3f::Zero(); /**< The size of the bounding box in x, y and z direction. */
+    bool autoFit = false; /**< Whether the bounding box is fitted to the scene (when the shadow maps are rendered the first time) instead of being given. */
+    bool fitted = false; /**< Whether the bounding box has been fitted (only if \c autoFit). */
   };
 
   float color[3];
@@ -43,6 +45,12 @@ public:
    * @param element The element to register
    */
   void addParent(Element& element) override;
+
+  /**
+   * Returns whether the color and direction of the light change while the scene is rendered (see \c Sky).
+   * @return Whether the light is dynamic.
+   */
+  virtual bool isDynamic() const {return false;}
 };
 /**
  * @class DirLight

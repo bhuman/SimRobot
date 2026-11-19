@@ -50,6 +50,9 @@ private:
     userInputClass      = (1 << 22),
     shadowMapClass      = (1 << 23),
     environmentClass    = (1 << 24),
+    backdropClass       = (1 << 25),
+    bandClass           = (1 << 26),
+    groundClass         = (1 << 27),
   };
 
   bool getColor(const char* key, bool required, float* colors, bool withAlpha);
@@ -97,6 +100,10 @@ private:
   Element* dirLightElement();
   Element* pointLightElement();
   Element* spotLightElement();
+  Element* skyElement();
+  Element* backdropElement();
+  Element* bandElement();
+  Element* groundElement();
   Element* shadowMapElement();
   Element* surfaceElement();
   Element* gyroscopeElement();

@@ -11,6 +11,7 @@
 #include "GraphicsContext.h"
 #include "Graphics/Light.h"
 #include "Graphics/SensorShader.h"
+#include "Graphics/SkyShader.h"
 #include "Platform/Assert.h"
 #include "Simulation/Simulation.h"
 #include <rhi/qrhi.h>
@@ -219,7 +220,7 @@ float3 calcLight(float3 irradiance, float3 lightDir, float3 normal, float3 viewD
   return brdf * irradiance * cosTheta * visibility;
 }
 
-float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
+float3 calcDirLight(DirLight light, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(-light.direction);
   float3 irradiance = light.color;
@@ -227,7 +228,7 @@ float3 calcDirLight(constant DirLight& light, float3 normal, float3 viewDir, flo
   return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
+float3 calcPointLight(PointLight light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
@@ -237,7 +238,7 @@ float3 calcPointLight(constant PointLight& light, float3 pos, float3 normal, flo
   return calcLight(irradiance, lightDir, normal, viewDir, albedo, F0, roughness, metallic, sheen, visibility);
 }
 
-float3 calcSpotLight(constant SpotLight& light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
+float3 calcSpotLight(SpotLight light, float3 pos, float3 normal, float3 viewDir, float3 albedo, float3 F0, float roughness, float metallic, float4 sheen, float visibility)
 {
   float3 lightDir = metal::normalize(light.position - pos);
   float distance = metal::length(light.position - pos);
@@ -255,6 +256,12 @@ DECLARE_LIGHTS
 fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* surfaces [[buffer(0)]], constant float4& cameraPos [[buffer(1)]]
 #ifdef WITH_SHADOWS
                              , device const ShadowMapData* shadowMaps [[buffer(3)]]
+#endif
+#ifdef WITH_SKY_LIGHT
+                             , constant float4* skyLight [[buffer(6)]]
+#endif
+#ifdef WITH_BACKDROP
+                             , metal::texturecube<float> environment [[texture(0)]]
 #endif
                             )
 {
@@ -326,8 +333,22 @@ fragment float4 fragmentMain(VertexOut in [[stage_in]], device const Surface* su
   float3 Lo = float3(0.0);
   CALCULATE_LIGHTS
   // The ambient light comes from above (sky) and from below (ground) and is interpolated by the direction of the normal.
+#ifdef WITH_BACKDROP
+  // The light of the backdrop: the diffuse part comes from the irradiance (spherical harmonics), the specular part from the
+  // prefiltered radiance in the direction of the reflection with the approximation of the BRDF of Karis.
+  constexpr metal::sampler environmentSampler(metal::filter::linear, metal::mip_filter::linear, metal::address::clamp_to_edge);
+  float3 ambientLight = backdropIrradiance(normalizedNormal);
+  float cosView = metal::max(metal::dot(normalizedNormal, viewDir), 0.0);
+  float4 brdfRoughness = roughness * float4(-1.0, -0.0275, -0.572, 0.022) + float4(1.0, 0.0425, 1.04, -0.04);
+  float brdfBias = metal::min(brdfRoughness.x * brdfRoughness.x, metal::exp2(-9.28 * cosView)) * brdfRoughness.x + brdfRoughness.y;
+  float2 brdfScaleBias = float2(-1.04, 1.04) * brdfBias + brdfRoughness.zw;
+  float3 specularAlbedo = F0 * brdfScaleBias.x + brdfScaleBias.y;
+  float3 prefiltered = environment.sample(environmentSampler, metal::reflect(-viewDir, normalizedNormal), metal::level(roughness * (ENVIRONMENT_LEVELS - 1.0))).rgb;
+  float3 ambient = (ambientLight * albedo * (float3(1.0) - specularAlbedo) * (1.0 - surface.metallic) + prefiltered * specularAlbedo) * surface.ambient;
+#else
   float3 ambientLight = metal::mix(GLOBAL_AMBIENT_LIGHT_GROUND, GLOBAL_AMBIENT_LIGHT, 0.5 + 0.5 * normalizedNormal.z);
   float3 ambient = ambientLight * albedo * surface.ambient;
+#endif
   if(sheen.r + sheen.g + sheen.b > 0.0)
     ambient += sheen.rgb * ambientLight * metal::pow(1.0 - metal::max(metal::dot(normalizedNormal, viewDir), 0.0), 1.0 / metal::max(sheen.w * sheen.w, 0.0625)) * surface.ambient;
   color.rgb = (ambient + Lo) * EXPOSURE;
@@ -800,6 +821,28 @@ void GraphicsContext::createDeviceResources()
     uploadCommandBuffer->waitUntilCompleted();
   }
 
+  // Create the cube map of the backdrop (the memory is shared with the CPU, so the data can be copied right away).
+  if(environmentMap)
+  {
+    MTL::TextureDescriptor* descriptor = MTL::TextureDescriptor::alloc()->init();
+    descriptor->setTextureType(MTL::TextureTypeCube);
+    descriptor->setPixelFormat(MTL::PixelFormatRGBA16Float);
+    descriptor->setWidth(environmentMap->resolution);
+    descriptor->setHeight(environmentMap->resolution);
+    descriptor->setMipmapLevelCount(environmentMap->levels);
+    descriptor->setUsage(MTL::TextureUsageShaderRead);
+    descriptor->setStorageMode(MTL::StorageModeShared);
+    environmentTexture = device->newTexture(descriptor);
+    descriptor->release();
+    ASSERT(environmentTexture);
+    for(unsigned int level = 0; level < environmentMap->levels; ++level)
+    {
+      const unsigned int size = environmentMap->size(level);
+      for(unsigned int side = 0; side < 6; ++side)
+        environmentTexture->replaceRegion(MTL::Region(0, 0, size, size), level, side, environmentMap->sides[level * 6 + side].data(), size * 8, 0);
+    }
+  }
+
   // Upload surfaces.
   modelMatrixBuffer = nullptr;
   uploadedModelMatrixGeneration = 0;
@@ -875,6 +918,19 @@ void GraphicsContext::createDeviceResources()
     const std::string name = "light" + std::to_string(i);
     // The direction from the fragment to the light (to determine the shadow bias).
     std::string lightDirection;
+    if(light.dynamic)
+    {
+      // The light of the sky is a directional light whose color, direction and shadow map matrix are passed to the shader.
+      std::string visibility = "1.0";
+      lightDirection = "metal::normalize(-skyLight[1].xyz)";
+      if(light.shadowMap)
+      {
+        const std::string index = std::to_string(*light.shadowMap);
+        visibility = "illumination(shadowMaps[" + index + "].map, metal::float4x4(skyLight[4], skyLight[5], skyLight[6], skyLight[7]), in.positionInWorld, " + lightDirection + ", normalizedNormal)";
+      }
+      lightCalculationsCode += " { DirLight " + name + " = {skyLight[0].xyz, skyLight[1].xyz}; Lo += calcDirLight(" + name + ", normalizedNormal, viewDir, albedo, F0, roughness, surface.metallic, sheen, " + visibility + "); }";
+      continue;
+    }
     switch(light.type)
     {
       case LightData::directional:
@@ -923,6 +979,32 @@ void GraphicsContext::createDeviceResources()
     if(i & 4)
     {
       sourceCode += "#define WITH_LIGHTING\n";
+      if(hasSky)
+      {
+        // The ambient light and the exposure change with the sky, so they come from the same values as the light of the sky.
+        sourceCode += "#define WITH_SKY_LIGHT\n#undef GLOBAL_AMBIENT_LIGHT\n#undef GLOBAL_AMBIENT_LIGHT_GROUND\n#undef EXPOSURE\n";
+        sourceCode += "#define GLOBAL_AMBIENT_LIGHT skyLight[2].xyz\n#define GLOBAL_AMBIENT_LIGHT_GROUND skyLight[3].xyz\n#define EXPOSURE skyLight[0].w\n";
+      }
+      if(environmentMap)
+      {
+        sourceCode += "#define WITH_BACKDROP\n#define ENVIRONMENT_LEVELS " + std::to_string(environmentMap->levels) + ".0\n";
+        // The coefficients of the irradiance.
+        sourceCode += "constant float3 backdropIrradianceCoefficients[9] = {";
+        for(std::size_t j = 0; j < 9; ++j)
+          sourceCode += (j ? ", " : "") + std::string("float3(") + std::to_string(environmentMap->irradiance[j].x()) + ", " + std::to_string(environmentMap->irradiance[j].y()) + ", " + std::to_string(environmentMap->irradiance[j].z()) + ")";
+        sourceCode += "};\n";
+        sourceCode += R"metal(
+float3 backdropIrradiance(float3 n)
+{
+  float3 result = backdropIrradianceCoefficients[0] * 0.282095;
+  result += backdropIrradianceCoefficients[1] * (0.488603 * n.y) + backdropIrradianceCoefficients[2] * (0.488603 * n.z) + backdropIrradianceCoefficients[3] * (0.488603 * n.x);
+  result += backdropIrradianceCoefficients[4] * (1.092548 * n.x * n.y) + backdropIrradianceCoefficients[5] * (1.092548 * n.y * n.z) +
+            backdropIrradianceCoefficients[6] * (0.315392 * (3.0 * n.z * n.z - 1.0)) + backdropIrradianceCoefficients[7] * (1.092548 * n.x * n.z) +
+            backdropIrradianceCoefficients[8] * (0.546274 * (n.x * n.x - n.y * n.y));
+  return metal::max(result, float3(0.0));
+}
+)metal";
+      }
       if(!shadowMaps.empty())
         sourceCode += "#define WITH_SHADOWS\n";
     }
@@ -970,6 +1052,104 @@ void GraphicsContext::createDeviceResources()
     readbackPipelineStates[yuyvImage] = createComputePipelineState(library, "readbackYUYV");
     readbackPipelineStates[depthImage] = createComputePipelineState(library, "readbackDepth");
     library->release();
+  }
+  if(hasSky)
+  {
+    const std::string skySourceCode = std::string(filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "") + R"metal(
+#include <metal_stdlib>
+using namespace metal;
+struct SkyVertexOut
+{
+  float4 position [[position]];
+  float2 ndc;
+};
+
+vertex SkyVertexOut skyVertex(uint vertexID [[vertex_id]])
+{
+  // A triangle that covers everything, at the far plane.
+  float2 position = float2(vertexID == 1 ? 3.0 : -1.0, vertexID == 2 ? 3.0 : -1.0);
+  SkyVertexOut out;
+  out.position = float4(position, 1.0, 1.0);
+  out.ndc = position;
+  return out;
+}
+)metal" + skyShaderCode(false) + R"metal(
+fragment float4 skyFragment(SkyVertexOut in [[stage_in]], constant SkyParams& params [[buffer(7)]])
+{
+  float3 viewDirection = float3(in.ndc.x / params.v[11].x, in.ndc.y / params.v[11].y, -1.0);
+  float3 direction = normalize(float3(dot(params.v[8].xyz, viewDirection), dot(params.v[9].xyz, viewDirection), dot(params.v[10].xyz, viewDirection)));
+  float3 color = skyColor(direction, params) * params.v[3].w;
+#ifdef FILMIC_TONE_MAPPING
+  color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), 0.0, 1.0);
+#else
+  color = color / (color + float3(1.0));
+#endif
+  return float4(pow(color, float3(1.0 / 2.2)), 1.0);
+}
+)metal";
+    if(MTL::Library* library = compileLibrary(skySourceCode.c_str()); library)
+    {
+      for(std::size_t i = 0; i < numOfSampleCounts; ++i)
+        drawingPipelineStates[i * numOfDrawingPipelineStates + skyPipeline] = createDrawingPipelineState(library, "skyVertex", "skyFragment", nullptr, true, i == 1, true);
+      library->release();
+    }
+  }
+  if(environmentMap)
+  {
+    const std::string backdropSourceCode = "#define EXPOSURE " + std::to_string(exposure) + "\n" + std::string(filmicToneMapping ? "#define FILMIC_TONE_MAPPING\n" : "") + R"metal(
+#include <metal_stdlib>
+using namespace metal;
+struct BackdropVertexOut
+{
+  float4 position [[position]];
+  float2 ndc;
+};
+
+vertex BackdropVertexOut backdropVertex(uint vertexID [[vertex_id]])
+{
+  // A triangle that covers everything, at the far plane.
+  float2 position = float2(vertexID == 1 ? 3.0 : -1.0, vertexID == 2 ? 3.0 : -1.0);
+  BackdropVertexOut out;
+  out.position = float4(position, 1.0, 1.0);
+  out.ndc = position;
+  return out;
+}
+)metal" + skyShaderCode(false) + R"metal(
+// The values are the same as those of the sky (see Graphics/SkyShader.h).
+fragment float4 backdropFragment(BackdropVertexOut in [[stage_in]], constant SkyParams& params [[buffer(7)]], texturecube<float> environment [[texture(0)]])
+{
+  constexpr sampler environmentSampler(filter::linear, address::clamp_to_edge);
+  float3 viewDirection = float3(in.ndc.x / params.v[11].x, in.ndc.y / params.v[11].y, -1.0);
+  float3 direction = normalize(float3(dot(params.v[8].xyz, viewDirection), dot(params.v[9].xyz, viewDirection), dot(params.v[10].xyz, viewDirection)));
+  GroundSample ground = groundSample(direction, params);
+
+  // The cube map was computed at the center of the room, so the point where the ray hits the room is looked up (the walls and
+  // the ceiling are at the right place for the viewer).
+  float3 cameraPosition = params.v[14].xyz;
+  float3 sides = float3(params.v[0].x, params.v[0].y, direction.z > 0.0 ? params.v[0].z : 0.0) * float3(direction.x > 0.0 ? 1.0 : -1.0, direction.y > 0.0 ? 1.0 : -1.0, 1.0);
+  float3 times = (sides - cameraPosition) / (direction + select(float3(-1e-6), float3(1e-6), direction >= 0.0));
+  float hitTime = max(min(times.x, times.y), 0.1);
+  if(direction.z > 0.0)
+    hitTime = min(hitTime, max(times.z, 0.1));
+  float3 lookup = normalize(cameraPosition + direction * hitTime - float3(0.0, 0.0, params.v[0].w));
+  float3 color = environment.sample(environmentSampler, params.v[14].w > 0.5 ? lookup : direction, level(0)).rgb;
+  if(params.v[14].w > 0.5 && direction.z < 0.0 && ground.t < hitTime)
+    color = groundColor(ground, params);
+  color *= EXPOSURE;
+#ifdef FILMIC_TONE_MAPPING
+  color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), 0.0, 1.0);
+#else
+  color = color / (color + float3(1.0));
+#endif
+  return float4(pow(color, float3(1.0 / 2.2)), 1.0);
+}
+)metal";
+    if(MTL::Library* library = compileLibrary(backdropSourceCode); library)
+    {
+      for(std::size_t i = 0; i < numOfSampleCounts; ++i)
+        drawingPipelineStates[i * numOfDrawingPipelineStates + backdropPipeline] = createDrawingPipelineState(library, "backdropVertex", "backdropFragment", nullptr, true, i == 1, true);
+      library->release();
+    }
   }
   if(MTL::Library* library = compileLibrary(drawingShaderSourceCode); library)
   {
@@ -1060,6 +1240,9 @@ void GraphicsContext::destroyDeviceResources()
     if(texture)
       texture->release();
   mtlTextures.clear();
+  if(environmentTexture)
+    environmentTexture->release();
+  environmentTexture = nullptr;
   if(textureHeap)
     textureHeap->release();
   if(indexBuffer)
@@ -1106,6 +1289,14 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool o
     return;
   }
   lastShadowMapUpdate = Simulation::simulation->simulationStep;
+
+  // The shader looks up the position in the same clip space as the one in which the shadow map is rendered.
+  if(fitShadowMaps(draw))
+    for(std::size_t i = 0; i < shadowMaps.size(); ++i)
+    {
+      const Matrix4f lightPV = clipSpaceCorrection * shadowMaps[i].projection * shadowMaps[i].view;
+      std::memcpy(static_cast<std::uint8_t*>(shadowMapBuffer->contents()) + i * shadowMapMemorySize, lightPV.data(), sizeof(float) * 16);
+    }
 
   // The shadow maps are rendered with a separate command buffer, so that no render pass of an external renderer is
   // interrupted. For an external renderer (which uses another command queue), it is completed before the function returns,
@@ -1173,6 +1364,9 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
   ASSERT(encoder);
   ASSERT(!selectedPipelineStates);
   startCulling(projection, view, viewportX >= 0 ? viewportHeight : 0);
+  currentProjection = projection;
+  currentView = view;
+  currentLighting = lighting;
   selectedPipelineStates = &pipelineStates[((renderDepthOnly ? 0 : sampleCountIndex * numOfShaders) + (renderDepthOnly ? depthOnlyShaderIndex : ((lighting ? 4 : 0) + (textures ? 2 : 0) + (smoothShading ? 1 : 0)))) * numOfVertexCategories];
   boundPipelineState = nullptr;
 
@@ -1212,6 +1406,19 @@ void GraphicsContext::startRendering(const Matrix4f& projection, const Matrix4f&
     encoder->setFragmentBuffer(surfaceBuffer, 0, 0);
     if(textureHeap)
       encoder->useHeap(textureHeap, MTL::RenderStageFragment);
+    if(lighting && environmentTexture)
+      encoder->setFragmentTexture(environmentTexture, 0);
+    if(lighting && hasSky)
+    {
+      // The shadow map matrix is in the clip space of Metal.
+      std::array<Vector4f, 8> values = getSkyLightValues();
+      Matrix4f lightPV;
+      lightPV << values[4], values[5], values[6], values[7];
+      lightPV = clipSpaceCorrection * lightPV;
+      for(int i = 0; i < 4; ++i)
+        values[4 + i] = lightPV.col(i);
+      encoder->setFragmentBytes(values.data(), sizeof(values), 6);
+    }
     if(lighting && shadowMapBuffer)
     {
       encoder->setFragmentBuffer(shadowMapBuffer, 0, 3);
@@ -1273,6 +1480,11 @@ void GraphicsContext::bindModelMatrices()
 
 void GraphicsContext::drawList(const DrawList* drawList)
 {
+  if(fittingShadowMaps)
+  {
+    accumulateBounds(drawList->depthOnly);
+    return;
+  }
   ASSERT(encoder);
   ASSERT(selectedPipelineStates);
   ASSERT(!recordingList);
@@ -1695,7 +1907,29 @@ void GraphicsContext::clearDepth()
   encoder->setDepthStencilState(depthStencilState);
 }
 
-MTL::RenderPipelineState* GraphicsContext::createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample)
+void GraphicsContext::drawSky()
+{
+  ASSERT(encoder);
+  ASSERT(selectedPipelineStates);
+  if((!hasSky && !environmentTexture) || !currentLighting || renderDepthOnly)
+    return;
+  MTL::RenderPipelineState* pipelineState = drawingPipelineStates[sampleCountIndex * numOfDrawingPipelineStates + (hasSky ? skyPipeline : backdropPipeline)];
+  if(!pipelineState)
+    return;
+  const std::array<Vector4f, numOfSkyUniforms> values = getSkyUniforms(currentProjection, currentView);
+  encoder->setCullMode(MTL::CullModeNone);
+  encoder->setDepthStencilState(noDepthWriteState);
+  encoder->setRenderPipelineState(pipelineState);
+  encoder->setFragmentBytes(values.data(), sizeof(values), 7);
+  if(!hasSky)
+    encoder->setFragmentTexture(environmentTexture, 0);
+  encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, static_cast<NS::UInteger>(0), static_cast<NS::UInteger>(3));
+  encoder->setCullMode(MTL::CullModeBack);
+  encoder->setDepthStencilState(depthStencilState);
+  boundPipelineState = nullptr;
+}
+
+MTL::RenderPipelineState* GraphicsContext::createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample, bool opaque)
 {
   MTL::RenderPipelineDescriptor* descriptor = MTL::RenderPipelineDescriptor::alloc()->init();
   descriptor->setRasterSampleCount(multisample ? multisampleCount : 1);
@@ -1708,7 +1942,7 @@ MTL::RenderPipelineState* GraphicsContext::createDrawingPipelineState(MTL::Libra
   descriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float);
   auto* attachment = descriptor->colorAttachments()->object(0);
   attachment->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
-  if(writeColor)
+  if(writeColor && !opaque)
   {
     attachment->setBlendingEnabled(true);
     attachment->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
@@ -1719,7 +1953,7 @@ MTL::RenderPipelineState* GraphicsContext::createDrawingPipelineState(MTL::Libra
     attachment->setDestinationAlphaBlendFactor(MTL::BlendFactorOne);
     attachment->setAlphaBlendOperation(MTL::BlendOperationAdd);
   }
-  else
+  else if(!writeColor)
     attachment->setWriteMask(MTL::ColorWriteMaskNone);
 
   NS::Error* error = nullptr;

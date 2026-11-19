@@ -39,6 +39,13 @@ public:
   void updateTransformations();
   unsigned int lastTransformationUpdateStep = 0;
 
+  /**
+   * Computes the sky for the current time (if the scene has a sky), which determines the light of the sky and the ambient light.
+   * Must be called before the scene is rendered (and before shadow maps are updated).
+   * @param graphicsContext The graphics context to give the state of the sky to
+   */
+  void updateSky(GraphicsContext& graphicsContext);
+
   /** Updates all actuators that need to do something for each simulation step */
   void updateActuators();
 

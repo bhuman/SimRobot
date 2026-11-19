@@ -57,6 +57,7 @@ void Camera::registerObjects()
 
 void Camera::CameraSensor::drawScene(GraphicsContext& graphicsContext) const
 {
+  graphicsContext.drawSky();
   Simulation::simulation->scene->drawAppearancesCached(graphicsContext);
 }
 

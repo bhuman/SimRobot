@@ -62,6 +62,7 @@ void ImageSensorPort::render(const std::vector<ImageSensorPort*>& ports)
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::appearance, false);
+  Simulation::simulation->scene->updateSky(graphicsContext);
   if(first.lighting)
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearancesCached(graphicsContext);}, true, false);
   if(!graphicsContext.startOffscreenRendering(first.imageWidth, first.imageHeight * static_cast<int>(ports.size()), false, first.multisample))

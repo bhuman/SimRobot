@@ -163,6 +163,8 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
 
   const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
+  Simulation::simulation->scene->updateSky(graphicsContext);
+
   // The shadow maps contain the whole scene (not only the displayed object).
   if(drawAppearances && (renderFlags & enableLights))
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearancesCached(graphicsContext);}, false, dragging && dragSelection);
@@ -191,6 +193,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawAppearances)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, surfaceShadeMode == smoothShading, surfaceShadeMode != wireframeShading);
+    graphicsContext.drawSky();
     graphicalObject->drawAppearancesCached(graphicsContext);
     graphicsContext.finishRendering();
   }

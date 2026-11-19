@@ -5,8 +5,11 @@
  */
 
 #include "ParserCore3.h"
+#include "Graphics/Backdrop.h"
+#include "Graphics/Ground.h"
 #include "Graphics/Environment.h"
 #include "Graphics/Light.h"
+#include "Graphics/Sky.h"
 #include "Platform/Assert.h"
 #include "Simulation/Actuators/Hinge.h"
 #include "Simulation/Actuators/Slider.h"
@@ -61,12 +64,20 @@ ParserCore3::ParserCore3()
     {"Scene", sceneClass, std::bind(&ParserCore3::sceneElement, this), nullptr, 0,
       0, environmentClass, setClass | bodyClass | compoundClass | userInputClass, {}},
     {"Environment", environmentClass, std::bind(&ParserCore3::environmentElement, this), nullptr, 0,
-      0, 0, lightClass, {}},
+      0, backdropClass | groundClass, lightClass, {}},
+    {"Ground", groundClass, std::bind(&ParserCore3::groundElement, this), nullptr, 0,
+      0, 0, 0, {}},
+    {"Backdrop", backdropClass, std::bind(&ParserCore3::backdropElement, this), nullptr, 0,
+      0, 0, bandClass, {}},
+    {"Band", bandClass, std::bind(&ParserCore3::bandElement, this), nullptr, 0,
+      0, 0, 0, {}},
     {"DirLight", lightClass, std::bind(&ParserCore3::dirLightElement, this), nullptr, 0,
       0, shadowMapClass, 0, {}},
     {"PointLight", lightClass, std::bind(&ParserCore3::pointLightElement, this), nullptr, 0,
       0, shadowMapClass, 0, {}},
     {"SpotLight", lightClass, std::bind(&ParserCore3::spotLightElement, this), nullptr, 0,
+      0, shadowMapClass, 0, {}},
+    {"Sky", lightClass, std::bind(&ParserCore3::skyElement, this), nullptr, 0,
       0, shadowMapClass, 0, {}},
     {"ShadowMap", shadowMapClass, std::bind(&ParserCore3::shadowMapElement, this), nullptr, 0,
       0, 0, 0, {}},
@@ -289,6 +300,110 @@ Element* ParserCore3::spotLightElement()
   return light;
 }
 
+Element* ParserCore3::skyElement()
+{
+  ASSERT(Simulation::simulation->scene);
+  // The sky is a child of the environment that is being parsed.
+  ASSERT(Simulation::simulation->scene->environment);
+  if(Simulation::simulation->scene->environment->sky)
+    handleError("There is more than one sky", elementData->location);
+  if(Simulation::simulation->scene->environment->backdrop)
+    handleError("A sky cannot be combined with a backdrop", elementData->location);
+  Sky* sky = new Sky();
+  const std::string& clock = getString("clock", false);
+  if(clock == "wall")
+    sky->clock = Sky::wallClock;
+  else if(!clock.empty() && clock != "simulation")
+    handleError("Unknown clock", attributes->find("clock")->second.valueLocation);
+  const std::string& date = getString("date", false);
+  if(!date.empty() && (std::sscanf(date.c_str(), "%d-%d-%d", &sky->year, &sky->month, &sky->day) != 3 || sky->month < 1 || sky->month > 12 || sky->day < 1 || sky->day > 31))
+    handleError("The date must be given as year-month-day", attributes->find("date")->second.valueLocation);
+  const std::string& time = getString("time", false);
+  if(!time.empty())
+  {
+    int hours = 0, minutes = 0, seconds = 0;
+    const int numOfValues = std::sscanf(time.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
+    if(numOfValues < 2 || hours < 0 || hours > 24 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59)
+      handleError("The time must be given as hours:minutes or hours:minutes:seconds", attributes->find("time")->second.valueLocation);
+    else
+      sky->startTime = hours + minutes / 60.0 + seconds / 3600.0;
+  }
+  sky->timeScale = getFloatPositive("timeScale", false, static_cast<float>(sky->timeScale));
+  // The angles are given with a unit (degree or radian) and kept in degrees.
+  const auto getDegrees = [&](const char* key, double defaultValue, double min, double max, bool positive)
+  {
+    constexpr double toDegrees = 180.0 / 3.14159265358979323846;
+    if(attributes->find(key) == attributes->end())
+      return defaultValue;
+    const double value = getAngle(key, false, 0.f, false) * toDegrees;
+    if(value < min - 1e-4 || value > max + 1e-4 || (positive && value < 0.0))
+    {
+      handleError(std::string("The value of \"") + key + "\" must be in [" + std::to_string(min) + " degree, " + std::to_string(max) + " degree]", attributes->find(key)->second.valueLocation);
+      return defaultValue;
+    }
+    return value;
+  };
+  sky->latitude = getDegrees("latitude", sky->latitude, -90.0, 90.0, false);
+  sky->longitude = getDegrees("longitude", sky->longitude, -180.0, 180.0, false);
+  sky->northAngle = getDegrees("north", sky->northAngle, -360.0, 360.0, false);
+  sky->moonRadius = static_cast<float>(getDegrees("moonRadius", sky->moonRadius, 0.0, 180.0, true));
+  if(attributes->find("aurora") != attributes->end())
+    sky->aurora = getFloatMinMax("aurora", false, 0.f, 0.f, 1.f);
+  sky->clouds = getFloatMinMax("clouds", false, sky->clouds, 0.f, 1.f);
+  sky->sunIntensity = getFloatPositive("intensity", false, sky->sunIntensity);
+  sky->nightExposure = getFloatPositive("nightExposure", false, sky->nightExposure);
+  return sky;
+}
+
+Element* ParserCore3::backdropElement()
+{
+  Backdrop* backdrop = new Backdrop();
+  backdrop->size.x() = getLength("sizeX", false, backdrop->size.x(), true);
+  backdrop->size.y() = getLength("sizeY", false, backdrop->size.y(), true);
+  backdrop->size.z() = getLength("sizeZ", false, backdrop->size.z(), true);
+  getColor("floorColor", false, backdrop->floorColor, false);
+  getColor("wallColor", false, backdrop->wallColor, false);
+  getColor("ceilingColor", false, backdrop->ceilingColor, false);
+  backdrop->intensity = getFloatPositive("intensity", false, backdrop->intensity);
+  getColor("lampColor", false, backdrop->lampColor, false);
+  backdrop->lampIntensity = getFloatPositive("lampIntensity", false, backdrop->lampIntensity);
+  backdrop->lampRows = getInteger("lampRows", false, backdrop->lampRows, true);
+  backdrop->lampColumns = getInteger("lampColumns", false, backdrop->lampColumns, true);
+  backdrop->lampSize = getLength("lampSize", false, backdrop->lampSize, true);
+  backdrop->resolution = getInteger("resolution", false, backdrop->resolution, true);
+  if(backdrop->resolution < 32 || backdrop->resolution > 2048 || (backdrop->resolution & (backdrop->resolution - 1)))
+    handleError("The resolution must be a power of two between 32 and 2048", attributes->find("resolution")->second.valueLocation);
+  ASSERT(Simulation::simulation->scene && Simulation::simulation->scene->environment);
+  if(Simulation::simulation->scene->environment->sky)
+    handleError("A backdrop cannot be combined with a sky", elementData->location);
+  return backdrop;
+}
+
+Element* ParserCore3::bandElement()
+{
+  Band* band = new Band();
+  band->minHeight = getLength("minHeight", false, band->minHeight, false);
+  band->maxHeight = getLength("maxHeight", true, 0.f, false);
+  getColor("color", true, band->color, false);
+  band->variation = getFloatMinMax("variation", false, band->variation, 0.f, 1.f);
+  band->scale = getLength("scale", false, band->scale, true);
+  return band;
+}
+
+Element* ParserCore3::groundElement()
+{
+  Ground* ground = new Ground();
+  getColor("color", false, ground->color, false);
+  ground->height = getLength("height", false, ground->height, false);
+  ground->tileSize = getLength("tileSize", false, ground->tileSize, false);
+  if(ground->tileSize < 0.f)
+    handleError("The tile size must not be negative", attributes->find("tileSize")->second.valueLocation);
+  ground->jointWidth = getLength("jointWidth", false, ground->jointWidth, true);
+  ground->treeDistance = getLength("treeDistance", false, ground->treeDistance, false);
+  ground->treeHeight = getLength("treeHeight", false, ground->treeHeight, true);
+  return ground;
+}
+
 Element* ParserCore3::shadowMapElement()
 {
   Light* light = dynamic_cast<Light*>(element);
@@ -296,12 +411,25 @@ Element* ParserCore3::shadowMapElement()
   Light::ShadowMap& shadowMap = light->shadowMap.emplace(Light::ShadowMap());
   shadowMap.width = static_cast<unsigned int>(getInteger("width", false, static_cast<int>(shadowMap.width), true));
   shadowMap.height = static_cast<unsigned int>(getInteger("height", false, static_cast<int>(shadowMap.height), true));
-  shadowMap.aabbCenter.x() = getLength("aabbCenterX", false, shadowMap.aabbCenter.x(), false);
-  shadowMap.aabbCenter.y() = getLength("aabbCenterY", false, shadowMap.aabbCenter.y(), false);
-  shadowMap.aabbCenter.z() = getLength("aabbCenterZ", false, shadowMap.aabbCenter.z(), false);
-  shadowMap.aabbExtent.x() = getLength("aabbExtentX", true, 0.f, true);
-  shadowMap.aabbExtent.y() = getLength("aabbExtentY", true, 0.f, true);
-  shadowMap.aabbExtent.z() = getLength("aabbExtentZ", true, 0.f, true);
+  // Without a bounding box, it is fitted to the scene (until then, it is a unit box).
+  const bool hasExtent = attributes->find("aabbExtentX") != attributes->end() || attributes->find("aabbExtentY") != attributes->end() || attributes->find("aabbExtentZ") != attributes->end();
+  if(hasExtent)
+  {
+    shadowMap.aabbCenter.x() = getLength("aabbCenterX", false, shadowMap.aabbCenter.x(), false);
+    shadowMap.aabbCenter.y() = getLength("aabbCenterY", false, shadowMap.aabbCenter.y(), false);
+    shadowMap.aabbCenter.z() = getLength("aabbCenterZ", false, shadowMap.aabbCenter.z(), false);
+    shadowMap.aabbExtent.x() = getLength("aabbExtentX", true, 0.f, true);
+    shadowMap.aabbExtent.y() = getLength("aabbExtentY", true, 0.f, true);
+    shadowMap.aabbExtent.z() = getLength("aabbExtentZ", true, 0.f, true);
+  }
+  else
+  {
+    for(const char* name : {"aabbCenterX", "aabbCenterY", "aabbCenterZ"})
+      if(attributes->find(name) != attributes->end())
+        handleError(std::string("The attribute ") + name + " requires the attribute aabbExtentX, aabbExtentY and aabbExtentZ", attributes->find(name)->second.nameLocation);
+    shadowMap.autoFit = true;
+    shadowMap.aabbExtent = Vector3f::Ones();
+  }
   return nullptr;
 }
 

@@ -159,6 +159,12 @@ public:
   void clearDepth();
 
   /**
+   * Draws the sky (if the scene has one and the current rendering is lit) behind everything that is drawn afterwards.
+   * Must be called between \c startRendering and \c finishRendering, before the scene is drawn.
+   */
+  void drawSky();
+
+  /**
    * Accesses the QOpenGLContext used for rendering. It can be used for creating further QOpenGLContexts with shared display lists and textures.
    * @return The QOpenGLContext used for rendering
    */
@@ -265,6 +271,13 @@ private:
 
     std::array<Shader, 10> shaders; /**< Shaders for different settings (shared between contexts within a share group). */
     std::array<DrawingShader, numOfDrawingShaders> drawingShaders; /**< Shaders for controller drawings (shared between contexts within a share group). */
+    GLuint skyProgram = 0; /**< The program that draws the sky (0 if there is none; shared between contexts within a share group). */
+    GLuint backdropProgram = 0; /**< The program that draws the backdrop (0 if there is none; shared between contexts within a share group). */
+    GLuint environmentTexture = 0; /**< The cube map of the backdrop (0 if there is none; shared between contexts within a share group). */
+    GLuint skyVAO = 0; /**< A VAO without attributes for drawing the sky. This exists per context. */
+    GLuint skyUniformUBO = 0; /**< The UBO with the values for drawing the sky. This exists per context. */
+    GLuint skyLightUBO = 0; /**< The UBO with the values for lighting from the sky. This exists per context. */
+    std::uint64_t uploadedSkyGeneration = 0; /**< The value of \c skyGeneration that \c skyLightUBO was filled for. */
 
     GLuint drawingVAO = 0; /**< The VAO of the vertices of controller drawings. This exists per context. */
     GLuint drawingVBO = 0; /**< The VBO of the vertices of controller drawings. This exists per context. */
@@ -383,6 +396,7 @@ private:
   static constexpr std::size_t surfaceMemorySize = 64; /**< Size of a surface in graphics memory (four vectors of four floats, see the Surface struct in the shaders). */
   static constexpr GLuint normalMapUnit = 9; /**< The texture unit of the normal map (after those of the albedo texture and the shadow maps). */
   static constexpr GLuint roughnessMapUnit = 10; /**< The texture unit of the roughness map. */
+  static constexpr GLuint environmentMapUnit = 11; /**< The texture unit of the cube map of the backdrop. */
 
   /**
    * Declares a vertex attribute of a VAO.
@@ -448,7 +462,11 @@ private:
 
   // Only valid between \c startRendering and \c finishRendering:
   Shader* shader = nullptr; /**< The currently selected shader. */
+  Matrix4f currentProjection = Matrix4f::Identity(); /**< The projection matrix of the current rendering. */
+  Matrix4f currentView = Matrix4f::Identity(); /**< The view matrix of the current rendering. */
   Matrix4f currentPV = Matrix4f::Identity(); /**< The product of the projection and view matrix of the current rendering. */
+  bool currentLighting = false; /**< Whether the current rendering is lit. */
+  bool currentFillPolygons = true; /**< Whether polygons are filled in the current rendering. */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides the surfaces of the instances of drawn lists. */
 
   // Offscreen rendering:

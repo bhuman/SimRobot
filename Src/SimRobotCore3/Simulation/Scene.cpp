@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "CoreModule.h"
 #include "Graphics/Environment.h"
+#include "Graphics/Sky.h"
 #include "Platform/Assert.h"
 #include "Simulation/Actuators/Actuator.h"
 #include "Simulation/Body.h"
@@ -20,6 +21,12 @@ void Scene::updateTransformations()
       body->updateTransformation();
     lastTransformationUpdateStep = Simulation::simulation->simulationStep;
   }
+}
+
+void Scene::updateSky(GraphicsContext& graphicsContext)
+{
+  if(environment && environment->sky)
+    environment->sky->update(graphicsContext);
 }
 
 void Scene::updateActuators()

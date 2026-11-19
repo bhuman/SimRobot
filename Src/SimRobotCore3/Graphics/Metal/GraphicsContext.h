@@ -167,6 +167,12 @@ public:
   /** Clears the depth buffer (between \c startExternalRendering and \c finishExternalRendering, but not between \c startRendering and \c finishRendering). */
   void clearDepth();
 
+  /**
+   * Draws the sky (if the scene has one and the current rendering is lit) behind everything that is drawn afterwards.
+   * Must be called between \c startRendering and \c finishRendering, before the scene is drawn.
+   */
+  void drawSky();
+
 private:
   /**
    * The resources of an off-screen render target of a specific size.
@@ -212,7 +218,7 @@ private:
    * @param multisample Whether the pipeline is used with render targets that have \c multisampleCount samples (otherwise 1).
    * @return The render pipeline state or \c nullptr if its creation failed.
    */
-  MTL::RenderPipelineState* createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample);
+  MTL::RenderPipelineState* createDrawingPipelineState(MTL::Library* library, const char* vertexName, const char* fragmentName, MTL::VertexDescriptor* vertexDescriptor, bool writeColor, bool multisample, bool opaque = false);
 
   /**
    * Creates a compute pipeline state.
@@ -248,6 +254,8 @@ private:
     instancePipeline, /**< Instances of a mesh with a color per instance. */
     imagePipeline, /**< A textured mesh. */
     clearDepthPipeline, /**< A triangle that covers everything and clears the depth buffer. */
+    skyPipeline, /**< A triangle that covers everything and draws the sky. */
+    backdropPipeline, /**< A triangle that covers everything and draws the backdrop. */
     numOfDrawingPipelineStates
   };
 
@@ -302,6 +310,7 @@ private:
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
   std::unordered_map<std::uint64_t, OffscreenTarget> offscreenTargets; /**< Off-screen render targets by encoded size. */
   MTL::CommandBuffer* pendingShadowMapCommandBuffer = nullptr; /**< The command buffer that renders the shadow maps if nobody has waited for it (or \c nullptr). */
+  MTL::Texture* environmentTexture = nullptr; /**< The cube map of the backdrop (with the prefiltered radiance in its levels). */
   std::size_t externalReferenceCounter = 0; /**< The number of registered external renderers. */
 
   // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
@@ -349,6 +358,9 @@ private:
   // Only valid between \c startRendering and \c finishRendering:
   MTL::RenderPipelineState* const* selectedPipelineStates = nullptr; /**< The pipeline states (per vertex type) of the current shader. */
   const MTL::RenderPipelineState* boundPipelineState = nullptr; /**< The pipeline state that is currently bound to the encoder (also used by \c drawDrawings). */
+  Matrix4f currentProjection = Matrix4f::Identity(); /**< The projection matrix of the current rendering. */
+  Matrix4f currentView = Matrix4f::Identity(); /**< The view matrix of the current rendering. */
+  bool currentLighting = false; /**< Whether the current rendering is lit. */
   const Surface* forcedSurface = nullptr; /**< The surface which overrides the surfaces of the instances of drawn lists. */
   bool modelMatrixBound = false; /**< Whether the current \c modelMatrixBuffer is bound to the encoder. */
 
