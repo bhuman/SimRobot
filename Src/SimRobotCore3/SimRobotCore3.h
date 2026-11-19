@@ -104,6 +104,7 @@ namespace SimRobotCore3
       enableDrawingsTransparentOcclusion = (1 << 9),
       enableDrawingsOcclusion = (1 << 10),
       showAsGlobalOrientation = (1 << 11),
+      showStars              = (1 << 12),
     };
 
     /** Virtual destructor */

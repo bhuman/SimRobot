@@ -5,6 +5,7 @@
  */
 
 #include "SimObjectRenderer.h"
+#include "Graphics/StarChart.h"
 #include "Platform/Assert.h"
 #include "Platform/System.h"
 #include "Simulation/Body.h"
@@ -122,6 +123,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   const bool drawDragPlane = dragging && dragSelection;
   const bool drawCoordinateSystem = renderFlags & showCoordinateSystem;
   const bool drawControllerDrawings = physicalObject && drawingsShadeMode != noShading;
+  const bool drawStars = (renderFlags & showStars) && drawAppearances && Simulation::simulation->graphicsContext.getStarRotation();
 
   GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
   if(drawAppearances)
@@ -220,11 +222,16 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   }
 
   // draw controller drawings
-  if(drawControllerDrawings)
+  if(drawControllerDrawings || drawStars)
   {
     GraphicsContext::DrawingList drawings;
-    if(physicalObject)
+    if(drawControllerDrawings)
       physicalObject->collectPhysicalDrawings(drawings);
+    if(drawStars)
+    {
+      static const StarChart starChart;
+      starChart.addTo(drawings, *graphicsContext.getStarRotation(), -viewMatrix.topLeftCorner<3, 3>().transpose() * viewMatrix.topRightCorner<3, 1>(), viewMatrix.block<1, 3>(1, 0).transpose());
+    }
     // This is also done without drawings, so that the textures of drawings that have been removed are released.
     graphicsContext.prepareDrawings(drawings);
     if(!drawings.items.empty())

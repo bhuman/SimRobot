@@ -593,6 +593,8 @@ QMenu* SimObjectWidget::createUserMenu() const
 
   addRenderFlagAction("Show &Coordinate System", "Show the coordinate system of the displayed object", SimRobotCore3::Renderer::showCoordinateSystem, ":/Icons/icons8-coordinate-system-50.png");
   addRenderFlagAction("Show &Sensors", "Show the values of the sensors in the scene view", SimRobotCore3::Renderer::showSensors, ":/Icons/icons8-speed-50.png");
+  if(Simulation::simulation->graphicsContext.getStarRotation())
+    addRenderFlagAction("Show Star &Names", "Show the names of the brightest stars and the lines of some constellations in the sky", SimRobotCore3::Renderer::showStars);
 
   menu->addSeparator();
 

@@ -590,6 +590,17 @@ public:
   const float* getClearColor() const {return clearColor;}
 
   /**
+   * Returns the rotation from directions in the scene to directions in the frame of the equator (for the stars).
+   * @return The rotation, or nothing if the scene has no sky.
+   */
+  std::optional<Matrix3f> getStarRotation() const
+  {
+    if(!hasSky)
+      return std::nullopt;
+    return sky.stars;
+  }
+
+  /**
    * Requests a vertex buffer that is filled by the client.
    * @tparam VertexType The vertex type to be stored in the buffer.
    * @return The new vertex buffer. The graphics context retains ownership of the object.
