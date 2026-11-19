@@ -141,6 +141,18 @@ private:
   void paintEvent(QPaintEvent* event) override;
   void closeEvent(QCloseEvent* event) override;
   void timerEvent(QTimerEvent* event) override;
+
+  /**
+   * Determines the minimum time between two updates of the widgets.
+   * @return The time in milliseconds (compared with "greater than")
+   */
+  unsigned int getGuiUpdateInterval() const;
+
+  /**
+   * Makes the window note when the widget has finished a frame (if it tells).
+   * @param widget The widget of an opened object
+   */
+  void connectFrameFinished(QWidget* widget);
   void dragEnterEvent(QDragEnterEvent* event) override;
   void dropEvent(QDropEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
@@ -167,6 +179,7 @@ private slots:
   void updateMenuAndToolBar();
 
   void setGuiUpdateRate(int rate);
+  void frameFinished();
 
   void open();
   bool closeFile();

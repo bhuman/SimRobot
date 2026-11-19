@@ -22,6 +22,8 @@
 #include <QLibrary>
 #include <QToolButton>
 #include <QCloseEvent>
+#include <QMetaMethod>
+#include <QScreen>
 #include <QUrl>
 #include <QTimer>
 #include <QWidget>
@@ -35,6 +37,7 @@
 #else
 #include <ctime>
 #endif
+#include <cmath>
 #include <iostream>
 
 #ifdef MACOS
@@ -272,6 +275,7 @@ bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object
       QWidget* qWidget = widget->getWidget();
       Q_ASSERT(qWidget->parent() == dockWidget);
       dockWidget->setFocusProxy(qWidget);
+      connectFrameFinished(qWidget);
       if(sceneGraphDockWidget)
         sceneGraphDockWidget->setOpened(&object, true);
 
@@ -394,7 +398,7 @@ void MainWindow::timerEvent(QTimerEvent* event)
 
   // update gui
   const unsigned int now = getSystemTime();
-  if(!running || now - lastGuiUpdate > static_cast<unsigned int>(guiUpdateRate))
+  if(!running || now - lastGuiUpdate > getGuiUpdateInterval())
   {
     lastGuiUpdate = now;
     for(RegisteredDockWidget* dockWidget : openedObjectsByName)
@@ -914,6 +918,40 @@ void MainWindow::updateAddonMenu()
   }
 }
 
+unsigned int MainWindow::getGuiUpdateInterval() const
+{
+  if(guiUpdateRate > 0)
+    return static_cast<unsigned int>(guiUpdateRate);
+  // "Every Frame" means once per refresh of the display (as soon as the last frame is finished, see frameFinished):
+  // Redrawing after each simulation step would make the main thread wait for the display each time (when the window
+  // is presented), which slows the simulation down to a fraction of the refresh rate.
+  // The interval is compared with "greater than", so it is one less than the duration of a refresh rounded up.
+  const QScreen* const screen = this->screen();
+  const double refreshRate = screen ? screen->refreshRate() : 60.0;
+  return refreshRate > 1.0 ? static_cast<unsigned int>(std::ceil(1000.0 / refreshRate)) - 1 : 0;
+}
+
+void MainWindow::connectFrameFinished(QWidget* widget)
+{
+  // Widgets that render with the GPU tell when their frame was presented.
+  const QMetaObject* metaObject = widget->metaObject();
+  const QMetaMethod slot = staticMetaObject.method(staticMetaObject.indexOfSlot("frameFinished()"));
+  for(const char* signal : {"frameSubmitted()", "frameSwapped()"})
+  {
+    const int index = metaObject->indexOfSignal(signal);
+    if(index >= 0)
+      connect(widget, metaObject->method(index), this, slot);
+  }
+}
+
+void MainWindow::frameFinished()
+{
+  // A frame can take longer than the update interval, because presenting it waits for the display. The interval
+  // starts after that, so that the simulation can run in the meantime and the next frame does not have to wait.
+  if(guiUpdateRate == 0)
+    lastGuiUpdate = getSystemTime();
+}
+
 void MainWindow::setGuiUpdateRate(int rate)
 {
   guiUpdateRate = rate;
@@ -1232,6 +1270,7 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
     QWidget* qWidget = widget->getWidget();
     Q_ASSERT(qWidget->parent() == dockWidget);
     dockWidget->setFocusProxy(qWidget);
+    connectFrameFinished(qWidget);
   }
 
   Q_ASSERT(openedObjectsByName.value(fullName) == 0);

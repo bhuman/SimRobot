@@ -822,6 +822,7 @@ void GraphicsContext::createDeviceResources()
 void GraphicsContext::destroyDeviceResources()
 {
   waitForOffscreenRendering(numOfSubmissions);
+  waitForShadowMaps();
   for(MTL::Buffer* buffer : mtlReadbackBuffers)
     buffer->release();
   mtlReadbackBuffers.clear();
@@ -903,17 +904,26 @@ void GraphicsContext::destroyGraphics(const QRhiNativeHandles*)
   --externalReferenceCounter;
 }
 
-void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool, bool force)
+void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force)
 {
   ASSERT(!commandBuffer);
   ASSERT(!encoder);
 
-  if(shadowMaps.empty() || (!force && lastShadowMapUpdate == Simulation::simulation->simulationStep))
+  if(shadowMaps.empty())
     return;
+  if(!force && lastShadowMapUpdate == Simulation::simulation->simulationStep)
+  {
+    // The shadow maps of this step may have been rendered for off-screen renderings, which do not wait for them.
+    if(!offscreen)
+      waitForShadowMaps();
+    return;
+  }
   lastShadowMapUpdate = Simulation::simulation->simulationStep;
 
-  // The shadow maps are rendered with a separate command buffer, which is completed before the function returns. This way,
-  // no render pass of an external renderer is interrupted and the shadow maps are ready when they are used.
+  // The shadow maps are rendered with a separate command buffer, so that no render pass of an external renderer is
+  // interrupted. For an external renderer (which uses another command queue), it is completed before the function returns,
+  // so that the shadow maps are ready when they are used. Off-screen renderings use the same command queue, so they are
+  // executed after it (Metal tracks the dependency on the shadow maps), and the CPU does not have to wait.
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
   commandBuffer = commandQueue->commandBuffer();
   renderDepthOnly = true;
@@ -931,11 +941,29 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool, 
     encoder = nullptr;
   }
   commandBuffer->commit();
-  commandBuffer->waitUntilCompleted();
+  // A command buffer on the same queue is completed after the ones that were committed before it.
+  if(pendingShadowMapCommandBuffer)
+  {
+    pendingShadowMapCommandBuffer->release();
+    pendingShadowMapCommandBuffer = nullptr;
+  }
+  if(offscreen)
+    pendingShadowMapCommandBuffer = commandBuffer->retain();
+  else
+    commandBuffer->waitUntilCompleted();
   commandBuffer = nullptr;
   renderingShadowMap = false;
   renderDepthOnly = false;
   pool->release();
+}
+
+void GraphicsContext::waitForShadowMaps()
+{
+  if(!pendingShadowMapCommandBuffer)
+    return;
+  pendingShadowMapCommandBuffer->waitUntilCompleted();
+  pendingShadowMapCommandBuffer->release();
+  pendingShadowMapCommandBuffer = nullptr;
 }
 
 MTL::PrimitiveType GraphicsContext::getPrimitiveType(PrimitiveTopology topology)

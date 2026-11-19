@@ -62,10 +62,11 @@ public:
   /**
    * Renders the shadow maps of all lights that have one. This must be called while no rendering is in progress
    * (neither external nor offscreen) and after the model matrices of everything that casts shadows were updated.
-   * The shadow maps are rendered with a command buffer of this graphics context, which is completed before the function returns,
-   * so this also works while a render pass of a QRhi is being recorded.
+   * The shadow maps are rendered with a command buffer of this graphics context, so this also works while a render pass of a
+   * QRhi is being recorded. For a QRhi (not off-screen), it is completed before the function returns. For off-screen renderings,
+   * which use the same command queue and are executed after it, it is not (a later call for a QRhi waits for it).
    * @param draw A function that draws everything that casts shadows (the appearances of the scene) in the current rendering pass.
-   * @param offscreen Whether to render for an off-screen rendering (it makes no difference with this graphics API).
+   * @param offscreen Whether to render for an off-screen rendering (otherwise for an external renderer).
    * @param force Whether the shadow maps are also rendered if they were already updated in the current simulation step.
    */
   void updateShadowMaps(const std::function<void()>& draw, bool offscreen, bool force);
@@ -169,6 +170,9 @@ private:
   {
     MTL::RenderPassDescriptor* renderPass = nullptr; /**< The render pass descriptor (which retains the attachments). */
   };
+
+  /** Waits until the command buffer that renders the shadow maps (if it has not been waited for) has been completed. */
+  void waitForShadowMaps();
 
   /** Creates all resources on the device. */
   void createDeviceResources();
@@ -287,6 +291,7 @@ private:
   std::uint64_t numOfSubmissions = 0; /**< The number of off-screen renderings that have been submitted. */
   MTL::DepthStencilState* depthStencilState = nullptr; /**< The depth test configuration. */
   std::unordered_map<std::uint64_t, OffscreenTarget> offscreenTargets; /**< Off-screen render targets by encoded size. */
+  MTL::CommandBuffer* pendingShadowMapCommandBuffer = nullptr; /**< The command buffer that renders the shadow maps if nobody has waited for it (or \c nullptr). */
   std::size_t externalReferenceCounter = 0; /**< The number of registered external renderers. */
 
   // Only valid between \c start(External|Offscreen)Rendering and \c finish(External|Offscreen)Rendering:
