@@ -199,7 +199,8 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawPhysics || drawSensors)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
-    physicalObject->drawPhysicsCached(graphicsContext, renderFlags | (physicsShadeMode != noShading ? showPhysics : 0));
+    // A stale showPhysics bit in the render flags must not show the physics when the physics rendering is off.
+    physicalObject->drawPhysicsCached(graphicsContext, (renderFlags & showSensors) | (physicsShadeMode != noShading ? showPhysics : 0));
     graphicsContext.finishRendering();
   }
 
