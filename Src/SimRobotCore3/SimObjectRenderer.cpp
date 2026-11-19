@@ -74,9 +74,9 @@ void SimObjectRenderer::destroy(const QRhiNativeHandles* nativeHandles)
 }
 
 #ifdef SIMROBOTCORE3_USE_OPENGL
-void SimObjectRenderer::draw()
+void SimObjectRenderer::prepare()
 #else
-void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
+void SimObjectRenderer::prepare(const QRhiNativeHandles* nativeHandles)
 #endif
 {
   // make sure transformations of movable bodies are up-to-date
@@ -161,11 +161,35 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawCoordinateSystem)
     graphicsContext.updateModelMatrices(GraphicsContext::ModelMatrix::origin, true);
 
-  const Matrix4f viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
+  viewMatrix = (Matrix4f() << invCameraPose.rotation, invCameraPose.translation, Eigen::RowVector3f::Zero(), 1.f).finished();
 
   // The shadow maps contain the whole scene (not only the displayed object).
   if(drawAppearances && (renderFlags & enableLights))
+  {
     graphicsContext.updateShadowMaps([&]{Simulation::simulation->scene->drawAppearances(graphicsContext);}, false, dragging && dragSelection);
+#ifndef SIMROBOTCORE3_USE_OPENGL
+    graphicsContext.waitForShadowMaps(nativeHandles);
+#endif
+  }
+}
+
+#ifdef SIMROBOTCORE3_USE_OPENGL
+void SimObjectRenderer::draw()
+#else
+void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
+#endif
+{
+  PhysicalObject* physicalObject = dynamic_cast<PhysicalObject*>(&simObject);
+  GraphicalObject* graphicalObject = dynamic_cast<GraphicalObject*>(&simObject);
+
+  const bool drawAppearances = graphicalObject && surfaceShadeMode != noShading;
+  const bool drawPhysics = physicalObject && (physicsShadeMode != noShading);
+  const bool drawSensors = physicalObject && (renderFlags & showSensors);
+  const bool drawDragPlane = dragging && dragSelection;
+  const bool drawCoordinateSystem = renderFlags & showCoordinateSystem;
+  const bool drawControllerDrawings = physicalObject && drawingsShadeMode != noShading;
+
+  GraphicsContext& graphicsContext = Simulation::simulation->graphicsContext;
 
   graphicsContext.startExternalRendering(
 #ifndef SIMROBOTCORE3_USE_OPENGL

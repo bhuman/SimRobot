@@ -40,6 +40,7 @@ private:
   Pose3f cameraTransformation;
   float fovY = 40.f;
   Matrix4f projection;
+  Matrix4f viewMatrix; /**< The view matrix (set by \c prepare and used by \c draw). */
 
   ShadeMode surfaceShadeMode = smoothShading;
   ShadeMode physicsShadeMode = noShading;
@@ -75,10 +76,12 @@ public:
 #ifndef SIMROBOTCORE3_USE_OPENGL
   void init(const QRhiNativeHandles* nativeHandles) override;
   void destroy(const QRhiNativeHandles* nativeHandles) override;
+  void prepare(const QRhiNativeHandles* nativeHandles) override;
   void draw(const QRhiNativeHandles* nativeHandles) override;
 #else
   void init() override;
   void destroy() override;
+  void prepare() override;
   void draw() override;
 #endif
   void resize(float fovY, unsigned int width, unsigned int height) override;

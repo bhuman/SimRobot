@@ -125,6 +125,7 @@ void SimObjectWidget::initializeGL()
 
 void SimObjectWidget::paintGL()
 {
+  objectRenderer.prepare();
   objectRenderer.draw();
 }
 
@@ -174,6 +175,10 @@ void SimObjectWidget::initialize(QRhiCommandBuffer*)
 void SimObjectWidget::render(QRhiCommandBuffer* commandBuffer)
 {
   ASSERT(rhi() == initializedRhi);
+  // The shadow maps are rendered with another command buffer, which this one has to wait for before its render pass begins.
+  commandBuffer->beginExternal();
+  objectRenderer.prepare(commandBuffer->nativeHandles());
+  commandBuffer->endExternal();
   commandBuffer->beginPass(textureRenderTarget.get(), backgroundColor, {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent);
   commandBuffer->beginExternal();
   objectRenderer.draw(commandBuffer->nativeHandles());
@@ -665,6 +670,7 @@ void SimObjectWidget::exportAsImage(int width, int height)
       QOpenGLFramebufferObject framebuffer(width, height, framebufferFormat);
       framebuffer.bind();
       f->glViewport(0, 0, width, height);
+      objectRenderer.prepare();
       objectRenderer.draw();
       image = framebuffer.toImage();
       framebuffer.release();
@@ -697,6 +703,9 @@ void SimObjectWidget::exportAsImage(int width, int height)
       QRhiReadbackResult readbackResult;
       QRhiResourceUpdateBatch* resourceUpdates = rhi->nextResourceUpdateBatch();
       resourceUpdates->readBackTexture(colorTexture.get(), &readbackResult);
+      commandBuffer->beginExternal();
+      objectRenderer.prepare(commandBuffer->nativeHandles());
+      commandBuffer->endExternal();
       commandBuffer->beginPass(renderTarget.get(), QColor(0, 0, 0, 0), {1.f, 0}, nullptr, QRhiCommandBuffer::BeginPassFlag::ExternalContent); // transparent like with OpenGL
       commandBuffer->beginExternal();
       objectRenderer.draw(commandBuffer->nativeHandles());

@@ -559,6 +559,7 @@ void GraphicsContext::createDeviceResources()
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
 
   commandQueue = device->newCommandQueue();
+  shadowMapEvent = device->newEvent();
 
   // The readback buffers are shared with the CPU, which reads them directly.
   mtlReadbackBuffers.reserve(readbackBuffers.size());
@@ -878,6 +879,8 @@ void GraphicsContext::destroyDeviceResources()
     indexBuffer->release();
   if(vertexBuffer)
     vertexBuffer->release();
+  shadowMapEvent->release();
+  shadowMapEvent = nullptr;
   commandQueue->release();
   device->release();
 
@@ -912,8 +915,14 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool, 
     return;
   lastShadowMapUpdate = Simulation::simulation->simulationStep;
 
-  // The shadow maps are rendered with a separate command buffer, which is completed before the function returns. This way,
-  // no render pass of an external renderer is interrupted and the shadow maps are ready when they are used.
+  // The shadow maps are rendered with a separate command buffer, so that no render pass of an external renderer is
+  // interrupted. Nobody waits for it on the CPU: Off-screen renderings use the same command queue, so they are executed
+  // after it (Metal tracks the dependency on the shadow maps), and an external renderer (which uses another command queue)
+  // waits for the event that the command buffer signals (see \c waitForShadowMaps).
+  // The opposite hazard is not synchronized explicitly: The next shadow map update may overwrite the textures while the
+  // command buffer of a 3D view of the previous step still reads them (that is on another queue). This relies on the
+  // hazard tracking of Metal for the textures (they are tracked resources, and the render passes declare their use with
+  // \c useResource), which is not documented to work across command queues.
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
   commandBuffer = commandQueue->commandBuffer();
   renderDepthOnly = true;
@@ -930,12 +939,23 @@ void GraphicsContext::updateShadowMaps(const std::function<void()>& draw, bool, 
     encoder->endEncoding();
     encoder = nullptr;
   }
+  commandBuffer->encodeSignalEvent(shadowMapEvent, ++shadowMapEventValue);
   commandBuffer->commit();
-  commandBuffer->waitUntilCompleted();
   commandBuffer = nullptr;
   renderingShadowMap = false;
   renderDepthOnly = false;
   pool->release();
+}
+
+void GraphicsContext::waitForShadowMaps(const QRhiNativeHandles* nativeHandles)
+{
+  const auto* commandBufferHandles = static_cast<const QRhiMetalCommandBufferNativeHandles*>(nativeHandles);
+  ASSERT(commandBufferHandles);
+  ASSERT(commandBufferHandles->commandBuffer);
+  ASSERT(!commandBufferHandles->encoder);
+  if(shadowMaps.empty())
+    return;
+  reinterpret_cast<MTL::CommandBuffer*>(commandBufferHandles->commandBuffer)->encodeWait(shadowMapEvent, shadowMapEventValue);
 }
 
 MTL::PrimitiveType GraphicsContext::getPrimitiveType(PrimitiveTopology topology)

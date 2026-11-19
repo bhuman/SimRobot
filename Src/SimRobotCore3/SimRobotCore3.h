@@ -125,7 +125,19 @@ namespace SimRobotCore3
     ) = 0;
 
     /**
-     * Draws the scene object on the currently selected OpenGL context or into the current render pass of the given RHI
+     * Prepares drawing the scene object: Updates what \c draw needs and renders what has to be rendered outside of its
+     * render pass (the shadow maps). Must be called before \c draw for each frame, on the currently selected OpenGL context
+     * or, with an RHI, outside of a render pass of the given RHI command buffer (\c QRhiCommandBuffer::nativeHandles
+     * between \c beginExternal and \c endExternal, before \c beginPass).
+     */
+    virtual void prepare(
+#ifndef SIMROBOTCORE3_USE_OPENGL
+      const QRhiNativeHandles*
+#endif
+    ) = 0;
+
+    /**
+     * Draws the scene object (after \c prepare) on the currently selected OpenGL context or into the current render pass of the given RHI
      * command buffer (\c QRhiCommandBuffer::nativeHandles between \c beginExternal and \c endExternal).
      * With an RHI, the render target must have an RGBA8 color attachment and a D32F depth attachment. Their sample count
      * must be the multisample count of the graphics API if the multisample render flag is set, otherwise 1.
