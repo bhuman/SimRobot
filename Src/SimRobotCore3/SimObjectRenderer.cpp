@@ -199,7 +199,7 @@ void SimObjectRenderer::draw(const QRhiNativeHandles* nativeHandles)
   if(drawPhysics || drawSensors)
   {
     graphicsContext.startRendering(projection, viewMatrix, -1, -1, -1, -1, renderFlags & enableLights, renderFlags & enableTextures, physicsShadeMode == smoothShading, physicsShadeMode != wireframeShading);
-    physicalObject->drawPhysics(graphicsContext, renderFlags | (physicsShadeMode != noShading ? showPhysics : 0));
+    physicalObject->drawPhysics(graphicsContext, (drawPhysics ? PhysicalObject::physicalPrimitives : 0) | (drawSensors ? PhysicalObject::sensorShapes : 0));
     graphicsContext.finishRendering();
   }
 

@@ -77,10 +77,10 @@ bool SingleDistanceSensor::DistanceSensor::getMinAndMax(float& min, float& max) 
   return true;
 }
 
-void SingleDistanceSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void SingleDistanceSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
-  if(flags & SimRobotCore3::Renderer::showSensors)
+  if(parts & sensorShapes)
     graphicsContext.draw(ray, modelMatrix, surface);
 
-  Sensor::recordPhysics(graphicsContext, flags);
+  Sensor::recordPhysics(graphicsContext, parts);
 }

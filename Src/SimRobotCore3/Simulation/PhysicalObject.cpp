@@ -41,18 +41,16 @@ void PhysicalObject::createPhysics(GraphicsContext& graphicsContext)
   }
 }
 
-void PhysicalObject::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void PhysicalObject::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
   for(const PhysicalObject* drawing : physicalDrawings)
-    drawing->recordPhysics(graphicsContext, flags);
+    drawing->recordPhysics(graphicsContext, parts);
 }
 
-void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void PhysicalObject::drawPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
-  // Only these flags change what is drawn.
-  flags &= SimRobotCore3::Renderer::showPhysics | SimRobotCore3::Renderer::showSensors;
-  if(flags)
-    graphicsContext.drawList(graphicsContext.getDrawList({this, flags}, [&]{recordPhysics(graphicsContext, flags);}));
+  if(parts)
+    graphicsContext.drawList(graphicsContext.getDrawList({this, parts}, [&]{recordPhysics(graphicsContext, parts);}));
 }
 
 void PhysicalObject::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

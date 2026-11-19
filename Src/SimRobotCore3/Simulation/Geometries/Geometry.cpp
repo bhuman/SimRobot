@@ -88,12 +88,12 @@ void Geometry::createPhysics(GraphicsContext& graphicsContext)
   surface = graphicsContext.requestSurface(color, color[3]);
 }
 
-void Geometry::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Geometry::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
-  if(flags & SimRobotCore3::Renderer::showPhysics && mesh)
+  if(parts & physicalPrimitives && mesh)
     graphicsContext.draw(mesh, modelMatrix, surface);
 
-  ::PhysicalObject::recordPhysics(graphicsContext, flags);
+  ::PhysicalObject::recordPhysics(graphicsContext, parts);
 }
 
 bool Geometry::registerCollisionCallback(SimRobotCore3::CollisionCallback& collisionCallback)

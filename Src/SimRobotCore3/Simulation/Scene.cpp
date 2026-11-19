@@ -52,11 +52,11 @@ void Scene::recordAppearances(GraphicsContext& graphicsContext) const
   GraphicalObject::recordAppearances(graphicsContext);
 }
 
-void Scene::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Scene::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
   for(const Body* body : bodies)
-    body->recordPhysics(graphicsContext, flags);
-  ::PhysicalObject::recordPhysics(graphicsContext, flags);
+    body->recordPhysics(graphicsContext, parts);
+  ::PhysicalObject::recordPhysics(graphicsContext, parts);
 }
 
 void Scene::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

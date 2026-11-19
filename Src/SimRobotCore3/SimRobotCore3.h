@@ -94,11 +94,13 @@ namespace SimRobotCore3
     enum RenderFlags
     {
       enableLights           = (1 << 0),
+      // (1 << 1) is unused.
       enableTextures         = (1 << 2),
       enableMultisample      = (1 << 3),
-      showPhysics            = (1 << 4),
+      // (1 << 4) was showPhysics (the physics are drawn depending on the shade mode, see \c PhysicalObject::PhysicsParts).
       showCoordinateSystem   = (1 << 5),
       showSensors            = (1 << 6),
+      // (1 << 7) was showControllerDrawings (removed in a5a49e2f).
       showAsGlobalView       = (1 << 8),
       enableDrawingsTransparentOcclusion = (1 << 9),
       enableDrawingsOcclusion = (1 << 10),

@@ -101,10 +101,10 @@ void ObjectSegmentedImageSensor::ObjectSegmentedImageSensorPort::drawScene(Graph
   }));
 }
 
-void ObjectSegmentedImageSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void ObjectSegmentedImageSensor::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
-  if(flags & SimRobotCore3::Renderer::showSensors)
+  if(parts & sensorShapes)
     graphicsContext.draw(pyramid, modelMatrix, surface);
 
-  Sensor::recordPhysics(graphicsContext, flags);
+  Sensor::recordPhysics(graphicsContext, parts);
 }

@@ -166,17 +166,17 @@ void Body::recordAppearances(GraphicsContext& graphicsContext) const
     child->recordAppearances(graphicsContext);
 }
 
-void Body::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Body::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
   // draw center of mass
-  if(flags & SimRobotCore3::Renderer::showPhysics)
+  if(parts & physicalPrimitives)
     graphicsContext.draw(Simulation::simulation->bodyComSphereMesh, comModelMatrix, Simulation::simulation->bodyComSphereSurface);
 
   // draw children
-  ::PhysicalObject::recordPhysics(graphicsContext, flags);
+  ::PhysicalObject::recordPhysics(graphicsContext, parts);
 
   for(const Body* child : bodyChildren)
-    child->recordPhysics(graphicsContext, flags);
+    child->recordPhysics(graphicsContext, parts);
 }
 
 void Body::collectPhysicalDrawings(GraphicsContext::DrawingList& list) const

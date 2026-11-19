@@ -23,6 +23,13 @@ class GraphicsContext;
 class PhysicalObject : public SimObject
 {
 public:
+  /** The parts of a physical object that can be drawn (they can be combined). */
+  enum PhysicsParts : unsigned int
+  {
+    physicalPrimitives = 1 << 0, /**< The shapes of the physical primitives (geometries, joints, ...). */
+    sensorShapes = 1 << 1, /**< The shapes that visualize sensors (the field of view of a camera, the ray of a distance sensor, ...). */
+  };
+
   PhysicalObject* parent = nullptr; /**< The only parent of the primary object (or \c 0 in case that this is the root object) */
   Body* parentBody = nullptr; /**< The superior body object (might be 0) */
 
@@ -42,18 +49,18 @@ public:
    * Records draw calls for the physical primitives of the object (including children) in the draw list that the graphics
    * context is currently recording (see \c GraphicsContextBase::getDrawList).
    * @param graphicsContext The graphics context to record the draw calls in
-   * @param flags Flags to enable or disable certain features
+   * @param parts The parts of the object to record (see \c PhysicsParts)
    */
-  virtual void recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
+  virtual void recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const;
 
   /**
    * Draws the physical primitives of the object (including children) through a draw list of the graphics context, which
-   * is recorded by \c recordPhysics the first time (for each combination of flags) and then drawn with fewer draw calls.
+   * is recorded by \c recordPhysics the first time (for each combination of parts) and then drawn with fewer draw calls.
    * Must only be used after the scene has been created.
    * @param graphicsContext The graphics context to draw the object to
-   * @param flags Flags to enable or disable certain features
+   * @param parts The parts of the object to record (see \c PhysicsParts)
    */
-  void drawPhysics(GraphicsContext& graphicsContext, unsigned int flags) const;
+  void drawPhysics(GraphicsContext& graphicsContext, unsigned int parts) const;
 
   /**
    * Adds the drawings that controllers attached to this physical object (and its children) to a list

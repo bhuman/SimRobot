@@ -59,9 +59,9 @@ public:
    * Records draw calls for the physical primitives of the object (including children) in the draw list that the graphics
    * context is currently recording (see \c GraphicsContextBase::getDrawList).
    * @param graphicsContext The graphics context to record the draw calls in
-   * @param flags Flags to enable or disable certain features
+   * @param parts The parts of the object to record (see \c PhysicsParts)
    */
-  void recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const override;
+  void recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const override;
 
 private:
   /**

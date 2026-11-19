@@ -30,15 +30,15 @@ void Joint::createPhysics(GraphicsContext& graphicsContext)
   surface = graphicsContext.requestSurface(color);
 }
 
-void Joint::recordPhysics(GraphicsContext& graphicsContext, unsigned int flags) const
+void Joint::recordPhysics(GraphicsContext& graphicsContext, unsigned int parts) const
 {
-  if(flags & SimRobotCore3::Renderer::showPhysics)
+  if(parts & physicalPrimitives)
   {
     graphicsContext.draw(axisLine, modelMatrix, surface);
     graphicsContext.draw(sphere, modelMatrix, surface);
   }
 
-  Actuator::recordPhysics(graphicsContext, flags);
+  Actuator::recordPhysics(graphicsContext, parts);
 }
 
 void Joint::registerObjects()
