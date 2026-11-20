@@ -7,35 +7,33 @@
 #include "MainWindow.h"
 #include "SceneGraphDockWidget.h"
 #include "RegisteredDockWidget.h"
+#include "SimulationScheduler.h"
 #include "StatusBar.h"
 #include "Theme.h"
-
-#include <QApplication>
 #include <QAction>
+#include <QApplication>
+#include <QCloseEvent>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QLibrary>
 #include <QMenu>
 #include <QMenuBar>
-#include <QToolBar>
-#include <QFileInfo>
-#include <QFileDialog>
 #include <QMessageBox>
+#include <QMetaMethod>
 #include <QMimeData>
-#include <QLibrary>
-#include <QToolButton>
-#include <QCloseEvent>
-#include <QUrl>
+#include <QScreen>
 #include <QTimer>
+#include <QToolBar>
+#include <QToolButton>
+#include <QUrl>
 #include <QWidget>
 #ifdef WINDOWS
 #include <Windows.h>
 #elif defined MACOS
-#include <mach/mach_time.h>
 #ifdef FIX_MACOS_TOOLBAR_WIDGET_NOT_CLOSING
 #include <QWidgetAction>
 #endif
-#else
-#include <ctime>
 #endif
-#include <iostream>
 
 #ifdef MACOS
 #include <QPainter>
@@ -89,6 +87,27 @@ MainWindow::MainWindow(const char* argv0, bool headless) :
   headless(headless)
 {
   application = this;
+
+  scheduler = new SimulationScheduler(
+    [this]
+    {
+      for(LoadedModule* loadedModule : loadedModules)
+        loadedModule->module->update();
+    },
+    [this]
+    {
+      for(RegisteredDockWidget* dockWidget : openedObjectsByName)
+        if(dockWidget->isReallyVisible())
+          dockWidget->update();
+      if(statusBar->isVisible())
+        statusBar->update(!scheduler->isRunning());
+    },
+    [this]
+    {
+      const QScreen* const screen = this->screen();
+      return screen ? screen->refreshRate() : 60.;
+    },
+    this);
 
   // initialize main window attributes
   setWindowTitle(tr("SimRobot"));
@@ -238,22 +257,6 @@ unsigned int MainWindow::getAppLocationSum(const QString& appPath)
   return sum;
 }
 
-unsigned int MainWindow::getSystemTime()
-{
-#ifdef WINDOWS
-  return GetTickCount();
-#elif defined MACOS
-  static mach_timebase_info_data_t info = {0, 0};
-  if(info.denom == 0)
-    mach_timebase_info(&info);
-  return static_cast<unsigned>(mach_absolute_time() * (info.numer / info.denom) / 1000000);
-#else
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return static_cast<unsigned int>(ts.tv_sec * 1000 + ts.tv_nsec / 1000000l);
-#endif
-}
-
 bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object& object, const SimRobot::Object* parent, int flags)
 {
   if(sceneGraphDockWidget)
@@ -272,6 +275,7 @@ bool MainWindow::registerObject(const SimRobot::Module& module, SimRobot::Object
       QWidget* qWidget = widget->getWidget();
       Q_ASSERT(qWidget->parent() == dockWidget);
       dockWidget->setFocusProxy(qWidget);
+      connectFrameFinished(qWidget);
       if(sceneGraphDockWidget)
         sceneGraphDockWidget->setOpened(&object, true);
 
@@ -385,30 +389,6 @@ void MainWindow::closeEvent(QCloseEvent* event)
   }
 
   QMainWindow::closeEvent(event);
-}
-
-void MainWindow::timerEvent(QTimerEvent* event)
-{
-  for(LoadedModule* loadedModule : loadedModules)
-    loadedModule->module->update();
-
-  // update gui
-  const unsigned int now = getSystemTime();
-  if(!running || now - lastGuiUpdate > static_cast<unsigned int>(guiUpdateRate))
-  {
-    lastGuiUpdate = now;
-    for(RegisteredDockWidget* dockWidget : openedObjectsByName)
-      if(dockWidget->isReallyVisible())
-        dockWidget->update();
-    if(statusBar->isVisible())
-      statusBar->update();
-  }
-  if(!running)
-  {
-    Q_ASSERT(event->timerId() == timerId);
-    killTimer(timerId);
-    timerId = 0;
-  }
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
@@ -626,7 +606,7 @@ void MainWindow::updateViewMenu(QMenu* menu)
   {
     auto* action = viewUpdateRateMenu->addAction(tr(label));
     action->setCheckable(true);
-    action->setChecked(guiUpdateRate == updateRate);
+    action->setChecked(scheduler->getGuiUpdateInterval() == updateRate);
     viewUpdateRateActionGroup->addAction(action);
     connect(action, &QAction::triggered, this, [this, updateRate]{ setGuiUpdateRate(updateRate); });
   };
@@ -857,6 +837,19 @@ void MainWindow::addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool 
   }
 }
 
+void MainWindow::connectFrameFinished(QWidget* widget)
+{
+  // Widgets that render with the GPU tell when their frame was presented.
+  const QMetaObject* metaObject = widget->metaObject();
+  const QMetaMethod slot = scheduler->metaObject()->method(scheduler->metaObject()->indexOfSlot("frameFinished()"));
+  for(const char* signal : {"frameSubmitted()", "frameSwapped()"})
+  {
+    const int index = metaObject->indexOfSignal(signal);
+    if(index >= 0)
+      connect(widget, metaObject->method(index), scheduler, slot);
+  }
+}
+
 void MainWindow::updateFileMenu()
 {
   fileMenu->clear();
@@ -916,7 +909,7 @@ void MainWindow::updateAddonMenu()
 
 void MainWindow::setGuiUpdateRate(int rate)
 {
-  guiUpdateRate = rate;
+  scheduler->setGuiUpdateInterval(rate);
 }
 
 void MainWindow::open()
@@ -991,9 +984,8 @@ void MainWindow::openFile(const QString& fileName)
     statusBar->setVisible(layoutSettings.value("ShowStatus", true).toBool());
   }
   manuallyLoadedModules = layoutSettings.value("LoadedModules").toStringList();
-  guiUpdateRate = layoutSettings.value("GuiUpdateRate", -1).toInt();
-  if(guiUpdateRate < 0)
-    guiUpdateRate = 100;
+  const int guiUpdateRate = layoutSettings.value("GuiUpdateRate", -1).toInt();
+  scheduler->setGuiUpdateInterval(guiUpdateRate < 0 ? SimulationScheduler::defaultGuiUpdateInterval : guiUpdateRate);
 
   // load core module
   Q_ASSERT(!compiled);
@@ -1066,8 +1058,8 @@ bool MainWindow::closeFile()
     layoutSettings.setValue("OpenedObjects", openedObjects);
     layoutSettings.setValue("ActiveObject", activeDockWidget ? QVariant(activeDockWidget->objectName()) : QVariant());
     layoutSettings.setValue("LoadedModules", manuallyLoadedModules);
-    layoutSettings.setValue("Run", running);
-    layoutSettings.setValue("GuiUpdateRate", guiUpdateRate == 100 ? -1 : guiUpdateRate);
+    layoutSettings.setValue("Run", scheduler->isRunning());
+    layoutSettings.setValue("GuiUpdateRate", scheduler->getGuiUpdateInterval() == SimulationScheduler::defaultGuiUpdateInterval ? -1 : scheduler->getGuiUpdateInterval());
   }
 
   // delete menus from active window
@@ -1119,15 +1111,20 @@ bool MainWindow::closeFile()
     setWindowTitle(tr("SimRobot"));
     statusBar->setUserMessage(QString());
     compiled = false;
-    running = false;
-    if(timerId)
-    {
-      killTimer(timerId);
-      timerId = 0;
-    }
+    scheduler->reset();
   }
 
   return true;
+}
+
+bool MainWindow::isSimRunning()
+{
+  return scheduler->isRunning();
+}
+
+void MainWindow::setStepInterval(double seconds)
+{
+  scheduler->setStepInterval(seconds);
 }
 
 void MainWindow::simReset()
@@ -1142,31 +1139,27 @@ void MainWindow::simReset()
 void MainWindow::simStart()
 {
   simStartAct->setChecked(false);
-  if(running)
-    running = false;
+  if(scheduler->isRunning())
+    scheduler->stop();
   else
   {
     if(!compileModules())
       return;
-    running = true;
     simStartAct->setChecked(true);
-    if(!timerId)
-      timerId = startTimer(0);
+    scheduler->start();
   }
 }
 
 void MainWindow::simStep()
 {
-  if(running)
-    simStart(); // stop
-  if(!timerId)
-    timerId = startTimer(0);
+  simStartAct->setChecked(false);
+  scheduler->stepOnce();
 }
 
 void MainWindow::simStop()
 {
   simStartAct->setChecked(false);
-  running = false;
+  scheduler->stop();
 }
 
 void MainWindow::about()
@@ -1232,6 +1225,7 @@ void MainWindow::openObject(const QString& fullName, const SimRobot::Module* mod
     QWidget* qWidget = widget->getWidget();
     Q_ASSERT(qWidget->parent() == dockWidget);
     dockWidget->setFocusProxy(qWidget);
+    connectFrameFinished(qWidget);
   }
 
   Q_ASSERT(openedObjectsByName.value(fullName) == 0);

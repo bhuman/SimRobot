@@ -21,11 +21,6 @@
 #include <QString>
 #include <QVector>
 #include <cmath>
-#ifdef WINDOWS
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 /**
  *  The controller class for the factory demo.
  */
@@ -69,7 +64,8 @@ public:
   bool compile() override
   {
     // Get all necessary actuator and sensor objects
-    SimRobotCore3::Object* rootObj = static_cast<SimRobotCore3::Object*>(simRobot.resolveObject("Factory", SimRobotCore3::scene));
+    SimRobotCore3::Scene* const rootObj = static_cast<SimRobotCore3::Scene*>(simRobot.resolveObject("Factory", SimRobotCore3::scene));
+    simRobot.setStepInterval(rootObj->getStepLength());
     QVector<QString> parts;
     parts.resize(1);
     parts[0] = "distance1.distance";
@@ -205,11 +201,6 @@ public:
         currentState = nextState = MEASURING;
       }
     }
-#ifdef WINDOWS
-    Sleep(10);
-#else
-    usleep(10000);
-#endif
   };
 };
 

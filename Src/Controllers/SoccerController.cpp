@@ -8,8 +8,6 @@
 
 #include <SimRobotCore2D.h>
 #include <QString>
-#include <chrono>
-#include <thread>
 #include <vector>
 
 class SoccerController : public SimRobot::Module
@@ -33,7 +31,8 @@ protected:
     auto* const scene = dynamic_cast<SimRobotCore2D::Scene*>(simRobot.resolveObject(QString("RoboCup"), SimRobotCore2D::scene));
     if(!scene)
       return false;
-    stepLength = std::chrono::duration_cast<std::chrono::high_resolution_clock::duration>(std::chrono::duration<float>(scene->getStepLength()));
+    // Run in real time.
+    simRobot.setStepInterval(scene->getStepLength());
 
     SimRobot::Object* const robots = simRobot.resolveObject(QString("RoboCup.robots"), SimRobotCore2D::compound);
     if(!robots)
@@ -55,24 +54,11 @@ protected:
   /** Performs a simulation step in the controller. */
   void update() override
   {
-    // Delay real time to match simulated time.
-    const auto now = std::chrono::high_resolution_clock::now();
-    lastTime += stepLength;
-    if(lastTime > now)
-    {
-      if(lastTime > now + stepLength)
-        std::this_thread::sleep_for(lastTime - now - stepLength);
-    }
-    else if(now > lastTime + stepLength)
-      lastTime = now - stepLength;
-
     // ... play soccer ...
   }
 
 private:
   SimRobot::Application& simRobot; /**< The simulator instance. */
-  std::chrono::high_resolution_clock::duration stepLength; /**< The length of a simulation step. */
-  std::chrono::time_point<std::chrono::high_resolution_clock> lastTime; /**< The last time when \c update has been called. */
   std::vector<SimRobotCore2D::Body*> robots; /**< The robots in the scene. */
   SimRobotCore2D::Body* ball = nullptr; /**< The ball in the scene. */
 };

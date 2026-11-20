@@ -161,6 +161,13 @@ namespace SimRobot
     virtual void simStart() = 0;
     virtual void simStep() = 0;
     virtual void simStop() = 0;
+    /**
+     * Sets how long one simulation step (i.e. one call of \c Module::update) should take in real time.
+     * SimRobot paces the simulation accordingly, so a module must not wait for it itself, which would block the GUI.
+     * It can be called at any time.
+     * @param seconds The duration of a step in seconds. 0 is the default and means as fast as possible.
+     */
+    virtual void setStepInterval(double seconds) = 0;
     virtual void openFile(const QString& fileName) = 0;
   };
 }

@@ -1,6 +1,6 @@
-#include <QAction>
-
 #include "StatusBar.h"
+#include <QAction>
+#include <algorithm>
 
 StatusBar::StatusBar(QWidget* parent) : QStatusBar(parent), toggleViewAct(0)
 {
@@ -43,10 +43,23 @@ void StatusBar::setUserMessage(const QString& userMessage)
   latestMessage = userMessage;
 }
 
-void StatusBar::update()
+void StatusBar::update(bool force)
 {
-  for(QList<RegisteredLabel>::iterator it = registeredLabels.begin(), end = registeredLabels.end(); it != end; ++it)
-    it->label->update();
+  if(force || !labelTimer.isValid() || labelTimer.hasExpired(labelInterval))
+  {
+    labelTimer.start();
+    for(QList<RegisteredLabel>::iterator it = registeredLabels.begin(), end = registeredLabels.end(); it != end; ++it)
+    {
+      it->label->update();
+      // A new text of a label invalidates the layout of the window, which is then laid out and painted again.
+      // That would be one more frame (each presented when the display refreshes) per update. Hence, the size of a
+      // label is fixed, and it only grows.
+      QWidget* const widget = it->label->getWidget();
+      const QSize size = widget->sizeHint();
+      if(size.width() > widget->width() || size.height() != widget->height())
+        widget->setFixedSize(std::max(size.width(), widget->width()), size.height());
+    }
+  }
 
   QString currentMessage = this->currentMessage();
   if(currentMessage.isEmpty() || currentMessage == userMessage)

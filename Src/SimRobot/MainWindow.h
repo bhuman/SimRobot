@@ -6,17 +6,17 @@
 
 #pragma once
 
-#include <QMainWindow>
 #include <QActionGroup>
-#include <QSettings>
-#include <QSet>
 #include <QHash>
 #include <QLibrary>
-
+#include <QMainWindow>
+#include <QSet>
+#include <QSettings>
 #include "SimRobot.h"
 
-class SceneGraphDockWidget;
 class RegisteredDockWidget;
+class SceneGraphDockWidget;
+class SimulationScheduler;
 class StatusBar;
 
 class MainWindow : public QMainWindow, public SimRobot::Application
@@ -38,7 +38,6 @@ private:
 
   static QString getAppPath(const char* argv0);
   static unsigned int getAppLocationSum(const QString& appPath);
-  static unsigned int getSystemTime();
 
   class LoadedModule : public QLibrary
   {
@@ -51,7 +50,7 @@ private:
     LoadedModule(const QString& name) : QLibrary(name) {}
   };
 
-  int timerId = 0; /**< The id of the timer used to get something like an OnIdle callback function to update the simulation. */
+  SimulationScheduler* scheduler; /**< Decides when the simulation is stepped and the GUI is updated. */
 
   QAction* fileOpenAct;
   QAction* fileCloseAct;
@@ -88,11 +87,8 @@ private:
   const bool headless; /**< Started with --headless: the layout is neither restored nor saved, and the file is not remembered as recent. */
   bool opened = false;
   bool compiled = false;
-  bool running = false;
   bool resetting = false;
   bool layoutRestored = true;
-  int guiUpdateRate = 100;
-  unsigned int lastGuiUpdate = 0;
   QString filePath; /**< the path to the currently opened file */
 
   class RegisteredModule
@@ -140,7 +136,6 @@ private:
 
   void paintEvent(QPaintEvent* event) override;
   void closeEvent(QCloseEvent* event) override;
-  void timerEvent(QTimerEvent* event) override;
   void dragEnterEvent(QDragEnterEvent* event) override;
   void dropEvent(QDropEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
@@ -153,6 +148,12 @@ private:
   bool compileModules();
   void updateViewMenu(QMenu* menu);
   void addToolBarButtonsFromMenu(QMenu* menu, QToolBar* toolBar, bool addSeparator);
+
+  /**
+   * Makes the window note when the widget has finished a frame (if it tells).
+   * @param widget The widget of an opened object
+   */
+  void connectFrameFinished(QWidget* widget);
 
 public slots:
   void openFile(const QString& fileName) override;
@@ -182,10 +183,13 @@ private slots:
 
 public:
   // Provides information on whether the simulation is running or not
-  bool isSimRunning() override { return running; }
+  bool isSimRunning() override;
 
   // Provides information on whether the simulation is currently resetting
-  bool isSimResetting() override { return resetting; }
+  bool isSimResetting() override {return resetting;}
+
+  // Sets how long a simulation step should take in real time
+  void setStepInterval(double seconds) override;
 
 public slots:
   void simReset() override;
