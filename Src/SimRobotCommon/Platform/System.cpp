@@ -6,7 +6,7 @@
 #ifdef WINDOWS
 #include <Windows.h>
 #elif defined MACOS
-#include <mach/mach_time.h>
+#include <ctime>
 #include <unistd.h>
 #else
 #include <ctime>
@@ -20,10 +20,7 @@ unsigned int System::getTime()
 #ifdef WINDOWS
   return GetTickCount();
 #elif defined MACOS
-  static mach_timebase_info_data_t info = {0, 0};
-  if(info.denom == 0)
-    mach_timebase_info(&info);
-  return static_cast<unsigned>(mach_absolute_time() * (info.numer / info.denom) / 1000000);
+  return static_cast<unsigned>(clock_gettime_nsec_np(CLOCK_UPTIME_RAW) / 1000000);
 #else
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
