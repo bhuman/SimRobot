@@ -64,6 +64,18 @@ public:
     }
     QProxyStyle::drawItemText(painter, rectangle, alignment, palette, enabled, text, textRole);
   }
+
+  QIcon standardIcon(StandardPixmap sp, const QStyleOption* opt = nullptr,
+                     const QWidget* w = nullptr) const override
+  {
+    if(sp == SP_TitleBarCloseButton)
+    {
+      static const QIcon lightIcon(":/Icons/icons8-close-50.png");
+      static const QIcon darkIcon(":/Icons/icons8-close-dark-50.png");
+      return Theme::isDarkMode() ? darkIcon : lightIcon;
+    }
+    return QProxyStyle::standardIcon(sp, opt, w);
+  }
 };
 #else
 #define STYLE_NEW(dockWidget) (dockWidget)->setStyleSheet((dockWidget) == activeDockWidget ? "QDockWidget {font-weight: bold;}" : "");
@@ -667,9 +679,7 @@ void MainWindow::updateMenuAndToolBar()
   for(QDockWidget* dockWidget : findChildren<QDockWidget*>())
   {
     const bool vertical = (dockWidget->features() & QDockWidget::DockWidgetVerticalTitleBar) != 0;
-    dockWidget->setStyleSheet("QDockWidget {titlebar-close-icon: url(:/Icons/icons8-close"
-                              + QString(Theme::isDarkMode() ? "-dark" : "") + "-50.png)}"
-                              "QDockWidget::title {text-align: center;"
+    dockWidget->setStyleSheet("QDockWidget::title {text-align: center;"
                                 "padding-" + QString(vertical ? "bottom" : "left") + ": 3px;"
                                 "background: transparent}"
                               "QDockWidget::close-button {border: 0px; border-radius: 4px; background: transparent; subcontrol-origin: content; subcontrol-position: "
